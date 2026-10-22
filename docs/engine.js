@@ -659,162 +659,290 @@ function drawOrbitalPhenomenonAndSatellites(ctx, orbitalPhenomenon, satellites, 
   }
 }
 
-function drawPowerUps(ctx, powerUps, time, beatPulse, isConstellationActive) {
-  for (let i = 0; i < powerUps.length; i++) {
-    const pu = powerUps[i];
-    const fadeIn = Math.min(1, pu.age / 0.4);
-    const fadeOut = Math.min(1, (pu.maxLifetime - pu.age) / 1.2);
-    const puAlpha = Math.max(0, Math.min(1, fadeIn * fadeOut));
-    let puColor;
-    switch (pu.type) {
-      case "SHIELD": puColor = [56, 189, 248]; break;
-      case "SLOW_MO": puColor = [168, 85, 247]; break;
-      case "SCORE_ORB": puColor = isConstellationActive ? [253, 224, 71] : [250, 204, 21]; break;
-      case "OVERDRIVE": puColor = [244, 63, 94]; break;
-      case "MAGNET": puColor = [52, 211, 153]; break;
-      default: puColor = [250, 204, 21];
+function drawPowerUps(ctx, powerUps, playerX, playerY, time, trackSec, beatPulse, isConstellationActive, multiBand) {
+  if (!powerUps || powerUps.length === 0) return;
+
+  const sorted = powerUps.slice().sort((a, b) => (a.sequenceIndex || 0) - (b.sequenceIndex || 0));
+  const primaryTarget = sorted[0];
+
+  // 1. Direct Hero -> Primary Target Orb Harmonic Guidance Beam
+  if (primaryTarget) {
+    const isPrimarySupernova = primaryTarget.isSupernova || primaryTarget.keyWordEffect !== "NONE";
+    const guideCol = isPrimarySupernova ? [250, 204, 21] : [34, 211, 238];
+    const gdx = primaryTarget.x - playerX;
+    const gdy = primaryTarget.y - playerY;
+    const gDist = Math.hypot(gdx, gdy);
+
+    if (gDist > 36) {
+      const beamGrad = ctx.createLinearGradient(playerX, playerY, primaryTarget.x, primaryTarget.y);
+      beamGrad.addColorStop(0, rgba(guideCol, 0.14 + beatPulse * 0.16));
+      beamGrad.addColorStop(1, rgba(guideCol, isPrimarySupernova ? 0.55 : 0.36));
+
+      ctx.beginPath();
+      ctx.moveTo(playerX, playerY);
+      ctx.lineTo(primaryTarget.x, primaryTarget.y);
+      ctx.strokeStyle = beamGrad;
+      ctx.lineWidth = isPrimarySupernova ? 2.8 : 1.8;
+      ctx.lineCap = "round";
+      ctx.stroke();
+
+      // Beat-synced guide photon racing along the beam from Hero to Target Orb
+      const photonT = ((time * 2.2) % 1);
+      ctx.beginPath();
+      ctx.arc(playerX + gdx * photonT, playerY + gdy * photonT, isPrimarySupernova ? 3.8 : 2.6, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(255, 255, 255, 0.92)";
+      ctx.fill();
     }
 
-    const pulseScale = 1 + 0.16 * Math.sin(time * 6 + pu.age * 4) + beatPulse * 0.18;
+    // 2. Preview tether from Primary Target Orb to the Next Upcoming Beat Orb
+    if (sorted.length >= 2) {
+      const nextOrb = sorted[1];
+      ctx.beginPath();
+      ctx.moveTo(primaryTarget.x, primaryTarget.y);
+      ctx.lineTo(nextOrb.x, nextOrb.y);
+      ctx.strokeStyle = "rgba(56, 189, 248, 0.25)";
+      ctx.lineWidth = 1.4;
+      ctx.lineCap = "round";
+      ctx.stroke();
+    }
+  }
+
+  // 3. Render Each Collectible Orb with 100% Visual Clarity & Distinction
+  for (let idx = 0; idx < sorted.length; idx++) {
+    const pu = sorted[idx];
+    const isPrimary = idx === 0;
     const isScoreOrb = pu.type === "SCORE_ORB";
-    const baseRadius = isScoreOrb ? pu.radius * 1.55 : pu.radius * 1.15;
+    const isSupernova = isScoreOrb && (pu.isSupernova || pu.keyWordEffect !== "NONE");
 
-    // 1. Comet ribbon tail behind traveling collectibles
-    const speedSq = pu.vx * pu.vx + pu.vy * pu.vy;
-    if (speedSq > 400) {
-      const speed = Math.sqrt(speedSq);
-      const dirX = pu.vx / speed;
-      const dirY = pu.vy / speed;
-      const tailLen = isScoreOrb ? baseRadius * (3.6 + beatPulse * 1.2) : baseRadius * 2.6;
-      const tailEndX = pu.x - dirX * tailLen;
-      const tailEndY = pu.y - dirY * tailLen;
-      const tailGrad = ctx.createLinearGradient(pu.x, pu.y, tailEndX, tailEndY);
-      tailGrad.addColorStop(0, rgba(puColor, 0.65 * puAlpha));
-      tailGrad.addColorStop(1, "rgba(0,0,0,0)");
-      ctx.beginPath();
-      ctx.moveTo(pu.x, pu.y);
-      ctx.lineTo(tailEndX, tailEndY);
-      ctx.strokeStyle = tailGrad;
-      ctx.lineWidth = baseRadius * 0.95;
-      ctx.lineCap = "round";
-      ctx.stroke();
+    const fadeIn = Math.min(1, pu.age / 0.35);
+    const fadeOut = Math.min(1, (pu.maxLifetime - pu.age) / 1.0);
+    const puAlpha = Math.max(0, Math.min(1, fadeIn * fadeOut));
+    if (puAlpha <= 0.01) continue;
 
-      ctx.beginPath();
-      ctx.moveTo(pu.x, pu.y);
-      ctx.lineTo(pu.x - dirX * tailLen * 0.65, pu.y - dirY * tailLen * 0.65);
-      ctx.strokeStyle = rgba([255, 255, 255], 0.75 * puAlpha);
-      ctx.lineWidth = baseRadius * 0.32;
-      ctx.lineCap = "round";
-      ctx.stroke();
-    }
-
-    // 2. Beat-Timing Target Ring around Score Orbs
+    let effectCol;
     if (isScoreOrb) {
-      const targetRatio = Math.max(0.22, Math.min(1, 1 - (pu.age / (pu.maxLifetime * 0.65))));
-      const ringRad = baseRadius * (1.05 + targetRatio * 1.35);
-      const isSweetSpot = targetRatio >= 0.25 && targetRatio <= 0.55;
-      ctx.beginPath();
-      ctx.arc(pu.x, pu.y, ringRad, 0, Math.PI * 2);
-      ctx.strokeStyle = rgba(isSweetSpot ? [74, 222, 128] : [254, 240, 138], (isSweetSpot ? 0.85 : 0.42) * puAlpha);
-      ctx.lineWidth = isSweetSpot ? 4 : 2.2;
-      ctx.stroke();
+      switch (pu.keyWordEffect) {
+        case "TRACTOR_REACH": effectCol = [34, 211, 238]; break; // Cyan
+        case "PRISM_SHATTER": effectCol = [232, 121, 249]; break; // Magenta
+        case "MAGNETAR_WAR": effectCol = [251, 113, 133]; break; // Coral Rose
+        case "CONSTELLATION_STAR": effectCol = [250, 204, 21]; break; // 24K Gold
+        case "BINARY_HEART": effectCol = [74, 222, 128]; break; // Emerald
+        case "ECLIPSE_DARK": effectCol = [253, 224, 71]; break; // Solar Yellow
+        default: effectCol = isSupernova ? [250, 204, 21] : [6, 182, 212];
+      }
+    } else {
+      switch (pu.type) {
+        case "SHIELD": effectCol = [56, 189, 248]; break;
+        case "SLOW_MO": effectCol = [168, 85, 247]; break;
+        case "OVERDRIVE": effectCol = [244, 63, 94]; break;
+        case "MAGNET": effectCol = [52, 211, 153]; break;
+        default: effectCol = [250, 204, 21];
+      }
     }
 
-    // 3. Multi-layered Supernova Halo
-    const haloRad = baseRadius * 2.5 * pulseScale;
-    const haloGrad = ctx.createRadialGradient(pu.x, pu.y, 2, pu.x, pu.y, haloRad);
-    haloGrad.addColorStop(0, rgba([255, 255, 255], 0.95 * puAlpha));
-    haloGrad.addColorStop(0.35, rgba(puColor, 0.72 * puAlpha));
-    haloGrad.addColorStop(0.7, rgba(puColor, 0.22 * puAlpha));
-    haloGrad.addColorStop(1, "rgba(0,0,0,0)");
+    const popInScale = Math.min(1.0, 0.45 + (pu.age / 0.25) * 0.55);
+    const beatPulseScale = 1.0 + (isSupernova ? 0.38 : 0.26) * beatPulse;
+    const coreRad = (pu.radius || 20) * popInScale * beatPulseScale * (isPrimary ? 1.06 : 0.88);
+
+    // 0. Traveling Harmonic Comet Wake trailing behind flight vector (-cos, -sin)
+    const moveAngle = pu.angle !== undefined ? pu.angle : Math.atan2(pu.vy, pu.vx);
+    const tailDirX = -Math.cos(moveAngle);
+    const tailDirY = -Math.sin(moveAngle);
+    const perpX = -tailDirY;
+    const perpY = tailDirX;
+    const tailSegs = isSupernova ? 6 : 5;
+
+    for (let seg = 1; seg <= tailSegs; seg++) {
+      const t = seg / tailSegs;
+      const dist = t * (isSupernova ? 64 : 42);
+      const sway = Math.sin(time * 7 - seg * 0.7 + (pu.phase || 0)) * (t * 7);
+      const tx = pu.x + tailDirX * dist + perpX * sway;
+      const ty = pu.y + tailDirY * dist + perpY * sway;
+      const tailCol = isScoreOrb ? (isSupernova ? [250, 204, 21] : [6, 182, 212]) : effectCol;
+
+      ctx.beginPath();
+      ctx.arc(tx, ty, coreRad * (1 - t * 0.7) * 0.48, 0, Math.PI * 2);
+      ctx.fillStyle = rgba(tailCol, (1 - t) * 0.52 * puAlpha);
+      ctx.fill();
+    }
+
+    // Converging Beat Timing Ring (contracts onto the orb core on every beat!)
+    const ringRadius = coreRad * (1.04 + (1 - beatPulse) * (isSupernova ? 1.65 : 1.30));
+    const isOnBeatWindow = beatPulse > 0.45;
     ctx.beginPath();
-    ctx.arc(pu.x, pu.y, haloRad, 0, Math.PI * 2);
-    ctx.fillStyle = haloGrad;
-    ctx.fill();
+    ctx.arc(pu.x, pu.y, ringRadius, 0, Math.PI * 2);
+    ctx.strokeStyle = rgba(isOnBeatWindow ? [250, 204, 21] : effectCol, (isOnBeatWindow ? 0.95 : 0.65) * puAlpha);
+    ctx.lineWidth = isOnBeatWindow ? 3.6 : 2.0;
+    ctx.stroke();
 
-    // 4. Counter-Rotating Sacred Gyroscope Rings & 8-Point Solar Flare Spikes
-    const rotA = (time * 145 + pu.age * 90) % 360;
-    const rotB = (-time * 190 - pu.age * 60) % 360;
+    if (isSupernova) {
+      // -----------------------------------------------------------------------
+      // SPECIAL BEAT-DROP SUPERNOVA ORB (24K Gold & Prismatic Gyroscope Star!)
+      // -----------------------------------------------------------------------
+      // Volumetric Radial Halo
+      const haloGrad = ctx.createRadialGradient(pu.x, pu.y, 2, pu.x, pu.y, coreRad * 2.5);
+      haloGrad.addColorStop(0, rgba([255, 255, 255], 0.98 * puAlpha));
+      haloGrad.addColorStop(0.35, rgba(effectCol, 0.82 * puAlpha));
+      haloGrad.addColorStop(0.70, rgba([250, 204, 21], 0.45 * puAlpha));
+      haloGrad.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.beginPath();
+      ctx.arc(pu.x, pu.y, coreRad * 2.5, 0, Math.PI * 2);
+      ctx.fillStyle = haloGrad;
+      ctx.fill();
 
-    if (isScoreOrb) {
+      // 8 Pulsing Solar Flare Spikes
       const spikeCount = 8;
-      for (let s = 0; s < spikeCount; s++) {
-        const aRad = (rotA + s * (360 / spikeCount)) * Math.PI / 180;
-        const spikeLen = baseRadius * (s % 2 === 0 ? 1.55 + beatPulse * 0.35 : 1.15);
+      for (let sIdx = 0; sIdx < spikeCount; sIdx++) {
+        const ang = (sIdx * (Math.PI / 4)) + time * 0.7;
+        const isMajor = sIdx % 2 === 0;
+        const spikeLen = coreRad * (isMajor ? (2.1 + 0.55 * beatPulse) : (1.45 + 0.28 * beatPulse));
         ctx.beginPath();
-        ctx.moveTo(pu.x - Math.cos(aRad) * spikeLen, pu.y - Math.sin(aRad) * spikeLen);
-        ctx.lineTo(pu.x + Math.cos(aRad) * spikeLen, pu.y + Math.sin(aRad) * spikeLen);
-        ctx.strokeStyle = rgba(s % 2 === 0 ? [254, 249, 195] : puColor, 0.78 * puAlpha);
-        ctx.lineWidth = s % 2 === 0 ? 3.2 : 1.8;
+        ctx.moveTo(pu.x - Math.cos(ang) * spikeLen, pu.y - Math.sin(ang) * spikeLen);
+        ctx.lineTo(pu.x + Math.cos(ang) * spikeLen, pu.y + Math.sin(ang) * spikeLen);
+        ctx.strokeStyle = rgba(isMajor ? [255, 254, 235] : effectCol, 0.88 * puAlpha);
+        ctx.lineWidth = isMajor ? 3.0 : 1.8;
         ctx.lineCap = "round";
         ctx.stroke();
       }
-    }
 
-    ctx.beginPath();
-    ctx.arc(pu.x, pu.y, baseRadius * 1.12, rotA * Math.PI / 180, (rotA + 120) * Math.PI / 180);
-    ctx.strokeStyle = rgba([255, 255, 255], 0.85 * puAlpha);
-    ctx.lineWidth = 3;
-    ctx.lineCap = "round";
-    ctx.stroke();
+      // Counter-Rotating Outer Sacred Geometry Gyroscope Ring #1
+      ctx.save();
+      ctx.translate(pu.x, pu.y);
+      ctx.rotate((time * 115 * Math.PI) / 180);
+      const g1 = coreRad * 0.92;
+      ctx.strokeStyle = rgba([250, 204, 21], 0.92 * puAlpha);
+      ctx.lineWidth = 2.6;
+      roundRectPath(ctx, -g1, -g1, g1 * 2, g1 * 2, g1 * 0.22);
+      ctx.stroke();
+      ctx.restore();
 
-    ctx.beginPath();
-    ctx.arc(pu.x, pu.y, baseRadius * 1.12, (rotA + 180) * Math.PI / 180, (rotA + 300) * Math.PI / 180);
-    ctx.stroke();
+      // Counter-Rotating Inner Sacred Geometry Gyroscope Ring #2
+      ctx.save();
+      ctx.translate(pu.x, pu.y);
+      ctx.rotate((-time * 140 * Math.PI) / 180 + 0.78);
+      const g2 = coreRad * 0.68;
+      ctx.strokeStyle = rgba(effectCol, 0.95 * puAlpha);
+      ctx.lineWidth = 2.4;
+      roundRectPath(ctx, -g2, -g2, g2 * 2, g2 * 2, g2 * 0.18);
+      ctx.stroke();
+      ctx.restore();
 
-    ctx.beginPath();
-    ctx.arc(pu.x, pu.y, baseRadius * 0.86, rotB * Math.PI / 180, (rotB + 240) * Math.PI / 180);
-    ctx.strokeStyle = rgba(puColor, 0.92 * puAlpha);
-    ctx.lineWidth = 2.4;
-    ctx.stroke();
-
-    // 5. Faceted Octagram / Diamond Core
-    ctx.beginPath();
-    const vertices = isScoreOrb ? 8 : 6;
-    for (let v = 0; v < vertices; v++) {
-      const angle = (rotA * 0.6 + v * (360 / vertices)) * Math.PI / 180;
-      const r = v % 2 === 0 ? baseRadius * 0.72 : baseRadius * 0.44;
-      const vx = pu.x + Math.cos(angle) * r;
-      const vy = pu.y + Math.sin(angle) * r;
-      if (v === 0) ctx.moveTo(vx, vy);
-      else ctx.lineTo(vx, vy);
-    }
-    ctx.closePath();
-    ctx.fillStyle = rgba(puColor, 0.92 * puAlpha);
-    ctx.fill();
-    ctx.strokeStyle = rgba([255, 255, 255], 0.95 * puAlpha);
-    ctx.lineWidth = 2.2;
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.arc(pu.x, pu.y, baseRadius * 0.3, 0, Math.PI * 2);
-    ctx.fillStyle = rgba([255, 255, 255], 0.98 * puAlpha);
-    ctx.fill();
-  }
-}
-
-function drawEnemyTelegraphs(ctx, enemies, canvasWidth, canvasHeight) {
-  for (let i = 0; i < enemies.length; i++) {
-    const e = enemies[i];
-    const margin = e.radius * 1.5;
-    if (e.x < -margin || e.x > canvasWidth + margin || e.y < -margin || e.y > canvasHeight + margin) {
-      const ix = Math.max(24, Math.min(canvasWidth - 24, e.x));
-      const iy = Math.max(24, Math.min(canvasHeight - 24, e.y));
-      let indicatorCol;
-      switch (e.type) {
-        case "SEEKER": indicatorCol = [244, 63, 94]; break;
-        case "PULSAR": indicatorCol = [250, 204, 21]; break;
-        default: indicatorCol = [168, 85, 247];
-      }
+      // Blazing White-Gold Singularity Core
       ctx.beginPath();
-      ctx.arc(ix, iy, 12, 0, Math.PI * 2);
-      ctx.fillStyle = rgba(indicatorCol, 0.45);
+      ctx.arc(pu.x, pu.y, coreRad * 0.46, 0, Math.PI * 2);
+      ctx.fillStyle = rgba([250, 204, 21], 0.98 * puAlpha);
       ctx.fill();
+
       ctx.beginPath();
-      ctx.arc(ix, iy, 5, 0, Math.PI * 2);
+      ctx.arc(pu.x, pu.y, coreRad * 0.28, 0, Math.PI * 2);
+      ctx.fillStyle = "#FFFFFF";
+      ctx.fill();
+
+    } else if (isScoreOrb) {
+      // -----------------------------------------------------------------------
+      // REGULAR BEAT ORB: Clean Cyan-Emerald Beat-Pulsing Pearl
+      // -----------------------------------------------------------------------
+      const grad = ctx.createRadialGradient(pu.x, pu.y, 2, pu.x, pu.y, coreRad * 1.85);
+      grad.addColorStop(0, rgba([255, 255, 255], 0.92 * puAlpha));
+      grad.addColorStop(0.40, rgba(effectCol, 0.68 * puAlpha));
+      grad.addColorStop(0.75, rgba([16, 185, 129], 0.28 * puAlpha));
+      grad.addColorStop(1, "rgba(0,0,0,0)");
+
+      ctx.beginPath();
+      ctx.arc(pu.x, pu.y, coreRad * 1.85, 0, Math.PI * 2);
+      ctx.fillStyle = grad;
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.arc(pu.x, pu.y, coreRad * 0.58, 0, Math.PI * 2);
+      ctx.fillStyle = rgba(effectCol, 0.92 * puAlpha);
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.arc(pu.x, pu.y, coreRad * 0.30, 0, Math.PI * 2);
+      ctx.fillStyle = "#FFFFFF";
+      ctx.fill();
+
+    } else {
+      // -----------------------------------------------------------------------
+      // SPECIAL SUPPORT POWER-UP (Aegis Shield, Chrono, Overdrive, Magnet)
+      // -----------------------------------------------------------------------
+      const grad = ctx.createRadialGradient(pu.x, pu.y, 2, pu.x, pu.y, coreRad * 2.0);
+      grad.addColorStop(0, rgba([255, 255, 255], 0.95 * puAlpha));
+      grad.addColorStop(0.45, rgba(effectCol, 0.75 * puAlpha));
+      grad.addColorStop(1, "rgba(0,0,0,0)");
+
+      ctx.beginPath();
+      ctx.arc(pu.x, pu.y, coreRad * 2.0, 0, Math.PI * 2);
+      ctx.fillStyle = grad;
+      ctx.fill();
+
+      // Outer geometric badge frame
+      const rot = (time * 90 * Math.PI) / 180;
+      ctx.save();
+      ctx.translate(pu.x, pu.y);
+      ctx.rotate(rot);
+      ctx.strokeStyle = rgba(effectCol, 0.95 * puAlpha);
+      ctx.lineWidth = 2.4;
+      roundRectPath(ctx, -coreRad * 0.75, -coreRad * 0.75, coreRad * 1.5, coreRad * 1.5, coreRad * 0.3);
+      ctx.stroke();
+      ctx.restore();
+
+      ctx.beginPath();
+      ctx.arc(pu.x, pu.y, coreRad * 0.36, 0, Math.PI * 2);
       ctx.fillStyle = "#FFFFFF";
       ctx.fill();
     }
+  }
+}
+
+function drawEnemyTelegraphs(ctx, telegraphs, time, beatPulse) {
+  if (!telegraphs || telegraphs.length === 0) return;
+
+  for (let i = 0; i < telegraphs.length; i++) {
+    const tg = telegraphs[i];
+    const progress = Math.max(0, Math.min(1, 1 - tg.timer / tg.maxTimer));
+    const urgencyPulse = 0.65 + 0.35 * Math.sin(time * 24);
+    const warnCol = [255, 30, 66]; // High-contrast Crimson
+
+    // 1. Projected Crimson Trajectory Sightline showing where enemy will lunge
+    const lineLen = 220 + beatPulse * 45;
+    const endX = tg.edgeX + Math.cos(tg.targetAngle) * lineLen;
+    const endY = tg.edgeY + Math.sin(tg.targetAngle) * lineLen;
+
+    const sightGrad = ctx.createLinearGradient(tg.edgeX, tg.edgeY, endX, endY);
+    sightGrad.addColorStop(0, rgba(warnCol, 0.75 + 0.25 * urgencyPulse));
+    sightGrad.addColorStop(0.5, rgba(warnCol, 0.35));
+    sightGrad.addColorStop(1, "rgba(0,0,0,0)");
+
+    ctx.save();
+    ctx.setLineDash([8, 8]);
+    ctx.beginPath();
+    ctx.moveTo(tg.edgeX, tg.edgeY);
+    ctx.lineTo(endX, endY);
+    ctx.strokeStyle = sightGrad;
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+    ctx.restore();
+
+    // 2. High-Contrast Crimson Warning Diamond (◆) on screen perimeter
+    const dSize = 15 + urgencyPulse * 4;
+    ctx.save();
+    ctx.translate(tg.edgeX, tg.edgeY);
+    ctx.rotate(Math.PI / 4);
+    ctx.fillStyle = rgba(warnCol, 0.95);
+    ctx.fillRect(-dSize / 2, -dSize / 2, dSize, dSize);
+    ctx.strokeStyle = "#FFFFFF";
+    ctx.lineWidth = 1.8;
+    ctx.strokeRect(-dSize / 2, -dSize / 2, dSize, dSize);
+    ctx.restore();
+
+    // 3. Countdown ring contracting onto the diamond
+    ctx.beginPath();
+    ctx.arc(tg.edgeX, tg.edgeY, (1 - progress) * 28 + 12, 0, Math.PI * 2);
+    ctx.strokeStyle = rgba([255, 183, 3], 0.85);
+    ctx.lineWidth = 2;
+    ctx.stroke();
   }
 }
 
@@ -1292,7 +1420,8 @@ class NoMoreIllusionsApp {
       trackMasteryMedals: JSON.parse(localStorage.getItem("nmi_track_medals") || '{"track_01":0,"track_02":0}'),
       lobbyThemeIndex: parseInt(localStorage.getItem("nmi_lobby_idx") || "0", 10),
       musicMuted: localStorage.getItem("nmi_music_muted") === "true",
-      sfxMuted: localStorage.getItem("nmi_sfx_muted") === "true"
+      sfxMuted: localStorage.getItem("nmi_sfx_muted") === "true",
+      seenHowToPlay: localStorage.getItem("nmi_seen_htp") === "true"
     };
 
     // Bitmaps Registry
@@ -1365,6 +1494,7 @@ class NoMoreIllusionsApp {
     this.wormholes = [];
     this.orbitalPhenomenon = null;
     this.satellites = [];
+    this.telegraphs = [];
 
     // Spawner & Chart Timers
     this.spawnTimer = 0;
@@ -1609,10 +1739,62 @@ class NoMoreIllusionsApp {
   // ==========================================================================
   // STAGE LAUNCH, PAUSE, REVIVE & COMPLETION
   // ==========================================================================
+    dismissHowToPlay(startImmediately = false) {
+    this.playSfx("click");
+    this.prefs.seenHowToPlay = true;
+    localStorage.setItem("nmi_seen_htp", "true");
+    if (startImmediately) {
+      this.launchStageCountdown();
+    } else {
+      this.openScreen("MENU");
+    }
+  }
+
   startStage(stageIndex = this.selectedStageIndex) {
     this.unlockAudioOnFirstGesture();
     this.playSfx("click");
     this.selectedStageIndex = stageIndex;
+
+    // Check if player has seen the How-To-Play guide
+    if (!this.prefs.seenHowToPlay) {
+      this.openScreen("HOW_TO_PLAY");
+      return;
+    }
+
+    this.launchStageCountdown();
+  }
+
+  launchStageCountdown() {
+    this.gameState = "COUNTDOWN";
+    this.syncUI();
+
+    const countdownEl = document.getElementById("screen-COUNTDOWN");
+    const countValEl = document.getElementById("countdown-val");
+    if (countdownEl) countdownEl.style.display = "flex";
+
+    let count = 3;
+    if (countValEl) countValEl.textContent = String(count);
+    this.playSfx("click", 0.7);
+
+    if (this.countdownTimerId) clearInterval(this.countdownTimerId);
+
+    this.countdownTimerId = setInterval(() => {
+      count--;
+      if (count > 0) {
+        if (countValEl) countValEl.textContent = String(count);
+        this.playSfx("click", 0.7);
+      } else if (count === 0) {
+        if (countValEl) countValEl.textContent = "GO!";
+        this.playSfx("orb", 0.85);
+      } else {
+        clearInterval(this.countdownTimerId);
+        if (countdownEl) countdownEl.style.display = "none";
+        this.executeStageRun();
+      }
+    }, 850);
+  }
+
+  executeStageRun() {
     const stage = OFFICIAL_TRACKS[this.selectedStageIndex] || OFFICIAL_TRACKS[0];
 
     this.score = 0;
@@ -1647,6 +1829,7 @@ class NoMoreIllusionsApp {
     this.wormholes = [];
     this.orbitalPhenomenon = null;
     this.satellites = [];
+    this.telegraphs = [];
 
     this.spawnTimer = 0;
     this.powerUpSpawnTimer = 0;
@@ -1868,7 +2051,7 @@ class NoMoreIllusionsApp {
 
     // 1. Pre-Mapped Beat-Orb Chart Spawner (Confide 115 cues / Number One 95 cues)
     const chart = stage.orbChart;
-    while (this.nextBeatCueIndex < chart.length && chart[this.nextBeatCueIndex].timeSec <= this.trackElapsedSec) {
+    while (this.nextBeatCueIndex < chart.length && (chart[this.nextBeatCueIndex].timestampSec || chart[this.nextBeatCueIndex].timeSec) <= this.trackElapsedSec) {
       const cue = chart[this.nextBeatCueIndex];
       this.nextBeatCueIndex++;
       this.spawnChartedOrb(cue);
@@ -1969,12 +2152,44 @@ class NoMoreIllusionsApp {
       }
     }
 
-    // 6. Enemy Spawner
-    const spawnInterval = Math.max(0.45, 1.35 - this.level * 0.06 - this.multiBandState.bass * 0.22);
+    // 6. 1:1 Telegraphed Enemy Spawner (Perimeter warning diamonds + laser sightlines!)
+    // Step active telegraphs
+    for (let i = this.telegraphs.length - 1; i >= 0; i--) {
+      const tg = this.telegraphs[i];
+      tg.timer -= worldDt;
+      if (tg.timer <= 0) {
+        // Launch telegraphed enemy into the arena!
+        this.enemies.push({
+          x: tg.edgeX,
+          y: tg.edgeY,
+          vx: Math.cos(tg.targetAngle) * tg.speed,
+          vy: Math.sin(tg.targetAngle) * tg.speed,
+          radius: tg.type === "PULSAR" ? 22 : 18,
+          type: tg.type,
+          phase: Math.random() * 6.28
+        });
+        this.shockwaves.push({
+          x: tg.edgeX,
+          y: tg.edgeY,
+          radius: 4,
+          maxRadius: 85,
+          color: [255, 30, 66],
+          alpha: 1
+        });
+        this.telegraphs.splice(i, 1);
+      }
+    }
+
+    // Initiate new telegraphs on the beat (never blindside the player!)
+    const maxEnemies = Math.min(6, 3 + Math.floor(this.level / 3));
     this.spawnTimer += worldDt;
-    if (this.spawnTimer >= spawnInterval && this.enemies.length < 18) {
+    const canSpawn = (this.enemies.length + this.telegraphs.length < maxEnemies) &&
+                     !this.multiBandState.bassDropOut &&
+                     (this.beatPulse > 0.40 || this.spawnTimer >= 2.0);
+
+    if (canSpawn && this.spawnTimer >= 1.1) {
       this.spawnTimer = 0;
-      this.spawnEnemy();
+      this.initiateEnemyTelegraph();
     }
 
     // 7. Update Wormholes & Check Teleportation
@@ -2157,7 +2372,41 @@ class NoMoreIllusionsApp {
   }
 
   spawnChartedOrb(cue) {
-    this.spawnTravelingCollectible("SCORE_ORB", cue.laneRatio, cue.speed * (cue.intensity > 1.1 ? 1.15 : 1.0));
+    const isSupernova = cue.isGoldenCue || (cue.keyWordEffect && cue.keyWordEffect !== "NONE");
+    const targetX = (cue.normX || 0.5) * this.W;
+    const targetY = (cue.normY || 0.5) * this.H;
+
+    // Pick entry perimeter edge
+    const edge = Math.floor(Math.random() * 4);
+    let startX, startY;
+    if (edge === 0) { startX = targetX + (Math.random() - 0.5) * 120; startY = -35; }
+    else if (edge === 1) { startX = targetX + (Math.random() - 0.5) * 120; startY = this.H + 35; }
+    else if (edge === 2) { startX = -35; startY = targetY + (Math.random() - 0.5) * 120; }
+    else { startX = this.W + 35; startY = targetY + (Math.random() - 0.5) * 120; }
+
+    const speed = isSupernova ? 165 : 195;
+    const angle = Math.atan2(targetY - startY, targetX - startX);
+
+    this.powerUps.push({
+      x: startX,
+      y: startY,
+      targetX,
+      targetY,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      speed,
+      angle,
+      radius: isSupernova ? 28 : 22,
+      type: "SCORE_ORB",
+      keyWordEffect: cue.keyWordEffect || (cue.isGoldenCue ? "CONSTELLATION_STAR" : "NONE"),
+      isSupernova,
+      sequenceIndex: cue.sequenceIndex || (this.powerUps.length + 1),
+      targetBeatSec: cue.timestampSec || this.trackElapsedSec,
+      spawnBeatSec: this.trackElapsedSec,
+      age: 0,
+      maxLifetime: 10.5,
+      phase: Math.random() * 6.28
+    });
   }
 
   spawnTravelingCollectible(type, laneRatio, speed) {
@@ -2322,6 +2571,31 @@ class NoMoreIllusionsApp {
     }
   }
 
+    initiateEnemyTelegraph() {
+    const edge = Math.floor(Math.random() * 4);
+    let edgeX, edgeY;
+    if (edge === 0) { edgeX = 36 + Math.random() * (this.W - 72); edgeY = 24; }
+    else if (edge === 1) { edgeX = 36 + Math.random() * (this.W - 72); edgeY = this.H - 24; }
+    else if (edge === 2) { edgeX = 24; edgeY = 80 + Math.random() * (this.H - 160); }
+    else { edgeX = this.W - 24; edgeY = 80 + Math.random() * (this.H - 160); }
+
+    // Target angle aims toward player's current general position with slight variation
+    const aimAngle = Math.atan2(this.playerY - edgeY, this.playerX - edgeX) + (Math.random() - 0.5) * 0.28;
+    const roll = Math.random();
+    const type = roll < 0.40 ? "PULSAR" : (roll < 0.72 ? "SEEKER" : "WANDERER");
+    const speed = (155 + this.level * 12) * (type === "SEEKER" ? 1.08 : 0.95);
+
+    this.telegraphs.push({
+      edgeX,
+      edgeY,
+      targetAngle: aimAngle,
+      speed,
+      type,
+      timer: 0.92, // 2-beat warning before launch
+      maxTimer: 0.92
+    });
+  }
+
   spawnEnemy() {
     const edge = Math.floor(Math.random() * 4);
     let x, y;
@@ -2445,8 +2719,8 @@ class NoMoreIllusionsApp {
       drawMotes(ctx, this.motes);
       drawPlayerTrail(ctx, this.trailPoints, this.trailLength, this.prefs.selectedTrail);
       drawShockwaves(ctx, this.shockwaves);
-      drawPowerUps(ctx, this.powerUps, this.time, this.beatPulse, this.constellationRushTimer > 0);
-      drawEnemyTelegraphs(ctx, this.enemies, this.W, this.H);
+      drawPowerUps(ctx, this.powerUps, this.playerX, this.playerY, this.time, this.trackElapsedSec, this.beatPulse, this.constellationRushTimer > 0, this.multiBandState);
+      drawEnemyTelegraphs(ctx, this.telegraphs, this.time, this.beatPulse);
 
       const enemyBmps = this.getEnemyBitmaps();
       for (let i = 0; i < this.enemies.length; i++) {
@@ -2662,7 +2936,7 @@ class NoMoreIllusionsApp {
 
   syncUI() {
     // Show only active screen overlay
-    const screens = ["MENU", "PLAYING", "PAUSED", "GAME_OVER", "TRACK_COMPLETED", "HOW_TO_PLAY", "SETTINGS", "DEMO_PLAYER", "CUSTOMIZER"];
+    const screens = ["MENU", "PLAYING", "PAUSED", "GAME_OVER", "TRACK_COMPLETED", "HOW_TO_PLAY", "SETTINGS", "DEMO_PLAYER", "CUSTOMIZER", "COUNTDOWN"];
     for (const s of screens) {
       const el = document.getElementById(`screen-${s}`);
       if (el) el.style.display = (this.gameState === s) ? "flex" : "none";
