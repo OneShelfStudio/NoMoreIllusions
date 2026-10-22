@@ -1,4 +1,4 @@
-const CACHE_NAME = "nmi-v5-ios-1to1-v5";
+const CACHE_NAME = "nmi-v5-ios-1to1-v6";
 const ASSETS = [
   "./",
   "./index.html",
@@ -17,7 +17,14 @@ const ASSETS = [
   "./assets/lobby_midnight.mp3",
   "./assets/lobby_crystal.mp3",
   "./assets/track_01.mp3",
-  "./assets/track_02.mp3"
+  "./assets/track_02.mp3",
+  "./assets/near_miss_woosh.wav",
+  "./assets/focus_activate.wav",
+  "./assets/pulse_hit.wav",
+  "./assets/victory_fanfare.wav",
+  "./assets/death.wav",
+  "./assets/level_up.wav",
+  "./assets/powerup.wav"
 ];
 
 self.addEventListener("install", (event) => {
