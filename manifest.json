@@ -1,0 +1,18 @@
+{
+  "name": "No More Illusions",
+  "short_name": "No More Illusions",
+  "description": "The Interactive Album Experience by No More Illusions — 126 BPM Audio-Reactive Arcade & Studio Vault.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#04020B",
+  "theme_color": "#04020B",
+  "icons": [
+    {
+      "src": "assets/nmi_logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

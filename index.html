@@ -1,0 +1,1119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="No More Illusions" />
+  <meta name="theme-color" content="#04020B" />
+  <title>No More Illusions — Interactive Album Experience</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="assets/nmi_logo.png" />
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #04020B;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: #F8FAFC;
+      touch-action: none;
+    }
+    #game-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 1;
+      display: block;
+    }
+    .screen-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 10;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      padding: calc(env(safe-area-inset-top, 12px) + 10px) 18px calc(env(safe-area-inset-bottom, 12px) + 10px) 18px;
+      pointer-events: none;
+    }
+    .screen-overlay > * {
+      pointer-events: auto;
+    }
+
+    /* ========================================================================
+       1. MENU SCREEN (1:1 Match with MenuScreen.kt)
+       ======================================================================== */
+    .menu-top-bar {
+      width: 100%;
+      max-width: 430px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .pill-currency {
+      background: rgba(14, 10, 31, 0.88);
+      border: 1px solid rgba(250, 204, 21, 0.48);
+      border-radius: 50px;
+      padding: 6px 13px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 900;
+      color: #F8FAFC;
+      cursor: pointer;
+    }
+    .pill-currency span.note {
+      color: #FACC15;
+      font-size: 14px;
+    }
+    .pill-lobby {
+      background: rgba(14, 10, 31, 0.88);
+      border: 1px solid rgba(192, 132, 252, 0.48);
+      border-radius: 50px;
+      padding: 6px 13px;
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: 0.9px;
+      color: #E9D5FF;
+      cursor: pointer;
+    }
+
+    .menu-center-hero {
+      width: 100%;
+      max-width: 430px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+    #menu-turntable-canvas {
+      width: 138px;
+      height: 138px;
+      display: block;
+      margin-bottom: 4px;
+    }
+    .title-3d-wrap {
+      position: relative;
+      margin: 2px 0 4px 0;
+    }
+    .title-3d-shadow {
+      position: absolute;
+      inset: 0;
+      transform: translate(2px, 2px);
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 29px;
+      font-weight: 900;
+      letter-spacing: 1.5px;
+      color: rgba(168, 85, 247, 0.55);
+      pointer-events: none;
+      white-space: nowrap;
+    }
+    .title-3d-main {
+      position: relative;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 29px;
+      font-weight: 900;
+      letter-spacing: 1.5px;
+      color: #F8FAFC;
+      text-shadow: 0 0 18px rgba(56, 189, 248, 0.72);
+      white-space: nowrap;
+    }
+    .subtitle-badge {
+      background: rgba(17, 13, 36, 0.92);
+      border: 1px solid rgba(56, 189, 248, 0.45);
+      border-radius: 50px;
+      padding: 4px 14px;
+      font-size: 9.5px;
+      font-weight: 900;
+      letter-spacing: 2.2px;
+      color: #38BDF8;
+      margin-bottom: 6px;
+    }
+    .best-score-line {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.4px;
+      color: #CBD5E1;
+    }
+    .best-score-line b {
+      color: #FACC15;
+      font-weight: 900;
+    }
+
+    /* Flagship Stage Console Card */
+    .console-card {
+      width: 100%;
+      max-width: 430px;
+      background: linear-gradient(180deg, rgba(20, 15, 45, 0.95), rgba(10, 7, 24, 0.97));
+      border: 1.5px solid rgba(56, 189, 248, 0.52);
+      border-radius: 22px;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.65);
+    }
+    .console-header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 9.5px;
+      font-weight: 900;
+      letter-spacing: 1.6px;
+    }
+    .stage-pills-row {
+      display: flex;
+      gap: 8px;
+      width: 100%;
+    }
+    .stage-pill {
+      flex: 1;
+      background: rgba(11, 8, 25, 0.85);
+      border: 1px solid rgba(100, 116, 139, 0.35);
+      border-radius: 14px;
+      padding: 8px 6px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.16s ease;
+    }
+    .stage-pill.selected {
+      background: rgba(30, 21, 66, 0.96);
+      border: 1.5px solid #38BDF8;
+      box-shadow: 0 0 14px rgba(56, 189, 248, 0.25);
+    }
+    .stage-pill-title {
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 0.7px;
+      color: #94A3B8;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .stage-pill.selected .stage-pill-title {
+      color: #38BDF8;
+    }
+    .stage-pill-sub {
+      font-size: 8.5px;
+      font-weight: 800;
+      letter-spacing: 0.8px;
+      margin-top: 2px;
+    }
+
+    .btn-launch-stage {
+      width: 100%;
+      height: 54px;
+      border-radius: 16px;
+      background: linear-gradient(90deg, #0EA5E9, #6366F1, #A855F7);
+      border: 1.5px solid rgba(255, 255, 255, 0.78);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 6px 20px rgba(99, 102, 241, 0.45);
+    }
+    .btn-launch-stage:active {
+      transform: scale(0.98);
+    }
+    .btn-launch-main {
+      font-size: 15.5px;
+      font-weight: 900;
+      letter-spacing: 2.2px;
+      color: #FFFFFF;
+    }
+    .btn-launch-sub {
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: 1.2px;
+      color: #E0F2FE;
+      margin-top: 1px;
+    }
+
+    .bento-row {
+      width: 100%;
+      max-width: 430px;
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .bento-tile {
+      flex: 1;
+      height: 46px;
+      border-radius: 14px;
+      background: rgba(16, 12, 34, 0.92);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+    .bento-tile:active {
+      transform: scale(0.97);
+    }
+    .bento-title {
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: 1px;
+    }
+    .bento-sub {
+      font-size: 8px;
+      font-weight: 700;
+      letter-spacing: 0.7px;
+      color: #94A3B8;
+      margin-top: 1px;
+    }
+
+    /* Social Brand Icons Footer (1:1 SocialBrandIcons.kt) */
+    .social-footer {
+      width: 100%;
+      max-width: 430px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+    .social-label {
+      font-size: 8.5px;
+      font-weight: 800;
+      letter-spacing: 1.8px;
+      color: #64748B;
+    }
+    .social-icons-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+    }
+    .social-circle-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: rgba(14, 10, 31, 0.92);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+      transition: transform 0.15s ease;
+    }
+    .social-circle-btn:active {
+      transform: scale(0.92);
+    }
+
+    /* ========================================================================
+       2. IN-GAME HUD (1:1 Match with GameHUD.kt & TrackRevealOverlay.kt)
+       ======================================================================== */
+    #screen-PLAYING {
+      justify-content: space-between;
+      pointer-events: none;
+    }
+    .hud-top-row {
+      width: 100%;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      pointer-events: none;
+    }
+    .hud-left-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      pointer-events: none;
+    }
+    .hud-score-chip {
+      background: rgba(12, 9, 26, 0.84);
+      border: 1.2px solid rgba(56, 189, 248, 0.55);
+      border-radius: 16px;
+      padding: 6px 14px;
+      display: inline-flex;
+      flex-direction: column;
+      min-width: 105px;
+    }
+    .hud-chip-label {
+      font-size: 9px;
+      font-weight: 900;
+      letter-spacing: 1.8px;
+      color: #38BDF8;
+    }
+    .hud-chip-val {
+      font-size: 24px;
+      font-weight: 900;
+      color: #F8FAFC;
+      line-height: 1.1;
+    }
+    .hud-sub-pills {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .hud-phase-pill {
+      background: rgba(12, 9, 26, 0.84);
+      border: 1px solid rgba(192, 132, 252, 0.52);
+      border-radius: 50px;
+      padding: 4px 11px;
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: 1.3px;
+      color: #C084FC;
+    }
+    .hud-combo-pill {
+      background: rgba(40, 26, 8, 0.90);
+      border: 1.2px solid #FACC15;
+      border-radius: 50px;
+      padding: 4px 11px;
+      font-size: 10.5px;
+      font-weight: 900;
+      letter-spacing: 1.1px;
+      color: #FACC15;
+      display: none;
+    }
+    .hud-pu-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      margin-top: 2px;
+    }
+    .pu-pill {
+      background: rgba(12, 9, 26, 0.86);
+      border: 1px solid #38BDF8;
+      border-radius: 50px;
+      padding: 3px 9px;
+      font-size: 9.5px;
+      font-weight: 900;
+      letter-spacing: 0.8px;
+    }
+
+    .hud-right-group {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      pointer-events: auto;
+    }
+    .track-reveal-card {
+      width: 92px;
+      background: rgba(12, 9, 26, 0.88);
+      border: 1px solid rgba(56, 189, 248, 0.42);
+      border-radius: 16px;
+      padding: 6px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      pointer-events: none;
+    }
+    .reveal-canvas-wrap {
+      position: relative;
+      width: 76px;
+      height: 76px;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    #hud-reveal-canvas {
+      width: 76px;
+      height: 76px;
+      display: block;
+    }
+    .reveal-pct-pill {
+      position: absolute;
+      bottom: 4px;
+      right: 4px;
+      background: rgba(5, 3, 12, 0.86);
+      border-radius: 6px;
+      padding: 1px 5px;
+      font-size: 9px;
+      font-weight: 900;
+      color: #38BDF8;
+    }
+    .reveal-track-name {
+      font-size: 8.5px;
+      font-weight: 900;
+      letter-spacing: 0.7px;
+      color: #F8FAFC;
+      margin-top: 4px;
+      text-align: center;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      width: 100%;
+    }
+    .reveal-track-rem {
+      font-size: 7.5px;
+      font-weight: 800;
+      color: #94A3B8;
+      margin-top: 1px;
+    }
+
+    .btn-pause-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: rgba(12, 9, 26, 0.85);
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      padding: 0;
+    }
+    .btn-pause-icon img {
+      width: 40px;
+      height: 40px;
+      object-fit: contain;
+    }
+
+    /* Choreographed Section Banner */
+    #hud-choreo-banner {
+      position: fixed;
+      top: 132px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(14, 10, 31, 0.90);
+      border: 1.5px solid #FACC15;
+      border-radius: 50px;
+      padding: 6px 20px;
+      text-align: center;
+      display: none;
+      pointer-events: none;
+      box-shadow: 0 0 20px rgba(250, 204, 21, 0.35);
+    }
+    #hud-choreo-title {
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 2px;
+      color: #FACC15;
+    }
+    #hud-choreo-sub {
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: 1.2px;
+      color: #E2E8F0;
+    }
+
+    /* Bottom-Right Focus Slow-Mo Button */
+    .hud-bottom-row {
+      width: 100%;
+      display: flex;
+      justify-content: flex-end;
+      pointer-events: none;
+    }
+    .btn-focus-wrap {
+      pointer-events: auto;
+      background: rgba(14, 10, 31, 0.90);
+      border: 1.5px solid rgba(192, 132, 252, 0.75);
+      border-radius: 18px;
+      padding: 8px 14px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      min-width: 112px;
+      cursor: pointer;
+    }
+    .btn-focus-label {
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: 1.4px;
+    }
+    .focus-bar-bg {
+      width: 84px;
+      height: 5px;
+      background: rgba(255, 255, 255, 0.14);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    #hud-focus-fill {
+      width: 100%;
+      height: 100%;
+      background: #C084FC;
+    }
+
+    /* ========================================================================
+       3. MODAL & FULL-SCREEN PANELS (Pause, GameOver, Vault, Studio Customizer)
+       ======================================================================== */
+    .modal-backdrop {
+      background: rgba(4, 2, 11, 0.82);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      justify-content: center;
+    }
+    .glass-modal-card {
+      width: 100%;
+      max-width: 410px;
+      max-height: 90vh;
+      overflow-y: auto;
+      background: linear-gradient(180deg, rgba(20, 15, 44, 0.96), rgba(10, 7, 24, 0.98));
+      border: 1.5px solid rgba(56, 189, 248, 0.48);
+      border-radius: 24px;
+      padding: 20px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      box-shadow: 0 18px 44px rgba(0, 0, 0, 0.78);
+    }
+    .modal-header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .modal-title {
+      font-size: 18px;
+      font-weight: 900;
+      letter-spacing: 1.8px;
+      color: #F8FAFC;
+    }
+    .btn-close-pill {
+      background: rgba(30, 41, 59, 0.85);
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      border-radius: 50px;
+      padding: 5px 12px;
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: 1px;
+      color: #CBD5E1;
+      cursor: pointer;
+    }
+    .btn-action-primary {
+      width: 100%;
+      height: 48px;
+      border-radius: 14px;
+      background: linear-gradient(90deg, #0EA5E9, #6366F1);
+      border: 1px solid rgba(255, 255, 255, 0.65);
+      color: #FFFFFF;
+      font-size: 13px;
+      font-weight: 900;
+      letter-spacing: 1.6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+    .btn-action-gold {
+      width: 100%;
+      height: 48px;
+      border-radius: 14px;
+      background: linear-gradient(90deg, #F59E0B, #EAB308);
+      border: 1px solid #FEF08A;
+      color: #090614;
+      font-size: 12.5px;
+      font-weight: 900;
+      letter-spacing: 1.4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+    .btn-action-secondary {
+      width: 100%;
+      height: 44px;
+      border-radius: 14px;
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(148, 163, 184, 0.38);
+      color: #CBD5E1;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 1.4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    /* Live Draggable Preview Box inside Studio Customizer */
+    .preview-stage-box {
+      position: relative;
+      width: 100%;
+      height: 132px;
+      border-radius: 18px;
+      overflow: hidden;
+      border: 1.5px solid rgba(56, 189, 248, 0.48);
+      background: #05030C;
+    }
+    #customizer-preview-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    .preview-badge-tl {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      background: rgba(8, 6, 18, 0.82);
+      border-radius: 6px;
+      padding: 2px 7px;
+      font-size: 8.5px;
+      font-weight: 900;
+      letter-spacing: 1.1px;
+      color: #38BDF8;
+      pointer-events: none;
+    }
+    .preview-badge-br {
+      position: absolute;
+      bottom: 6px;
+      right: 8px;
+      font-size: 8px;
+      font-weight: 700;
+      color: #94A3B8;
+      pointer-events: none;
+    }
+
+    .cust-tabs-row {
+      display: flex;
+      gap: 6px;
+      background: rgba(9, 6, 20, 0.9);
+      padding: 4px;
+      border-radius: 12px;
+    }
+    .cust-tab {
+      flex: 1;
+      text-align: center;
+      padding: 7px 0;
+      font-size: 10.5px;
+      font-weight: 900;
+      letter-spacing: 1px;
+      color: #94A3B8;
+      border-radius: 9px;
+      cursor: pointer;
+    }
+    .cust-tab.active {
+      background: rgba(56, 189, 248, 0.2);
+      color: #38BDF8;
+      border: 1px solid rgba(56, 189, 248, 0.55);
+    }
+
+    .cust-item-row, .vault-track-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(12, 9, 28, 0.88);
+      border: 1px solid rgba(148, 163, 184, 0.22);
+      border-radius: 14px;
+      padding: 9px 11px;
+      margin-bottom: 6px;
+    }
+    .cust-item-row.selected, .vault-track-row.selected {
+      border-color: #38BDF8;
+      background: rgba(24, 18, 54, 0.92);
+    }
+    .cust-swatch {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .cust-item-name, .vault-track-name {
+      font-size: 12.5px;
+      font-weight: 900;
+      color: #F8FAFC;
+    }
+    .cust-item-sub, .vault-track-sub {
+      font-size: 10px;
+      font-weight: 700;
+      color: #94A3B8;
+      margin-top: 1px;
+    }
+    .cust-btn {
+      border-radius: 10px;
+      padding: 6px 11px;
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: 0.8px;
+      border: none;
+      cursor: pointer;
+    }
+    .cust-btn.equipped {
+      background: rgba(74, 222, 128, 0.18);
+      border: 1px solid #4ADE80;
+      color: #4ADE80;
+    }
+    .cust-btn.equip {
+      background: rgba(56, 189, 248, 0.2);
+      border: 1px solid #38BDF8;
+      color: #38BDF8;
+    }
+    .cust-btn.buy {
+      background: linear-gradient(90deg, #F59E0B, #EAB308);
+      color: #090614;
+    }
+    .cust-btn.locked {
+      background: rgba(51, 65, 85, 0.5);
+      color: #64748B;
+    }
+    .vault-track-icon {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: rgba(30, 41, 59, 0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      flex-shrink: 0;
+    }
+    .vault-track-dur {
+      font-size: 10.5px;
+      font-weight: 800;
+      color: #CBD5E1;
+    }
+
+    .toggle-pill {
+      border-radius: 50px;
+      padding: 6px 14px;
+      font-size: 10.5px;
+      font-weight: 900;
+      letter-spacing: 1px;
+      cursor: pointer;
+      border: 1px solid;
+    }
+    .toggle-pill.on {
+      background: rgba(74, 222, 128, 0.18);
+      border-color: #4ADE80;
+      color: #4ADE80;
+    }
+    .toggle-pill.off {
+      background: rgba(244, 63, 94, 0.18);
+      border-color: #F43F5E;
+      color: #F43F5E;
+    }
+  </style>
+</head>
+<body>
+  <!-- Full-Screen 60FPS Audio-Reactive Game & Nebula Canvas -->
+  <canvas id="game-canvas"></canvas>
+
+  <!-- ======================================================================
+       1. MENU SCREEN (1:1 Port of MenuScreen.kt)
+       ====================================================================== -->
+  <div id="screen-MENU" class="screen-overlay" style="display:flex;">
+    <!-- Top Utility Bar -->
+    <div class="menu-top-bar">
+      <div class="pill-currency" onclick="window.app.openScreen('CUSTOMIZER')">
+        <span class="note">♪</span>
+        <span id="menu-points-val">350</span>
+      </div>
+      <div id="menu-lobby-pill" class="pill-lobby" onclick="window.app.cycleLobbyTheme()">
+        LOBBY: VELVET SYNTH ↻
+      </div>
+    </div>
+
+    <!-- Center Turntable & 3D Title -->
+    <div class="menu-center-hero">
+      <canvas id="menu-turntable-canvas" width="138" height="138"></canvas>
+      <div class="title-3d-wrap">
+        <div class="title-3d-shadow">No Morē Illusīons</div>
+        <div id="menu-title-main" class="title-3d-main">No Morē Illusīons</div>
+      </div>
+      <div id="menu-subtitle-pill" class="subtitle-badge">THE INTERACTIVE ALBUM EXPERIENCE</div>
+      <div class="best-score-line">BEST RECORD: <b id="menu-best-score">0</b></div>
+    </div>
+
+    <!-- Bottom Console & Navigation Stack -->
+    <div style="width:100%;max-width:430px;display:flex;flex-direction:column;align-items:center;">
+      <div class="console-card">
+        <div class="console-header-row">
+          <span style="color:#94A3B8;">SELECT ALBUM STAGE</span>
+          <span style="color:#FACC15;">126 BPM • 432Hz MASTER</span>
+        </div>
+        <div id="menu-stage-pills" class="stage-pills-row"></div>
+        <div class="btn-launch-stage" onclick="window.app.startStage()">
+          <div class="btn-launch-main">▶  LAUNCH STAGE</div>
+          <div id="menu-launch-sub" class="btn-launch-sub">SURVIVE TO UNLOCK 'CONFIDE'</div>
+        </div>
+      </div>
+
+      <!-- 3-Tile Bento Row -->
+      <div class="bento-row">
+        <div class="bento-tile" style="border-color:rgba(250,204,21,0.45);" onclick="window.app.openScreen('CUSTOMIZER')">
+          <div class="bento-title" style="color:#FACC15;">VAULT &amp; SHOP</div>
+          <div id="menu-vault-count" class="bento-sub">0/2 UNLOCKED</div>
+        </div>
+        <div class="bento-tile" style="border-color:rgba(56,189,248,0.45);" onclick="window.app.openScreen('HOW_TO_PLAY')">
+          <div class="bento-title" style="color:#38BDF8;">HOW TO PLAY</div>
+          <div class="bento-sub">GUIDE &amp; ORBS</div>
+        </div>
+        <div class="bento-tile" style="border-color:rgba(192,132,252,0.45);" onclick="window.app.openScreen('SETTINGS')">
+          <div class="bento-title" style="color:#C084FC;">SETTINGS</div>
+          <div class="bento-sub">AUDIO &amp; FX</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Official Artist Links Footer (1:1 SocialBrandIcons.kt) -->
+    <div class="social-footer">
+      <div class="social-label">STREAM &amp; FOLLOW NO MORE ILLUSIONS</div>
+      <div class="social-icons-row">
+        <a class="social-circle-btn" style="border:1.2px solid rgba(255,0,0,0.65);" href="https://youtube.com/@nomoreillusions?si=p4sS722A3v1-B2rO" target="_blank" rel="noopener" title="YouTube">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="#FF0000"><path d="M21.8 8.001a2.75 2.75 0 0 0-1.94-1.94C18.14 5.6 12 5.6 12 5.6s-6.14 0-7.86.46a2.75 2.75 0 0 0-1.94 1.94C1.74 9.72 1.74 12 1.74 12s0 2.28.46 3.999a2.75 2.75 0 0 0 1.94 1.94c1.72.46 7.86.46 7.86.46s6.14 0 7.86-.46a2.75 2.75 0 0 0 1.94-1.94C22.26 14.28 22.26 12 22.26 12s0-2.28-.46-3.999zM9.95 15.02V8.98L15.2 12l-5.25 3.02z"/></svg>
+        </a>
+        <a class="social-circle-btn" style="border:1.2px solid rgba(30,215,96,0.65);" href="https://open.spotify.com/artist/6tR26L15vR8nE2T6A4A383" target="_blank" rel="noopener" title="Spotify">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1ED760" stroke-width="2.3" stroke-linecap="round"><path d="M4.5 9.5c4.8-1.6 10.4-1.2 15 1.2"/><path d="M5.8 13.2c3.8-1.2 8.2-.9 11.8 1"/><path d="M7.2 16.8c2.9-.8 6.2-.6 8.9.8"/></svg>
+        </a>
+        <a class="social-circle-btn" style="border:1.2px solid rgba(250,36,60,0.65);" href="https://music.apple.com/us/artist/no-more-illusions/1781131407" target="_blank" rel="noopener" title="Apple Music">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="#FA243C"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+        </a>
+        <a class="social-circle-btn" style="border:1.2px solid rgba(236,72,153,0.65);" href="https://www.instagram.com/nomoreillusionsmusic" target="_blank" rel="noopener" title="Instagram">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#EC4899" stroke-width="2.1"><rect x="3.5" y="3.5" width="17" height="17" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.3" cy="6.7" r="1.2" fill="#EC4899" stroke="none"/></svg>
+        </a>
+        <a class="social-circle-btn" style="border:1.2px solid rgba(37,244,238,0.65);" href="https://www.tiktok.com/@nomoreillusionsmusic" target="_blank" rel="noopener" title="TikTok">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="#FFFFFF"><path d="M16.6 5.82A4.28 4.28 0 0 1 15.54 3h-3.09v12.4a2.59 2.59 0 0 1-2.59 2.5c-1.42 0-2.6-1.16-2.6-2.6 0-1.72 1.66-3.01 3.37-2.48V9.66c-3.45-.46-6.47 2.22-6.47 5.64 0 3.33 2.76 5.7 5.69 5.7 3.14 0 5.69-2.55 5.69-5.7V9.01a7.35 7.35 0 0 0 4.3 1.38V7.3s-1.88.09-3.24-1.48z"/></svg>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================================
+       2. IN-GAME HUD OVERLAY (1:1 Port of GameHUD.kt & TrackRevealOverlay.kt)
+       ====================================================================== -->
+  <div id="screen-PLAYING" class="screen-overlay">
+    <div class="hud-top-row">
+      <div class="hud-left-stack">
+        <div class="hud-score-chip">
+          <span class="hud-chip-label">RESONANCE</span>
+          <span id="hud-score-val" class="hud-chip-val">0</span>
+        </div>
+        <div class="hud-sub-pills">
+          <div id="hud-phase-val" class="hud-phase-pill">PHASE 1</div>
+          <div id="hud-combo-chip" class="hud-combo-pill"><span id="hud-combo-val">COMBO x2</span></div>
+        </div>
+        <div id="hud-powerup-badges" class="hud-pu-row"></div>
+      </div>
+
+      <div class="hud-right-group">
+        <!-- Progressive 16-Tile Album Artwork Unveil Card -->
+        <div class="track-reveal-card">
+          <div class="reveal-canvas-wrap">
+            <canvas id="hud-reveal-canvas" width="76" height="76"></canvas>
+            <div id="hud-reveal-pct" class="reveal-pct-pill">0%</div>
+          </div>
+          <div id="hud-track-title" class="reveal-track-name">CONFIDE</div>
+          <div id="hud-track-rem" class="reveal-track-rem">-2:59 LEFT</div>
+        </div>
+
+        <button class="btn-pause-icon" onclick="window.app.pauseGame()" title="Pause">
+          <img src="assets/btn_icon_pause.png" alt="Pause" />
+        </button>
+      </div>
+    </div>
+
+    <div id="hud-choreo-banner">
+      <div id="hud-choreo-title">VERSE GROOVE</div>
+      <div id="hud-choreo-sub">126 BPM PULSE LOCK</div>
+    </div>
+
+    <div class="hud-bottom-row">
+      <div id="btn-focus-hold" class="btn-focus-wrap">
+        <div class="btn-focus-label">HOLD FOCUS</div>
+        <div class="focus-bar-bg"><div id="hud-focus-fill"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================================
+       3. PAUSED MODAL
+       ====================================================================== -->
+  <div id="screen-PAUSED" class="screen-overlay modal-backdrop">
+    <div class="glass-modal-card" style="text-align:center;">
+      <div class="modal-title" style="color:#38BDF8;">STAGE PAUSED</div>
+      <p style="font-size:12px;color:#94A3B8;">Take a breath. Your stage progress and combo multiplier are held in stasis.</p>
+      <button class="btn-action-primary" onclick="window.app.resumeGame()">▶  RESUME STAGE</button>
+      <button class="btn-action-secondary" onclick="window.app.startStage()">↻  RESTART TRACK</button>
+      <button class="btn-action-secondary" onclick="window.app.openScreen('MENU')">⌂  MAIN STAGE MENU</button>
+    </div>
+  </div>
+
+  <!-- ======================================================================
+       4. GAME OVER MODAL
+       ====================================================================== -->
+  <div id="screen-GAME_OVER" class="screen-overlay modal-backdrop">
+    <div class="glass-modal-card" style="text-align:center;">
+      <div class="modal-title" style="color:#F43F5E;">SIGNAL INTERRUPTED</div>
+      <div style="font-size:34px;font-weight:900;color:#F8FAFC;" id="gameover-score-val">0</div>
+      <div style="font-size:11px;font-weight:800;color:#FACC15;letter-spacing:1.3px;" id="gameover-best-val">BEST RECORD: 0</div>
+      <button id="gameover-revive-btn" class="btn-action-gold" onclick="window.app.revivePlayer()">⚡ SECOND CHANCE SHIELD (FREE TEST)</button>
+      <button class="btn-action-primary" onclick="window.app.startStage()">↻  PLAY STAGE AGAIN</button>
+      <button class="btn-action-secondary" onclick="window.app.openScreen('CUSTOMIZER')">♪  STUDIO VAULT &amp; SHOP</button>
+      <button class="btn-action-secondary" onclick="window.app.openScreen('MENU')">⌂  MAIN MENU</button>
+    </div>
+  </div>
+
+  <!-- ======================================================================
+       5. TRACK COMPLETED CELEBRATION MODAL
+       ====================================================================== -->
+  <div id="screen-TRACK_COMPLETED" class="screen-overlay modal-backdrop">
+    <div class="glass-modal-card" style="text-align:center;border-color:#FACC15;">
+      <img src="assets/nmi_logo.png" alt="Unlocked Artwork" style="width:92px;height:92px;border-radius:18px;margin:0 auto;border:2px solid #FACC15;" />
+      <div id="tc-track-title" class="modal-title" style="color:#FACC15;">"CONFIDE" MASTERED!</div>
+      <div id="tc-medal-badge" style="font-size:11px;font-weight:900;color:#4ADE80;letter-spacing:1px;">🥇 GOLD RECORD MASTER</div>
+      <div style="font-size:28px;font-weight:900;color:#F8FAFC;" id="tc-score-val">0</div>
+      <div style="font-size:11px;color:#CBD5E1;">Full track unlocked permanently in your Album Vault + <b>♪ 500 Bonus Notes</b> awarded!</div>
+      <button class="btn-action-gold" onclick="window.app.openTrackInDemo(window.app.selectedStageIndex)">🎧  LISTEN IN ALBUM VAULT</button>
+      <button class="btn-action-primary" onclick="window.app.startStage()">↻  ENCORE PERFORMANCE</button>
+      <button class="btn-action-secondary" onclick="window.app.openScreen('MENU')">⌂  MAIN STAGE MENU</button>
+    </div>
+  </div>
+
+  <!-- ======================================================================
+       6. STUDIO CUSTOMIZER & ALBUM VAULT (1:1 Port of StudioCustomizer.kt)
+       ====================================================================== -->
+  <div id="screen-CUSTOMIZER" class="screen-overlay modal-backdrop">
+    <div class="glass-modal-card">
+      <div class="modal-header-row">
+        <div>
+          <div class="modal-title" style="font-size:16px;">STUDIO VAULT &amp; CUSTOMIZER</div>
+          <div style="font-size:10px;color:#94A3B8;font-weight:700;">EQUIP CORES, TRAILS &amp; STAGE THEMES</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span id="cust-points-val" style="font-size:13px;font-weight:900;color:#FACC15;">♪ 350</span>
+          <button class="btn-close-pill" onclick="window.app.openScreen('MENU')">DONE</button>
+        </div>
+      </div>
+
+      <!-- Live Interactive Loadout Preview Stage -->
+      <div class="preview-stage-box">
+        <canvas id="customizer-preview-canvas"></canvas>
+        <div class="preview-badge-tl">LIVE LOADOUT PREVIEW</div>
+        <div class="preview-badge-br">DRAG HERE TO TEST</div>
+      </div>
+
+      <!-- Album Vault Quick Section -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:2px;">
+        <span style="font-size:10px;font-weight:900;letter-spacing:1.4px;color:#FACC15;">ALBUM TRACK VAULT</span>
+        <span style="font-size:10px;font-weight:900;color:#38BDF8;cursor:pointer;" onclick="window.app.openScreen('DEMO_PLAYER')">OPEN STUDIO DECK →</span>
+      </div>
+      <div id="cust-vault-tracks"></div>
+
+      <!-- Customizer Category Tabs -->
+      <div class="cust-tabs-row">
+        <div id="cust-tab-0" class="cust-tab active" onclick="window.app.setCustomizerTab(0)">HERO CORES</div>
+        <div id="cust-tab-1" class="cust-tab" onclick="window.app.setCustomizerTab(1)">SILK TRAILS</div>
+        <div id="cust-tab-2" class="cust-tab" onclick="window.app.setCustomizerTab(2)">STAGE THEMES</div>
+      </div>
+
+      <div id="cust-items-list"></div>
+    </div>
+  </div>
+
+  <!-- ======================================================================
+       7. STUDIO DEMO DECK (1:1 Port of MusicDemoScreen.kt)
+       ====================================================================== -->
+  <div id="screen-DEMO_PLAYER" class="screen-overlay modal-backdrop">
+    <div class="glass-modal-card">
+      <div class="modal-header-row">
+        <div>
+          <div class="modal-title" style="font-size:16px;color:#FACC15;">ALBUM VAULT DECK</div>
+          <div style="font-size:10px;color:#94A3B8;font-weight:700;">432Hz MASTERED TRACK PLAYBACK</div>
+        </div>
+        <button class="btn-close-pill" onclick="window.app.openScreen('MENU')">CLOSE</button>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:14px;background:rgba(10,7,24,0.9);padding:12px;border-radius:18px;border:1px solid rgba(250,204,21,0.35);">
+        <img src="assets/nmi_logo.png" alt="Logo" style="width:68px;height:68px;border-radius:14px;border:1.5px solid #38BDF8;" />
+        <div style="flex:1;">
+          <div id="demo-active-title" style="font-size:17px;font-weight:900;color:#F8FAFC;">Confide</div>
+          <div style="font-size:11px;color:#94A3B8;font-weight:700;">No More Illusions • 126 BPM</div>
+          <div id="demo-active-status" style="font-size:9.5px;font-weight:900;color:#FACC15;margin-top:4px;">🔒 LOCKED</div>
+        </div>
+      </div>
+
+      <!-- Seek Bar -->
+      <div>
+        <div style="width:100%;height:6px;background:rgba(255,255,255,0.12);border-radius:4px;overflow:hidden;">
+          <div id="demo-seek-fill" style="width:0%;height:100%;background:linear-gradient(90deg,#38BDF8,#FACC15);"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:#94A3B8;font-weight:700;margin-top:4px;">
+          <span id="demo-time-cur">0:00</span>
+          <span id="demo-time-dur">2:59</span>
+        </div>
+      </div>
+
+      <!-- Transport Controls -->
+      <div style="display:flex;align-items:center;justify-content:space-around;">
+        <button class="btn-close-pill" onclick="window.app.seekDemoBy(-10)">-10s</button>
+        <button id="demo-play-btn" class="btn-action-primary" style="width:160px;height:44px;border-radius:50px;" onclick="window.app.toggleDemoPlayPause()">▶</button>
+        <button class="btn-close-pill" onclick="window.app.seekDemoBy(10)">+10s</button>
+      </div>
+      <div style="text-align:center;">
+        <span id="demo-loop-btn" style="font-size:10px;font-weight:900;color:#94A3B8;cursor:pointer;" onclick="window.app.toggleDemoLoop()">LOOP: OFF</span>
+      </div>
+
+      <div id="demo-track-list"></div>
+    </div>
+  </div>
+
+  <!-- ======================================================================
+       8. HOW TO PLAY MODAL
+       ====================================================================== -->
+  <div id="screen-HOW_TO_PLAY" class="screen-overlay modal-backdrop">
+    <div class="glass-modal-card">
+      <div class="modal-header-row">
+        <div class="modal-title" style="font-size:16px;color:#38BDF8;">HOW TO PLAY</div>
+        <button class="btn-close-pill" onclick="window.app.openScreen('MENU')">GOT IT</button>
+      </div>
+      <div style="font-size:12px;color:#E2E8F0;line-height:1.5;display:flex;flex-direction:column;gap:10px;">
+        <div><b style="color:#FACC15;">1. SURVIVE TO UNLOCK THE ALBUM:</b> Glide your Resonance Core across the stage. Survive until the end of <b>Confide</b> or <b>Number One</b> to permanently unlock the full track in your Album Vault.</div>
+        <div><b style="color:#4ADE80;">2. BEAT-SYNCED ORBS:</b> Golden Supernova Orbs travel across the arena on the 126 BPM beat. Collect them when the green target ring locks in for <b>PERFECT! +100</b> combos.</div>
+        <div><b style="color:#C084FC;">3. WORMHOLES &amp; FOCUS:</b> Fly into paired Wormhole Portals to warp across danger with brief invulnerability. Hold the <b>FOCUS</b> button in tight spots to dilate time.</div>
+        <div><b style="color:#F43F5E;">4. POWER-UPS:</b> Grab <b>Aegis Shield</b> (blue), <b>Overdrive Surge</b> (crimson — vaporizes enemies on contact!), <b>Orb Magnet</b> (emerald), and <b>Chrono Shift</b> (violet).</div>
+      </div>
+      <button class="btn-action-primary" onclick="window.app.openScreen('MENU')">RETURN TO STAGE</button>
+    </div>
+  </div>
+
+  <!-- ======================================================================
+       9. SETTINGS MODAL
+       ====================================================================== -->
+  <div id="screen-SETTINGS" class="screen-overlay modal-backdrop">
+    <div class="glass-modal-card">
+      <div class="modal-header-row">
+        <div class="modal-title" style="font-size:16px;color:#C084FC;">STUDIO SETTINGS</div>
+        <button class="btn-close-pill" onclick="window.app.openScreen('MENU')">CLOSE</button>
+      </div>
+      <div class="cust-item-row">
+        <div style="flex:1;">
+          <div class="cust-item-name">Master Album &amp; Lobby Music</div>
+          <div class="cust-item-sub">126 BPM Stage Tracks &amp; 432Hz Ambient Beds</div>
+        </div>
+        <button id="settings-music-btn" class="toggle-pill on" onclick="window.app.toggleMusicMute()">ACTIVE</button>
+      </div>
+      <div class="cust-item-row">
+        <div style="flex:1;">
+          <div class="cust-item-name">Harmonic Sound Effects</div>
+          <div class="cust-item-sub">Beat Orb Chimes, Shield &amp; Overdrive FX</div>
+        </div>
+        <button id="settings-sfx-btn" class="toggle-pill on" onclick="window.app.toggleSfxMute()">ACTIVE</button>
+      </div>
+      <div class="cust-item-row">
+        <div style="flex:1;">
+          <div class="cust-item-name">AdMob Partner Safe Mode</div>
+          <div class="cust-item-sub">Locked to Test Mode — Zero Live Impression Risk</div>
+        </div>
+        <span style="font-size:10px;font-weight:900;color:#4ADE80;">LOCKED SAFE</span>
+      </div>
+      <button class="btn-action-primary" onclick="window.app.openScreen('MENU')">SAVE &amp; RETURN</button>
+    </div>
+  </div>
+
+  <script src="multi_band_data.js"></script>
+  <script src="engine.js"></script>
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("sw.js").then((reg) => reg.update()).catch(() => {});
+      });
+    }
+  </script>
+</body>
+</html>
