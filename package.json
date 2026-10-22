@@ -1,0 +1,21 @@
+{
+  "name": "no-more-illusions",
+  "version": "1.0.2",
+  "description": "No More Illusions — Cross-Platform Interactive Album Experience (Android & Apple iOS)",
+  "private": true,
+  "scripts": {
+    "ios:init": "npx cap add ios",
+    "ios:sync": "npx cap sync ios",
+    "ios:open": "npx cap open ios"
+  },
+  "dependencies": {
+    "@capacitor/app": "^6.0.0",
+    "@capacitor/core": "^6.0.0",
+    "@capacitor/haptics": "^6.0.0",
+    "@capacitor/ios": "^6.0.0",
+    "@capacitor/status-bar": "^6.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.0.0"
+  }
+}

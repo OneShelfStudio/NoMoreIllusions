@@ -1,0 +1,57 @@
+name: Apple iOS Native Build (Xcode & IPA)
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-ios:
+    name: Build iOS App Bundle (.app / .ipa)
+    runs-on: macos-14
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Capacitor iOS Dependencies
+        run: npm install
+
+      - name: Generate & Sync Native Xcode iOS Project
+        run: |
+          if [ ! -d "ios" ]; then
+            npx cap add ios
+          fi
+          npx cap sync ios
+
+      - name: Build Unsigned iOS Archive via Xcodebuild
+        run: |
+          cd ios/App
+          xcodebuild -project App.xcodeproj \
+            -scheme App \
+            -sdk iphoneos \
+            -configuration Release \
+            -derivedDataPath build \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            clean build
+
+      - name: Package .ipa Payload Artifact
+        run: |
+          mkdir -p Payload
+          cp -r ios/App/build/Build/Products/Release-iphoneos/App.app Payload/NoMoreIllusions.app
+          zip -r NoMoreIllusions-iOS-v1.0.2.ipa Payload
+
+      - name: Upload Apple iOS .ipa & Xcode Project Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: NoMoreIllusions-Apple-iOS-Build
+          path: |
+            NoMoreIllusions-iOS-v1.0.2.ipa
+            ios/
