@@ -1,4 +1,4 @@
-const CACHE_NAME = "nmi-v5-ios-1to1-v6";
+const CACHE_NAME = "nmi-v6-flawless-1to1";
 const ASSETS = [
   "./",
   "./index.html",
@@ -47,13 +47,27 @@ self.addEventListener("activate", (event) => {
 });
 
 self.addEventListener("fetch", (event) => {
+  if (event.request.method !== "GET") return;
+
+  const url = event.request.url;
+  if (!url.startsWith("http")) return;
+
+  // Audio files with range requests should never be cached as 206 partial responses
+  const isRangeRequest = event.request.headers.has("range");
+
   event.respondWith(
-    fetch(event.request)
-      .then((res) => {
-        const copy = res.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy)).catch(() => {});
-        return res;
-      })
-      .catch(() => caches.match(event.request))
+    caches.match(event.request).then((cached) => {
+      if (cached && !isRangeRequest) return cached;
+      return fetch(event.request)
+        .then((res) => {
+          if (!res || res.status !== 200 || isRangeRequest) {
+            return res;
+          }
+          const copy = res.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy)).catch(() => {});
+          return res;
+        })
+        .catch(() => cached || new Response("Offline", { status: 503 }));
+    })
   );
 });
