@@ -1,63 +1,238 @@
 // ============================================================================
-// NO MORĒ ILLUSĪONS — 1:1 PORT OF ANDROID KOTLIN ENGINE
-// Direct port of: MusicLibrary.kt, BackgroundRenderer.kt, GameRenderer.kt,
-// GamePhysics.kt, TrackRevealOverlay.kt, MenuScreen.kt, StudioCustomizer.kt
+// NO MORĒ ILLUSĪONS — 1:1 UNIFIED AUDIO-REACTIVE ENGINE (iOS + ANDROID)
 // ============================================================================
 
-const ASSETS = {};
-const ASSET_LIST = {
-  nmiLogo: "assets/nmi_logo.png",
-  heroSolar: "assets/mandala_hero_solar.png",
-  heroCyber: "assets/mandala_hero_cyber.png",
-  heroPrism: "assets/mandala_hero_prism.png",
-  enemyPulsar: "assets/mandala_enemy_pulsar.png",
-  enemySeeker: "assets/mandala_enemy_seeker.png",
-  enemyWanderer: "assets/mandala_enemy_wanderer.png",
-  track01Art: "assets/track_01.png",
-  track02Art: "assets/track_02.png",
-  albumArt: "assets/album_art.jpg",
-  btnPause: "assets/btn_icon_pause.png",
-  btnClose: "assets/btn_icon_close.png",
-  btnRestart: "assets/btn_icon_restart.png",
-  pillGreen: "assets/btn_pill_green.png",
-  pillGold: "assets/btn_pill_gold.png",
-  pillCyan: "assets/btn_pill_cyan.png",
-  pillPink: "assets/btn_pill_pink.png"
-};
-
-Object.entries(ASSET_LIST).forEach(([k, src]) => {
-  const img = new Image();
-  img.src = src;
-  ASSETS[k] = img;
-});
-
-// Sound Effects Pool (matching AudioEngine.kt)
-const SFX = {
-  powerup: new Audio("assets/powerup.wav"),
-  hit: new Audio("assets/pulse_hit.wav"),
-  levelUp: new Audio("assets/level_up.wav"),
-  victory: new Audio("assets/victory_fanfare.wav"),
-  death: new Audio("assets/death.wav"),
-  focus: new Audio("assets/focus_activate.wav")
-};
-Object.values(SFX).forEach(a => { a.volume = 0.28; });
-
-function playSfx(name, vol = 0.25) {
-  if (!APP.soundEnabled) return;
-  const s = SFX[name];
-  if (!s) return;
-  try {
-    s.currentTime = 0;
-    s.volume = vol;
-    s.play().catch(() => {});
-  } catch (_) {}
+class MultiBandState {
+  constructor() {
+    this.rms = 0.35;
+    this.bass = 0.32;
+    this.vocal = 0.35;
+    this.high = 0.28;
+    this.bassDropOut = false;
+    this.swellDelta = 0.1;
+    this.isClimax = false;
+  }
 }
 
-// 1:1 Port of MusicLibrary.kt Orb Charts & Sections
 function quantizeToBeat(sec, beatSec) {
-  const idx = Math.max(1, Math.round(sec / beatSec));
-  return idx * beatSec;
+  const b = Math.round(sec / beatSec);
+  return Number((b * beatSec).toFixed(3));
 }
+
+function lerpColor(c1, c2, t) {
+  const clampT = Math.max(0, Math.min(1, t));
+  return [
+    Math.round(c1[0] + (c2[0] - c1[0]) * clampT),
+    Math.round(c1[1] + (c2[1] - c1[1]) * clampT),
+    Math.round(c1[2] + (c2[2] - c1[2]) * clampT)
+  ];
+}
+
+function rgb(c) {
+  if (Array.isArray(c)) return `rgb(${c[0]}, ${c[1]}, ${c[2]})`;
+  return c;
+}
+
+function rgba(rgbArr, a) {
+  if (typeof rgbArr === "string") return rgbArr;
+  return `rgba(${rgbArr[0]}, ${rgbArr[1]}, ${rgbArr[2]}, ${Math.max(0, Math.min(1, a))})`;
+}
+
+function roundRectPath(ctx, x, y, w, h, r) {
+  const rad = Math.max(0, Math.min(r, w / 2, h / 2));
+  ctx.beginPath();
+  ctx.moveTo(x + rad, y);
+  ctx.arcTo(x + w, y, x + w, y + h, rad);
+  ctx.arcTo(x + w, y + h, x, y + h, rad);
+  ctx.arcTo(x, y + h, x, y, rad);
+  ctx.arcTo(x, y, x + w, y, rad);
+  ctx.closePath();
+}
+
+function sample4Hz(arr, sec) {
+  if (!arr || !arr.length) return 0.45;
+  const exact = Math.max(0, sec) / 0.25;
+  const i0 = Math.min(arr.length - 1, Math.floor(exact));
+  const i1 = Math.min(arr.length - 1, i0 + 1);
+  const f = exact - i0;
+  return Math.max(0, Math.min(1, arr[i0] * (1 - f) + arr[i1] * f));
+}
+
+function getMultiBandStateAt(trackIndexOrId, sec) {
+  const d = window.MULTI_BAND_DATA;
+  if (!d) return new MultiBandState();
+  const isT1 = trackIndexOrId === 1 || trackIndexOrId === "track_01" || trackIndexOrId === 0;
+  const rmsArr = isT1 ? d.confideRms4Hz : d.numberOneRms4Hz;
+  const bassArr = isT1 ? d.confideBass4Hz : d.numberOneBass4Hz;
+  const vocalArr = isT1 ? d.confideVocal4Hz : d.numberOneVocal4Hz;
+  const highArr = isT1 ? d.confideHigh4Hz : d.numberOneHigh4Hz;
+
+  const rms = sample4Hz(rmsArr, sec);
+  const bass = sample4Hz(bassArr, sec);
+  const vocal = sample4Hz(vocalArr, sec);
+  const high = sample4Hz(highArr, sec);
+  const prevRms = sample4Hz(rmsArr, Math.max(0, sec - 0.75));
+  const prevVocal = sample4Hz(vocalArr, Math.max(0, sec - 0.75));
+  const prevHigh = sample4Hz(highArr, Math.max(0, sec - 0.75));
+  const swellDelta = Math.max(-0.5, Math.min(0.7, Math.max(rms - prevRms, (vocal - prevVocal) * 0.85, (high - prevHigh) * 0.85)));
+  const bassDropOut = sec > 8.0 && bass < 0.14;
+  return { rms, bass, vocal, high, bassDropOut, swellDelta, isClimax: rms > 0.82 };
+}
+
+function getThemePalette(bgTheme, isFocus = false) {
+  switch (bgTheme) {
+    case "CYBER":
+    case "theme_matrix":
+      return {
+        c1: isFocus ? "#020705" : "#010403",
+        c2: isFocus ? "#05180E" : "#031109",
+        c3: isFocus ? "#071D12" : "#04120B",
+        bgTop: [2, 7, 5], bgMid: [5, 24, 14], bgBot: [7, 29, 18],
+        nebTint: [34, 197, 94], starTint: [129, 140, 248]
+      };
+    case "SUNSET":
+    case "theme_sunset":
+      return {
+        c1: isFocus ? "#07020A" : "#040106",
+        c2: isFocus ? "#14051C" : "#0D0314",
+        c3: isFocus ? "#090418" : "#05020E",
+        bgTop: [7, 2, 10], bgMid: [20, 5, 28], bgBot: [9, 4, 24],
+        nebTint: [168, 85, 247], starTint: [244, 63, 94]
+      };
+    case "PRISM":
+      return {
+        c1: isFocus ? "#03030C" : "#020208",
+        c2: isFocus ? "#090820" : "#060516",
+        c3: isFocus ? "#04140C" : "#020C07",
+        bgTop: [3, 3, 12], bgMid: [9, 8, 32], bgBot: [4, 20, 12],
+        nebTint: [99, 102, 241], starTint: [74, 222, 128]
+      };
+    case "GOLD_VINYL":
+      return {
+        c1: isFocus ? "#080501" : "#050300",
+        c2: isFocus ? "#1A1103" : "#120B02",
+        c3: isFocus ? "#0E0902" : "#080501",
+        bgTop: [8, 5, 1], bgMid: [26, 17, 3], bgBot: [14, 9, 2],
+        nebTint: [250, 204, 21], starTint: [56, 189, 248]
+      };
+    default: // OBSIDIAN / theme_nebula
+      return {
+        c1: isFocus ? "#020504" : "#010302",
+        c2: isFocus ? "#040D08" : "#030805",
+        c3: isFocus ? "#04030E" : "#020208",
+        bgTop: [2, 5, 4], bgMid: [4, 13, 8], bgBot: [4, 3, 14],
+        nebTint: [56, 189, 248], starTint: [168, 85, 247]
+      };
+  }
+}
+
+// 1:1 Port of BackgroundRenderer.kt
+function drawNebulaBackground(ctx, W, H, palette, stars, time, beatPulse, multiBand, isEclipseActive, isConstellationActive, trackArtwork, trackProgress) {
+  const energy = Math.max(0.08, Math.min(1, multiBand.rms || 0.35));
+  const bass = Math.max(0, Math.min(1, multiBand.bass || 0.30));
+  const vocal = Math.max(0.05, Math.min(1, multiBand.vocal || 0.30));
+  const high = Math.max(0, Math.min(1, multiBand.high || 0.25));
+  const swellBoost = Math.max(0, Math.min(0.7, (multiBand.swellDelta || 0.1) * 2.4));
+
+  // 1. Deep Obsidian Space Base
+  const bgGrad = ctx.createLinearGradient(0, 0, 0, H);
+  bgGrad.addColorStop(0, palette.c1);
+  bgGrad.addColorStop(0.5, palette.c2);
+  bgGrad.addColorStop(1, palette.c3);
+  ctx.fillStyle = bgGrad;
+  ctx.fillRect(0, 0, W, H);
+
+  const centerX = W * 0.5;
+  const centerY = H * 0.46;
+  const maxDim = Math.max(W, H);
+
+  // 2. Parallax Starfield
+  if (stars && stars.length) {
+    for (let i = 0; i < stars.length; i++) {
+      const s = stars[i];
+      const tw = 0.5 + 0.5 * Math.sin(time * 3 + s.twinkleOffset);
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.size * (0.8 + 0.3 * tw), 0, Math.PI * 2);
+      ctx.fillStyle = rgba(palette.starTint, s.alpha * (0.4 + 0.6 * tw));
+      ctx.fill();
+    }
+  }
+
+  // 3. Sub-Bass Gravity Expanding Shock-Rings
+  const ringPeriod = 2.4;
+  for (let r = 0; r < 3; r++) {
+    const rPhase = ((time * 0.45 + r * (ringPeriod / 3)) % ringPeriod) / ringPeriod;
+    const currentR = rPhase * maxDim * 0.65;
+    const ringAlpha = Math.max(0, Math.min(1, Math.sin(rPhase * Math.PI))) * (0.10 + bass * 0.22);
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, currentR, 0, Math.PI * 2);
+    ctx.strokeStyle = rgba(palette.nebTint, ringAlpha);
+    ctx.lineWidth = 1.2 + bass * 2.5;
+    ctx.stroke();
+  }
+
+  // 4. Aurora Silk Ribbons (3 waves with Synaptic Nodes)
+  for (let rib = 0; rib < 3; rib++) {
+    ctx.beginPath();
+    const ribbonY = centerY - H * 0.18 + rib * (H * 0.12);
+    const waveFreq = 0.0035 + rib * 0.001;
+    const waveAmp = (22 + rib * 14) * (1 + bass * 0.45);
+    const speed = time * (1.2 + rib * 0.5);
+
+    ctx.moveTo(0, ribbonY + Math.sin(speed) * waveAmp);
+    for (let x = 0; x <= W; x += 16) {
+      const y = ribbonY + Math.sin(x * waveFreq + speed) * waveAmp;
+      ctx.lineTo(x, y);
+    }
+    const ribAlpha = (0.08 + energy * 0.18) * (rib === 1 ? 1.2 : 0.8);
+    ctx.strokeStyle = rgba(rib % 2 === 0 ? palette.nebTint : palette.starTint, ribAlpha);
+    ctx.lineWidth = 3.5 + high * 3;
+    ctx.stroke();
+  }
+
+  // 5. Signature Concentric Squircle Tunnel
+  const ringCount = isEclipseActive ? 5 : 9;
+  const ringSpeed = multiBand.bassDropOut ? 0.04 : (0.07 + bass * 0.12 + high * 0.06);
+  for (let i = 0; i < ringCount; i++) {
+    const rawPhase = ((i / ringCount) + time * ringSpeed) % 1;
+    const curvedPhase = rawPhase * rawPhase;
+    const boxHalf = curvedPhase * maxDim * (0.64 + bass * 0.06);
+    if (boxHalf < 14) continue;
+
+    const rotRad = (Math.sin(time * (0.50 + vocal * 0.45) + i * 0.52) * (9 + high * 16)) * Math.PI / 180;
+    const isEven = i % 2 === 0;
+    const baseRingColor = isConstellationActive
+      ? (isEven ? [250, 204, 21] : [56, 189, 248])
+      : multiBand.bassDropOut
+      ? [56, 189, 248]
+      : (isEven ? palette.nebTint : palette.starTint);
+
+    const fadeAlpha = Math.max(0, Math.min(1, Math.sin(rawPhase * Math.PI)));
+    const finalAlpha = Math.max(0, Math.min(0.36, fadeAlpha * (0.05 + energy * 0.20 + swellBoost * 0.14)));
+    const strokeW = 1.1 + rawPhase * (1.6 + bass * 2.6);
+
+    ctx.save();
+    ctx.translate(centerX, centerY);
+    ctx.rotate(rotRad);
+    ctx.strokeStyle = rgba(baseRingColor, finalAlpha);
+    ctx.lineWidth = strokeW;
+    roundRectPath(ctx, -boxHalf, -boxHalf, boxHalf * 2, boxHalf * 2, boxHalf * 0.38);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // 6. Progressive Album Artwork Hologram Watermark Reveal in Center
+  if (trackArtwork && trackArtwork.complete && trackProgress > 0.01) {
+    const p = Math.max(0, Math.min(1, trackProgress));
+    const artBoxSize = Math.min(W, H) * (0.46 + bass * 0.04);
+    ctx.save();
+    ctx.globalCompositeOperation = "screen";
+    ctx.globalAlpha = Math.min(0.24, 0.04 + p * 0.14 + vocal * 0.05);
+    ctx.drawImage(trackArtwork, (W - artBoxSize) / 2, (H - artBoxSize) / 2, artBoxSize, artBoxSize);
+    ctx.restore();
+  }
+}
+
 
 function buildConfideOrbChart() {
   const beatSec = 60 / 124;
@@ -164,64 +339,91 @@ function buildNumberOneOrbChart() {
   return cues;
 }
 
-const OFFICIAL_TRACKS = {
-  1: {
+
+const OFFICIAL_TRACKS = [
+  {
+    id: "track_01",
     index: 1,
     title: "Confide",
+    subtitle: "Official Single • 126 BPM",
     bpm: 124,
     durationSec: 219,
+    durationLabel: "3:39",
     unlockCost: 0,
+    src: "assets/track_01.mp3",
     audioSrc: "assets/track_01.mp3",
     artKey: "track01Art",
     artSrc: "assets/track_01.png",
     sections: [
-      { t: 0, label: "INTRO", tier: "SECTION_SHIFT", gold: false },
-      { t: 7.25, label: "BASS & GUITAR SWELL", tier: "SECTION_SHIFT", gold: false },
-      { t: 14.5, label: "DRUM & SYNTH DROP", tier: "EXTRA_JUICE", gold: true },
-      { t: 31.2, label: "VERSE ONE", tier: "SECTION_SHIFT", gold: false },
-      { t: 45.5, label: "PRE-CHORUS SURGE", tier: "SLIGHT_EXTRA_JUICE", gold: false },
-      { t: 62.0, label: "VOCAL BREAKDOWN", tier: "SECTION_SHIFT", gold: false },
-      { t: 69.25, label: "PRE-CHORUS RISER", tier: "SLIGHT_EXTRA_JUICE", gold: false },
-      { t: 75.5, label: "CHORUS SUPERNOVA", tier: "EXTRA_JUICE", gold: true },
-      { t: 93.0, label: "VERSE TWO", tier: "SECTION_SHIFT", gold: false },
-      { t: 107.8, label: "MID-VERSE BASS SURGE", tier: "SLIGHT_EXTRA_JUICE", gold: false },
-      { t: 124.0, label: "VOCAL BREAKDOWN II", tier: "SECTION_SHIFT", gold: false },
-      { t: 131.25, label: "PRE-CHORUS RISER II", tier: "SLIGHT_EXTRA_JUICE", gold: false },
-      { t: 137.5, label: "CHORUS II SUPERNOVA", tier: "EXTRA_JUICE", gold: true },
-      { t: 155.0, label: "BRIDGE BREATHER", tier: "SECTION_SHIFT", gold: false },
-      { t: 169.25, label: "VOCAL BATTLE SWELL", tier: "SLIGHT_EXTRA_JUICE", gold: false },
-      { t: 184.75, label: "GRAND FINALE CLIMAX", tier: "EXTRA_JUICE", gold: true },
-      { t: 201.25, label: "SUB-BASS HEARTBEAT", tier: "SECTION_SHIFT", gold: false },
-      { t: 208.0, label: "OUTRO ECLIPSE", tier: "SECTION_SHIFT", gold: false }
+      { t: 0, timeSec: 0, title: "INTRO", subtitle: "SYNTH RESONANCE", effectType: "STANDARD" },
+      { t: 7.25, timeSec: 7.25, title: "BASS & GUITAR SWELL", subtitle: "SUB-BASS DRIFT", effectType: "WARP_PULSE" },
+      { t: 14.5, timeSec: 14.5, title: "DRUM & SYNTH DROP", subtitle: "SUPERNOVA BURST", effectType: "CONSTELLATION_RUSH" },
+      { t: 31.2, timeSec: 31.2, title: "VERSE ONE", subtitle: "124 BPM SYNTH GROOVE", effectType: "STANDARD" },
+      { t: 45.5, timeSec: 45.5, title: "PRE-CHORUS SURGE", subtitle: "HARMONIC RISER", effectType: "SPEED_PORTAL" },
+      { t: 62.0, timeSec: 62.0, title: "VOCAL BREAKDOWN", subtitle: "ZERO-BASS PURITY", effectType: "ECLIPSE_VORTEX" },
+      { t: 69.25, timeSec: 69.25, title: "PRE-CHORUS RISER", subtitle: "ENERGY CHARGE", effectType: "SPEED_PORTAL" },
+      { t: 75.5, timeSec: 75.5, title: "CHORUS SUPERNOVA", subtitle: "FULL AUDIO OVERDRIVE", effectType: "CONSTELLATION_RUSH" },
+      { t: 93.0, timeSec: 93.0, title: "VERSE TWO", subtitle: "KICK & VOCAL LOCK", effectType: "STANDARD" },
+      { t: 107.8, timeSec: 107.8, title: "MID-VERSE BASS SURGE", subtitle: "SUB-BASS EXPANSION", effectType: "WARP_PULSE" },
+      { t: 124.0, timeSec: 124.0, title: "VOCAL BREAKDOWN II", subtitle: "ATMOSPHERIC VOID", effectType: "ECLIPSE_VORTEX" },
+      { t: 131.25, timeSec: 131.25, title: "PRE-CHORUS RISER II", subtitle: "ASCENDING STAIRCASE", effectType: "SPEED_PORTAL" },
+      { t: 137.5, timeSec: 137.5, title: "CHORUS II SUPERNOVA", subtitle: "MAXIMUM RESONANCE", effectType: "CONSTELLATION_RUSH" },
+      { t: 155.0, timeSec: 155.0, title: "BRIDGE BREATHER", subtitle: "WARM CHORDS", effectType: "STANDARD" },
+      { t: 169.25, timeSec: 169.25, title: "VOCAL BATTLE SWELL", subtitle: "DUAL HARMONIES", effectType: "WARP_PULSE" },
+      { t: 184.75, timeSec: 184.75, title: "GRAND FINALE CLIMAX", subtitle: "24K GOLD OVERDRIVE", effectType: "SUPERNOVA_BURST" },
+      { t: 201.25, timeSec: 201.25, title: "SUB-BASS HEARTBEAT", subtitle: "WARM PULSE", effectType: "STANDARD" },
+      { t: 208.0, timeSec: 208.0, title: "OUTRO ECLIPSE", subtitle: "VELVET DECAY", effectType: "ECLIPSE_VORTEX" }
+    ],
+    choreography: [
+      { timeSec: 0, title: "INTRO", subtitle: "SYNTH RESONANCE", effectType: "STANDARD" },
+      { timeSec: 14.5, title: "CHORUS ONE", subtitle: "SUPERNOVA BURST", effectType: "CONSTELLATION_RUSH" },
+      { timeSec: 62.0, title: "VOCAL BREAKDOWN", subtitle: "ZERO-BASS PURITY", effectType: "ECLIPSE_VORTEX" },
+      { timeSec: 75.5, title: "CHORUS SUPERNOVA", subtitle: "FULL AUDIO OVERDRIVE", effectType: "CONSTELLATION_RUSH" },
+      { timeSec: 124.0, title: "VOCAL BREAKDOWN II", subtitle: "ATMOSPHERIC VOID", effectType: "ECLIPSE_VORTEX" },
+      { timeSec: 137.5, title: "CHORUS II SUPERNOVA", subtitle: "MAXIMUM RESONANCE", effectType: "CONSTELLATION_RUSH" },
+      { timeSec: 184.75, title: "GRAND FINALE CLIMAX", subtitle: "24K GOLD OVERDRIVE", effectType: "SUPERNOVA_BURST" },
+      { timeSec: 208.0, title: "OUTRO ECLIPSE", subtitle: "VELVET DECAY", effectType: "ECLIPSE_VORTEX" }
     ],
     orbChart: buildConfideOrbChart()
   },
-  2: {
+  {
+    id: "track_02",
     index: 2,
     title: "Number One",
+    subtitle: "Hypnotic Hip-Hop • 88 BPM",
     bpm: 88,
     durationSec: 166,
-    unlockCost: 1200,
+    durationLabel: "2:46",
+    unlockCost: 500,
+    src: "assets/track_02.mp3",
     audioSrc: "assets/track_02.mp3",
     artKey: "track02Art",
     artSrc: "assets/track_02.png",
     sections: [
-      { t: 0, label: "INTRO", tier: "SECTION_SHIFT", gold: false },
-      { t: 6.5, label: "SUB-BASS WARMTH", tier: "SECTION_SHIFT", gold: false },
-      { t: 9.75, label: "PERCUSSION SHIMMER", tier: "SLIGHT_EXTRA_JUICE", gold: false },
-      { t: 22.0, label: "VERSE ONE", tier: "SECTION_SHIFT", gold: false },
-      { t: 42.25, label: "PRE-CHORUS SWELL", tier: "SLIGHT_EXTRA_JUICE", gold: false },
-      { t: 55.25, label: "CHORUS DROP", tier: "EXTRA_JUICE", gold: true },
-      { t: 76.0, label: "VERSE TWO", tier: "SECTION_SHIFT", gold: false },
-      { t: 91.25, label: "RAP CADENCE", tier: "SLIGHT_EXTRA_JUICE", gold: false },
-      { t: 101.5, label: "PRE-CHORUS II", tier: "SECTION_SHIFT", gold: false },
-      { t: 109.75, label: "CHORUS II DROP", tier: "EXTRA_JUICE", gold: true },
-      { t: 129.5, label: "GRAND FINALE CLIMAX", tier: "EXTRA_JUICE", gold: true },
-      { t: 152.5, label: "VELVET TWILIGHT OUTRO", tier: "SECTION_SHIFT", gold: false }
+      { t: 0, timeSec: 0, title: "INTRO", subtitle: "WARM CHORD BED", effectType: "STANDARD" },
+      { t: 6.5, timeSec: 6.5, title: "SUB-BASS WARMTH", subtitle: "808 PULSE", effectType: "WARP_PULSE" },
+      { t: 9.75, timeSec: 9.75, title: "PERCUSSION SHIMMER", subtitle: "HI-HAT ROLL", effectType: "STANDARD" },
+      { t: 22.0, timeSec: 22.0, title: "VERSE ONE", subtitle: "VOCAL FLOW", effectType: "STANDARD" },
+      { t: 42.25, timeSec: 42.25, title: "PRE-CHORUS SWELL", subtitle: "RISER WAVE", effectType: "SPEED_PORTAL" },
+      { t: 55.25, timeSec: 55.25, title: "CHORUS DROP", subtitle: "SUPERNOVA CADENCE", effectType: "CONSTELLATION_RUSH" },
+      { t: 76.0, timeSec: 76.0, title: "VERSE TWO", subtitle: "RHYTHMIC POCKET", effectType: "STANDARD" },
+      { t: 91.25, timeSec: 91.25, title: "RAP CADENCE", subtitle: "DOUBLE-TIME RUSH", effectType: "OVERDRIVE_DROP" },
+      { t: 101.5, timeSec: 101.5, title: "PRE-CHORUS II", subtitle: "CRESCENDO SWEEP", effectType: "SPEED_PORTAL" },
+      { t: 109.75, timeSec: 109.75, title: "CHORUS II DROP", subtitle: "MAXIMUM IMPACT", effectType: "CONSTELLATION_RUSH" },
+      { t: 129.5, timeSec: 129.5, title: "GRAND FINALE CLIMAX", subtitle: "ALL INSTRUMENTS PEAK", effectType: "SUPERNOVA_BURST" },
+      { t: 152.5, timeSec: 152.5, title: "VELVET TWILIGHT OUTRO", subtitle: "SUBLIME RESOLUTION", effectType: "ECLIPSE_VORTEX" }
+    ],
+    choreography: [
+      { timeSec: 0, title: "INTRO", subtitle: "WARM CHORD BED", effectType: "STANDARD" },
+      { timeSec: 55.25, title: "CHORUS DROP", subtitle: "SUPERNOVA CADENCE", effectType: "CONSTELLATION_RUSH" },
+      { timeSec: 91.25, title: "RAP CADENCE", subtitle: "DOUBLE-TIME RUSH", effectType: "OVERDRIVE_DROP" },
+      { timeSec: 109.75, title: "CHORUS II DROP", subtitle: "MAXIMUM IMPACT", effectType: "CONSTELLATION_RUSH" },
+      { timeSec: 129.5, title: "GRAND FINALE CLIMAX", subtitle: "ALL INSTRUMENTS PEAK", effectType: "SUPERNOVA_BURST" },
+      { timeSec: 152.5, title: "VELVET TWILIGHT OUTRO", subtitle: "SUBLIME RESOLUTION", effectType: "ECLIPSE_VORTEX" }
     ],
     orbChart: buildNumberOneOrbChart()
   }
-};
+];
 
 const LOBBY_TRACKS = [
   { id: "VELVET", title: "Velvet Synth", bpm: 92, src: "assets/lobby_velvet.mp3" },
@@ -229,314 +431,7 @@ const LOBBY_TRACKS = [
   { id: "CRYSTAL", title: "Crystal Mirage", bpm: 118, src: "assets/lobby_crystal.mp3" }
 ];
 
-const REMIX_MODES = {
-  ORIGINAL:  { id: "ORIGINAL",  shortTag: "1.0x",  subtitle: "1.0x Studio Master", speed: 1.0 },
-  OVERCLOCK: { id: "OVERCLOCK", shortTag: "1.2x",  subtitle: "1.20x Nightcore Rush", speed: 1.20 },
-  SLOWED:    { id: "SLOWED",    shortTag: "0.85x", subtitle: "0.85x Slowed + Reverb", speed: 0.85 },
-  ENDLESS:   { id: "ENDLESS",   shortTag: "∞",     subtitle: "Seamless Infinite Loop", speed: 1.0 }
-};
 
-function sample4Hz(arr, sec) {
-  if (!arr || !arr.length) return 0.45;
-  const exact = Math.max(0, sec) / 0.25;
-  const i0 = Math.min(arr.length - 1, Math.floor(exact));
-  const i1 = Math.min(arr.length - 1, i0 + 1);
-  const f = exact - i0;
-  return Math.max(0, Math.min(1, arr[i0] * (1 - f) + arr[i1] * f));
-}
-
-function getMultiBandStateAt(trackIndex, sec) {
-  const d = window.MULTI_BAND_DATA;
-  if (!d) return { rms: 0.48, bass: 0.45, vocal: 0.45, high: 0.4, bassDropOut: false, swellDelta: 0.1 };
-  const isT1 = trackIndex <= 1;
-  const rmsArr = isT1 ? d.confideRms4Hz : d.numberOneRms4Hz;
-  const bassArr = isT1 ? d.confideBass4Hz : d.numberOneBass4Hz;
-  const vocalArr = isT1 ? d.confideVocal4Hz : d.numberOneVocal4Hz;
-  const highArr = isT1 ? d.confideHigh4Hz : d.numberOneHigh4Hz;
-
-  const rms = sample4Hz(rmsArr, sec);
-  const bass = sample4Hz(bassArr, sec);
-  const vocal = sample4Hz(vocalArr, sec);
-  const high = sample4Hz(highArr, sec);
-  const prevRms = sample4Hz(rmsArr, Math.max(0, sec - 0.75));
-  const prevVocal = sample4Hz(vocalArr, Math.max(0, sec - 0.75));
-  const prevHigh = sample4Hz(highArr, Math.max(0, sec - 0.75));
-  const swellDelta = Math.max(-0.5, Math.min(0.7, Math.max(rms - prevRms, (vocal - prevVocal) * 0.85, (high - prevHigh) * 0.85)));
-  const bassDropOut = sec > 8.0 && bass < 0.14;
-  return { rms, bass, vocal, high, bassDropOut, swellDelta };
-}
-
-// ============================================================================
-// 1:1 PORT OF BackgroundRenderer.kt (getThemePalette + drawNebulaBackground)
-// ============================================================================
-function getThemePalette(bgTheme, isFocus) {
-  switch (bgTheme) {
-    case "CYBER":
-      return { c1: isFocus ? "#020705" : "#010403", c2: isFocus ? "#05180E" : "#031109", c3: isFocus ? "#071D12" : "#04120B", nebTint: [34, 197, 94], starTint: [129, 140, 248] };
-    case "SUNSET":
-      return { c1: isFocus ? "#07020A" : "#040106", c2: isFocus ? "#14051C" : "#0D0314", c3: isFocus ? "#090418" : "#05020E", nebTint: [168, 85, 247], starTint: [34, 197, 94] };
-    case "PRISM":
-      return { c1: isFocus ? "#03030C" : "#020208", c2: isFocus ? "#090820" : "#060516", c3: isFocus ? "#04140C" : "#020C07", nebTint: [99, 102, 241], starTint: [74, 222, 128] };
-    case "GOLD_VINYL":
-      return { c1: isFocus ? "#080501" : "#050300", c2: isFocus ? "#1A1103" : "#120B02", c3: isFocus ? "#0E0902" : "#080501", nebTint: [250, 204, 21], starTint: [56, 189, 248] };
-    case "BLOOD_MOON":
-      return { c1: isFocus ? "#090103" : "#050002", c2: isFocus ? "#1C040A" : "#120206", c3: isFocus ? "#0E0208" : "#070104", nebTint: [244, 63, 94], starTint: [250, 204, 21] };
-    default:
-      return { c1: isFocus ? "#020504" : "#010302", c2: isFocus ? "#040D08" : "#030805", c3: isFocus ? "#04030E" : "#020208", nebTint: [22, 163, 74], starTint: [99, 102, 241] };
-  }
-}
-
-function rgba(rgb, a) {
-  return `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${Math.max(0, Math.min(1, a))})`;
-}
-
-function roundRectPath(ctx, x, y, w, h, r) {
-  const rad = Math.max(0, Math.min(r, w / 2, h / 2));
-  ctx.beginPath();
-  ctx.moveTo(x + rad, y);
-  ctx.arcTo(x + w, y, x + w, y + h, rad);
-  ctx.arcTo(x + w, y + h, x, y + h, rad);
-  ctx.arcTo(x, y + h, x, y, rad);
-  ctx.arcTo(x, y, x + w, y, rad);
-  ctx.closePath();
-}
-
-function drawNebulaBackground(ctx, W, H, opts) {
-  const {
-    time, isFocus, bgTheme, trackArtwork, trackProgress,
-    beatPhase, goldenOverdriveIntensity, beatFlashIntensity,
-    activePhenomenon, multiBand
-  } = opts;
-
-  const basePalette = getThemePalette(bgTheme, isFocus);
-  const isEclipseActive = (activePhenomenon && activePhenomenon.effect === "ECLIPSE_DARK" && activePhenomenon.timer > 0) || multiBand.bassDropOut;
-  const isConstellationActive = (activePhenomenon && activePhenomenon.effect === "CONSTELLATION_STAR" && activePhenomenon.timer > 0) || goldenOverdriveIntensity > 0.25;
-  const goldBlend = (activePhenomenon && activePhenomenon.effect === "CONSTELLATION_STAR")
-    ? Math.min(1, activePhenomenon.timer / 1.5)
-    : Math.min(1, goldenOverdriveIntensity);
-
-  const palette = isEclipseActive
-    ? { c1: "#010104", c2: "#03020A", c3: "#010105", nebTint: [56, 189, 248], starTint: [168, 85, 247] }
-    : isConstellationActive
-    ? { c1: "#060401", c2: "#140D02", c3: "#0A0601", nebTint: [250, 204, 21], starTint: [56, 189, 248] }
-    : basePalette;
-
-  const energy = Math.max(0.08, Math.min(1, multiBand.rms));
-  const bass = Math.max(0, Math.min(1, multiBand.bass));
-  const vocal = Math.max(0.05, Math.min(1, multiBand.vocal));
-  const high = Math.max(0, Math.min(1, multiBand.high));
-  const swellBoost = Math.max(0, Math.min(0.7, multiBand.swellDelta * 2.4));
-  const beatPulse = beatPhase >= 0 ? Math.max(0, Math.min(1, Math.exp(-beatPhase * 4.5))) : 0.2;
-
-  // 1. Deep Obsidian Space Base
-  const bgGrad = ctx.createLinearGradient(0, 0, 0, H);
-  bgGrad.addColorStop(0, palette.c1);
-  bgGrad.addColorStop(0.5, palette.c2);
-  bgGrad.addColorStop(1, palette.c3);
-  ctx.fillStyle = bgGrad;
-  ctx.fillRect(0, 0, W, H);
-
-  const centerX = W * 0.5;
-  const centerY = H * 0.46;
-  const maxDim = Math.max(W, H);
-
-  // 2. Volumetric Radial Nebula Cloud
-  const nebulaAlpha = multiBand.bassDropOut ? 0.06 : Math.min(0.32, 0.05 + vocal * 0.16 + bass * 0.08 + swellBoost * 0.10);
-  const nebRad = maxDim * (0.34 + vocal * 0.22 + bass * 0.12 + beatPulse * 0.05);
-  const radGrad = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, nebRad);
-  radGrad.addColorStop(0, rgba(palette.nebTint, nebulaAlpha));
-  radGrad.addColorStop(0.55, rgba(palette.starTint, nebulaAlpha * 0.55));
-  radGrad.addColorStop(1, "rgba(0,0,0,0)");
-  ctx.save();
-  ctx.globalCompositeOperation = "screen";
-  ctx.fillStyle = radGrad;
-  ctx.beginPath();
-  ctx.arc(centerX, centerY, maxDim * 0.72, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.restore();
-
-  // 3. Sub-Bass Gravity Thump Rings
-  if (!multiBand.bassDropOut && bass > 0.22) {
-    for (let bIdx = 0; bIdx < 3; bIdx++) {
-      const bPhase = (beatPhase + bIdx * 0.33) % 1;
-      const bRad = Math.min(W, H) * (0.14 + bPhase * (0.38 + bass * 0.22));
-      const bAlpha = (1 - bPhase) * (bass - 0.18) * 0.36;
-      const bCol = isConstellationActive ? [250, 204, 21] : palette.nebTint;
-      ctx.strokeStyle = rgba(bCol, Math.min(0.34, bAlpha));
-      ctx.lineWidth = 1.6 + bass * 3.2;
-      ctx.beginPath();
-      ctx.arc(centerX, centerY, bRad, 0, Math.PI * 2);
-      ctx.stroke();
-    }
-  }
-
-  // 4. Vocal-Driven Solar Aurora Borealis Silk Ribbons + Neural Synapse Nodes
-  for (let rIdx = 0; rIdx < 3; rIdx++) {
-    const baseY = H * (0.26 + rIdx * 0.24);
-    const phaseOffset = rIdx * 2.1;
-    const waveAmp = H * (0.018 + vocal * 0.055 + swellBoost * 0.030);
-    const speed = 0.30 + vocal * 0.45 + high * 0.25 + rIdx * 0.08;
-
-    const rCol1 = isConstellationActive ? [250, 204, 21] : (multiBand.bassDropOut ? [56, 189, 248] : palette.nebTint);
-    const rCol2 = isConstellationActive ? [56, 189, 248] : (multiBand.bassDropOut ? [192, 132, 252] : palette.starTint);
-    const silkAlpha = Math.min(0.32, 0.05 + vocal * 0.18 + swellBoost * 0.12);
-
-    ctx.beginPath();
-    const segments = 18;
-    const stepX = W / segments;
-    for (let s = 0; s <= segments; s++) {
-      const x = s * stepX;
-      const nx = s / segments;
-      const y = baseY +
-        Math.sin(nx * 4.2 + time * speed + phaseOffset) * waveAmp +
-        Math.cos(nx * 2.5 - time * (speed * 0.65) + phaseOffset) * (waveAmp * 0.55);
-      if (s === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-    }
-    const hGrad = ctx.createLinearGradient(0, 0, W, 0);
-    hGrad.addColorStop(0, "rgba(0,0,0,0)");
-    hGrad.addColorStop(0.33, rgba(rCol1, silkAlpha * 0.58));
-    hGrad.addColorStop(0.66, rgba(rCol2, silkAlpha * 0.48));
-    hGrad.addColorStop(1, "rgba(0,0,0,0)");
-    ctx.strokeStyle = hGrad;
-    ctx.lineWidth = 16 + vocal * 28 - rIdx * 4;
-    ctx.lineCap = "round";
-    ctx.stroke();
-
-    const hGradInner = ctx.createLinearGradient(0, 0, W, 0);
-    hGradInner.addColorStop(0, "rgba(0,0,0,0)");
-    hGradInner.addColorStop(0.33, rgba(rCol1, Math.min(0.50, silkAlpha * 1.45)));
-    hGradInner.addColorStop(0.66, rgba(rCol2, Math.min(0.45, silkAlpha * 1.25)));
-    hGradInner.addColorStop(1, "rgba(0,0,0,0)");
-    ctx.strokeStyle = hGradInner;
-    ctx.lineWidth = 1.6 + vocal * 2.2;
-    ctx.stroke();
-
-    if (vocal > 0.36 || high > 0.35) {
-      let prevPos = null;
-      for (let n = 0; n < 8; n++) {
-        const nx = ((n / 8) + time * (0.05 + rIdx * 0.015)) % 1;
-        const px = nx * W;
-        const py = baseY +
-          Math.sin(nx * 4.2 + time * speed + phaseOffset) * waveAmp +
-          Math.cos(nx * 2.5 - time * (speed * 0.65) + phaseOffset) * (waveAmp * 0.55);
-        const nodeAlpha = Math.max(0.08, Math.min(0.65, (Math.max(vocal, high) - 0.30) * 0.85));
-        const nCol = n % 2 === 0 ? rCol1 : rCol2;
-        ctx.fillStyle = rgba(nCol, nodeAlpha * 0.35);
-        ctx.beginPath(); ctx.arc(px, py, 6 + vocal * 5, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = `rgba(255,255,255,${nodeAlpha})`;
-        ctx.beginPath(); ctx.arc(px, py, 2.2, 0, Math.PI * 2); ctx.fill();
-        if (prevPos && Math.abs(px - prevPos.x) < W * 0.3) {
-          ctx.strokeStyle = rgba(nCol, nodeAlpha * 0.38);
-          ctx.lineWidth = 1.1;
-          ctx.beginPath(); ctx.moveTo(prevPos.x, prevPos.y); ctx.lineTo(px, py); ctx.stroke();
-        }
-        prevPos = { x: px, y: py };
-      }
-    }
-  }
-
-  // 5. High-Shimmer Kerr Singularity Spiral Galaxy Vortex
-  const galaxyDrive = Math.max(high * 1.15, energy * 0.85);
-  if (galaxyDrive >= 0.46 && !multiBand.bassDropOut) {
-    const vortexStrength = Math.max(0, Math.min(1, (galaxyDrive - 0.44) / 0.56));
-    const maxArmRadius = Math.min(W, H) * (0.26 + vortexStrength * 0.26);
-    for (let arm = 0; arm < 6; arm++) {
-      const startAngle = (arm / 6) * Math.PI * 2 + time * (0.38 + high * 0.35);
-      const armCol = isConstellationActive
-        ? (arm % 2 === 0 ? [253, 224, 71] : [56, 189, 248])
-        : (arm % 2 === 0 ? palette.nebTint : palette.starTint);
-      for (let s = 1; s <= 14; s++) {
-        const t = s / 14;
-        const r = 18 + t * maxArmRadius;
-        const a = startAngle - t * 2.4;
-        const px = centerX + Math.cos(a) * r;
-        const py = centerY + Math.sin(a) * r;
-        const dotAlpha = (1 - t) * vortexStrength * (0.28 + beatPulse * 0.18);
-        ctx.fillStyle = rgba(armCol, Math.min(0.52, dotAlpha));
-        ctx.beginPath();
-        ctx.arc(px, py, 2.2 + (1 - t) * 4.0, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
-  }
-
-  // 6. 24K Golden Overdrive & On-Beat Concert Laser Sweeps + Border Equalizer Columns
-  const overdriveFlash = Math.max(goldBlend, Math.min(1, beatFlashIntensity));
-  if (overdriveFlash > 0.04) {
-    for (let b = 0; b < 6; b++) {
-      const anchorX = (W / 5) * b;
-      const sway = Math.sin(time * 2.4 + b * 0.9) * (W * 0.22);
-      const targetX = Math.max(0, Math.min(W, centerX + sway));
-      const beamCol = b % 2 === 0 ? [250, 204, 21] : [56, 189, 248];
-      const lGrad = ctx.createLinearGradient(anchorX, 0, targetX, H * 0.85);
-      lGrad.addColorStop(0, rgba(beamCol, overdriveFlash * (0.28 + beatPulse * 0.20)));
-      lGrad.addColorStop(1, "rgba(0,0,0,0)");
-      ctx.strokeStyle = lGrad;
-      ctx.lineWidth = 14 + beatPulse * 16;
-      ctx.lineCap = "round";
-      ctx.beginPath();
-      ctx.moveTo(anchorX, 0);
-      ctx.lineTo(targetX, H * 0.85);
-      ctx.stroke();
-    }
-    const eqBars = 14;
-    const stepH = H / eqBars;
-    for (let i = 0; i < eqBars; i++) {
-      const wave = 0.25 + 0.75 * Math.abs(Math.sin(time * 5.2 + i * 0.55));
-      const barW = (10 + (bass * 28 + vocal * 20) * wave) * overdriveFlash;
-      const y = i * stepH + stepH * 0.2;
-      const col = i % 2 === 0 ? [250, 204, 21] : [34, 211, 238];
-      ctx.fillStyle = rgba(col, (0.35 + beatPulse * 0.35) * overdriveFlash);
-      roundRectPath(ctx, 0, y, barW, stepH * 0.58, 6); ctx.fill();
-      roundRectPath(ctx, W - barW, y, barW, stepH * 0.58, 6); ctx.fill();
-    }
-  }
-
-  // 7. Signature No More Illusions Concentric Squircle Tunnel
-  const ringCount = isEclipseActive ? 5 : 9;
-  const ringSpeed = multiBand.bassDropOut ? 0.04 : (0.07 + bass * 0.12 + high * 0.06);
-  for (let i = 0; i < ringCount; i++) {
-    const rawPhase = ((i / ringCount) + time * ringSpeed) % 1;
-    const curvedPhase = rawPhase * rawPhase;
-    const boxHalf = curvedPhase * maxDim * (0.64 + bass * 0.06);
-    if (boxHalf < 14) continue;
-
-    const rotRad = (Math.sin(time * (0.50 + vocal * 0.45) + i * 0.52) * (9 + high * 16)) * Math.PI / 180;
-    const isEven = i % 2 === 0;
-    const baseRingColor = isConstellationActive
-      ? (isEven ? [250, 204, 21] : [56, 189, 248])
-      : multiBand.bassDropOut
-      ? [56, 189, 248]
-      : (isEven ? palette.nebTint : palette.starTint);
-
-    const fadeAlpha = Math.max(0, Math.min(1, Math.sin(rawPhase * Math.PI)));
-    const finalAlpha = Math.max(0, Math.min(0.36, fadeAlpha * (0.05 + energy * 0.20 + swellBoost * 0.14)));
-    const strokeW = 1.1 + rawPhase * (1.6 + bass * 2.6);
-
-    ctx.save();
-    ctx.translate(centerX, centerY);
-    ctx.rotate(rotRad);
-    ctx.strokeStyle = rgba(baseRingColor, finalAlpha);
-    ctx.lineWidth = strokeW;
-    roundRectPath(ctx, -boxHalf, -boxHalf, boxHalf * 2, boxHalf * 2, boxHalf * 0.38);
-    ctx.stroke();
-    ctx.restore();
-  }
-
-  // 8. Progressive Album Artwork Hologram Watermark Reveal in the Center
-  if (trackArtwork && trackArtwork.complete && trackProgress > 0.01) {
-    const p = Math.max(0, Math.min(1, trackProgress));
-    const artBoxSize = Math.min(W, H) * (0.46 + bass * 0.04);
-    ctx.save();
-    ctx.globalCompositeOperation = "screen";
-    ctx.globalAlpha = Math.min(0.24, 0.04 + p * 0.14 + vocal * 0.05);
-    ctx.drawImage(trackArtwork, (W - artBoxSize) / 2, (H - artBoxSize) / 2, artBoxSize, artBoxSize);
-    ctx.restore();
-  }
-}
-
-
-// ============================================================================
 // 5. GAME RENDERER (1:1 Port of GameRenderer.kt & TrackRevealOverlay.kt)
 // ============================================================================
 function getTrailPalette(trailId) {
@@ -1372,6 +1267,7 @@ function drawMenuTurntable(ctx, logoImg, time, isGoldMode) {
 // ============================================================================
 // 8. FULL GAME CONTROLLER & PHYSICS ENGINE (1:1 Port of GamePhysics.kt)
 // ============================================================================
+
 class NoMoreIllusionsApp {
   constructor() {
     this.canvas = document.getElementById("game-canvas");
@@ -3120,6 +3016,8 @@ class NoMoreIllusionsApp {
   }
 }
 
+
 window.addEventListener("DOMContentLoaded", () => {
   window.app = new NoMoreIllusionsApp();
 });
+

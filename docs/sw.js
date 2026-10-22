@@ -1,4 +1,4 @@
-const CACHE_NAME = "nmi-v5-ios-1to1-v3";
+const CACHE_NAME = "nmi-v5-ios-1to1-v4";
 const ASSETS = [
   "./",
   "./index.html",
