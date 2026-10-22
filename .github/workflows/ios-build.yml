@@ -5,6 +5,9 @@ on:
   push:
     branches:
       - main
+    paths-ignore:
+      - 'README.md'
+      - '.gitignore'
 
 jobs:
   build-ios:
@@ -14,38 +17,48 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js 20
+      - name: Setup Node.js 22
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
 
-      - name: Install Capacitor iOS Dependencies
-        run: npm install
+      - name: Install Dependencies
+        run: |
+          npm install
 
-      - name: Generate & Sync Native Xcode iOS Project
+      - name: Generate & Sync Native Capacitor iOS Project
         run: |
           if [ ! -d "ios" ]; then
             npx cap add ios
           fi
           npx cap sync ios
+          cd ios/App && pod install
 
       - name: Build Unsigned iOS Archive via Xcodebuild
         run: |
           cd ios/App
-          xcodebuild -project App.xcodeproj \
+          xcodebuild -workspace App.xcworkspace \
             -scheme App \
-            -sdk iphoneos \
             -configuration Release \
+            -destination "generic/platform=iOS" \
             -derivedDataPath build \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
+            AD_HOC_CODE_SIGNING_ALLOWED=YES \
+            COMPILER_INDEX_STORE_ENABLE=NO \
             clean build
 
       - name: Package .ipa Payload Artifact
         run: |
           mkdir -p Payload
-          cp -r ios/App/build/Build/Products/Release-iphoneos/App.app Payload/NoMoreIllusions.app
+          APP_PATH=$(find ios/App/build/Build/Products -name "*.app" -type d | head -n 1)
+          if [ -z "$APP_PATH" ]; then
+            echo "Error: .app bundle not found!"
+            exit 1
+          fi
+          echo "Found app bundle at: $APP_PATH"
+          cp -r "$APP_PATH" Payload/NoMoreIllusions.app
           zip -r NoMoreIllusions-iOS-v1.0.2.ipa Payload
 
       - name: Upload Apple iOS .ipa & Xcode Project Artifacts
