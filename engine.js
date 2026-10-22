@@ -435,6 +435,14 @@ const OFFICIAL_TRACKS = [
   }
 ];
 
+
+const TRACK_REMIX_MODES = [
+  { id: "ORIGINAL", title: "Original Mix", shortTag: "1.0x", subtitle: "Studio Master Tempo • Balanced Flow", speed: 1.0, color: "#4ADE80" },
+  { id: "OVERCLOCK", title: "Nightcore Overclock", shortTag: "1.20x", subtitle: "High-Speed Reflexes • 2.0x ♪ Notes", speed: 1.20, color: "#F43F5E" },
+  { id: "SLOWED", title: "Slowed + Reverb", shortTag: "0.85x", subtitle: "Late-Night Abyssal Drift • 1.5x ♪ Notes", speed: 0.85, color: "#38BDF8" },
+  { id: "ENDLESS", title: "Endless Eclipse", shortTag: "∞ LOOP", subtitle: "Infinite Escalating Loop • 2.5x ♪ Notes", speed: 1.0, isEndless: true, color: "#FACC15" }
+];
+
 const LOBBY_TRACKS = [
   { id: "VELVET", title: "Velvet Synth", bpm: 92, src: "assets/lobby_velvet.mp3" },
   { id: "MIDNIGHT", title: "Midnight Pulse", bpm: 105, src: "assets/lobby_midnight.mp3" },
@@ -1409,6 +1417,17 @@ function drawMenuTurntable(ctx, logoImg, time, isGoldMode) {
 // ============================================================================
 
 class NoMoreIllusionsApp {
+  getRemixMode() {
+    return TRACK_REMIX_MODES.find(m => m.id === this.prefs.selectedRemixModeId) || TRACK_REMIX_MODES[0];
+  }
+
+  setRemixMode(modeId) {
+    this.playSfx("click");
+    this.prefs.selectedRemixModeId = modeId;
+    localStorage.setItem("nmi_remix_mode", modeId);
+    this.syncUI();
+  }
+
   constructor() {
     this.canvas = document.getElementById("game-canvas");
     this.ctx = this.canvas.getContext("2d");
@@ -1696,8 +1715,8 @@ class NoMoreIllusionsApp {
       this.lobbyAudio.pause();
       return;
     }
-    const lobby = LOBBY_TRACKS[this.prefs.lobbyThemeIndex % LOBBY_TRACKS.length];
-    if (!this.lobbyAudio.src.endsWith(lobby.src)) {
+    const lobby = (LOBBY_TRACKS && LOBBY_TRACKS[this.prefs.lobbyThemeIndex % LOBBY_TRACKS.length]) || LOBBY_TRACKS[0];
+    if (lobby && (!this.lobbyAudio.src || !this.lobbyAudio.src.endsWith(lobby.src))) {
       this.lobbyAudio.src = lobby.src;
     }
     this.lobbyAudio.play().catch(() => {});
@@ -2025,6 +2044,8 @@ class NoMoreIllusionsApp {
     this.trackAudio.src = stage.src;
     this.trackAudio.currentTime = 0;
     this.trackAudio.muted = this.prefs.musicMuted;
+    const mode = this.getRemixMode();
+    try { this.trackAudio.playbackRate = mode.speed; } catch (e) {}
     this.trackAudio.play().catch(() => {});
 
     this.gameState = "PLAYING";
@@ -2096,15 +2117,13 @@ class NoMoreIllusionsApp {
       this.newlyUnlockedTrack = null;
     }
 
-    const totalChartOrbs = Math.max(1, stage.orbChart.length);
-    const orbRatio = this.orbsCollectedRun / totalChartOrbs;
-    this.earnedMedalTier = (orbRatio >= 0.75 || this.maxComboRun >= 5)
-      ? 3
-      : (orbRatio >= 0.45 || this.maxComboRun >= 3)
-      ? 2
-      : 1;
-    if (this.earnedMedalTier > (this.prefs.trackMasteryMedals[stage.id] || 0)) {
-      this.prefs.trackMasteryMedals[stage.id] = this.earnedMedalTier;
+    const mode = this.getRemixMode();
+    let stars = 1; // ★1: Clear song
+    if (this.maxComboRun >= 8) stars = 2; // ★2: 8x Beat streak
+    if (mode.id === "OVERCLOCK" || mode.id === "SLOWED") stars = 3; // ★3: Beat Nightcore/Slowed
+    this.earnedMedalTier = stars;
+    if (stars > (this.prefs.trackMasteryMedals[stage.id] || 0)) {
+      this.prefs.trackMasteryMedals[stage.id] = stars;
     }
 
     this.savePrefs();
@@ -2400,7 +2419,9 @@ class NoMoreIllusionsApp {
       const speed = Math.max(1, Math.hypot(pu.vx, pu.vy));
       const perpX = -pu.vy / speed;
       const perpY = pu.vx / speed;
-      const wave = Math.cos(pu.age * pu.waveFreq + pu.wavePhase) * 35;
+      const wFreq = (typeof pu.waveFreq === "number" && isFinite(pu.waveFreq)) ? pu.waveFreq : 2.5;
+      const wPhase = (typeof pu.wavePhase === "number" && isFinite(pu.wavePhase)) ? pu.wavePhase : 0;
+      const wave = Math.cos(pu.age * wFreq + wPhase) * 25;
 
       pu.x += (pu.vx + perpX * wave) * worldDt;
       pu.y += (pu.vy + perpY * wave) * worldDt;
@@ -2602,7 +2623,9 @@ class NoMoreIllusionsApp {
       spawnBeatSec: this.trackElapsedSec,
       age: 0,
       maxLifetime: 10.5,
-      phase: Math.random() * 6.28
+      phase: Math.random() * 6.28,
+      waveFreq: 2.4 + Math.random() * 1.2,
+      wavePhase: Math.random() * 6.28
     });
   }
 
