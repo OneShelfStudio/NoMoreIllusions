@@ -33,6 +33,13 @@ fun HUD(
     difficulty: GameDifficulty = GameDifficulty.REGULAR,
     currentSectionLabel: String = "INTRO",
     isExtraJuiceActive: Boolean = false,
+    activePowerUpToast: PowerUpBannerToast? = null,
+    toastTimeLeft: Float = 0f,
+    starPowerTime: Float = 0f,
+    shieldTime: Float = 0f,
+    slowMoTime: Float = 0f,
+    magnetTime: Float = 0f,
+    endlessLoopCount: Int = 0,
     onPause: () -> Unit
 ) {
     val activeTrack = remember(trackIndex) { MusicLibrary.getTrack(trackIndex) }
@@ -106,7 +113,11 @@ fun HUD(
 
                     Spacer(modifier = Modifier.height(5.dp))
 
-                    // Live Timestamped Song Section & BPM Badge
+                    // Live Timestamped Song Section & BPM Badge (+ Endless Loop Escalation Badge)
+                    val endlessSuffix = if (endlessLoopCount > 0) {
+                        val spd = 1.0f + endlessLoopCount * 0.08f
+                        " • ∞ LOOP #${endlessLoopCount + 1} (%.2fx)".format(spd)
+                    } else ""
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(8.dp))
@@ -125,12 +136,34 @@ fun HUD(
                             .padding(horizontal = 10.dp, vertical = 3.5.dp)
                     ) {
                         Text(
-                            text = if (isExtraJuiceActive) "⚡ $currentSectionLabel • EXTRA JUICE!" else "$currentSectionLabel • ${activeTrack.bpm.toInt()} BPM",
+                            text = if (isExtraJuiceActive) "⚡ $currentSectionLabel • EXTRA JUICE!$endlessSuffix" else "$currentSectionLabel • ${activeTrack.bpm.toInt()} BPM$endlessSuffix",
                             color = if (isExtraJuiceActive) Color.White else Color(0xFFC7D2FEL),
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Black,
                             letterSpacing = 0.8.sp
                         )
+                    }
+
+                    // Active Power-Up Countdown Pills Row (Overdrive / Shield / Slow-Mo / Magnet)
+                    if (starPowerTime > 0f || shieldTime > 0f || slowMoTime > 0f || magnetTime > 0f) {
+                        Spacer(modifier = Modifier.height(5.dp))
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(5.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            if (starPowerTime > 0f) {
+                                ActiveBuffChip("💥 OVERDRIVE ${"%.1f".format(starPowerTime)}s", Color(0xFFF97316L))
+                            }
+                            if (shieldTime > 0f) {
+                                ActiveBuffChip("🛡️ SHIELD ${"%.1f".format(shieldTime)}s", Color(0xFF38BDF8L))
+                            }
+                            if (slowMoTime > 0f) {
+                                ActiveBuffChip("⏳ SLOW-MO ${"%.1f".format(slowMoTime)}s", Color(0xFFA855F7L))
+                            }
+                            if (magnetTime > 0f) {
+                                ActiveBuffChip("🧲 MAGNET ${"%.1f".format(magnetTime)}s", Color(0xFF10B981L))
+                            }
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(5.dp))
@@ -252,6 +285,101 @@ fun HUD(
                     )
                 }
             }
+
+            // Candy-Catcher-Style Top-Center Power-Up & Endless Loop Pickup Toast Banner
+            if (activePowerUpToast != null) {
+                Spacer(modifier = Modifier.height(10.dp))
+                val liveTimer = if (toastTimeLeft > 0f) toastTimeLeft else activePowerUpToast.timer
+                val progress = (liveTimer / activePowerUpToast.maxTimer.coerceAtLeast(0.1f)).coerceIn(0f, 1f)
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.CenterHorizontally)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(
+                            Brush.horizontalGradient(
+                                listOf(
+                                    Color(0xF2060B18L),
+                                    activePowerUpToast.accentColor.copy(alpha = 0.24f),
+                                    Color(0xF2060B18L)
+                                )
+                            )
+                        )
+                        .border(1.5.dp, activePowerUpToast.accentColor, RoundedCornerShape(14.dp))
+                        .padding(horizontal = 16.dp, vertical = 7.dp)
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(24.dp)
+                                    .clip(CircleShape)
+                                    .background(activePowerUpToast.accentColor.copy(alpha = 0.25f))
+                                    .border(1.dp, activePowerUpToast.accentColor, CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = activePowerUpToast.icon,
+                                    color = Color.White,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Black
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Column {
+                                Text(
+                                    text = activePowerUpToast.title,
+                                    color = Color.White,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Black,
+                                    letterSpacing = 0.9.sp
+                                )
+                                Text(
+                                    text = activePowerUpToast.subtitle,
+                                    color = activePowerUpToast.accentColor,
+                                    fontSize = 9.5.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    letterSpacing = 0.6.sp
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Box(
+                            modifier = Modifier
+                                .width(150.dp)
+                                .height(3.dp)
+                                .clip(CircleShape)
+                                .background(Color.White.copy(alpha = 0.16f))
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxHeight()
+                                    .fillMaxWidth(progress)
+                                    .clip(CircleShape)
+                                    .background(activePowerUpToast.accentColor)
+                            )
+                        }
+                    }
+                }
+            }
         }
+    }
+}
+
+@Composable
+private fun ActiveBuffChip(label: String, accentColor: Color) {
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(7.dp))
+            .background(Color(0xE6060B14L))
+            .border(1.dp, accentColor.copy(alpha = 0.85f), RoundedCornerShape(7.dp))
+            .padding(horizontal = 7.dp, vertical = 3.dp)
+    ) {
+        Text(
+            text = label,
+            color = accentColor,
+            fontSize = 9.5.sp,
+            fontWeight = FontWeight.Black,
+            letterSpacing = 0.4.sp
+        )
     }
 }

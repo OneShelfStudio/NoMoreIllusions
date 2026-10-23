@@ -132,23 +132,34 @@ fun GameOverUI(
                         Text("BEST SCORE: %,d".format(highScore), color = Color(0xFFA5B4FCL), fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
                     }
                     Spacer(modifier = Modifier.height(2.dp))
-                    Text("PULSE PTS: %,d".format(pulsePoints), color = Color(0xFF4ADE80L), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    Text("♪ NOTES BALANCE: %,d ♪".format(pulsePoints), color = Color(0xFFFACC15L), fontSize = 11.5.sp, fontWeight = FontWeight.Black)
                 }
             }
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // 1. Distinct Rewarded Ad Continue Button (Primary Revive Action)
+            // 1. Revive Using 250 ♪ Notes (Primary Note Revive Option)
+            ArcadePillButton(
+                text = if (canContinue) "♪ USE 250 NOTES TO REVIVE" else "NEED 250 ♪ NOTES TO REVIVE",
+                pillBitmap = btnPillCyan,
+                onClick = { if (canContinue) onContinue() else onBuyPoints() },
+                enabled = true,
+                modifier = Modifier.fillMaxWidth().height(46.dp)
+            )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // 2. Google-Compliant Uniquely Identifiable Rewarded Ad Revive Button
             if (hasAd || BuildConfig.DEBUG) {
                 ArcadeAdPillButton(
                     text = "WATCH AD TO REVIVE",
                     onClick = onWatchAd,
-                    modifier = Modifier.fillMaxWidth().height(48.dp)
+                    modifier = Modifier.fillMaxWidth().height(54.dp)
                 )
                 Spacer(modifier = Modifier.height(10.dp))
             }
 
-            // 2. Prominent Replay Button
+            // 3. Prominent Restart / Replay Button
             ArcadePillButton(
                 text = "REPLAY TRACK",
                 pillBitmap = btnPillGreen,
@@ -160,28 +171,9 @@ fun GameOverUI(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // 3. Continue with Pulse Points (1,000 PTS) or Get Points Store
-            if (canContinue) {
-                ArcadePillButton(
-                    text = "CONTINUE (1,000 PTS)",
-                    pillBitmap = btnPillCyan,
-                    onClick = onContinue,
-                    modifier = Modifier.fillMaxWidth().height(44.dp)
-                )
-                Spacer(modifier = Modifier.height(10.dp))
-            } else {
-                ArcadePillButton(
-                    text = "GET PULSE POINTS",
-                    pillBitmap = btnPillCyan,
-                    onClick = onBuyPoints,
-                    modifier = Modifier.fillMaxWidth().height(44.dp)
-                )
-                Spacer(modifier = Modifier.height(10.dp))
-            }
-
-            // 4. Back to Album
+            // 4. Back to Album & Shop
             ArcadePillButton(
-                text = "OPEN ALBUM",
+                text = "ALBUM & SHOP",
                 pillBitmap = btnPillGold,
                 onClick = onBackToAlbum,
                 modifier = Modifier.fillMaxWidth().height(44.dp)

@@ -5,9 +5,21 @@ import kotlin.math.PI
 
 enum class GameState { MENU, COUNTDOWN, PLAYING, PAUSED, GAME_OVER, HOW_TO_PLAY, SETTINGS, MUSIC_DEMO, LEVEL_COMPLETE }
 enum class EnemyType { PULSE, SEEKER, WANDERER, PHANTOM, LASER_SWEEPER }
-enum class PowerUpType { SHIELD, BLAST, MULTIPLIER }
+enum class PowerUpType { NONE, SHIELD, BLAST, SLOW_MO, MAGNET, MULTIPLIER }
 enum class ColorBlindMode { NONE, PROTANOPIA, DEUTERANOPIA, TRITANOPIA }
 enum class GameDifficulty { EASY, REGULAR, HARD }
+
+/**
+ * Candy-Catcher-style On-Screen Power-Up Pickup Toast & Active Buff Pill.
+ */
+data class PowerUpBannerToast(
+    val icon: String,
+    val title: String,
+    val subtitle: String,
+    val accentColor: Color,
+    var timer: Float = 3.2f,
+    val maxTimer: Float = 3.2f
+)
 
 /**
  * Stage modes driven by real musical swells & song sections.

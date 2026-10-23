@@ -348,7 +348,8 @@ fun stepNebulousBeatOrbs(
     isGoldenOverdrive: Boolean = false,
     activePhenomenon: ActivePhenomenon? = null,
     currentScale: Float = 1f,
-    beatPhase: Float = 0f
+    beatPhase: Float = 0f,
+    magnetActive: Boolean = false
 ) {
     if (screenWidth <= 0f || screenHeight <= 0f) return
     val iter = powerUps.iterator()
@@ -368,6 +369,18 @@ fun stepNebulousBeatOrbs(
 
         orb.x += (cos(orb.angle) * moveSpd + cos(perpAngle) * wave)
         orb.y += (sin(orb.angle) * moveSpd + sin(perpAngle) * wave)
+
+        // When ORB MAGNET power-up is active, gently pull nearby orbs within 280px toward the player
+        if (magnetActive) {
+            val dx = player.x - orb.x
+            val dy = player.y - orb.y
+            val dist = hypot(dx, dy)
+            if (dist in 8f..280f) {
+                val pull = ((280f - dist) / 280f) * 4.6f * currentScale
+                orb.x += (dx / dist) * pull
+                orb.y += (dy / dist) * pull
+            }
+        }
 
         // Gentle boundary reflection so traveling orbs stay inside the reachable arena during their beat window
         val marginX = 56f

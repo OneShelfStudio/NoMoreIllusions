@@ -384,38 +384,27 @@ fun DrawScope.drawPowerUps(
         val beatPulseScale = 1.0f + (if (isSupernova) 0.38f else 0.28f) * beatKick + multiBand.bass * 0.14f
         val coreRad = p.radius * popInScale * beatPulseScale * (if (isPrimary) 1.05f else 0.86f)
 
-        val effectColor = when (p.keyWordEffect) {
-            KeyWordEffect.TRACTOR_REACH -> Color(0xFF22D3EEL)
-            KeyWordEffect.PRISM_SHATTER -> Color(0xFFE879F9L)
-            KeyWordEffect.MAGNETAR_WAR -> Color(0xFFFB7185L)
-            KeyWordEffect.CONSTELLATION_STAR -> Color(0xFFFACC15L)
-            KeyWordEffect.BINARY_HEART -> Color(0xFF4ADE80L)
-            KeyWordEffect.ECLIPSE_DARK -> Color(0xFFFDE047L)
-            KeyWordEffect.NONE -> Color(0xFF06B6D4L)
+        val effectColor = when {
+            p.keyWordEffect != KeyWordEffect.NONE -> when (p.keyWordEffect) {
+                KeyWordEffect.TRACTOR_REACH -> Color(0xFF22D3EEL)
+                KeyWordEffect.PRISM_SHATTER -> Color(0xFFE879F9L)
+                KeyWordEffect.MAGNETAR_WAR -> Color(0xFFFB7185L)
+                KeyWordEffect.CONSTELLATION_STAR -> Color(0xFFFACC15L)
+                KeyWordEffect.BINARY_HEART -> Color(0xFF4ADE80L)
+                KeyWordEffect.ECLIPSE_DARK -> Color(0xFFFDE047L)
+                KeyWordEffect.NONE -> Color(0xFF06B6D4L)
+            }
+            p.powerUpType == PowerUpType.BLAST -> Color(0xFFF97316L)
+            p.powerUpType == PowerUpType.SHIELD -> Color(0xFF38BDF8L)
+            p.powerUpType == PowerUpType.SLOW_MO -> Color(0xFFA855F7L)
+            p.powerUpType == PowerUpType.MAGNET -> Color(0xFF10B981L)
+            else -> Color(0xFF06B6D4L)
         }
 
-        // Converging Beat Timing Ring (contracts onto the orb core on every quarter-note beat!)
+        // Converging Beat Timing Ring (contracts onto the orb core on every quarter-note beat — ZERO wiggling tail!)
         val beatCycle = (1f - beatPhase).coerceIn(0f, 1f)
         val isOnBeatWindow = beatPhase <= 0.36f || beatPhase >= 0.78f
         val ringRadius = coreRad * (1.02f + beatCycle * (if (isSupernova) 1.75f else 1.35f))
-
-        // 0. Traveling Harmonic Comet Wake trailing behind the orb's flight vector (-cos(p.angle), -sin(p.angle))
-        val tailDirX = -cos(p.angle)
-        val tailDirY = -sin(p.angle)
-        val perpX = -tailDirY
-        val perpY = tailDirX
-        for (seg in 1..6) {
-            val t = seg / 6f
-            val dist = t * (if (isSupernova) 68f else 44f)
-            val sway = sin(time * 7f - seg * 0.7f + p.phase) * (t * 7f)
-            val tx = p.x + tailDirX * dist + perpX * sway
-            val ty = p.y + tailDirY * dist + perpY * sway
-            drawCircle(
-                color = (if (isOnBeatWindow) Color(0xFFFACC15L) else effectColor).copy(alpha = (1f - t) * 0.55f),
-                radius = coreRad * (1f - t * 0.72f) * 0.48f,
-                center = Offset(tx, ty)
-            )
-        }
 
         drawCircle(
             color = (if (isOnBeatWindow) Color(0xFFFACC15L) else effectColor).copy(
@@ -428,9 +417,8 @@ fun DrawScope.drawPowerUps(
 
         if (isSupernova) {
             // =========================================================================
-            // SPECIAL BEAT-DROP SUPERNOVA ORB (ZERO TEXT — UNMISTAKABLE GYROSCOPE STAR!)
+            // SPECIAL BEAT-DROP SUPERNOVA ORB (24K GOLD & PRISMATIC GYROSCOPE STAR!)
             // =========================================================================
-            // Second outer golden harmonic countdown ring
             drawCircle(
                 color = Color(0xFFFACC15L).copy(alpha = 0.52f + beatKick * 0.35f),
                 radius = ringRadius * 1.18f,
@@ -438,7 +426,6 @@ fun DrawScope.drawPowerUps(
                 style = Stroke(width = 1.8f)
             )
 
-            // Volumetric 24K Gold & Prismatic Supernova Halo
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
@@ -455,7 +442,6 @@ fun DrawScope.drawPowerUps(
                 blendMode = BlendMode.Screen
             )
 
-            // 8 Pulsing Solar Flare Spikes that pump outward on every beat!
             val spikeCount = 8
             for (sIdx in 0 until spikeCount) {
                 val ang = (sIdx * PI.toFloat() / 4f) + time * 0.65f
@@ -470,7 +456,6 @@ fun DrawScope.drawPowerUps(
                 )
             }
 
-            // Counter-Rotating Outer Sacred Geometry Gyroscope Ring #1
             withTransform({
                 rotate(degrees = time * 115f, pivot = center)
             }) {
@@ -484,7 +469,6 @@ fun DrawScope.drawPowerUps(
                 )
             }
 
-            // Counter-Rotating Inner Sacred Geometry Gyroscope Ring #2
             withTransform({
                 rotate(degrees = -time * 140f + 45f, pivot = center)
             }) {
@@ -498,7 +482,6 @@ fun DrawScope.drawPowerUps(
                 )
             }
 
-            // Blazing White-Gold Singularity Core
             drawCircle(
                 color = Color(0xFFFACC15L),
                 radius = coreRad * 0.46f,
@@ -511,33 +494,132 @@ fun DrawScope.drawPowerUps(
             )
         } else {
             // =========================================================================
-            // REGULAR BEAT ORB: Clean Cyan-Emerald Beat-Pulsing Pearl
+            // FACETED HEXAGONAL MUSICAL GEM & POWER-UP MEDALLION (ZERO TAILS!)
             // =========================================================================
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
-                        Color.White.copy(alpha = 0.92f),
-                        effectColor.copy(alpha = 0.62f),
-                        Color(0xFF10B981L).copy(alpha = 0.25f),
+                        effectColor.copy(alpha = 0.52f),
+                        effectColor.copy(alpha = 0.18f),
                         Color.Transparent
                     ),
                     center = center,
-                    radius = coreRad * 1.85f
+                    radius = coreRad * 1.95f
                 ),
-                radius = coreRad * 1.85f,
+                radius = coreRad * 1.95f,
                 center = center,
                 blendMode = BlendMode.Screen
             )
-            drawCircle(
-                color = effectColor.copy(alpha = 0.90f),
-                radius = coreRad * 0.56f,
-                center = center
+
+            // 6-sided Faceted Gemstone Bezel rotating smoothly
+            val hexPath = Path().apply {
+                val hexRad = coreRad * 0.96f
+                for (v in 0 until 6) {
+                    val a = time * 0.85f + v * (PI.toFloat() / 3f)
+                    val vx = p.x + cos(a) * hexRad
+                    val vy = p.y + sin(a) * hexRad
+                    if (v == 0) moveTo(vx, vy) else lineTo(vx, vy)
+                }
+                close()
+            }
+            drawPath(
+                path = hexPath,
+                color = Color(0xFF060B18L).copy(alpha = 0.92f)
             )
-            drawCircle(
-                color = Color.White,
-                radius = coreRad * 0.30f,
-                center = center
+            drawPath(
+                path = hexPath,
+                color = if (isOnBeatWindow) Color(0xFFFACC15L) else effectColor,
+                style = Stroke(width = 2.6f)
             )
+
+            // Inner Facet Ring
+            drawCircle(
+                color = effectColor.copy(alpha = 0.45f),
+                radius = coreRad * 0.64f,
+                center = center,
+                style = Stroke(width = 1.4f)
+            )
+
+            // Distinct Etched Core Emblem (Nova Starburst, Shield Crest, Hourglass, Magnet, or Musical Note ♪)
+            when (p.powerUpType) {
+                PowerUpType.BLAST -> {
+                    // 💥 8-Point Nova Starburst Emblem (Enemy Destroyer!)
+                    for (ray in 0 until 8) {
+                        val a = ray * (PI.toFloat() / 4f) + time * 1.8f
+                        val len = coreRad * (if (ray % 2 == 0) 0.58f else 0.36f)
+                        drawLine(
+                            color = if (ray % 2 == 0) Color(0xFFFDE047L) else Color.White,
+                            start = Offset(p.x - cos(a) * len, p.y - sin(a) * len),
+                            end = Offset(p.x + cos(a) * len, p.y + sin(a) * len),
+                            strokeWidth = 2.6f,
+                            cap = StrokeCap.Round
+                        )
+                    }
+                    drawCircle(color = Color.White, radius = coreRad * 0.22f, center = center)
+                }
+                PowerUpType.SHIELD -> {
+                    // 🛡️ Crisp Shield Diamond Emblem
+                    val sh = coreRad * 0.46f
+                    val shieldPath = Path().apply {
+                        moveTo(p.x, p.y - sh)
+                        lineTo(p.x + sh * 0.85f, p.y - sh * 0.35f)
+                        lineTo(p.x + sh * 0.65f, p.y + sh * 0.45f)
+                        lineTo(p.x, p.y + sh)
+                        lineTo(p.x - sh * 0.65f, p.y + sh * 0.45f)
+                        lineTo(p.x - sh * 0.85f, p.y - sh * 0.35f)
+                        close()
+                    }
+                    drawPath(path = shieldPath, color = Color.White, style = Stroke(width = 2.4f))
+                }
+                PowerUpType.SLOW_MO -> {
+                    // ⏳ Twin-Triangle Hourglass Emblem
+                    val hg = coreRad * 0.42f
+                    val hgPath = Path().apply {
+                        moveTo(p.x - hg * 0.75f, p.y - hg)
+                        lineTo(p.x + hg * 0.75f, p.y - hg)
+                        lineTo(p.x - hg * 0.75f, p.y + hg)
+                        lineTo(p.x + hg * 0.75f, p.y + hg)
+                        close()
+                    }
+                    drawPath(path = hgPath, color = Color.White, style = Stroke(width = 2.2f))
+                }
+                PowerUpType.MAGNET -> {
+                    // 🧲 U-Shaped Magnet Attractor Arc
+                    val mr = coreRad * 0.38f
+                    drawArc(
+                        color = Color.White,
+                        startAngle = 180f,
+                        sweepAngle = 180f,
+                        useCenter = false,
+                        topLeft = Offset(p.x - mr, p.y - mr * 0.6f),
+                        size = Size(mr * 2f, mr * 2f),
+                        style = Stroke(width = 2.6f, cap = StrokeCap.Round)
+                    )
+                }
+                else -> {
+                    // ♪ Crisp Beamed Musical Note Emblem inside the Gem!
+                    val headR = coreRad * 0.16f
+                    val headX = p.x - coreRad * 0.08f
+                    val headY = p.y + coreRad * 0.18f
+                    drawCircle(color = Color.White, radius = headR, center = Offset(headX, headY))
+                    val stemTopY = p.y - coreRad * 0.34f
+                    val stemX = headX + headR * 0.75f
+                    drawLine(
+                        color = Color.White,
+                        start = Offset(stemX, headY),
+                        end = Offset(stemX, stemTopY),
+                        strokeWidth = 2.5f,
+                        cap = StrokeCap.Round
+                    )
+                    drawLine(
+                        color = Color(0xFFFACC15L),
+                        start = Offset(stemX, stemTopY),
+                        end = Offset(stemX + coreRad * 0.26f, stemTopY + coreRad * 0.14f),
+                        strokeWidth = 2.8f,
+                        cap = StrokeCap.Round
+                    )
+                }
+            }
         }
     }
 }
@@ -809,42 +891,12 @@ fun DrawScope.drawEnemySprite(
         EnemyType.LASER_SWEEPER -> pulsarMandala
     }
 
-    // 0. 6-Segment Articulated Biomechanical Spine / Plasma Tail snaking behind the enemy's heading
-    val backX = -cos(e.angle)
-    val backY = -sin(e.angle)
-    val perpX = -backY
-    val perpY = backX
-    var prevSegX = e.x
-    var prevSegY = e.y
-    for (seg in 1..6) {
-        val t = seg / 6f
-        val dist = visualRad * 0.55f + seg * 9.5f
-        val slither = sin(time * 9.5f - seg * 0.85f + e.phase) * (seg * 2.4f)
-        val sx = e.x + backX * dist + perpX * slither
-        val sy = e.y + backY * dist + perpY * slither
-        val segRad = visualRad * (0.42f * (1f - t * 0.68f))
-        drawLine(
-            color = dangerRimColor.copy(alpha = safeAlpha * (1f - t * 0.75f) * 0.72f),
-            start = Offset(prevSegX, prevSegY),
-            end = Offset(sx, sy),
-            strokeWidth = segRad * 1.35f,
-            cap = StrokeCap.Round
-        )
-        drawCircle(
-            color = secondaryTrimColor.copy(alpha = safeAlpha * (1f - t * 0.65f)),
-            radius = segRad,
-            center = Offset(sx, sy)
-        )
-        prevSegX = sx
-        prevSegY = sy
-    }
-
-    // 1. High-Contrast Crimson Danger Halo behind every enemy
+    // 1. High-Contrast Crimson Danger Halo behind every enemy (ZERO wiggling tail!)
     drawCircle(
         brush = Brush.radialGradient(
             colors = listOf(
-                dangerRimColor.copy(alpha = safeAlpha * (0.55f + 0.25f * beatKick)),
-                Color(0xFF881337L).copy(alpha = safeAlpha * 0.28f),
+                dangerRimColor.copy(alpha = safeAlpha * (0.58f + 0.25f * beatKick)),
+                Color(0xFF881337L).copy(alpha = safeAlpha * 0.30f),
                 Color.Transparent
             ),
             center = Offset(e.x, e.y),
@@ -855,110 +907,97 @@ fun DrawScope.drawEnemySprite(
         blendMode = BlendMode.Screen
     )
 
-    // 2. Archetype-Specific Articulated Armor & Mechanical Detail Layer
+    // 2. Crisp Geometric Threat Chassis by Archetype (Sawblade, Delta Wing, or Void Octahedron)
     when (e.type) {
         EnemyType.SEEKER -> {
-            // "Fractured Seraph": Articulated Twin Scimitar Wing-Mandibles that snap on the beat
-            val wingSpread = 0.58f + 0.22f * beatKick
-            for (side in listOf(-1f, 1f)) {
-                val wAng1 = e.angle + side * wingSpread
-                val wAng2 = e.angle + side * (wingSpread + 0.55f)
-                val tipX = e.x + cos(wAng1) * (visualRad * 1.55f)
-                val tipY = e.y + sin(wAng1) * (visualRad * 1.55f)
-                val midX = e.x + cos(wAng2) * (visualRad * 1.15f)
-                val midY = e.y + sin(wAng2) * (visualRad * 1.15f)
-                drawLine(
-                    color = secondaryTrimColor.copy(alpha = safeAlpha * 0.92f),
-                    start = Offset(e.x, e.y),
-                    end = Offset(midX, midY),
-                    strokeWidth = 3.2f,
-                    cap = StrokeCap.Round
-                )
-                drawLine(
-                    color = dangerRimColor.copy(alpha = safeAlpha * 0.95f),
-                    start = Offset(midX, midY),
-                    end = Offset(tipX, tipY),
-                    strokeWidth = 2.6f,
-                    cap = StrokeCap.Round
-                )
+            // "DELTA INTERCEPTOR": Angular Twin-Blade Stealth Fighter Chassis locked onto flight vector
+            val fighterPath = Path().apply {
+                val noseX = e.x + cos(e.angle) * (visualRad * 1.65f)
+                val noseY = e.y + sin(e.angle) * (visualRad * 1.65f)
+                val leftWingX = e.x + cos(e.angle + 2.38f) * (visualRad * 1.48f)
+                val leftWingY = e.y + sin(e.angle + 2.38f) * (visualRad * 1.48f)
+                val notchX = e.x - cos(e.angle) * (visualRad * 0.65f)
+                val notchY = e.y - sin(e.angle) * (visualRad * 0.65f)
+                val rightWingX = e.x + cos(e.angle - 2.38f) * (visualRad * 1.48f)
+                val rightWingY = e.y + sin(e.angle - 2.38f) * (visualRad * 1.48f)
+                moveTo(noseX, noseY)
+                lineTo(leftWingX, leftWingY)
+                lineTo(notchX, notchY)
+                lineTo(rightWingX, rightWingY)
+                close()
+            }
+            drawPath(
+                path = fighterPath,
+                color = Color(0xFF1E050DL).copy(alpha = safeAlpha * 0.92f)
+            )
+            drawPath(
+                path = fighterPath,
+                color = dangerRimColor.copy(alpha = safeAlpha),
+                style = Stroke(width = 2.8f + beatKick)
+            )
+            // Twin amber wingtip beacons
+            for (side in listOf(-2.38f, 2.38f)) {
+                val wx = e.x + cos(e.angle + side) * (visualRad * 1.48f)
+                val wy = e.y + sin(e.angle + side) * (visualRad * 1.48f)
+                drawCircle(color = secondaryTrimColor.copy(alpha = safeAlpha), radius = 4.2f, center = Offset(wx, wy))
             }
         }
         EnemyType.PULSE -> {
-            // "Chrono-Saw": 10-Tooth Counter-Rotating Cybernetic Sawblade Ring + Beat Lightning Arcs
-            val teeth = 10
-            for (tIdx in 0 until teeth) {
-                val tAng = (tIdx.toFloat() / teeth) * 6.283185f - time * 3.8f
-                val rIn = visualRad * 0.95f
-                val rOut = visualRad * (1.42f + 0.22f * beatKick)
-                val toothLead = tAng + 0.18f
-                drawLine(
-                    color = secondaryTrimColor.copy(alpha = safeAlpha * 0.88f),
-                    start = Offset(e.x + cos(tAng) * rIn, e.y + sin(tAng) * rIn),
-                    end = Offset(e.x + cos(toothLead) * rOut, e.y + sin(toothLead) * rOut),
-                    strokeWidth = 2.6f,
-                    cap = StrokeCap.Round
-                )
+            // "CRIMSON SAWBLADE": 8-Point Spinning Cybernetic Buzzsaw Polygon
+            val sawPath = Path().apply {
+                val pts = 16
+                for (i in 0 until pts) {
+                    val a = (i.toFloat() / pts) * 6.283185f - time * 3.8f
+                    val r = if (i % 2 == 0) visualRad * (1.45f + 0.18f * beatKick) else visualRad * 0.86f
+                    val px = e.x + cos(a) * r
+                    val py = e.y + sin(a) * r
+                    if (i == 0) moveTo(px, py) else lineTo(px, py)
+                }
+                close()
             }
+            drawPath(
+                path = sawPath,
+                color = Color(0xFF1F040EL).copy(alpha = safeAlpha * 0.92f)
+            )
+            drawPath(
+                path = sawPath,
+                color = dangerRimColor.copy(alpha = safeAlpha),
+                style = Stroke(width = 2.6f)
+            )
         }
         else -> {
-            // "Void Leviathan": 4 Undulating Bioluminescent Pectoral Fins
-            for (side in listOf(-1f, 1f)) {
-                for (fin in 1..2) {
-                    val flap = sin(time * 7.5f + fin * 1.2f + e.phase) * 0.28f
-                    val fAng = e.angle + side * (1.35f + fin * 0.42f + flap)
-                    val fLen = visualRad * (1.55f - fin * 0.22f)
-                    drawLine(
-                        color = secondaryTrimColor.copy(alpha = safeAlpha * 0.82f),
-                        start = Offset(e.x, e.y),
-                        end = Offset(e.x + cos(fAng) * fLen, e.y + sin(fAng) * fLen),
-                        strokeWidth = 3.4f - fin * 0.7f,
-                        cap = StrokeCap.Round
+            // "VOID OCTAHEDRON": Counter-Rotating Double-Diamond Crystalline Prism + 3 Orbiting Hazard Nodes
+            for (sq in 0..1) {
+                withTransform({
+                    rotate(degrees = (if (sq == 0) 1f else -1f) * time * 72f + sq * 45f, pivot = Offset(e.x, e.y))
+                }) {
+                    val boxR = visualRad * 0.96f
+                    drawRoundRect(
+                        color = Color(0xFF16041EL).copy(alpha = safeAlpha * 0.85f),
+                        topLeft = Offset(e.x - boxR, e.y - boxR),
+                        size = Size(boxR * 2f, boxR * 2f),
+                        cornerRadius = CornerRadius(boxR * 0.16f, boxR * 0.16f)
+                    )
+                    drawRoundRect(
+                        color = (if (sq == 0) dangerRimColor else secondaryTrimColor).copy(alpha = safeAlpha * 0.95f),
+                        topLeft = Offset(e.x - boxR, e.y - boxR),
+                        size = Size(boxR * 2f, boxR * 2f),
+                        cornerRadius = CornerRadius(boxR * 0.16f, boxR * 0.16f),
+                        style = Stroke(width = 2.4f)
                     )
                 }
             }
+            for (n in 0..2) {
+                val na = time * 3.2f + n * (2f * PI.toFloat() / 3f)
+                val nx = e.x + cos(na) * (visualRad * 1.42f)
+                val ny = e.y + sin(na) * (visualRad * 1.42f)
+                drawCircle(color = secondaryTrimColor.copy(alpha = safeAlpha), radius = 4.0f, center = Offset(nx, ny))
+            }
         }
     }
 
-    // 3. Crisp Crimson/Amber Outer Armor Ring + Counter-Rotating Inner Hex Lattice
-    drawCircle(
-        color = dangerRimColor.copy(alpha = safeAlpha * (0.88f + 0.12f * beatKick)),
-        radius = visualRad * 1.12f,
-        center = Offset(e.x, e.y),
-        style = Stroke(width = 2.4f + beatKick * 1.2f)
-    )
-    withTransform({
-        rotate(degrees = -time * 95f, pivot = Offset(e.x, e.y))
-    }) {
-        val boxR = visualRad * 0.76f
-        drawRoundRect(
-            color = secondaryTrimColor.copy(alpha = safeAlpha * 0.78f),
-            topLeft = Offset(e.x - boxR, e.y - boxR),
-            size = Size(boxR * 2f, boxR * 2f),
-            cornerRadius = CornerRadius(boxR * 0.22f, boxR * 0.22f),
-            style = Stroke(width = 1.9f)
-        )
-    }
-
-    // 4. Directional Spearhead Chevron so the player sees the enemy's heading (without a long straight line!)
-    if (!e.hasPassedPlayer) {
-        val tipDist = visualRad * 1.48f
-        val sideAng1 = e.angle + 2.5f
-        val sideAng2 = e.angle - 2.5f
-        val chev = sharedEnemyChevron.apply {
-            reset()
-            moveTo(e.x + cos(e.angle) * tipDist, e.y + sin(e.angle) * tipDist)
-            lineTo(e.x + cos(sideAng1) * (visualRad * 0.85f), e.y + sin(sideAng1) * (visualRad * 0.85f))
-            lineTo(e.x + cos(sideAng2) * (visualRad * 0.85f), e.y + sin(sideAng2) * (visualRad * 0.85f))
-            close()
-        }
-        drawPath(
-            path = chev,
-            color = secondaryTrimColor.copy(alpha = safeAlpha * 0.92f)
-        )
-    }
-
-    // 5. Rotating Mandala Sprite Core
-    val drawSize = (visualRad * 2.55f).toInt().coerceAtLeast(1)
+    // 3. Rotating Mandala Core Overlay
+    val drawSize = (visualRad * 2.35f).toInt().coerceAtLeast(1)
     val halfSize = drawSize / 2
     val rotDegrees = (e.angle * 180f / PI.toFloat()) + 90f
 
@@ -971,15 +1010,15 @@ fun DrawScope.drawEnemySprite(
             srcSize = IntSize(mandalaBitmap.width, mandalaBitmap.height),
             dstOffset = IntOffset(e.x.toInt() - halfSize, e.y.toInt() - halfSize),
             dstSize = IntSize(drawSize, drawSize),
-            alpha = safeAlpha,
+            alpha = safeAlpha * 0.85f,
             colorFilter = if (isGoldenOverdrive) ColorFilter.tint(Color(0xFFFDE047L), BlendMode.Modulate) else null,
             blendMode = BlendMode.Screen
         )
     }
 
-    // 6. High-Contrast Multi-Ring Reactor Eye
+    // 4. High-Contrast Multi-Ring Reactor Eye
     drawCircle(
-        color = Color(0xFF090206L).copy(alpha = safeAlpha * 0.90f),
+        color = Color(0xFF090206L).copy(alpha = safeAlpha * 0.94f),
         radius = e.radius * 0.56f,
         center = Offset(e.x, e.y)
     )
@@ -1017,18 +1056,68 @@ fun DrawScope.drawPlayerSprite(
     val isBlinking = invulnTime > 0f && (sin(time * 28f) < 0f)
     val spriteAlpha = if (isBlinking) 0.42f else 1.0f
 
-    // Subtle Orbital Drift gravitational reach halo around the hero
+    val heroPrimaryCol = when {
+        isGoldenOverdrive -> Color(0xFFFACC15L)
+        skin == "CYBER" || skin == "VINYL" -> Color(0xFF38BDF8L)
+        skin == "PRISM" || skin == "SERAPH" -> Color(0xFFE879F9L)
+        else -> Color(0xFF4ADE80L)
+    }
+
+    // 1. Volumetric Hero Aura + Crisp Equalizer Ring (unmistakably identifies the Player!)
     drawCircle(
-        color = (if (isGoldenOverdrive) Color(0xFFFACC15L) else Color(0xFF38BDF8L)).copy(alpha = 0.24f + beatKick * 0.18f),
-        radius = p.radius * (2.5f + 0.35f * beatKick),
+        brush = Brush.radialGradient(
+            colors = listOf(
+                heroPrimaryCol.copy(alpha = 0.48f * spriteAlpha),
+                Color(0xFF6366F1L).copy(alpha = 0.22f * spriteAlpha),
+                Color.Transparent
+            ),
+            center = center,
+            radius = p.radius * 2.8f
+        ),
+        radius = p.radius * 2.8f,
         center = center,
-        style = Stroke(width = 1.6f + beatKick)
+        blendMode = BlendMode.Screen
+    )
+
+    drawCircle(
+        color = heroPrimaryCol.copy(alpha = (0.55f + beatKick * 0.30f) * spriteAlpha),
+        radius = p.radius * (2.25f + 0.25f * beatKick),
+        center = center,
+        style = Stroke(width = 2.4f + beatKick)
+    )
+
+    // 12-Bar Radial Turntable Equalizer Crown around the Hero
+    for (bar in 0 until 12) {
+        val ang = (bar / 12f) * 6.283185f + time * 1.4f
+        val rIn = p.radius * 1.55f
+        val rOut = p.radius * (1.88f + (if (bar % 2 == 0) 0.35f * beatKick else 0.15f))
+        drawLine(
+            color = (if (bar % 2 == 0) Color(0xFFFACC15L) else heroPrimaryCol).copy(alpha = 0.85f * spriteAlpha),
+            start = Offset(center.x + cos(ang) * rIn, center.y + sin(ang) * rIn),
+            end = Offset(center.x + cos(ang) * rOut, center.y + sin(ang) * rOut),
+            strokeWidth = 2.6f,
+            cap = StrokeCap.Round
+        )
+    }
+
+    // 2. Solid Obsidian-and-Gold Vinyl Turntable Platter Base (gives the Hero a rock-solid silhouette on Android!)
+    val platterR = p.radius * (1.48f + 0.10f * beatKick)
+    drawCircle(
+        color = Color(0xFF040812L).copy(alpha = 0.94f * spriteAlpha),
+        radius = platterR,
+        center = center
+    )
+    drawCircle(
+        color = heroPrimaryCol.copy(alpha = 0.92f * spriteAlpha),
+        radius = platterR,
+        center = center,
+        style = Stroke(width = 2.5f)
     )
 
     if (invulnTime > 0f) {
         val invulnPulse = 1f + 0.1f * sin(time * 12f)
         drawCircle(
-            color = Color(0xFF4ADE80L).copy(alpha = 0.55f),
+            color = Color(0xFF4ADE80L).copy(alpha = 0.72f),
             radius = p.radius * 2.5f * invulnPulse,
             center = center,
             style = Stroke(width = 3.dp.toPx())
@@ -1038,10 +1127,10 @@ fun DrawScope.drawPlayerSprite(
     if (shield > 0f) {
         val shieldPulse = 1f + 0.08f * sin(time * 8f)
         drawCircle(
-            color = applyCB(Color(0xFF818CF8L)).copy(alpha = 0.48f),
-            radius = p.radius * 2.3f * shieldPulse,
+            color = applyCB(Color(0xFF38BDF8L)).copy(alpha = 0.75f),
+            radius = p.radius * 2.45f * shieldPulse,
             center = center,
-            style = Stroke(width = 3.2f)
+            style = Stroke(width = 3.6f)
         )
     }
 
@@ -1052,107 +1141,9 @@ fun DrawScope.drawPlayerSprite(
     }
 
     val pulse = 1f + 0.05f * sin(time * 6f) + 0.10f * beatKick
-    val drawSize = (p.radius * 3.8f * pulse).toInt().coerceAtLeast(1)
+    val drawSize = (p.radius * 3.6f * pulse).toInt().coerceAtLeast(1)
     val halfSize = drawSize / 2
     val rotSpeed = if (isFocus) 22f else 54f
-
-    // Bespoke Artist Avatar Architecture Underlay & Crown Geometry
-    when (skin) {
-        "VINYL" -> {
-            // 45-RPM Spinning Holographic Vinyl Turntable Avatar
-            val platterR = p.radius * (2.05f + 0.14f * beatKick)
-            drawCircle(
-                color = Color(0xFF050811L).copy(alpha = 0.92f * spriteAlpha),
-                radius = platterR,
-                center = center
-            )
-            for (g in 1..4) {
-                val gr = platterR * (0.42f + g * 0.13f)
-                drawCircle(
-                    color = Color(0xFF38BDF8L).copy(alpha = (0.28f + (g % 2) * 0.18f) * spriteAlpha),
-                    radius = gr,
-                    center = center,
-                    style = Stroke(width = 1.4f)
-                )
-            }
-            // Spinning 24K Gold Center Label + Spindle
-            drawCircle(
-                color = Color(0xFFFACC15L).copy(alpha = 0.90f * spriteAlpha),
-                radius = platterR * 0.34f,
-                center = center
-            )
-            drawCircle(
-                color = Color(0xFF030712L),
-                radius = platterR * 0.10f,
-                center = center
-            )
-            // Neon Turntable Tonearm Laser
-            val armAng = time * 1.8f
-            drawLine(
-                color = Color(0xFF4ADE80L).copy(alpha = 0.85f * spriteAlpha),
-                start = Offset(
-                    center.x + cos(armAng) * platterR * 1.15f,
-                    center.y + sin(armAng) * platterR * 1.15f
-                ),
-                end = Offset(
-                    center.x + cos(armAng + 0.55f) * platterR * 0.45f,
-                    center.y + sin(armAng + 0.55f) * platterR * 0.45f
-                ),
-                strokeWidth = 2.6f,
-                cap = StrokeCap.Round
-            )
-        }
-        "ECLIPSE" -> {
-            // 24K Solar Eclipse Crown (Pure Obsidian Core + 12 Blazing Solar Corona Spikes)
-            val coronaR = p.radius * (2.2f + 0.25f * beatKick)
-            for (i in 0 until 12) {
-                val ang = i * (PI.toFloat() * 2f / 12f) - time * 1.4f
-                val len = coronaR * (if (i % 2 == 0) 1.32f else 1.05f)
-                drawLine(
-                    color = Color(0xFFFACC15L).copy(alpha = 0.85f * spriteAlpha),
-                    start = Offset(
-                        center.x + cos(ang) * (p.radius * 1.15f),
-                        center.y + sin(ang) * (p.radius * 1.15f)
-                    ),
-                    end = Offset(
-                        center.x + cos(ang) * len,
-                        center.y + sin(ang) * len
-                    ),
-                    strokeWidth = if (i % 2 == 0) 3.0f else 1.8f,
-                    cap = StrokeCap.Round
-                )
-            }
-            drawCircle(
-                color = Color(0xFF020308L),
-                radius = p.radius * 1.22f,
-                center = center
-            )
-            drawCircle(
-                color = Color(0xFFFDE047L).copy(alpha = 0.95f * spriteAlpha),
-                radius = p.radius * 1.25f,
-                center = center,
-                style = Stroke(width = 2.8f)
-            )
-        }
-        "SERAPH" -> {
-            // Twin Binary Pulse (Two Counter-Orbiting Harmonic Satellite Cores + Sine Tether)
-            val orbitR = p.radius * (2.15f + 0.18f * beatKick)
-            val satAngle = time * 3.4f
-            val s1 = Offset(center.x + cos(satAngle) * orbitR, center.y + sin(satAngle) * orbitR)
-            val s2 = Offset(center.x - cos(satAngle) * orbitR, center.y - sin(satAngle) * orbitR)
-            drawLine(
-                color = Color(0xFFE879F9L).copy(alpha = 0.68f * spriteAlpha),
-                start = s1,
-                end = s2,
-                strokeWidth = 2.2f,
-                cap = StrokeCap.Round
-            )
-            drawCircle(color = Color(0xFF4ADE80L).copy(alpha = spriteAlpha), radius = 6.5f, center = s1)
-            drawCircle(color = Color.White.copy(alpha = spriteAlpha), radius = 3.2f, center = s1)
-            drawCircle(color = Color(0xFF38BDF8L).copy(alpha = spriteAlpha), radius = 6.5f, center = s2)
-            drawCircle(color = Color.White.copy(alpha = spriteAlpha), radius = 3.2f, center = s2)
-        }
-    }
 
     withTransform({
         rotate(degrees = (time * rotSpeed) % 360f, pivot = center)
@@ -1163,13 +1154,25 @@ fun DrawScope.drawPlayerSprite(
             srcSize = IntSize(heroBitmap.width, heroBitmap.height),
             dstOffset = IntOffset(p.x.toInt() - halfSize, p.y.toInt() - halfSize),
             dstSize = IntSize(drawSize, drawSize),
-            alpha = if (skin == "ECLIPSE") spriteAlpha * 0.55f else spriteAlpha,
+            alpha = spriteAlpha,
             colorFilter = if (skin == "ECLIPSE" || isGoldenOverdrive) {
                 ColorFilter.tint(Color(0xFFFDE047L), BlendMode.Modulate)
             } else null,
             blendMode = BlendMode.Screen
         )
     }
+
+    // 3. Blazing 24K Gold & White Center Spindle Core
+    drawCircle(
+        color = Color(0xFFFACC15L).copy(alpha = spriteAlpha),
+        radius = p.radius * 0.42f,
+        center = center
+    )
+    drawCircle(
+        color = Color.White.copy(alpha = spriteAlpha),
+        radius = p.radius * 0.22f,
+        center = center
+    )
 }
 
 /**

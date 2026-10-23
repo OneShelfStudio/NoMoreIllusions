@@ -17,10 +17,14 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -141,8 +145,16 @@ fun MenuUI(
                 if (isVipUnlocked) {
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "• VIP",
+                        text = "• ★ VIP UNLOCKED",
                         color = Color(0xFF4ADE80L),
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Black
+                    )
+                } else {
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "• 🔑 VIP",
+                        color = Color(0xFFC084FCL),
                         fontSize = 9.sp,
                         fontWeight = FontWeight.Black
                     )
@@ -668,8 +680,13 @@ fun SettingsUI(
     onSoundToggle: (Boolean) -> Unit,
     onHapticToggle: (Boolean) -> Unit,
     onDifficultyChange: (GameDifficulty) -> Unit,
+    isVipUnlocked: Boolean = false,
+    onActivateVipPasscode: () -> Unit = {},
     onBack: () -> Unit
 ) {
+    var vipCodeInput by remember { mutableStateOf("") }
+    var vipError by remember { mutableStateOf(false) }
+    var vipSuccess by remember { mutableStateOf(isVipUnlocked) }
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -762,7 +779,106 @@ fun SettingsUI(
                 DifficultyOption(GameDifficulty.HARD, difficulty == GameDifficulty.HARD) { onDifficultyChange(it) }
             }
 
-            Spacer(modifier = Modifier.height(28.dp))
+            Spacer(modifier = Modifier.height(16.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(Color(0xFF0A0D18L))
+                    .border(
+                        1.2.dp,
+                        if (vipSuccess || isVipUnlocked) Color(0xFF4ADE80L) else Color(0xFFFACC15L).copy(alpha = 0.65f),
+                        RoundedCornerShape(14.dp)
+                    )
+                    .padding(12.dp)
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = if (vipSuccess || isVipUnlocked) "★ ARTIST VIP PASSCODE ACTIVE (ALL UNLOCKED!)" else "🔑 ARTIST VIP PASSCODE (UNLOCK ALL OPTIONS)",
+                        color = if (vipSuccess || isVipUnlocked) Color(0xFF4ADE80L) else Color(0xFFFACC15L),
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 0.8.sp
+                    )
+                    if (!vipSuccess && !isVipUnlocked) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(38.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(Color(0xFF04070FL))
+                                    .border(
+                                        1.dp,
+                                        if (vipError) Color(0xFFF43F5EL) else Color(0xFF6366F1L).copy(alpha = 0.6f),
+                                        RoundedCornerShape(8.dp)
+                                    )
+                                    .padding(horizontal = 10.dp),
+                                contentAlignment = Alignment.CenterStart
+                            ) {
+                                if (vipCodeInput.isEmpty()) {
+                                    Text(
+                                        text = "ENTER PASSCODE...",
+                                        color = Color(0xFF64748BL),
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                                BasicTextField(
+                                    value = vipCodeInput,
+                                    onValueChange = {
+                                        vipCodeInput = it.uppercase()
+                                        vipError = false
+                                    },
+                                    singleLine = true,
+                                    textStyle = TextStyle(
+                                        color = Color.White,
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Black
+                                    ),
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
+                            Box(
+                                modifier = Modifier
+                                    .height(38.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(
+                                        Brush.horizontalGradient(
+                                            listOf(Color(0xFFFACC15L), Color(0xFFD97706L))
+                                        )
+                                    )
+                                    .clickable {
+                                        val clean = vipCodeInput.trim().uppercase()
+                                        if (clean == "ETHAN" || clean == "CONFIDE" || clean == "ILLUSIONS2026" || clean == "NMI2026") {
+                                            vipSuccess = true
+                                            vipError = false
+                                            onActivateVipPasscode()
+                                        } else {
+                                            vipError = true
+                                        }
+                                    }
+                                    .padding(horizontal = 14.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "UNLOCK",
+                                    color = Color(0xFF050811L),
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Black
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(18.dp))
             ArcadePillButton(
                 text = "SAVE & BACK",
                 pillBitmap = btnPillGold,

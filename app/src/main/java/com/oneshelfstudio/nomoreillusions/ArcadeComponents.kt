@@ -245,67 +245,90 @@ fun ArcadePillButton(
 fun ArcadeAdPillButton(
     text: String,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier.fillMaxWidth().height(46.dp),
+    modifier: Modifier = Modifier.fillMaxWidth().height(54.dp),
     fontSize: TextUnit = 13.sp,
     enabled: Boolean = true
 ) {
-    val cardShape = RoundedCornerShape(12.dp)
+    // Google Play / AdMob Compliant Rewarded Ad Button:
+    // Visually distinct from standard menu pills via a warm Amber-Gold Broadcast frame,
+    // high-contrast solid yellow [AD] disclosure badge, and explicit "SPONSORED VIDEO" sublabel.
+    val cardShape = RoundedCornerShape(8.dp)
     Box(
         modifier = modifier
             .shadow(
                 elevation = 8.dp,
                 shape = cardShape,
-                ambientColor = Color(0xFF22C55E),
-                spotColor = Color(0xFF6366F1)
+                ambientColor = Color(0xFFF59E0B),
+                spotColor = Color(0xFFFACC15)
             )
             .clip(cardShape)
             .background(
                 Brush.horizontalGradient(
                     colors = listOf(
-                        Color(0xFF092214),
-                        Color(0xFF101432)
+                        Color(0xFF291804),
+                        Color(0xFF1F1203),
+                        Color(0xFF2D1B05)
                     )
                 )
             )
             .border(
-                width = 1.4.dp,
+                width = 2.dp,
                 brush = Brush.horizontalGradient(
-                    listOf(Color(0xFF4ADE80), Color(0xFF818CF8))
+                    listOf(Color(0xFFFACC15), Color(0xFFF59E0B), Color(0xFFFDE047))
                 ),
                 shape = cardShape
             )
             .clickable(enabled = enabled) { onClick() }
-            .padding(horizontal = 14.dp, vertical = 2.dp),
-        contentAlignment = Alignment.Center
+            .padding(horizontal = 12.dp, vertical = 5.dp),
+        contentAlignment = Alignment.CenterStart
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center
+            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier.fillMaxWidth()
         ) {
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(Color(0xFF22C55E).copy(alpha = 0.18f))
-                    .border(1.dp, Color(0xFF4ADE80), RoundedCornerShape(6.dp))
-                    .padding(horizontal = 7.dp, vertical = 2.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "AD ▶",
-                    color = Color(0xFF4ADE80),
-                    fontSize = 9.5.sp,
-                    fontWeight = FontWeight.Black,
-                    letterSpacing = 0.8.sp
-                )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(5.dp))
+                        .background(Color(0xFFFACC15))
+                        .border(1.dp, Color(0xFFFEF08A), RoundedCornerShape(5.dp))
+                        .padding(horizontal = 7.dp, vertical = 4.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "AD",
+                        color = Color(0xFF090D16),
+                        fontSize = 10.5.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 0.8.sp
+                    )
+                }
+                Spacer(modifier = Modifier.width(10.dp))
+                Column {
+                    Text(
+                        text = text,
+                        color = Color(0xFFFEF08A),
+                        fontSize = fontSize,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 0.8.sp,
+                        maxLines = 1
+                    )
+                    Text(
+                        text = "SPONSORED VIDEO • INSTANT REVIVE",
+                        color = Color(0xFFFBBF24).copy(alpha = 0.90f),
+                        fontSize = 8.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 0.6.sp,
+                        maxLines = 1
+                    )
+                }
             }
-            Spacer(modifier = Modifier.width(10.dp))
             Text(
-                text = text,
-                color = Color.White,
-                fontSize = fontSize,
-                fontWeight = FontWeight.Black,
-                letterSpacing = 0.9.sp,
-                maxLines = 1
+                text = "▶",
+                color = Color(0xFFFACC15),
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Black
             )
         }
     }

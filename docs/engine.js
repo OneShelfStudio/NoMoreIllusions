@@ -330,11 +330,15 @@ function buildConfideOrbChart() {
       nx = Math.max(0.20, Math.min(0.80, 0.50 + 0.28 * Math.sin(rp)));
       ny = Math.max(0.28, Math.min(0.74, 0.50 + 0.21 * Math.cos(rp * 0.70)));
     }
+    const puType = effect !== "NONE"
+      ? (effect === "MAGNETAR_WAR" ? "BLAST" : effect === "ECLIPSE_DARK" ? "SHIELD" : effect === "TRACTOR_REACH" ? "MAGNET" : "SCORE_ORB")
+      : (seq % 12 === 3 ? "BLAST" : seq % 12 === 6 ? "SHIELD" : seq % 12 === 9 ? "SLOW_MO" : seq % 12 === 0 ? "MAGNET" : "SCORE_ORB");
     cues.push({
       sequenceIndex: seq,
       timestampSec: quantizeToBeat(anchor ? anchor[0] : t, beatSec),
       normX: nx,
       normY: ny,
+      powerUpType: puType,
       keyWordEffect: effect,
       isGoldenCue: effect === "CONSTELLATION_STAR"
     });
@@ -387,11 +391,15 @@ function buildNumberOneOrbChart() {
       nx = Math.max(0.20, Math.min(0.80, 0.50 + 0.28 * Math.cos(rp)));
       ny = Math.max(0.28, Math.min(0.74, 0.50 + 0.21 * Math.sin(rp * 0.72)));
     }
+    const puType = effect !== "NONE"
+      ? (effect === "MAGNETAR_WAR" ? "BLAST" : effect === "ECLIPSE_DARK" ? "SHIELD" : effect === "TRACTOR_REACH" ? "MAGNET" : "SCORE_ORB")
+      : (seq % 12 === 3 ? "BLAST" : seq % 12 === 6 ? "SHIELD" : seq % 12 === 9 ? "SLOW_MO" : seq % 12 === 0 ? "MAGNET" : "SCORE_ORB");
     cues.push({
       sequenceIndex: seq,
       timestampSec: quantizeToBeat(anchor ? anchor[0] : t, beatSec),
       normX: nx,
       normY: ny,
+      powerUpType: puType,
       keyWordEffect: effect,
       isGoldenCue: effect === "CONSTELLATION_STAR"
     });
@@ -841,8 +849,9 @@ function drawPowerUps(ctx, powerUps, playerX, playerY, time, trackSec, beatPulse
       switch (pu.type) {
         case "SHIELD": effectCol = [56, 189, 248]; break;
         case "SLOW_MO": effectCol = [168, 85, 247]; break;
-        case "OVERDRIVE": effectCol = [244, 63, 94]; break;
-        case "MAGNET": effectCol = [52, 211, 153]; break;
+        case "BLAST":
+        case "OVERDRIVE": effectCol = [249, 115, 22]; break;
+        case "MAGNET": effectCol = [16, 185, 129]; break;
         default: effectCol = [250, 204, 21];
       }
     }
@@ -851,27 +860,7 @@ function drawPowerUps(ctx, powerUps, playerX, playerY, time, trackSec, beatPulse
     const beatPulseScale = 1.0 + (isSupernova ? 0.38 : 0.26) * beatPulse;
     const coreRad = (pu.radius || 20) * popInScale * beatPulseScale * (isPrimary ? 1.06 : 0.88);
 
-    // 0. Traveling Harmonic Comet Wake trailing behind flight vector (-cos, -sin)
-    const moveAngle = pu.angle !== undefined ? pu.angle : Math.atan2(pu.vy, pu.vx);
-    const tailDirX = -Math.cos(moveAngle);
-    const tailDirY = -Math.sin(moveAngle);
-    const perpX = -tailDirY;
-    const perpY = tailDirX;
-    const tailSegs = isSupernova ? 6 : 5;
-
-    for (let seg = 1; seg <= tailSegs; seg++) {
-      const t = seg / tailSegs;
-      const dist = t * (isSupernova ? 64 : 42);
-      const sway = Math.sin(time * 7 - seg * 0.7 + (pu.phase || 0)) * (t * 7);
-      const tx = pu.x + tailDirX * dist + perpX * sway;
-      const ty = pu.y + tailDirY * dist + perpY * sway;
-      const tailCol = isScoreOrb ? (isSupernova ? [250, 204, 21] : [6, 182, 212]) : effectCol;
-
-      ctx.beginPath();
-      ctx.arc(tx, ty, coreRad * (1 - t * 0.7) * 0.48, 0, Math.PI * 2);
-      ctx.fillStyle = rgba(tailCol, (1 - t) * 0.52 * puAlpha);
-      ctx.fill();
-    }
+    // (Comet wake tails removed — orbs are now crisp faceted gemstones, 1:1 with Android GameRenderer.kt)
 
     // Converging Beat Timing Ring (contracts onto the orb core on every beat!)
     const ringRadius = coreRad * (1.04 + (1 - beatPulse) * (isSupernova ? 1.65 : 1.30));
@@ -939,63 +928,86 @@ function drawPowerUps(ctx, powerUps, playerX, playerY, time, trackSec, beatPulse
       ctx.fillStyle = "#FFFFFF";
       ctx.fill();
 
-    } else if (isScoreOrb) {
-      // -----------------------------------------------------------------------
-      // REGULAR BEAT ORB: Clean Cyan-Emerald Beat-Pulsing Pearl
-      // -----------------------------------------------------------------------
-      const grad = ctx.createRadialGradient(pu.x, pu.y, 2, pu.x, pu.y, coreRad * 1.85);
-      grad.addColorStop(0, rgba([255, 255, 255], 0.92 * puAlpha));
-      grad.addColorStop(0.40, rgba(effectCol, 0.68 * puAlpha));
-      grad.addColorStop(0.75, rgba([16, 185, 129], 0.28 * puAlpha));
-      grad.addColorStop(1, "rgba(0,0,0,0)");
-
-      ctx.beginPath();
-      ctx.arc(pu.x, pu.y, coreRad * 1.85, 0, Math.PI * 2);
-      ctx.fillStyle = grad;
-      ctx.fill();
-
-      ctx.beginPath();
-      ctx.arc(pu.x, pu.y, coreRad * 0.58, 0, Math.PI * 2);
-      ctx.fillStyle = rgba(effectCol, 0.92 * puAlpha);
-      ctx.fill();
-
-      ctx.beginPath();
-      ctx.arc(pu.x, pu.y, coreRad * 0.30, 0, Math.PI * 2);
-      ctx.fillStyle = "#FFFFFF";
-      ctx.fill();
-
     } else {
       // -----------------------------------------------------------------------
-      // SPECIAL SUPPORT POWER-UP (Aegis Shield, Chrono, Overdrive, Magnet)
+      // FACETED 6-SIDED HEXAGONAL MUSICAL GEMSTONE (♪ Beat Orb / 💥 Blast / 🛡️ Shield / ⏳ Slow-Mo / 🧲 Magnet)
       // -----------------------------------------------------------------------
-      const grad = ctx.createRadialGradient(pu.x, pu.y, 2, pu.x, pu.y, coreRad * 2.0);
-      grad.addColorStop(0, rgba([255, 255, 255], 0.95 * puAlpha));
-      grad.addColorStop(0.45, rgba(effectCol, 0.75 * puAlpha));
-      grad.addColorStop(1, "rgba(0,0,0,0)");
-
-      ctx.beginPath();
-      ctx.arc(pu.x, pu.y, coreRad * 2.0, 0, Math.PI * 2);
-      ctx.fillStyle = grad;
-      ctx.fill();
-
-      // Outer rotating crescent aura arcs (no boxy square frame)
-      const rot = time * 2.1;
-      for (let a = 0; a < 2; a++) {
-        const startA = rot + a * Math.PI;
-        ctx.beginPath();
-        ctx.arc(pu.x, pu.y, coreRad * 0.86, startA, startA + 1.9);
-        ctx.strokeStyle = rgba(effectCol, 0.95 * puAlpha);
-        ctx.lineWidth = 2.4;
-        ctx.lineCap = "round";
-        ctx.stroke();
-      }
-
-      ctx.beginPath();
-      ctx.arc(pu.x, pu.y, coreRad * 0.36, 0, Math.PI * 2);
-      ctx.fillStyle = "#FFFFFF";
-      ctx.fill();
+      drawHexGem(ctx, pu.x, pu.y, coreRad, effectCol, isScoreOrb ? "SCORE_ORB" : pu.type, time + (pu.phase || 0), puAlpha);
     }
   }
+}
+
+function drawHexGem(ctx, x, y, r, col, kind, t, alpha) {
+  // Soft outer glow
+  const glow = ctx.createRadialGradient(x, y, 2, x, y, r * 1.9);
+  glow.addColorStop(0, rgba(col, 0.42 * alpha));
+  glow.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.beginPath();
+  ctx.arc(x, y, r * 1.9, 0, Math.PI * 2);
+  ctx.fillStyle = glow;
+  ctx.fill();
+
+  const rot = t * 0.6;
+  const verts = [];
+  for (let v = 0; v < 6; v++) {
+    const a = rot + v * (Math.PI / 3);
+    verts.push([x + Math.cos(a) * r, y + Math.sin(a) * r]);
+  }
+  // Facets: alternate light/dark triangles toward center for a cut-gem look
+  for (let v = 0; v < 6; v++) {
+    const p1 = verts[v];
+    const p2 = verts[(v + 1) % 6];
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(p1[0], p1[1]);
+    ctx.lineTo(p2[0], p2[1]);
+    ctx.closePath();
+    const shade = v % 2 === 0 ? 1.0 : 0.62;
+    ctx.fillStyle = rgba([Math.round(col[0] * shade), Math.round(col[1] * shade), Math.round(col[2] * shade)], 0.92 * alpha);
+    ctx.fill();
+  }
+  // Rim
+  ctx.beginPath();
+  verts.forEach((p, i) => (i === 0 ? ctx.moveTo(p[0], p[1]) : ctx.lineTo(p[0], p[1])));
+  ctx.closePath();
+  ctx.strokeStyle = rgba([255, 255, 255], 0.9 * alpha);
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  // Inner table (dark core plate for emblem contrast)
+  ctx.beginPath();
+  for (let v = 0; v < 6; v++) {
+    const a = rot + v * (Math.PI / 3);
+    const px = x + Math.cos(a) * r * 0.58;
+    const py = y + Math.sin(a) * r * 0.58;
+    if (v === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+  }
+  ctx.closePath();
+  ctx.fillStyle = rgba([8, 10, 22], 0.78 * alpha);
+  ctx.fill();
+  ctx.strokeStyle = rgba(col, 0.95 * alpha);
+  ctx.lineWidth = 1.2;
+  ctx.stroke();
+  // Specular glint
+  ctx.beginPath();
+  ctx.arc(x - r * 0.38, y - r * 0.42, r * 0.12, 0, Math.PI * 2);
+  ctx.fillStyle = rgba([255, 255, 255], 0.85 * alpha);
+  ctx.fill();
+  // Etched emblem
+  const emblem = kind === "BLAST" || kind === "OVERDRIVE" ? "💥"
+    : kind === "SHIELD" ? "🛡️"
+    : kind === "SLOW_MO" ? "⏳"
+    : kind === "MAGNET" ? "🧲"
+    : "♪";
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.font = emblem === "♪"
+    ? `900 ${Math.round(r * 0.95)}px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`
+    : `${Math.round(r * 0.78)}px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif`;
+  ctx.fillStyle = "#FFFFFF";
+  ctx.fillText(emblem, x, y + (emblem === "♪" ? r * 0.04 : r * 0.02));
+  ctx.restore();
 }
 
 function drawEnemyTelegraphs(ctx, telegraphs, time, beatPulse) {
@@ -1052,154 +1064,129 @@ function drawEnemyTelegraphs(ctx, telegraphs, time, beatPulse) {
 }
 
 function drawEnemySprite(ctx, e, enemyBitmaps, time, beatPulse) {
-  let primaryCol, secondaryCol, bmp;
-  switch (e.type) {
-    case "SEEKER":
-      primaryCol = [244, 63, 94];
-      secondaryCol = [251, 146, 60];
-      bmp = enemyBitmaps.SEEKER;
-      break;
-    case "PULSAR":
-      primaryCol = [250, 204, 21];
-      secondaryCol = [56, 189, 248];
-      bmp = enemyBitmaps.PULSAR;
-      break;
-    default:
-      primaryCol = [168, 85, 247];
-      secondaryCol = [236, 72, 153];
-      bmp = enemyBitmaps.WANDERER;
-  }
-
+  // 1:1 with Android GameRenderer.kt — ZERO tails. Crisp geometric hazards only.
   const speed = Math.max(1, Math.hypot(e.vx, e.vy));
   const dirX = e.vx / speed;
   const dirY = e.vy / speed;
-  const headingDeg = Math.atan2(dirY, dirX) * 180 / Math.PI;
-  const perpX = -dirY;
-  const perpY = dirX;
+  const heading = Math.atan2(dirY, dirX);
+  const r = e.radius;
 
-  // 1. Articulated Energy Spine / Tail (6 segments)
-  const segments = 6;
-  for (let s = segments; s >= 1; s--) {
-    const frac = s / segments;
-    const waveOffset = Math.sin(time * 9 - s * 0.75 + e.phase) * (e.radius * 0.28 * frac);
-    const segDist = s * (e.radius * 0.36);
-    const sx = e.x - dirX * segDist + perpX * waveOffset;
-    const sy = e.y - dirY * segDist + perpY * waveOffset;
-    const segRad = e.radius * (0.48 * (1 - frac * 0.65));
-
-    ctx.beginPath();
-    ctx.arc(sx, sy, segRad * 1.45, 0, Math.PI * 2);
-    ctx.fillStyle = rgba(primaryCol, (1 - frac) * 0.38);
-    ctx.fill();
-
-    ctx.beginPath();
-    ctx.arc(sx, sy, segRad * 0.65, 0, Math.PI * 2);
-    ctx.fillStyle = rgba(secondaryCol, (1 - frac) * 0.72);
-    ctx.fill();
-  }
-
-  // 2. Outer Mandala Energy Halo
-  const haloGrad = ctx.createRadialGradient(e.x, e.y, 2, e.x, e.y, e.radius * 2.15);
-  haloGrad.addColorStop(0, rgba(primaryCol, 0.55));
-  haloGrad.addColorStop(0.55, rgba(secondaryCol, 0.22));
-  haloGrad.addColorStop(1, "rgba(0,0,0,0)");
+  // Shared crimson danger halo
+  const halo = ctx.createRadialGradient(e.x, e.y, 2, e.x, e.y, r * 2.0);
+  halo.addColorStop(0, "rgba(255,30,66,0.42)");
+  halo.addColorStop(1, "rgba(0,0,0,0)");
   ctx.beginPath();
-  ctx.arc(e.x, e.y, e.radius * 2.15, 0, Math.PI * 2);
-  ctx.fillStyle = haloGrad;
+  ctx.arc(e.x, e.y, r * 2.0, 0, Math.PI * 2);
+  ctx.fillStyle = halo;
   ctx.fill();
 
-  // 3. Boss-Grade Procedural Geometry by Archetype
-  if (e.type === "SEEKER") {
-    const wingSweep = 16 + 10 * Math.sin(time * 12 + e.phase) - beatPulse * 12;
-    for (const side of [-1, 1]) {
-      const wingAngle = (headingDeg + 180 + side * (58 + wingSweep)) * Math.PI / 180;
-      const tipX = e.x + Math.cos(wingAngle) * e.radius * 1.75;
-      const tipY = e.y + Math.sin(wingAngle) * e.radius * 1.75;
-      const midAngle = (headingDeg + 180 + side * 28) * Math.PI / 180;
-      const midX = e.x + Math.cos(midAngle) * e.radius * 1.05;
-      const midY = e.y + Math.sin(midAngle) * e.radius * 1.05;
+  ctx.save();
+  ctx.translate(e.x, e.y);
 
-      ctx.beginPath();
-      ctx.moveTo(e.x + dirX * e.radius * 0.55, e.y + dirY * e.radius * 0.55);
-      ctx.lineTo(tipX, tipY);
-      ctx.lineTo(midX, midY);
-      ctx.closePath();
-      ctx.fillStyle = rgba(primaryCol, 0.78);
-      ctx.fill();
-      ctx.strokeStyle = rgba([255, 255, 255], 0.85);
-      ctx.lineWidth = 2;
-      ctx.stroke();
-    }
-  } else if (e.type === "PULSAR") {
-    const bladeCount = 10;
-    const spinDeg = (time * 210 + e.phase * 50) % 360;
+  if (e.type === "PULSAR") {
+    // CRIMSON SAWBLADE: 8-point spinning cybernetic buzzsaw
+    ctx.rotate(time * 4.2 + (e.phase || 0));
+    const teeth = 8;
     ctx.beginPath();
-    for (let b = 0; b < bladeCount * 2; b++) {
-      const aRad = (spinDeg + b * (180 / bladeCount)) * Math.PI / 180;
-      const r = b % 2 === 0 ? e.radius * (1.42 + beatPulse * 0.22) : e.radius * 0.82;
-      const bx = e.x + Math.cos(aRad) * r;
-      const by = e.y + Math.sin(aRad) * r;
-      if (b === 0) ctx.moveTo(bx, by);
-      else ctx.lineTo(bx, by);
+    for (let i = 0; i < teeth * 2; i++) {
+      const a = i * (Math.PI / teeth);
+      const rr = i % 2 === 0 ? r * (1.32 + beatPulse * 0.12) : r * 0.86;
+      const a2 = a + (i % 2 === 0 ? 0.12 : 0);
+      if (i === 0) ctx.moveTo(Math.cos(a2) * rr, Math.sin(a2) * rr);
+      else ctx.lineTo(Math.cos(a2) * rr, Math.sin(a2) * rr);
     }
     ctx.closePath();
-    ctx.fillStyle = rgba(primaryCol, 0.35);
+    ctx.fillStyle = "#7F1D1D";
     ctx.fill();
-    ctx.strokeStyle = rgba([254, 240, 138], 0.9);
-    ctx.lineWidth = 2.4;
+    ctx.strokeStyle = "#FB7185";
+    ctx.lineWidth = 2.2;
     ctx.stroke();
-  } else {
-    for (const side of [-1, 1]) {
-      const finWave = Math.sin(time * 7 + e.phase + side) * 18;
-      const finAngle = (headingDeg + 180 + side * (72 + finWave)) * Math.PI / 180;
-      const finX = e.x + Math.cos(finAngle) * e.radius * 1.55;
-      const finY = e.y + Math.sin(finAngle) * e.radius * 1.55;
+    ctx.beginPath();
+    ctx.arc(0, 0, r * 0.62, 0, Math.PI * 2);
+    ctx.fillStyle = "#1A0508";
+    ctx.fill();
+    ctx.strokeStyle = "#F43F5E";
+    ctx.lineWidth = 1.6;
+    ctx.stroke();
+    for (let b = 0; b < 4; b++) {
+      const a = b * (Math.PI / 2);
       ctx.beginPath();
-      ctx.moveTo(e.x, e.y);
-      ctx.lineTo(finX, finY);
-      ctx.strokeStyle = rgba(secondaryCol, 0.75);
-      ctx.lineWidth = 4.5;
-      ctx.lineCap = "round";
+      ctx.arc(Math.cos(a) * r * 0.38, Math.sin(a) * r * 0.38, r * 0.09, 0, Math.PI * 2);
+      ctx.fillStyle = "#FDA4AF";
+      ctx.fill();
+    }
+  } else if (e.type === "SEEKER") {
+    // DELTA INTERCEPTOR: angular twin-wing stealth fighter with amber wingtip beacons
+    ctx.rotate(heading);
+    ctx.beginPath();
+    ctx.moveTo(r * 1.45, 0);
+    ctx.lineTo(-r * 0.85, r * 1.15);
+    ctx.lineTo(-r * 0.45, 0);
+    ctx.lineTo(-r * 0.85, -r * 1.15);
+    ctx.closePath();
+    ctx.fillStyle = "#3F0A12";
+    ctx.fill();
+    ctx.strokeStyle = "#FF1E42";
+    ctx.lineWidth = 2.2;
+    ctx.stroke();
+    // Center spine
+    ctx.beginPath();
+    ctx.moveTo(r * 1.2, 0);
+    ctx.lineTo(-r * 0.35, 0);
+    ctx.strokeStyle = "rgba(254,205,211,0.85)";
+    ctx.lineWidth = 1.4;
+    ctx.stroke();
+    // Cockpit
+    ctx.beginPath();
+    ctx.ellipse(r * 0.35, 0, r * 0.32, r * 0.18, 0, 0, Math.PI * 2);
+    ctx.fillStyle = "#FF1E42";
+    ctx.fill();
+    // Amber wingtip beacons (blink on beat)
+    const blink = 0.55 + 0.45 * beatPulse;
+    for (const s of [-1, 1]) {
+      ctx.beginPath();
+      ctx.arc(-r * 0.8, s * r * 1.08, r * 0.14, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(251,191,36,${blink})`;
+      ctx.fill();
+    }
+  } else {
+    // VOID OCTAHEDRON: counter-rotating double-square prism + 3 orbiting hazard nodes
+    for (let layer = 0; layer < 2; layer++) {
+      ctx.save();
+      ctx.rotate((layer === 0 ? 1 : -1) * time * 1.6 + layer * Math.PI / 4);
+      const s = r * (layer === 0 ? 1.05 : 0.82);
+      ctx.beginPath();
+      ctx.rect(-s, -s, s * 2, s * 2);
+      ctx.fillStyle = layer === 0 ? "rgba(76,5,25,0.92)" : "rgba(136,19,55,0.85)";
+      ctx.fill();
+      ctx.strokeStyle = layer === 0 ? "#FB7185" : "#FDA4AF";
+      ctx.lineWidth = 1.8;
+      ctx.stroke();
+      ctx.restore();
+    }
+    for (let n = 0; n < 3; n++) {
+      const a = time * 2.4 + n * (Math.PI * 2 / 3) + (e.phase || 0);
+      ctx.beginPath();
+      ctx.arc(Math.cos(a) * r * 1.55, Math.sin(a) * r * 1.55, r * 0.17, 0, Math.PI * 2);
+      ctx.fillStyle = "#F43F5E";
+      ctx.fill();
+      ctx.strokeStyle = "#FFFFFF";
+      ctx.lineWidth = 1;
       ctx.stroke();
     }
-    const ringSpin = (-time * 120 + e.phase * 40) % 360;
-    ctx.beginPath();
-    ctx.arc(e.x, e.y, e.radius * 1.22, ringSpin * Math.PI / 180, (ringSpin + 140) * Math.PI / 180);
-    ctx.strokeStyle = rgba([233, 213, 255], 0.8);
-    ctx.lineWidth = 2.6;
-    ctx.lineCap = "round";
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.arc(e.x, e.y, e.radius * 1.22, (ringSpin + 180) * Math.PI / 180, (ringSpin + 320) * Math.PI / 180);
-    ctx.stroke();
   }
+  ctx.restore();
 
-  // 4. Actual Android Mandala Core Sprite with Screen Blending
-  const spriteDrawSize = Math.max(16, Math.round(e.radius * 2.55));
-  const rotRad = (e.type === "SEEKER"
-    ? headingDeg + 90
-    : (time * (e.type === "PULSAR" ? 135 : 58) + e.phase * 40) % 360) * Math.PI / 180;
-
-  if (bmp && bmp.complete && bmp.naturalWidth > 0) {
-    ctx.save();
-    ctx.translate(e.x, e.y);
-    ctx.rotate(rotRad);
-    ctx.globalCompositeOperation = "screen";
-    ctx.drawImage(bmp, -spriteDrawSize / 2, -spriteDrawSize / 2, spriteDrawSize, spriteDrawSize);
-    ctx.restore();
-  }
-
-  // 5. Glowing Sentient Core Eye locked on direction of travel
-  const eyeX = e.x + dirX * (e.radius * 0.24);
-  const eyeY = e.y + dirY * (e.radius * 0.24);
+  // Glowing sentient core eye locked on direction of travel
+  const eyeX = e.x + dirX * (r * 0.18);
+  const eyeY = e.y + dirY * (r * 0.18);
   ctx.beginPath();
-  ctx.arc(eyeX, eyeY, e.radius * 0.28, 0, Math.PI * 2);
+  ctx.arc(eyeX, eyeY, r * 0.24, 0, Math.PI * 2);
   ctx.fillStyle = "#FFFFFF";
   ctx.fill();
   ctx.beginPath();
-  ctx.arc(eyeX + dirX * 2, eyeY + dirY * 2, e.radius * 0.14, 0, Math.PI * 2);
-  ctx.fillStyle = rgba(primaryCol, 1);
+  ctx.arc(eyeX + dirX * 2, eyeY + dirY * 2, r * 0.12, 0, Math.PI * 2);
+  ctx.fillStyle = "#FF1E42";
   ctx.fill();
 }
 
@@ -1218,65 +1205,132 @@ function drawPlayerSprite(
   beatPulse,
   time
 ) {
-  let skinHaloColor;
+  let skinCol;
   switch (selectedSkinId) {
-    case "skin_gold": skinHaloColor = [250, 204, 21]; break;
-    case "skin_prism": skinHaloColor = [236, 72, 153]; break;
-    default: skinHaloColor = [56, 189, 248];
+    case "skin_gold": skinCol = [250, 204, 21]; break;
+    case "skin_prism": skinCol = [236, 72, 153]; break;
+    case "skin_emerald": skinCol = [16, 185, 129]; break;
+    case "skin_blood": skinCol = [244, 63, 94]; break;
+    default: skinCol = [56, 189, 248];
   }
+  const R = playerRadius;
 
   if (shieldTimer > 0) {
     ctx.beginPath();
-    ctx.arc(playerX, playerY, playerRadius * 1.9 + 5 * Math.sin(time * 8), 0, Math.PI * 2);
-    ctx.strokeStyle = rgba([56, 189, 248], 0.78);
+    ctx.arc(playerX, playerY, R * 1.95 + 4 * Math.sin(time * 8), 0, Math.PI * 2);
+    ctx.strokeStyle = rgba([56, 189, 248], 0.85);
     ctx.lineWidth = 3.5;
     ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(playerX, playerY, R * 1.95, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(56,189,248,0.10)";
+    ctx.fill();
   }
-
   if (overdriveTimer > 0) {
     ctx.beginPath();
-    ctx.arc(playerX, playerY, playerRadius * 2.2 + 8 * Math.sin(time * 14), 0, Math.PI * 2);
-    ctx.strokeStyle = rgba([244, 63, 94], 0.85);
+    ctx.arc(playerX, playerY, R * 2.25 + 7 * Math.sin(time * 14), 0, Math.PI * 2);
+    ctx.strokeStyle = rgba([249, 115, 22], 0.9);
     ctx.lineWidth = 5;
     ctx.stroke();
   }
-
   if (magnetTimer > 0) {
     ctx.beginPath();
-    ctx.arc(playerX, playerY, playerRadius * 2.6 + 6 * Math.cos(time * 10), 0, Math.PI * 2);
-    ctx.strokeStyle = rgba([52, 211, 153], 0.52);
+    ctx.arc(playerX, playerY, R * 2.7 + 6 * Math.cos(time * 10), 0, Math.PI * 2);
+    ctx.strokeStyle = rgba([16, 185, 129], 0.55);
     ctx.lineWidth = 2.5;
+    ctx.setLineDash([6, 6]);
     ctx.stroke();
+    ctx.setLineDash([]);
   }
-
   if (isFocusHolding && focusCharge > 0.02) {
     ctx.beginPath();
-    ctx.arc(playerX, playerY, playerRadius * 2.35, -Math.PI / 2, -Math.PI / 2 + focusCharge * Math.PI * 2);
+    ctx.arc(playerX, playerY, R * 2.4, -Math.PI / 2, -Math.PI / 2 + focusCharge * Math.PI * 2);
     ctx.strokeStyle = rgba([168, 85, 247], 0.9);
     ctx.lineWidth = 4;
     ctx.lineCap = "round";
     ctx.stroke();
   }
 
-  const pScale = 1 + beatPulse * 0.14;
-  const haloGrad = ctx.createRadialGradient(playerX, playerY, 2, playerX, playerY, playerRadius * 2.5 * pScale);
-  haloGrad.addColorStop(0, rgba(skinHaloColor, 0.58));
-  haloGrad.addColorStop(1, "rgba(0,0,0,0)");
+  const pScale = 1 + beatPulse * 0.12;
+
+  // Soft skin halo
+  const halo = ctx.createRadialGradient(playerX, playerY, 2, playerX, playerY, R * 2.4 * pScale);
+  halo.addColorStop(0, rgba(skinCol, 0.5));
+  halo.addColorStop(1, "rgba(0,0,0,0)");
   ctx.beginPath();
-  ctx.arc(playerX, playerY, playerRadius * 2.5 * pScale, 0, Math.PI * 2);
-  ctx.fillStyle = haloGrad;
+  ctx.arc(playerX, playerY, R * 2.4 * pScale, 0, Math.PI * 2);
+  ctx.fillStyle = halo;
   ctx.fill();
 
-  const heroDrawSize = Math.max(24, Math.round(playerRadius * 3.1 * pScale));
-  const heroRotRad = ((time * 42) % 360) * Math.PI / 180;
+  // 12-Bar Radial Turntable Equalizer Crown
+  for (let i = 0; i < 12; i++) {
+    const a = i * (Math.PI / 6) + time * 0.8;
+    const wave = 0.35 + 0.65 * Math.abs(Math.sin(time * 6 + i * 0.9)) * (0.6 + beatPulse * 0.4);
+    const r0 = R * 1.12;
+    const r1 = r0 + R * (0.18 + wave * 0.42);
+    ctx.beginPath();
+    ctx.moveTo(playerX + Math.cos(a) * r0, playerY + Math.sin(a) * r0);
+    ctx.lineTo(playerX + Math.cos(a) * r1, playerY + Math.sin(a) * r1);
+    ctx.strokeStyle = rgba(i % 2 === 0 ? skinCol : [250, 204, 21], 0.92);
+    ctx.lineWidth = 3;
+    ctx.lineCap = "round";
+    ctx.stroke();
+  }
+
+  // Obsidian-and-Gold Vinyl Platter
+  ctx.beginPath();
+  ctx.arc(playerX, playerY, R * pScale, 0, Math.PI * 2);
+  ctx.fillStyle = "#07060F";
+  ctx.fill();
+  ctx.strokeStyle = "#FACC15";
+  ctx.lineWidth = 2.2;
+  ctx.stroke();
+  for (let g = 1; g <= 3; g++) {
+    ctx.beginPath();
+    ctx.arc(playerX, playerY, R * pScale * (0.45 + g * 0.15), 0, Math.PI * 2);
+    ctx.strokeStyle = "rgba(255,255,255,0.12)";
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+  // Spinning holographic sheen
+  const spin = time * 3.2;
+  ctx.beginPath();
+  ctx.arc(playerX, playerY, R * pScale * 0.78, spin, spin + 0.9);
+  ctx.strokeStyle = rgba(skinCol, 0.75);
+  ctx.lineWidth = 3;
+  ctx.lineCap = "round";
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(playerX, playerY, R * pScale * 0.78, spin + Math.PI, spin + Math.PI + 0.9);
+  ctx.stroke();
+
+  // Mandala core label (skin bitmap) clipped to center
+  const labelR = R * pScale * 0.48;
   if (playerBitmap && playerBitmap.complete && playerBitmap.naturalWidth > 0) {
     ctx.save();
+    ctx.beginPath();
+    ctx.arc(playerX, playerY, labelR, 0, Math.PI * 2);
+    ctx.clip();
     ctx.translate(playerX, playerY);
-    ctx.rotate(heroRotRad);
-    ctx.globalCompositeOperation = "screen";
-    ctx.drawImage(playerBitmap, -heroDrawSize / 2, -heroDrawSize / 2, heroDrawSize, heroDrawSize);
+    ctx.rotate(time * 1.4);
+    ctx.drawImage(playerBitmap, -labelR * 1.25, -labelR * 1.25, labelR * 2.5, labelR * 2.5);
     ctx.restore();
+  } else {
+    ctx.beginPath();
+    ctx.arc(playerX, playerY, labelR, 0, Math.PI * 2);
+    ctx.fillStyle = rgba(skinCol, 0.95);
+    ctx.fill();
   }
+  ctx.beginPath();
+  ctx.arc(playerX, playerY, labelR, 0, Math.PI * 2);
+  ctx.strokeStyle = rgba(skinCol, 1);
+  ctx.lineWidth = 1.6;
+  ctx.stroke();
+  // Spindle
+  ctx.beginPath();
+  ctx.arc(playerX, playerY, Math.max(2.5, R * 0.12), 0, Math.PI * 2);
+  ctx.fillStyle = "#FFFFFF";
+  ctx.fill();
 }
 
 function drawFloatingTexts(ctx, floatingTexts) {
@@ -1541,7 +1595,8 @@ class NoMoreIllusionsApp {
       lobbyThemeIndex: parseInt(localStorage.getItem("nmi_lobby_idx") || "0", 10),
       musicMuted: localStorage.getItem("nmi_music_muted") === "true",
       sfxMuted: localStorage.getItem("nmi_sfx_muted") === "true",
-      seenHowToPlay: localStorage.getItem("nmi_seen_htp") === "true"
+      seenHowToPlay: localStorage.getItem("nmi_seen_htp") === "true",
+      vipUnlocked: localStorage.getItem("nmi_vip") === "true"
     };
 
     // Bitmaps Registry
@@ -2038,10 +2093,11 @@ class NoMoreIllusionsApp {
       window.addEventListener("pointercancel", () => { this.isFocusHolding = false; });
     }
 
-    // Track Audio Ended -> Track Completed!
+    // Track Audio Ended -> Track Completed (or Endless Loop Escalation)!
     this.trackAudio.addEventListener("ended", () => {
       if (this.gameState === "PLAYING") {
-        this.completeStageTrack();
+        if (this.getRemixMode().id === "ENDLESS") this.advanceEndlessLoop();
+        else this.completeStageTrack();
       }
     });
 
@@ -2155,6 +2211,8 @@ class NoMoreIllusionsApp {
     this.reviveUsedThisRun = false;
     this.newlyUnlockedTrack = null;
     this.earnedMedalTier = 0;
+    this.endlessLoopCount = 0;
+    this.activeToast = null;
 
     this.playerX = this.W / 2;
     this.playerY = this.H * 0.65;
@@ -2221,37 +2279,129 @@ class NoMoreIllusionsApp {
     this.syncUI();
   }
 
-  revivePlayer() {
+  advanceEndlessLoop() {
+    this.endlessLoopCount = (this.endlessLoopCount || 0) + 1;
+    const newSpeed = Math.min(1.65, 1.0 + this.endlessLoopCount * 0.08);
+    this.nextBeatCueIndex = 0;
+    this.lastTriggeredSectionTime = -1;
+    this.trackElapsedSec = 0;
+    const bonus = 500 * this.endlessLoopCount;
+    this.score += bonus;
+    this.prefs.points += 25;
+    try {
+      this.trackAudio.currentTime = 0;
+      this.trackAudio.preservesPitch = false;
+      this.trackAudio.webkitPreservesPitch = false;
+      this.trackAudio.playbackRate = newSpeed;
+      if (!this.prefs.musicMuted) this.trackAudio.play().catch(() => {});
+    } catch (e) {}
+    this.screenShake = Math.max(this.screenShake, 12);
+    this.shockwaves.push({ x: this.W / 2, y: this.H * 0.45, radius: 12, maxRadius: Math.max(this.W, this.H) * 0.85, color: [250, 204, 21], alpha: 1 });
+    this.showToast("∞", `ENDLESS LOOP #${this.endlessLoopCount + 1}!`, `SONG SPEED ESCALATED TO ${newSpeed.toFixed(2)}x • +${bonus} PTS`, "#FACC15", 3.2);
+  }
+
+  // Revive using 250 ♪ Notes (1:1 with Android GameOverUI)
+  reviveWithNotes() {
+    if (this.prefs.points < 250) {
+      this.playSfx("click");
+      this.openScreen("CUSTOMIZER");
+      return;
+    }
+    this.prefs.points -= 250;
+    this.savePrefs();
+    this.performRevive();
+  }
+
+  // Rewarded "Ad" revive. AdMob only serves inside the native Android app, so on Web/iOS this shows a
+  // 5-second house promo for No More Illusions' streaming links instead of a third-party ad.
+  reviveWithAd() {
     if (this.reviveUsedThisRun) return;
+    this.playSfx("click");
+    const overlay = document.getElementById("house-ad-overlay");
+    const countEl = document.getElementById("house-ad-count");
+    if (!overlay) { this.reviveUsedThisRun = true; this.performRevive(); return; }
+    overlay.style.display = "flex";
+    let remaining = 5;
+    if (countEl) countEl.textContent = String(remaining);
+    if (this.houseAdTimer) clearInterval(this.houseAdTimer);
+    this.houseAdTimer = setInterval(() => {
+      remaining--;
+      if (countEl) countEl.textContent = String(Math.max(0, remaining));
+      if (remaining <= 0) {
+        clearInterval(this.houseAdTimer);
+        overlay.style.display = "none";
+        this.reviveUsedThisRun = true;
+        this.performRevive();
+      }
+    }, 1000);
+  }
+
+  revivePlayer() { this.reviveWithAd(); }
+
+  performRevive() {
     this.playSfx("powerup");
-    this.reviveUsedThisRun = true;
     this.enemies = [];
+    this.telegraphs = [];
     this.satellites = [];
     this.orbitalPhenomenon = null;
-    this.shieldTimer = 5.0;
-    this.overdriveTimer = 2.5;
+    this.shieldTimer = Math.max(this.shieldTimer, 3.0);
+    this.overdriveTimer = Math.max(this.overdriveTimer, 2.5);
     this.shockwaves.push({
       x: this.playerX,
       y: this.playerY,
       radius: 10,
       maxRadius: Math.max(this.W, this.H) * 0.65,
-      color: [56, 189, 248],
+      color: [74, 222, 128],
       alpha: 1
     });
-    this.floatingTexts.push({
-      x: this.playerX,
-      y: this.playerY - 45,
-      text: "SECOND CHANCE SHIELD!",
-      color: [56, 189, 248],
-      alpha: 1,
-      age: 0
-    });
+    this.showToast("🛡️", "REVIVED!", "3.0s INVINCIBILITY SHIELD ACTIVE", "#4ADE80", 2.6);
     if (!this.prefs.musicMuted) this.trackAudio.play().catch(() => {});
     this.gameState = "PLAYING";
     this.syncUI();
   }
 
+  // Artist VIP Master Passcode (ETHAN / CONFIDE / ILLUSIONS2026 / NMI2026) — 1:1 with Android
+  openVipPasscode() {
+    this.playSfx("click");
+    const modal = document.getElementById("vip-modal");
+    const input = document.getElementById("vip-input");
+    const err = document.getElementById("vip-error");
+    if (err) err.style.display = "none";
+    if (input) input.value = "";
+    if (modal) modal.style.display = "flex";
+    setTimeout(() => { if (input) input.focus(); }, 60);
+  }
+
+  closeVipPasscode() {
+    const modal = document.getElementById("vip-modal");
+    if (modal) modal.style.display = "none";
+  }
+
+  submitVipPasscode() {
+    const input = document.getElementById("vip-input");
+    const err = document.getElementById("vip-error");
+    const clean = (input ? input.value : "").trim().toUpperCase();
+    if (["ETHAN", "CONFIDE", "ILLUSIONS2026", "NMI2026"].includes(clean)) {
+      this.prefs.vipUnlocked = true;
+      localStorage.setItem("nmi_vip", "true");
+      this.prefs.points += 50000;
+      const allItems = ["skin_cyan", "skin_gold", "skin_prism", "skin_emerald", "skin_blood",
+        "trail_cyan", "trail_gold", "trail_emerald", "trail_prism", "trail_laser",
+        "theme_nebula", "theme_sunset", "theme_matrix", "theme_blood", "theme_gold"];
+      for (const it of allItems) if (!this.prefs.unlockedItems.includes(it)) this.prefs.unlockedItems.push(it);
+      for (const t of OFFICIAL_TRACKS) if (!this.prefs.unlockedTracks.includes(t.id)) this.prefs.unlockedTracks.push(t.id);
+      this.savePrefs();
+      this.playSfx("levelup", 0.85);
+      this.closeVipPasscode();
+      this.syncUI();
+      if (this.gameState === "CUSTOMIZER") this.syncCustomizerUI();
+    } else if (err) {
+      err.style.display = "block";
+    }
+  }
+
   completeStageTrack() {
+    if (this.gameState !== "PLAYING") return;
     const stage = OFFICIAL_TRACKS[this.selectedStageIndex];
     this.trackAudio.pause();
     this.playSfx("levelup", 0.85);
@@ -2317,8 +2467,16 @@ class NoMoreIllusionsApp {
     }
 
     if (this.trackElapsedSec >= this.activeTrackDurationSec - 0.15) {
-      this.completeStageTrack();
-      return;
+      if (this.getRemixMode().id === "ENDLESS") {
+        this.advanceEndlessLoop();
+      } else {
+        this.completeStageTrack();
+        return;
+      }
+    }
+    if (this.activeToast) {
+      this.activeToast.timer -= dt;
+      if (this.activeToast.timer <= 0) this.activeToast = null;
     }
 
     // Update Multi-Band State at exact timestamp
@@ -2488,16 +2646,7 @@ class NoMoreIllusionsApp {
       });
     }
 
-    // 3. Support Power-Up Spawner (Shield, Slow-Mo, Overdrive, Magnet — paused during zero-enemy lulls)
-    if ((activeSec.maxEnemies ?? 4) > 0) {
-      this.powerUpSpawnTimer += dt;
-      if (this.powerUpSpawnTimer >= 10.5) {
-        this.powerUpSpawnTimer = 0;
-        const supportTypes = ["SHIELD", "SLOW_MO", "OVERDRIVE", "MAGNET"];
-        const picked = supportTypes[Math.floor(Math.random() * supportTypes.length)];
-        this.spawnTravelingCollectible(picked, Math.random(), 200);
-      }
-    }
+    // 3. Support Power-Ups (Nova Blast, Shield, Slow-Mo, Magnet) now arrive via the beat chart (1:1 with Android MusicLibrary.kt)
 
     // 4. Wormhole Pair Spawner (ONLY during high-energy Chorus Drops & Breakdowns where allowAnomalies is true)
     if (activeSec.allowAnomalies) {
@@ -2728,15 +2877,21 @@ class NoMoreIllusionsApp {
       // Collision with Player
       if (dist < this.playerRadius * 0.82 + e.radius * 0.82) {
         if (this.overdriveTimer > 0) {
-          // Vaporize enemy in Overdrive!
+          // Vaporize enemy in Overdrive (does NOT end Overdrive)!
           this.playSfx("orb", 0.75);
-          this.score += 120 * this.combo;
-          this.spawnBurstMotes(e.x, e.y, [244, 63, 94], 16);
+          this.triggerHaptic([30]);
+          const vapPts = 150 * Math.max(2, this.combo);
+          this.score += vapPts;
+          this.prefs.points += 4;
+          this.screenShake = Math.max(this.screenShake, 9);
+          this.spawnBurstMotes(e.x, e.y, [250, 204, 21], 16);
+          this.shockwaves.push({ x: e.x, y: e.y, radius: 6, maxRadius: 190, color: [250, 204, 21], alpha: 1 });
+          this.showToast("💥", `ENEMY VAPORIZED! +${vapPts}`, `OVERDRIVE RAMMING ACTIVE (${this.overdriveTimer.toFixed(1)}s)`, "#FACC15", 1.6);
           this.floatingTexts.push({
             x: e.x,
             y: e.y,
-            text: `VAPORIZED! +${120 * this.combo}`,
-            color: [244, 63, 94],
+            text: `VAPORIZED! +${vapPts}`,
+            color: [250, 204, 21],
             alpha: 1,
             age: 0
           });
@@ -2745,6 +2900,7 @@ class NoMoreIllusionsApp {
           this.playSfx("shield", 0.8);
           this.shieldTimer = 0;
           this.screenShake = 14;
+          this.showToast("🛡️", "SHIELD ABSORBED HIT!", "PROTECTIVE BARRIER SAVED YOUR RUN", "#38BDF8", 2.0);
           this.shockwaves.push({
             x: this.playerX,
             y: this.playerY,
@@ -2826,6 +2982,8 @@ class NoMoreIllusionsApp {
 
     const speed = isSupernova ? 165 : 195;
     const angle = Math.atan2(targetY - startY, targetX - startX);
+    // Supernova orbs stay SCORE_ORB (their keyWordEffect drives the effect); regular cues carry chart power-ups
+    const cueType = (!isSupernova && cue.powerUpType && cue.powerUpType !== "SCORE_ORB") ? cue.powerUpType : "SCORE_ORB";
 
     this.powerUps.push({
       x: startX,
@@ -2837,7 +2995,7 @@ class NoMoreIllusionsApp {
       speed,
       angle,
       radius: isSupernova ? 28 : 22,
-      type: "SCORE_ORB",
+      type: cueType,
       keyWordEffect: cue.keyWordEffect || (cue.isGoldenCue ? "CONSTELLATION_STAR" : "NONE"),
       isSupernova,
       sequenceIndex: cue.sequenceIndex || (this.powerUps.length + 1),
@@ -2922,26 +3080,73 @@ class NoMoreIllusionsApp {
         alpha: 1,
         age: 0
       });
+
+      // Supernova keyword effects (1:1 with Android GameScreen.kt)
+      const eff = pu.keyWordEffect || "NONE";
+      if (pu.isSupernova || eff !== "NONE") {
+        this.screenShake = Math.max(this.screenShake, 9);
+        if (eff === "CONSTELLATION_STAR") {
+          this.overdriveTimer = Math.max(this.overdriveTimer, 8.0);
+          this.constellationRushTimer = Math.max(this.constellationRushTimer, 12.0);
+          this.showToast("★", "24K OVERDRIVE STAR!", "8s ENEMY VAPORIZE + 2x RUSH", "#FACC15", 2.8);
+        } else if (eff === "MAGNETAR_WAR") {
+          let n = 0;
+          for (let k = this.enemies.length - 1; k >= 0; k--) {
+            const en = this.enemies[k];
+            if (Math.hypot(en.x - this.playerX, en.y - this.playerY) < 420) {
+              this.spawnBurstMotes(en.x, en.y, [253, 224, 71], 8);
+              this.enemies.splice(k, 1);
+              n++;
+            }
+          }
+          this.showToast("💥", "MAGNETAR SHOCKWAVE!", `${n} ENEMIES VAPORIZED`, "#FB7185", 2.6);
+        } else if (eff === "ECLIPSE_DARK") {
+          this.shieldTimer = Math.max(this.shieldTimer, 8.5);
+          this.showToast("🛡️", "SOLAR ECLIPSE SHIELD!", "8.5s INVINCIBILITY BARRIER", "#FDE047", 2.5);
+        } else if (eff === "TRACTOR_REACH") {
+          this.magnetTimer = Math.max(this.magnetTimer, 6.0);
+          this.showToast("🧲", "TRACTOR REACH!", "PULLING ORBS TOWARD YOU", "#22D3EE", 2.5);
+        } else if (eff === "PRISM_SHATTER") {
+          this.showToast("💎", "PRISM SHATTER!", "BONUS RESONANCE POINTS", "#E879F9", 2.5);
+        } else if (eff === "BINARY_HEART") {
+          this.constellationRushTimer = Math.max(this.constellationRushTimer, 12.0);
+          this.showToast("💚", "HARMONIC PULSE!", "2x SCORE RUSH • 12s", "#4ADE80", 2.5);
+        }
+      }
     } else {
       this.playSfx("powerup", 0.8);
-      let label = "";
+      this.triggerHaptic([30]);
       let col = [56, 189, 248];
-      if (pu.type === "SHIELD") {
-        this.shieldTimer = 7.0;
-        label = "AEGIS SHIELD!";
+      if (pu.type === "BLAST" || pu.type === "OVERDRIVE") {
+        col = [249, 115, 22];
+        this.overdriveTimer = Math.max(this.overdriveTimer, 5.5);
+        this.screenShake = Math.max(this.screenShake, 14);
+        let vaporized = 0;
+        for (let k = 0; k < this.enemies.length; k++) {
+          const en = this.enemies[k];
+          vaporized++;
+          this.score += 100 * this.combo;
+          this.spawnBurstMotes(en.x, en.y, k % 2 === 0 ? [250, 204, 21] : [249, 115, 22], 10);
+          this.shockwaves.push({ x: en.x, y: en.y, radius: 6, maxRadius: 130, color: [250, 204, 21], alpha: 1 });
+        }
+        this.enemies = [];
+        this.telegraphs = [];
+        this.shockwaves.push({ x: pu.x, y: pu.y, radius: 10, maxRadius: 520, color: col, alpha: 1 });
+        this.showToast("💥", "NOVA BLAST!",
+          vaporized > 0 ? `${vaporized} ENEMIES VAPORIZED + 5.5s OVERDRIVE!` : "5.5s OVERDRIVE • RAM ENEMIES TO VAPORIZE!",
+          "#F97316", 2.6);
+      } else if (pu.type === "SHIELD") {
+        this.shieldTimer = Math.max(this.shieldTimer, 7.0);
         col = [56, 189, 248];
+        this.showToast("🛡️", "AEGIS SHIELD!", "ABSORBS NEXT COLLISION • 7.0s ACTIVE", "#38BDF8", 2.4);
       } else if (pu.type === "SLOW_MO") {
-        this.slowMoTimer = 5.5;
-        label = "CHRONO SHIFT!";
+        this.slowMoTimer = Math.max(this.slowMoTimer, 5.5);
         col = [168, 85, 247];
-      } else if (pu.type === "OVERDRIVE") {
-        this.overdriveTimer = 5.0;
-        label = "OVERDRIVE SURGE!";
-        col = [244, 63, 94];
+        this.showToast("⏳", "CHRONO SHIFT!", "ENEMIES SLOWED 50% • 5.5s ACTIVE", "#A855F7", 2.4);
       } else if (pu.type === "MAGNET") {
-        this.magnetTimer = 7.0;
-        label = "ORB MAGNET!";
-        col = [52, 211, 153];
+        this.magnetTimer = Math.max(this.magnetTimer, 7.0);
+        col = [16, 185, 129];
+        this.showToast("🧲", "ORB MAGNET!", "PULLING NEARBY ORBS • 7.0s ACTIVE", "#10B981", 2.4);
       }
       this.spawnBurstMotes(pu.x, pu.y, col, 16);
       this.shockwaves.push({
@@ -2952,14 +3157,17 @@ class NoMoreIllusionsApp {
         color: col,
         alpha: 1
       });
-      this.floatingTexts.push({
-        x: pu.x,
-        y: pu.y - 18,
-        text: label,
-        color: col,
-        alpha: 1,
-        age: 0
-      });
+    }
+  }
+
+  // Candy-Catcher-Style Top-Center Pickup Toast (1:1 with Android GameHUD.kt PowerUpBannerToast)
+  showToast(icon, title, subtitle, accentHex, duration = 2.4) {
+    this.activeToast = { icon, title, subtitle, accent: accentHex, timer: duration, maxTimer: duration };
+    const el = document.getElementById("hud-pickup-toast");
+    if (el) {
+      el.classList.remove("toast-pop");
+      void el.offsetWidth; // restart bounce animation
+      el.classList.add("toast-pop");
     }
   }
 
@@ -3316,15 +3524,44 @@ class NoMoreIllusionsApp {
       }
     }
 
-    // Power-up status badges
+    // Power-up status badges (1:1 with Android ActiveBuffChip)
     const badgesEl = document.getElementById("hud-powerup-badges");
     if (badgesEl) {
       let html = "";
-      if (this.shieldTimer > 0) html += `<div class="pu-pill" style="border-color:#38BDF8;color:#38BDF8;">🛡 SHIELD ${this.shieldTimer.toFixed(1)}s</div>`;
-      if (this.overdriveTimer > 0) html += `<div class="pu-pill" style="border-color:#F43F5E;color:#F43F5E;">⚡ OVERDRIVE ${this.overdriveTimer.toFixed(1)}s</div>`;
-      if (this.magnetTimer > 0) html += `<div class="pu-pill" style="border-color:#34D399;color:#34D399;">🧲 MAGNET ${this.magnetTimer.toFixed(1)}s</div>`;
-      if (this.slowMoTimer > 0) html += `<div class="pu-pill" style="border-color:#C084FC;color:#C084FC;">⏳ CHRONO ${this.slowMoTimer.toFixed(1)}s</div>`;
-      badgesEl.innerHTML = html;
+      if (this.overdriveTimer > 0) html += `<div class="pu-pill" style="border-color:#F97316;color:#F97316;">💥 OVERDRIVE ${this.overdriveTimer.toFixed(1)}s</div>`;
+      if (this.shieldTimer > 0) html += `<div class="pu-pill" style="border-color:#38BDF8;color:#38BDF8;">🛡️ SHIELD ${this.shieldTimer.toFixed(1)}s</div>`;
+      if (this.slowMoTimer > 0) html += `<div class="pu-pill" style="border-color:#A855F7;color:#A855F7;">⏳ SLOW-MO ${this.slowMoTimer.toFixed(1)}s</div>`;
+      if (this.magnetTimer > 0) html += `<div class="pu-pill" style="border-color:#10B981;color:#10B981;">🧲 MAGNET ${this.magnetTimer.toFixed(1)}s</div>`;
+      if (this.endlessLoopCount > 0) html += `<div class="pu-pill" style="border-color:#FACC15;color:#FACC15;">∞ LOOP #${this.endlessLoopCount + 1} (${Math.min(1.65, 1 + this.endlessLoopCount * 0.08).toFixed(2)}x)</div>`;
+      if (badgesEl.dataset.last !== html) {
+        badgesEl.innerHTML = html;
+        badgesEl.dataset.last = html;
+      }
+    }
+
+    // Candy-Catcher-Style Top-Center Pickup Toast
+    const toastEl = document.getElementById("hud-pickup-toast");
+    if (toastEl) {
+      const t = this.activeToast;
+      if (t && t.timer > 0) {
+        if (toastEl.dataset.key !== t.title) {
+          toastEl.dataset.key = t.title;
+          document.getElementById("hud-toast-icon").textContent = t.icon;
+          document.getElementById("hud-toast-title").textContent = t.title;
+          const sub = document.getElementById("hud-toast-sub");
+          sub.textContent = t.subtitle;
+          sub.style.color = t.accent;
+          toastEl.style.borderColor = t.accent;
+          toastEl.style.boxShadow = `0 0 24px ${t.accent}55`;
+          document.getElementById("hud-toast-icon").style.borderColor = t.accent;
+          document.getElementById("hud-toast-bar").style.background = t.accent;
+        }
+        toastEl.style.display = "flex";
+        document.getElementById("hud-toast-bar").style.width = `${Math.round((t.timer / t.maxTimer) * 100)}%`;
+      } else {
+        toastEl.style.display = "none";
+        toastEl.dataset.key = "";
+      }
     }
 
     // Track Reveal Overlay Card
@@ -3546,6 +3783,20 @@ class NoMoreIllusionsApp {
       if (goBest) goBest.textContent = `BEST RECORD: ${this.prefs.highScore}`;
       const reviveBtn = document.getElementById("gameover-revive-btn");
       if (reviveBtn) reviveBtn.style.display = this.reviveUsedThisRun ? "none" : "flex";
+      const notesBtn = document.getElementById("gameover-notes-btn");
+      if (notesBtn) {
+        const canAfford = this.prefs.points >= 250;
+        notesBtn.innerHTML = canAfford
+          ? `♪ USE 250 NOTES TO REVIVE <span style="opacity:0.75;font-weight:700;">&nbsp;(YOU HAVE ${this.prefs.points})</span>`
+          : `NEED 250 ♪ NOTES <span style="opacity:0.75;font-weight:700;">&nbsp;(YOU HAVE ${this.prefs.points})</span>`;
+        notesBtn.style.opacity = canAfford ? "1" : "0.6";
+      }
+    }
+
+    // VIP badge on menu
+    const vipBadge = document.getElementById("menu-vip-badge");
+    if (vipBadge) {
+      vipBadge.textContent = this.prefs.vipUnlocked ? "• ★ VIP UNLOCKED" : "";
     }
 
     // Track Completed Screen

@@ -249,7 +249,7 @@ class AudioEngine(private val context: Context) {
         isTrackFinished = false
         val vol = currentMusicVolume(0.90f)
         trackPlayer = MediaPlayer.create(context, rawId)?.apply {
-            isLooping = (remixMode == TrackRemixMode.ENDLESS)
+            isLooping = false
             setVolume(vol, vol)
             syncedDurationMs = runCatching { duration.toFloat().coerceAtLeast(1000f) }.getOrDefault(219_000f)
             syncedPosMs = 0f
@@ -258,9 +258,18 @@ class AudioEngine(private val context: Context) {
             setOnCompletionListener {
                 if (remixMode == TrackRemixMode.ENDLESS) {
                     loopCycleCount++
+                    val nextSpeed = (1.0f + loopCycleCount * 0.08f).coerceAtMost(1.65f)
+                    val nextPitch = (1.0f + loopCycleCount * 0.04f).coerceAtMost(1.32f)
+                    currentPlaybackSpeed = nextSpeed
                     syncedPosMs = 0f
                     syncNanoTimestamp = System.nanoTime()
+                    seekTo(0)
                     start()
+                    runCatching {
+                        playbackParams = PlaybackParams()
+                            .setSpeed(nextSpeed)
+                            .setPitch(nextPitch)
+                    }
                 } else {
                     clockRunning = false
                     isTrackFinished = true

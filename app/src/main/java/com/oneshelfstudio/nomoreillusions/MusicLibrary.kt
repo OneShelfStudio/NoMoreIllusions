@@ -248,9 +248,16 @@ object MusicLibrary {
             }
 
             val pType = when (effect) {
-                KeyWordEffect.MAGNETAR_WAR, KeyWordEffect.PRISM_SHATTER -> PowerUpType.BLAST
+                KeyWordEffect.MAGNETAR_WAR, KeyWordEffect.PRISM_SHATTER, KeyWordEffect.CONSTELLATION_STAR -> PowerUpType.BLAST
                 KeyWordEffect.ECLIPSE_DARK, KeyWordEffect.BINARY_HEART -> PowerUpType.SHIELD
-                else -> if (seq % 9 == 0) PowerUpType.SHIELD else PowerUpType.MULTIPLIER
+                KeyWordEffect.TRACTOR_REACH -> PowerUpType.MAGNET
+                else -> when {
+                    seq % 12 == 3 -> PowerUpType.BLAST    // 💥 Nova Blast: Vaporizes all enemies on screen + 5s Overdrive!
+                    seq % 12 == 6 -> PowerUpType.SHIELD   // 🛡️ Aegis Shield: Absorbs next hit!
+                    seq % 12 == 9 -> PowerUpType.SLOW_MO  // ⏳ Chrono Shift: Slows enemies 0.45x!
+                    seq % 12 == 0 -> PowerUpType.MAGNET   // 🧲 Harmonic Magnet: Pulls nearby orbs in!
+                    else -> PowerUpType.MULTIPLIER        // ♪ Musical Beat Note Orb
+                }
             }
 
             cues.add(
@@ -344,9 +351,16 @@ object MusicLibrary {
             }
 
             val pType = when (effect) {
-                KeyWordEffect.MAGNETAR_WAR, KeyWordEffect.PRISM_SHATTER -> PowerUpType.BLAST
+                KeyWordEffect.MAGNETAR_WAR, KeyWordEffect.PRISM_SHATTER, KeyWordEffect.CONSTELLATION_STAR -> PowerUpType.BLAST
                 KeyWordEffect.ECLIPSE_DARK, KeyWordEffect.BINARY_HEART -> PowerUpType.SHIELD
-                else -> if (seq % 8 == 0) PowerUpType.SHIELD else PowerUpType.MULTIPLIER
+                KeyWordEffect.TRACTOR_REACH -> PowerUpType.MAGNET
+                else -> when {
+                    seq % 12 == 3 -> PowerUpType.BLAST    // 💥 Nova Blast: Vaporizes all enemies on screen + 5s Overdrive!
+                    seq % 12 == 6 -> PowerUpType.SHIELD   // 🛡️ Aegis Shield: Absorbs next hit!
+                    seq % 12 == 9 -> PowerUpType.SLOW_MO  // ⏳ Chrono Shift: Slows enemies 0.45x!
+                    seq % 12 == 0 -> PowerUpType.MAGNET   // 🧲 Harmonic Magnet: Pulls nearby orbs in!
+                    else -> PowerUpType.MULTIPLIER        // ♪ Musical Beat Note Orb
+                }
             }
 
             cues.add(
