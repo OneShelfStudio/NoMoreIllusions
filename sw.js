@@ -1,4 +1,4 @@
-const CACHE_NAME = "nmi-v7-organic-ux";
+const CACHE_NAME = "nmi-v8-musical-choreography";
 const ASSETS = [
   "./",
   "./index.html",

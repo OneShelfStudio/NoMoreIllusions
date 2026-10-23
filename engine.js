@@ -75,7 +75,9 @@ function getMultiBandStateAt(trackIndexOrId, sec) {
   const prevVocal = sample4Hz(vocalArr, Math.max(0, sec - 0.75));
   const prevHigh = sample4Hz(highArr, Math.max(0, sec - 0.75));
   const swellDelta = Math.max(-0.5, Math.min(0.7, Math.max(rms - prevRms, (vocal - prevVocal) * 0.85, (high - prevHigh) * 0.85)));
-  const bassDropOut = sec > 8.0 && bass < 0.14;
+  const bassDropOut = isT1
+    ? (sec <= 7.2 || (sec >= 62.0 && sec <= 69.2) || (sec >= 124.0 && sec <= 131.2) || sec >= 207.8 || (sec > 8.0 && bass < 0.08))
+    : (sec <= 6.5 || (sec >= 51.0 && sec <= 54.4) || (sec >= 105.0 && sec <= 108.9) || sec >= 152.5 || (sec > 8.0 && bass < 0.08));
   return { rms, bass, vocal, high, bassDropOut, swellDelta, isClimax: rms > 0.82 };
 }
 
@@ -286,25 +288,25 @@ function drawNebulaBackground(ctx, W, H, palette, stars, time, beatPulse, multiB
 
 function buildConfideOrbChart() {
   const beatSec = 60 / 124;
+  // ONLY 6 Rare Supernova Orbs across the entire 3:39 track (aligned to Ethan's exact EXTRA JUICE / SLIGHT EXTRA JUICE moments)
   const specialMoments = [
-    [7.26, "TRACTOR_REACH"], [14.52, "CONSTELLATION_STAR"], [21.29, "MAGNETAR_WAR"], [28.55, "PRISM_SHATTER"],
-    [31.94, "TRACTOR_REACH"], [36.29, "ECLIPSE_DARK"], [43.06, "PRISM_SHATTER"], [45.97, "MAGNETAR_WAR"],
-    [53.71, "MAGNETAR_WAR"], [60.97, "ECLIPSE_DARK"], [65.81, "BINARY_HEART"], [69.68, "TRACTOR_REACH"],
-    [72.58, "MAGNETAR_WAR"], [75.48, "CONSTELLATION_STAR"], [83.23, "CONSTELLATION_STAR"], [90.97, "MAGNETAR_WAR"],
-    [97.26, "PRISM_SHATTER"], [102.10, "MAGNETAR_WAR"], [107.90, "BINARY_HEART"], [113.71, "TRACTOR_REACH"],
-    [119.52, "PRISM_SHATTER"], [127.26, "ECLIPSE_DARK"], [131.61, "TRACTOR_REACH"], [134.52, "MAGNETAR_WAR"],
-    [137.42, "CONSTELLATION_STAR"], [145.16, "PRISM_SHATTER"], [152.90, "MAGNETAR_WAR"], [160.65, "BINARY_HEART"],
-    [169.35, "MAGNETAR_WAR"], [176.13, "BINARY_HEART"], [184.84, "CONSTELLATION_STAR"], [192.58, "PRISM_SHATTER"],
-    [201.29, "CONSTELLATION_STAR"], [208.06, "ECLIPSE_DARK"]
+    [14.52, "CONSTELLATION_STAR"], // 0:15 Chorus 1 Drop
+    [45.97, "MAGNETAR_WAR"],       // 0:46 Pre-Chorus Swell
+    [75.48, "CONSTELLATION_STAR"], // 1:15 Chorus 2 Drop
+    [137.42, "CONSTELLATION_STAR"],// 2:17 Chorus 3 Drop
+    [169.35, "BINARY_HEART"],      // 2:49 Vocal Battle Swell
+    [183.87, "CONSTELLATION_STAR"] // 3:03 Ending Breakdown Climax
   ];
   const cues = [];
   const used = new Set();
   let beatIdx = 4, seq = 1;
   while (beatIdx * beatSec <= 214.0) {
     const t = beatIdx * beatSec;
-    const inBreakdown = (t >= 62.0 && t <= 68.8) || (t >= 124.0 && t <= 130.8);
-    const inRiser = (t >= 69.0 && t <= 75.4) || (t >= 131.0 && t <= 137.3);
-    let matchedIdx = -1, bestDist = beatSec * 1.6;
+    const inBreakdown = (t >= 62.0 && t <= 69.0) || (t >= 124.0 && t <= 131.0);
+    const inRiser = (t >= 69.1 && t <= 75.3) || (t >= 131.1 && t <= 137.3);
+    const inOutro = t >= 207.8;
+
+    let matchedIdx = -1, bestDist = beatSec * 1.5;
     for (let i = 0; i < specialMoments.length; i++) {
       if (!used.has(i)) {
         const d = Math.abs(specialMoments[i][0] - t);
@@ -314,14 +316,15 @@ function buildConfideOrbChart() {
     let anchor = null;
     if (matchedIdx !== -1) { used.add(matchedIdx); anchor = specialMoments[matchedIdx]; }
     const effect = anchor ? anchor[1] : "NONE";
+
     let nx, ny;
     if (inRiser) {
-      const rp = Math.max(0, Math.min(1, (t < 100 ? (t - 69) : (t - 131)) / 6.5));
-      nx = (seq % 2 === 0) ? 0.32 : 0.68;
+      const rp = Math.max(0, Math.min(1, (t < 100 ? (t - 69) : (t - 131)) / 6.3));
+      nx = (seq % 2 === 0) ? 0.34 : 0.66;
       ny = Math.max(0.28, Math.min(0.74, 0.72 - rp * 0.40));
-    } else if (inBreakdown) {
-      nx = 0.50 + 0.16 * Math.sin(seq * 0.8);
-      ny = 0.52 + 0.10 * Math.cos(seq * 0.8);
+    } else if (inBreakdown || inOutro) {
+      nx = 0.50 + 0.14 * Math.sin(seq * 0.8);
+      ny = 0.48 + 0.08 * Math.cos(seq * 0.8);
     } else {
       const rp = seq * 0.58;
       nx = Math.max(0.20, Math.min(0.80, 0.50 + 0.28 * Math.sin(rp)));
@@ -336,32 +339,31 @@ function buildConfideOrbChart() {
       isGoldenCue: effect === "CONSTELLATION_STAR"
     });
     seq++;
-    beatIdx += inRiser ? 3 : (inBreakdown ? 6 : 4);
+    beatIdx += inRiser ? 2 : ((inBreakdown || inOutro) ? 6 : 4);
   }
   return cues;
 }
 
 function buildNumberOneOrbChart() {
   const beatSec = 60 / 88;
+  // ONLY 5 Rare Supernova Orbs across the entire 2:46 track (aligned to Ethan's exact EXTRA JUICE / SLIGHT EXTRA JUICE moments)
   const specialMoments = [
-    [6.82, "TRACTOR_REACH"], [10.23, "BINARY_HEART"], [17.73, "TRACTOR_REACH"],
-    [24.55, "TRACTOR_REACH"], [31.36, "BINARY_HEART"], [39.55, "MAGNETAR_WAR"],
-    [45.00, "PRISM_SHATTER"], [52.50, "ECLIPSE_DARK"], [55.23, "CONSTELLATION_STAR"],
-    [58.64, "CONSTELLATION_STAR"], [64.09, "BINARY_HEART"], [70.23, "BINARY_HEART"],
-    [75.00, "CONSTELLATION_STAR"], [79.09, "ECLIPSE_DARK"], [84.55, "TRACTOR_REACH"],
-    [91.36, "BINARY_HEART"], [94.09, "PRISM_SHATTER"], [97.50, "MAGNETAR_WAR"],
-    [104.32, "ECLIPSE_DARK"], [109.77, "CONSTELLATION_STAR"], [113.18, "CONSTELLATION_STAR"],
-    [120.68, "PRISM_SHATTER"], [124.09, "BINARY_HEART"], [129.55, "CONSTELLATION_STAR"],
-    [135.00, "BINARY_HEART"], [139.09, "PRISM_SHATTER"], [145.91, "MAGNETAR_WAR"],
-    [148.64, "CONSTELLATION_STAR"], [152.73, "CONSTELLATION_STAR"], [159.55, "ECLIPSE_DARK"]
+    [44.32, "MAGNETAR_WAR"],       // 0:44 Pre-Chorus 1 Swell
+    [54.55, "CONSTELLATION_STAR"], // 0:54 Chorus 1 Drop
+    [92.05, "PRISM_SHATTER"],      // 1:32 Rap Flow Double-Time
+    [109.09, "CONSTELLATION_STAR"],// 1:49 Chorus 2 Drop
+    [129.55, "CONSTELLATION_STAR"] // 2:09 Ending Breakdown Climax
   ];
   const cues = [];
   const used = new Set();
   let beatIdx = 3, seq = 1;
   while (beatIdx * beatSec <= 162.0) {
     const t = beatIdx * beatSec;
-    const isRap = t >= 91.0 && t <= 98.5;
-    const isClimax = t >= 129.0 && t <= 152.5;
+    const isHush = (t >= 51.0 && t <= 54.3) || (t >= 105.0 && t <= 108.8);
+    const isRap = t >= 91.5 && t <= 98.5;
+    const isClimax = t >= 129.0 && t <= 152.0;
+    const isOutro = t >= 152.5;
+
     let matchedIdx = -1, bestDist = beatSec * 1.4;
     for (let i = 0; i < specialMoments.length; i++) {
       if (!used.has(i)) {
@@ -372,9 +374,19 @@ function buildNumberOneOrbChart() {
     let anchor = null;
     if (matchedIdx !== -1) { used.add(matchedIdx); anchor = specialMoments[matchedIdx]; }
     const effect = anchor ? anchor[1] : "NONE";
-    const rp = isRap ? seq * 0.65 : seq * 0.52;
-    const nx = Math.max(0.20, Math.min(0.80, 0.50 + 0.28 * Math.cos(rp)));
-    const ny = Math.max(0.28, Math.min(0.74, 0.50 + 0.21 * Math.sin(rp * 0.72)));
+
+    let nx, ny;
+    if (isRap) {
+      nx = (seq % 2 === 0) ? 0.30 : 0.70;
+      ny = Math.max(0.28, Math.min(0.72, 0.36 + ((seq % 4) * 0.10)));
+    } else if (isHush || isOutro) {
+      nx = 0.50 + 0.12 * Math.cos(seq * 0.7);
+      ny = 0.48 + 0.08 * Math.sin(seq * 0.7);
+    } else {
+      const rp = seq * 0.52;
+      nx = Math.max(0.20, Math.min(0.80, 0.50 + 0.28 * Math.cos(rp)));
+      ny = Math.max(0.28, Math.min(0.74, 0.50 + 0.21 * Math.sin(rp * 0.72)));
+    }
     cues.push({
       sequenceIndex: seq,
       timestampSec: quantizeToBeat(anchor ? anchor[0] : t, beatSec),
@@ -384,7 +396,7 @@ function buildNumberOneOrbChart() {
       isGoldenCue: effect === "CONSTELLATION_STAR"
     });
     seq++;
-    beatIdx += (isRap || isClimax) ? 2 : 3;
+    beatIdx += (isRap || isClimax) ? 2 : ((isHush || isOutro) ? 5 : 3);
   }
   return cues;
 }
@@ -395,7 +407,7 @@ const OFFICIAL_TRACKS = [
     id: "track_01",
     index: 1,
     title: "Confide",
-    subtitle: "Official Single • 126 BPM",
+    subtitle: "Official Single • 124 BPM",
     bpm: 124,
     durationSec: 219,
     durationLabel: "3:39",
@@ -405,34 +417,34 @@ const OFFICIAL_TRACKS = [
     artKey: "track01Art",
     artSrc: "assets/track_01.png",
     sections: [
-      { t: 0, timeSec: 0, title: "INTRO", subtitle: "SYNTH RESONANCE", effectType: "STANDARD" },
-      { t: 7.25, timeSec: 7.25, title: "BASS & GUITAR SWELL", subtitle: "SUB-BASS DRIFT", effectType: "WARP_PULSE" },
-      { t: 14.5, timeSec: 14.5, title: "DRUM & SYNTH DROP", subtitle: "SUPERNOVA BURST", effectType: "CONSTELLATION_RUSH" },
-      { t: 31.2, timeSec: 31.2, title: "VERSE ONE", subtitle: "124 BPM SYNTH GROOVE", effectType: "STANDARD" },
-      { t: 45.5, timeSec: 45.5, title: "PRE-CHORUS SURGE", subtitle: "HARMONIC RISER", effectType: "SPEED_PORTAL" },
-      { t: 62.0, timeSec: 62.0, title: "VOCAL BREAKDOWN", subtitle: "ZERO-BASS PURITY", effectType: "ECLIPSE_VORTEX" },
-      { t: 69.25, timeSec: 69.25, title: "PRE-CHORUS RISER", subtitle: "ENERGY CHARGE", effectType: "SPEED_PORTAL" },
-      { t: 75.5, timeSec: 75.5, title: "CHORUS SUPERNOVA", subtitle: "FULL AUDIO OVERDRIVE", effectType: "CONSTELLATION_RUSH" },
-      { t: 93.0, timeSec: 93.0, title: "VERSE TWO", subtitle: "KICK & VOCAL LOCK", effectType: "STANDARD" },
-      { t: 107.8, timeSec: 107.8, title: "MID-VERSE BASS SURGE", subtitle: "SUB-BASS EXPANSION", effectType: "WARP_PULSE" },
-      { t: 124.0, timeSec: 124.0, title: "VOCAL BREAKDOWN II", subtitle: "ATMOSPHERIC VOID", effectType: "ECLIPSE_VORTEX" },
-      { t: 131.25, timeSec: 131.25, title: "PRE-CHORUS RISER II", subtitle: "ASCENDING STAIRCASE", effectType: "SPEED_PORTAL" },
-      { t: 137.5, timeSec: 137.5, title: "CHORUS II SUPERNOVA", subtitle: "MAXIMUM RESONANCE", effectType: "CONSTELLATION_RUSH" },
-      { t: 155.0, timeSec: 155.0, title: "BRIDGE BREATHER", subtitle: "WARM CHORDS", effectType: "STANDARD" },
-      { t: 169.25, timeSec: 169.25, title: "VOCAL BATTLE SWELL", subtitle: "DUAL HARMONIES", effectType: "WARP_PULSE" },
-      { t: 184.75, timeSec: 184.75, title: "GRAND FINALE CLIMAX", subtitle: "24K GOLD OVERDRIVE", effectType: "SUPERNOVA_BURST" },
-      { t: 201.25, timeSec: 201.25, title: "SUB-BASS HEARTBEAT", subtitle: "WARM PULSE", effectType: "STANDARD" },
-      { t: 208.0, timeSec: 208.0, title: "OUTRO ECLIPSE", subtitle: "VELVET DECAY", effectType: "ECLIPSE_VORTEX" }
+      { t: 0, timeSec: 0, title: "AMBIENT INTRO", subtitle: "SYNTH RESONANCE", effectType: "STANDARD", maxEnemies: 0, enemySpeedMult: 0.75, clearEnemiesOnEnter: true, allowAnomalies: false, juiceTier: "NONE" },
+      { t: 7.25, timeSec: 7.25, title: "BASS & GUITAR SWELL", subtitle: "SUB-BASS DRIFT", effectType: "WARP_PULSE", maxEnemies: 2, enemySpeedMult: 0.82, clearEnemiesOnEnter: false, allowAnomalies: false, juiceTier: "SECTION_SHIFT" },
+      { t: 14.5, timeSec: 14.5, title: "CHORUS I DROP", subtitle: "SUPERNOVA BURST", effectType: "CONSTELLATION_RUSH", maxEnemies: 6, enemySpeedMult: 1.12, clearEnemiesOnEnter: false, allowAnomalies: true, juiceTier: "EXTRA_JUICE" },
+      { t: 31.0, timeSec: 31.0, title: "VERSE ONE FLOW", subtitle: "124 BPM SYNTH GROOVE", effectType: "STANDARD", maxEnemies: 3, enemySpeedMult: 0.85, clearEnemiesOnEnter: false, allowAnomalies: false, juiceTier: "SECTION_SHIFT" },
+      { t: 45.5, timeSec: 45.5, title: "PRE-CHORUS SURGE", subtitle: "HARMONIC RISER", effectType: "SPEED_PORTAL", maxEnemies: 5, enemySpeedMult: 1.05, clearEnemiesOnEnter: false, allowAnomalies: false, juiceTier: "SLIGHT_EXTRA_JUICE" },
+      { t: 62.0, timeSec: 62.0, title: "HOOK VOCAL FLOAT", subtitle: "ZERO-BASS PURITY", effectType: "ECLIPSE_VORTEX", maxEnemies: 0, enemySpeedMult: 0.65, clearEnemiesOnEnter: true, allowAnomalies: false, juiceTier: "SECTION_SHIFT" },
+      { t: 69.25, timeSec: 69.25, title: "PRE-DROP RISER", subtitle: "ASCENDING STAIRCASE", effectType: "SPEED_PORTAL", maxEnemies: 4, enemySpeedMult: 1.08, clearEnemiesOnEnter: false, allowAnomalies: false, juiceTier: "SLIGHT_EXTRA_JUICE" },
+      { t: 75.5, timeSec: 75.5, title: "CHORUS II SUPERNOVA", subtitle: "FULL AUDIO OVERDRIVE", effectType: "CONSTELLATION_RUSH", maxEnemies: 8, enemySpeedMult: 1.18, clearEnemiesOnEnter: false, allowAnomalies: true, juiceTier: "EXTRA_JUICE" },
+      { t: 93.0, timeSec: 93.0, title: "VERSE TWO CRUISE", subtitle: "KICK & VOCAL LOCK", effectType: "STANDARD", maxEnemies: 3, enemySpeedMult: 0.88, clearEnemiesOnEnter: false, allowAnomalies: false, juiceTier: "SECTION_SHIFT" },
+      { t: 108.0, timeSec: 108.0, title: "PRE-CHORUS II SURGE", subtitle: "SUB-BASS EXPANSION", effectType: "WARP_PULSE", maxEnemies: 5, enemySpeedMult: 1.08, clearEnemiesOnEnter: false, allowAnomalies: false, juiceTier: "SLIGHT_EXTRA_JUICE" },
+      { t: 124.0, timeSec: 124.0, title: "HOOK VOCAL FLOAT II", subtitle: "ATMOSPHERIC VOID", effectType: "ECLIPSE_VORTEX", maxEnemies: 0, enemySpeedMult: 0.65, clearEnemiesOnEnter: true, allowAnomalies: false, juiceTier: "SECTION_SHIFT" },
+      { t: 131.25, timeSec: 131.25, title: "PRE-DROP RISER II", subtitle: "ENERGY CHARGE", effectType: "SPEED_PORTAL", maxEnemies: 4, enemySpeedMult: 1.10, clearEnemiesOnEnter: false, allowAnomalies: false, juiceTier: "SLIGHT_EXTRA_JUICE" },
+      { t: 137.5, timeSec: 137.5, title: "CHORUS III OVERDRIVE", subtitle: "MAXIMUM RESONANCE", effectType: "CONSTELLATION_RUSH", maxEnemies: 9, enemySpeedMult: 1.22, clearEnemiesOnEnter: false, allowAnomalies: true, juiceTier: "EXTRA_JUICE" },
+      { t: 155.0, timeSec: 155.0, title: "BRIDGE BREATHER", subtitle: "WARM CHORDS", effectType: "STANDARD", maxEnemies: 2, enemySpeedMult: 0.80, clearEnemiesOnEnter: false, allowAnomalies: false, juiceTier: "SECTION_SHIFT" },
+      { t: 169.0, timeSec: 169.0, title: "VOCAL BATTLE SWELL", subtitle: "DUAL HARMONIES", effectType: "WARP_PULSE", maxEnemies: 6, enemySpeedMult: 1.12, clearEnemiesOnEnter: false, allowAnomalies: true, juiceTier: "SLIGHT_EXTRA_JUICE" },
+      { t: 183.5, timeSec: 183.5, title: "ENDING BREAKDOWN", subtitle: "24K GOLD OVERDRIVE", effectType: "SUPERNOVA_BURST", maxEnemies: 10, enemySpeedMult: 1.26, clearEnemiesOnEnter: false, allowAnomalies: true, juiceTier: "EXTRA_JUICE" },
+      { t: 201.0, timeSec: 201.0, title: "808 HEARTBEAT PULSE", subtitle: "SUB-BASS SHOCKWAVES", effectType: "WARP_PULSE", maxEnemies: 5, enemySpeedMult: 1.05, clearEnemiesOnEnter: false, allowAnomalies: false, juiceTier: "SLIGHT_EXTRA_JUICE" },
+      { t: 207.8, timeSec: 207.8, title: "VICTORY OUTRO", subtitle: "VELVET DECAY", effectType: "ECLIPSE_VORTEX", maxEnemies: 0, enemySpeedMult: 0.60, clearEnemiesOnEnter: true, allowAnomalies: false, juiceTier: "SECTION_SHIFT" }
     ],
     choreography: [
-      { timeSec: 0, title: "INTRO", subtitle: "SYNTH RESONANCE", effectType: "STANDARD" },
-      { timeSec: 14.5, title: "CHORUS ONE", subtitle: "SUPERNOVA BURST", effectType: "CONSTELLATION_RUSH" },
-      { timeSec: 62.0, title: "VOCAL BREAKDOWN", subtitle: "ZERO-BASS PURITY", effectType: "ECLIPSE_VORTEX" },
-      { timeSec: 75.5, title: "CHORUS SUPERNOVA", subtitle: "FULL AUDIO OVERDRIVE", effectType: "CONSTELLATION_RUSH" },
-      { timeSec: 124.0, title: "VOCAL BREAKDOWN II", subtitle: "ATMOSPHERIC VOID", effectType: "ECLIPSE_VORTEX" },
-      { timeSec: 137.5, title: "CHORUS II SUPERNOVA", subtitle: "MAXIMUM RESONANCE", effectType: "CONSTELLATION_RUSH" },
-      { timeSec: 184.75, title: "GRAND FINALE CLIMAX", subtitle: "24K GOLD OVERDRIVE", effectType: "SUPERNOVA_BURST" },
-      { timeSec: 208.0, title: "OUTRO ECLIPSE", subtitle: "VELVET DECAY", effectType: "ECLIPSE_VORTEX" }
+      { timeSec: 0, title: "AMBIENT INTRO", subtitle: "SYNTH RESONANCE", effectType: "STANDARD" },
+      { timeSec: 14.5, title: "CHORUS I DROP", subtitle: "SUPERNOVA BURST", effectType: "CONSTELLATION_RUSH" },
+      { timeSec: 62.0, title: "HOOK VOCAL FLOAT", subtitle: "ZERO-BASS PURITY", effectType: "ECLIPSE_VORTEX" },
+      { timeSec: 75.5, title: "CHORUS II SUPERNOVA", subtitle: "FULL AUDIO OVERDRIVE", effectType: "CONSTELLATION_RUSH" },
+      { timeSec: 124.0, title: "HOOK VOCAL FLOAT II", subtitle: "ATMOSPHERIC VOID", effectType: "ECLIPSE_VORTEX" },
+      { timeSec: 137.5, title: "CHORUS III OVERDRIVE", subtitle: "MAXIMUM RESONANCE", effectType: "CONSTELLATION_RUSH" },
+      { timeSec: 183.5, title: "ENDING BREAKDOWN", subtitle: "24K GOLD OVERDRIVE", effectType: "SUPERNOVA_BURST" },
+      { timeSec: 207.8, title: "VICTORY OUTRO", subtitle: "VELVET DECAY", effectType: "ECLIPSE_VORTEX" }
     ],
     orbChart: buildConfideOrbChart()
   },
@@ -450,26 +462,28 @@ const OFFICIAL_TRACKS = [
     artKey: "track02Art",
     artSrc: "assets/track_02.png",
     sections: [
-      { t: 0, timeSec: 0, title: "INTRO", subtitle: "WARM CHORD BED", effectType: "STANDARD" },
-      { t: 6.5, timeSec: 6.5, title: "SUB-BASS WARMTH", subtitle: "808 PULSE", effectType: "WARP_PULSE" },
-      { t: 9.75, timeSec: 9.75, title: "PERCUSSION SHIMMER", subtitle: "HI-HAT ROLL", effectType: "STANDARD" },
-      { t: 22.0, timeSec: 22.0, title: "VERSE ONE", subtitle: "VOCAL FLOW", effectType: "STANDARD" },
-      { t: 42.25, timeSec: 42.25, title: "PRE-CHORUS SWELL", subtitle: "RISER WAVE", effectType: "SPEED_PORTAL" },
-      { t: 55.25, timeSec: 55.25, title: "CHORUS DROP", subtitle: "SUPERNOVA CADENCE", effectType: "CONSTELLATION_RUSH" },
-      { t: 76.0, timeSec: 76.0, title: "VERSE TWO", subtitle: "RHYTHMIC POCKET", effectType: "STANDARD" },
-      { t: 91.25, timeSec: 91.25, title: "RAP CADENCE", subtitle: "DOUBLE-TIME RUSH", effectType: "OVERDRIVE_DROP" },
-      { t: 101.5, timeSec: 101.5, title: "PRE-CHORUS II", subtitle: "CRESCENDO SWEEP", effectType: "SPEED_PORTAL" },
-      { t: 109.75, timeSec: 109.75, title: "CHORUS II DROP", subtitle: "MAXIMUM IMPACT", effectType: "CONSTELLATION_RUSH" },
-      { t: 129.5, timeSec: 129.5, title: "GRAND FINALE CLIMAX", subtitle: "ALL INSTRUMENTS PEAK", effectType: "SUPERNOVA_BURST" },
-      { t: 152.5, timeSec: 152.5, title: "VELVET TWILIGHT OUTRO", subtitle: "SUBLIME RESOLUTION", effectType: "ECLIPSE_VORTEX" }
+      { t: 0, timeSec: 0, title: "WARM CHORD INTRO", subtitle: "WARM CHORD BED", effectType: "STANDARD", maxEnemies: 0, enemySpeedMult: 0.75, clearEnemiesOnEnter: true, allowAnomalies: false, juiceTier: "NONE" },
+      { t: 6.5, timeSec: 6.5, title: "SUB-BASS WARMTH", subtitle: "808 PULSE", effectType: "WARP_PULSE", maxEnemies: 0, enemySpeedMult: 0.78, clearEnemiesOnEnter: false, allowAnomalies: false, juiceTier: "SECTION_SHIFT" },
+      { t: 9.75, timeSec: 9.75, title: "HI-HAT SHIMMER", subtitle: "HI-HAT ROLL", effectType: "STANDARD", maxEnemies: 2, enemySpeedMult: 0.82, clearEnemiesOnEnter: false, allowAnomalies: false, juiceTier: "SECTION_SHIFT" },
+      { t: 22.0, timeSec: 22.0, title: "VERSE ONE GROOVE", subtitle: "VOCAL FLOW", effectType: "STANDARD", maxEnemies: 3, enemySpeedMult: 0.88, clearEnemiesOnEnter: false, allowAnomalies: false, juiceTier: "SECTION_SHIFT" },
+      { t: 44.0, timeSec: 44.0, title: "PRE-CHORUS SWELL", subtitle: "RISER WAVE", effectType: "SPEED_PORTAL", maxEnemies: 5, enemySpeedMult: 1.05, clearEnemiesOnEnter: false, allowAnomalies: false, juiceTier: "SLIGHT_EXTRA_JUICE" },
+      { t: 51.0, timeSec: 51.0, title: "PRE-DROP HUSH", subtitle: "ATMOSPHERIC HOLD", effectType: "ECLIPSE_VORTEX", maxEnemies: 0, enemySpeedMult: 0.65, clearEnemiesOnEnter: true, allowAnomalies: false, juiceTier: "SECTION_SHIFT" },
+      { t: 54.5, timeSec: 54.5, title: "CHORUS I DROP", subtitle: "SUPERNOVA CADENCE", effectType: "CONSTELLATION_RUSH", maxEnemies: 8, enemySpeedMult: 1.18, clearEnemiesOnEnter: false, allowAnomalies: true, juiceTier: "EXTRA_JUICE" },
+      { t: 76.0, timeSec: 76.0, title: "VERSE TWO POCKET", subtitle: "RHYTHMIC POCKET", effectType: "STANDARD", maxEnemies: 3, enemySpeedMult: 0.88, clearEnemiesOnEnter: false, allowAnomalies: false, juiceTier: "SECTION_SHIFT" },
+      { t: 91.5, timeSec: 91.5, title: "RAP DOUBLE-TIME", subtitle: "DOUBLE-TIME RUSH", effectType: "OVERDRIVE_DROP", maxEnemies: 6, enemySpeedMult: 1.16, clearEnemiesOnEnter: false, allowAnomalies: false, juiceTier: "SLIGHT_EXTRA_JUICE" },
+      { t: 101.0, timeSec: 101.0, title: "PRE-CHORUS II BUILD", subtitle: "CRESCENDO SWEEP", effectType: "SPEED_PORTAL", maxEnemies: 4, enemySpeedMult: 1.00, clearEnemiesOnEnter: false, allowAnomalies: false, juiceTier: "SECTION_SHIFT" },
+      { t: 105.0, timeSec: 105.0, title: "VOCAL BREATHER", subtitle: "ZERO-BASS HUSH", effectType: "ECLIPSE_VORTEX", maxEnemies: 0, enemySpeedMult: 0.65, clearEnemiesOnEnter: true, allowAnomalies: false, juiceTier: "SECTION_SHIFT" },
+      { t: 109.0, timeSec: 109.0, title: "CHORUS II DROP", subtitle: "MAXIMUM IMPACT", effectType: "CONSTELLATION_RUSH", maxEnemies: 9, enemySpeedMult: 1.24, clearEnemiesOnEnter: false, allowAnomalies: true, juiceTier: "EXTRA_JUICE" },
+      { t: 129.0, timeSec: 129.0, title: "ENDING BREAKDOWN", subtitle: "ALL INSTRUMENTS PEAK", effectType: "SUPERNOVA_BURST", maxEnemies: 11, enemySpeedMult: 1.30, clearEnemiesOnEnter: false, allowAnomalies: true, juiceTier: "EXTRA_JUICE" },
+      { t: 152.5, timeSec: 152.5, title: "VELVET OUTRO", subtitle: "SUBLIME RESOLUTION", effectType: "ECLIPSE_VORTEX", maxEnemies: 0, enemySpeedMult: 0.60, clearEnemiesOnEnter: true, allowAnomalies: false, juiceTier: "SECTION_SHIFT" }
     ],
     choreography: [
-      { timeSec: 0, title: "INTRO", subtitle: "WARM CHORD BED", effectType: "STANDARD" },
-      { timeSec: 55.25, title: "CHORUS DROP", subtitle: "SUPERNOVA CADENCE", effectType: "CONSTELLATION_RUSH" },
-      { timeSec: 91.25, title: "RAP CADENCE", subtitle: "DOUBLE-TIME RUSH", effectType: "OVERDRIVE_DROP" },
-      { timeSec: 109.75, title: "CHORUS II DROP", subtitle: "MAXIMUM IMPACT", effectType: "CONSTELLATION_RUSH" },
-      { timeSec: 129.5, title: "GRAND FINALE CLIMAX", subtitle: "ALL INSTRUMENTS PEAK", effectType: "SUPERNOVA_BURST" },
-      { timeSec: 152.5, title: "VELVET TWILIGHT OUTRO", subtitle: "SUBLIME RESOLUTION", effectType: "ECLIPSE_VORTEX" }
+      { timeSec: 0, title: "WARM CHORD INTRO", subtitle: "WARM CHORD BED", effectType: "STANDARD" },
+      { timeSec: 54.5, title: "CHORUS I DROP", subtitle: "SUPERNOVA CADENCE", effectType: "CONSTELLATION_RUSH" },
+      { timeSec: 91.5, title: "RAP DOUBLE-TIME", subtitle: "DOUBLE-TIME RUSH", effectType: "OVERDRIVE_DROP" },
+      { timeSec: 109.0, title: "CHORUS II DROP", subtitle: "MAXIMUM IMPACT", effectType: "CONSTELLATION_RUSH" },
+      { timeSec: 129.0, title: "ENDING BREAKDOWN", subtitle: "ALL INSTRUMENTS PEAK", effectType: "SUPERNOVA_BURST" },
+      { timeSec: 152.5, title: "VELVET OUTRO", subtitle: "SUBLIME RESOLUTION", effectType: "ECLIPSE_VORTEX" }
     ],
     orbChart: buildNumberOneOrbChart()
   }
@@ -1609,6 +1623,7 @@ class NoMoreIllusionsApp {
     this.phenomenonCooldownTimer = 10;
     this.nextBeatCueIndex = 0;
     this.nextChoreoSectionIndex = 0;
+    this.lastTriggeredSectionTime = -1;
     this.choreoBannerText = "";
     this.choreoBannerSubtext = "";
     this.choreoBannerTimer = 0;
@@ -2163,6 +2178,7 @@ class NoMoreIllusionsApp {
     this.phenomenonCooldownTimer = 10;
     this.nextBeatCueIndex = 0;
     this.nextChoreoSectionIndex = 0;
+    this.lastTriggeredSectionTime = -1;
     this.choreoBannerText = "";
     this.choreoBannerSubtext = "";
     this.choreoBannerTimer = 0;
@@ -2388,72 +2404,126 @@ class NoMoreIllusionsApp {
       this.spawnChartedOrb(cue);
     }
 
-    // 2. Choreographed Section Director
-    const sections = stage.choreography;
-    while (this.nextChoreoSectionIndex < sections.length && sections[this.nextChoreoSectionIndex].timeSec <= this.trackElapsedSec) {
-      const sec = sections[this.nextChoreoSectionIndex];
-      this.nextChoreoSectionIndex++;
-      this.choreoBannerText = sec.title;
-      this.choreoBannerSubtext = sec.subtitle;
-      this.choreoBannerTimer = 3.2;
+    // 2. Choreographed Section Director (1:1 with Android TrackSection table)
+    const allSections = stage.sections || stage.choreography;
+    let activeSec = allSections[0];
+    for (let s = 0; s < allSections.length; s++) {
+      if ((allSections[s].timeSec ?? allSections[s].t ?? 0) <= this.trackElapsedSec) {
+        activeSec = allSections[s];
+      }
+    }
+    const activeSecTime = activeSec.timeSec ?? activeSec.t ?? 0;
+    if (activeSecTime !== this.lastTriggeredSectionTime) {
+      this.lastTriggeredSectionTime = activeSecTime;
+      this.choreoBannerText = activeSec.title;
+      this.choreoBannerSubtext = activeSec.subtitle;
+      this.choreoBannerTimer = 2.8;
 
-      if (sec.effectType === "CONSTELLATION_RUSH") {
-        this.constellationRushTimer = 12.0;
-      } else if (sec.effectType === "ECLIPSE_VORTEX") {
-        this.eclipseModeTimer = 10.0;
-        if (!this.orbitalPhenomenon) {
-          this.spawnOrbitalPhenomenon("BLACK_HOLE");
+      // If entering a Hook Vocal Float, Pre-Drop Hush, or Victory Outro, dissolve all active enemies into stardust!
+      if (activeSec.clearEnemiesOnEnter) {
+        this.telegraphs = [];
+        this.wormholes = [];
+        this.orbitalPhenomenon = null;
+        this.satellites = [];
+        for (let eIdx = 0; eIdx < this.enemies.length; eIdx++) {
+          const en = this.enemies[eIdx];
+          this.spawnBurstMotes(en.x, en.y, [56, 189, 248], 10);
+          this.shockwaves.push({
+            x: en.x,
+            y: en.y,
+            radius: 6,
+            maxRadius: 90,
+            color: [56, 189, 248],
+            alpha: 1
+          });
         }
-      } else if (sec.effectType === "SUPERNOVA_BURST") {
-        this.constellationRushTimer = 8.0;
-        if (!this.orbitalPhenomenon) {
+        this.enemies = [];
+      }
+
+      if (activeSec.effectType === "CONSTELLATION_RUSH") {
+        this.constellationRushTimer = 14.0;
+      } else if (activeSec.effectType === "ECLIPSE_VORTEX") {
+        this.eclipseModeTimer = 8.0;
+      } else if (activeSec.effectType === "SUPERNOVA_BURST") {
+        this.constellationRushTimer = 15.0;
+        if (!this.orbitalPhenomenon && activeSec.allowAnomalies) {
           this.spawnOrbitalPhenomenon("SOLAR_PULSAR");
         }
-      } else if (sec.effectType === "OVERDRIVE_DROP") {
+      } else if (activeSec.effectType === "OVERDRIVE_DROP") {
         this.overdriveTimer = Math.max(this.overdriveTimer, 4.5);
       }
+
+      if (activeSec.juiceTier === "EXTRA_JUICE") {
+        this.screenShake = Math.max(this.screenShake, 10);
+        this.shockwaves.push({
+          x: this.W / 2,
+          y: this.H / 2,
+          radius: 15,
+          maxRadius: Math.max(this.W, this.H) * 0.78,
+          color: [250, 204, 21],
+          alpha: 1
+        });
+      } else if (activeSecTime > 0) {
+        this.shockwaves.push({
+          x: this.W / 2,
+          y: this.H / 2,
+          radius: 12,
+          maxRadius: Math.max(this.W, this.H) * 0.45,
+          color: [56, 189, 248],
+          alpha: 1
+        });
+      }
+    }
+
+    // 808 Sub-Bass Heartbeat Pulse during Confide's 3:21–3:27.5 Breakdown
+    if (this.selectedStageIndex === 0 && this.trackElapsedSec >= 201.0 && this.trackElapsedSec <= 207.5 && beatPhase <= 0.14 && this.shockwaves.length < 6) {
+      this.screenShake = Math.max(this.screenShake, 5);
       this.shockwaves.push({
         x: this.W / 2,
-        y: this.H / 2,
-        radius: 15,
-        maxRadius: Math.max(this.W, this.H) * 0.72,
+        y: this.H * 0.46,
+        radius: 14,
+        maxRadius: Math.max(this.W, this.H) * 0.62,
         color: [250, 204, 21],
         alpha: 1
       });
     }
 
-    // 3. Support Power-Up Spawner (Shield, Slow-Mo, Overdrive, Magnet)
-    this.powerUpSpawnTimer += dt;
-    if (this.powerUpSpawnTimer >= 8.5) {
-      this.powerUpSpawnTimer = 0;
-      const supportTypes = ["SHIELD", "SLOW_MO", "OVERDRIVE", "MAGNET"];
-      const picked = supportTypes[Math.floor(Math.random() * supportTypes.length)];
-      this.spawnTravelingCollectible(picked, Math.random(), 200);
+    // 3. Support Power-Up Spawner (Shield, Slow-Mo, Overdrive, Magnet — paused during zero-enemy lulls)
+    if ((activeSec.maxEnemies ?? 4) > 0) {
+      this.powerUpSpawnTimer += dt;
+      if (this.powerUpSpawnTimer >= 10.5) {
+        this.powerUpSpawnTimer = 0;
+        const supportTypes = ["SHIELD", "SLOW_MO", "OVERDRIVE", "MAGNET"];
+        const picked = supportTypes[Math.floor(Math.random() * supportTypes.length)];
+        this.spawnTravelingCollectible(picked, Math.random(), 200);
+      }
     }
 
-    // 4. Wormhole Pair Spawner
-    this.wormholeSpawnTimer += dt;
-    if (this.wormholeSpawnTimer >= 16.0 && this.wormholes.length === 0) {
-      this.wormholeSpawnTimer = 0;
-      const margin = 95;
-      const ax = margin + Math.random() * Math.max(60, this.W - margin * 2);
-      const ay = margin + Math.random() * Math.max(60, (this.H * 0.45) - margin);
-      const bx = margin + Math.random() * Math.max(60, this.W - margin * 2);
-      const by = (this.H * 0.55) + Math.random() * Math.max(60, (this.H * 0.35) - margin);
-      this.wormholes.push({
-        ax, ay, bx, by,
-        radius: 36,
-        age: 0,
-        maxLifetime: 11.5,
-        teleportCooldown: 0
-      });
+    // 4. Wormhole Pair Spawner (ONLY during high-energy Chorus Drops & Breakdowns where allowAnomalies is true)
+    if (activeSec.allowAnomalies) {
+      this.wormholeSpawnTimer += dt;
+      if (this.wormholeSpawnTimer >= 14.0 && this.wormholes.length === 0) {
+        this.wormholeSpawnTimer = 0;
+        const margin = 95;
+        const ax = margin + Math.random() * Math.max(60, this.W - margin * 2);
+        const ay = margin + Math.random() * Math.max(60, (this.H * 0.45) - margin);
+        const bx = margin + Math.random() * Math.max(60, this.W - margin * 2);
+        const by = (this.H * 0.55) + Math.random() * Math.max(60, (this.H * 0.35) - margin);
+        this.wormholes.push({
+          ax, ay, bx, by,
+          radius: 36,
+          age: 0,
+          maxLifetime: 11.5,
+          teleportCooldown: 0
+        });
+      }
     }
 
-    // 5. Orbital Phenomenon Spawner & Gravity Physics
+    // 5. Orbital Phenomenon Spawner & Gravity Physics (Gated to allowAnomalies sections)
     if (this.orbitalPhenomenon) {
       const op = this.orbitalPhenomenon;
       op.age += worldDt;
-      if (op.age >= op.maxLifetime) {
+      if (op.age >= op.maxLifetime || !activeSec.allowAnomalies) {
         this.orbitalPhenomenon = null;
         this.satellites = [];
         this.phenomenonCooldownTimer = 14.0;
@@ -2476,62 +2546,61 @@ class NoMoreIllusionsApp {
           sat.y = op.y + Math.sin(sat.angleRad) * sat.orbitRadius;
         }
       }
-    } else {
+    } else if (activeSec.allowAnomalies) {
       this.phenomenonCooldownTimer -= dt;
-      if (this.phenomenonCooldownTimer <= 0 && this.survivalSeconds > 12) {
+      if (this.phenomenonCooldownTimer <= 0 && this.survivalSeconds > 14) {
         this.spawnOrbitalPhenomenon(Math.random() < 0.5 ? "BLACK_HOLE" : "SOLAR_PULSAR");
       }
     }
 
-    // 6. 1:1 Telegraphed Enemy Spawner (Perimeter warning diamonds + laser sightlines!)
-    // Step active telegraphs
-    for (let i = this.telegraphs.length - 1; i >= 0; i--) {
-      const tg = this.telegraphs[i];
-      tg.timer -= worldDt;
-      if (tg.timer <= 0) {
-        // Launch telegraphed enemy into the arena!
-        this.enemies.push({
-          x: tg.edgeX,
-          y: tg.edgeY,
-          vx: Math.cos(tg.targetAngle) * tg.speed,
-          vy: Math.sin(tg.targetAngle) * tg.speed,
-          radius: tg.type === "PULSAR" ? 22 : 18,
-          type: tg.type,
-          phase: Math.random() * 6.28
-        });
-        this.shockwaves.push({
-          x: tg.edgeX,
-          y: tg.edgeY,
-          radius: 4,
-          maxRadius: 85,
-          color: [255, 30, 66],
-          alpha: 1
-        });
-        this.telegraphs.splice(i, 1);
+    // 6. 1:1 Telegraphed Enemy Spawner (Choreographed to activeSec.maxEnemies & activeSec.enemySpeedMult!)
+    const sectionMax = activeSec.maxEnemies ?? 4;
+    if (sectionMax <= 0 || this.multiBandState.bassDropOut) {
+      this.telegraphs = [];
+    } else {
+      // Step active telegraphs
+      for (let i = this.telegraphs.length - 1; i >= 0; i--) {
+        const tg = this.telegraphs[i];
+        tg.timer -= worldDt;
+        if (tg.timer <= 0) {
+          this.enemies.push({
+            x: tg.edgeX,
+            y: tg.edgeY,
+            vx: Math.cos(tg.targetAngle) * tg.speed,
+            vy: Math.sin(tg.targetAngle) * tg.speed,
+            radius: tg.type === "PULSAR" ? 22 : 18,
+            type: tg.type,
+            phase: Math.random() * 6.28
+          });
+          this.shockwaves.push({
+            x: tg.edgeX,
+            y: tg.edgeY,
+            radius: 4,
+            maxRadius: 85,
+            color: [255, 30, 66],
+            alpha: 1
+          });
+          this.telegraphs.splice(i, 1);
+        }
       }
-    }
 
-    // Initiate new telegraphs on the beat (scaled for genuine progressive challenge!)
-    const mode = this.getRemixMode();
-    const isTrackTwo = this.selectedStageIndex >= 1;
-    const trackDiffMult = isTrackTwo ? 1.20 : 1.0;
-    const songProgress = Math.max(0, Math.min(1, this.trackElapsedSec / Math.max(1, this.activeTrackDurationSec)));
-    const maxEnemies = Math.min(11, Math.round((5 + Math.floor(this.level / 2) + (isTrackTwo ? 1 : 0)) * (mode.speed >= 1.15 ? 1.15 : 1.0)));
+      const mode = this.getRemixMode();
+      const maxEnemies = Math.min(12, Math.max(1, Math.round(sectionMax * (mode.speed >= 1.15 ? 1.18 : 1.0))));
+      const sectionUrgency = sectionMax >= 7 ? 1.35 : (sectionMax >= 5 ? 1.10 : 0.78);
+      this.spawnTimer += worldDt * sectionUrgency * (mode.speed || 1.0);
+      const spawnCooldown = Math.max(0.46, 0.86 - (sectionMax * 0.032));
+      const canSpawn = (this.enemies.length + this.telegraphs.length < maxEnemies) &&
+                       (this.beatPulse > 0.35 || this.spawnTimer >= 1.25);
 
-    this.spawnTimer += worldDt * trackDiffMult * (1 + songProgress * 0.28) * (mode.speed || 1.0);
-    const spawnCooldown = Math.max(0.48, 0.88 - this.level * 0.03);
-    const canSpawn = (this.enemies.length + this.telegraphs.length < maxEnemies) &&
-                     !this.multiBandState.bassDropOut &&
-                     (this.beatPulse > 0.35 || this.spawnTimer >= 1.35);
-
-    if (canSpawn && this.spawnTimer >= spawnCooldown) {
-      this.spawnTimer = 0;
-      this.initiateEnemyTelegraph();
-      // Spawn a 2nd pincer telegraph on chorus / high-energy beats!
-      if ((this.constellationRushTimer > 0 || this.multiBandState.rms > 0.68 || this.level >= 4) &&
-          (this.enemies.length + this.telegraphs.length < maxEnemies) &&
-          Math.random() < 0.48) {
-        this.initiateEnemyTelegraph();
+      if (canSpawn && this.spawnTimer >= spawnCooldown) {
+        this.spawnTimer = 0;
+        this.initiateEnemyTelegraph(activeSec.enemySpeedMult || 1.0);
+        // Spawn a 2nd pincer telegraph on Chorus Drops / Ending Breakdowns!
+        if ((sectionMax >= 7 || this.multiBandState.bass > 0.68) &&
+            (this.enemies.length + this.telegraphs.length < maxEnemies) &&
+            Math.random() < 0.48) {
+          this.initiateEnemyTelegraph(activeSec.enemySpeedMult || 1.0);
+        }
       }
     }
 
@@ -2622,7 +2691,8 @@ class NoMoreIllusionsApp {
         e.vy += Math.cos(this.time * 3.8 + e.phase) * 115 * worldDt;
       }
 
-      const bassBoost = 1 + this.multiBandState.bass * 0.34;
+      const drumCutScale = this.multiBandState.bass < 0.16 ? 0.42 : 1.0;
+      const bassBoost = (1 + this.multiBandState.bass * 0.34) * drumCutScale;
       e.x += e.vx * bassBoost * worldDt;
       e.y += e.vy * bassBoost * worldDt;
 
@@ -2948,7 +3018,7 @@ class NoMoreIllusionsApp {
     }
   }
 
-  initiateEnemyTelegraph() {
+  initiateEnemyTelegraph(sectionSpeedMult = 1.0) {
     const edge = Math.floor(Math.random() * 4);
     let edgeX, edgeY;
     if (edge === 0) { edgeX = 36 + Math.random() * (this.W - 72); edgeY = 24; }
@@ -2958,13 +3028,13 @@ class NoMoreIllusionsApp {
 
     const mode = this.getRemixMode();
     const isTrackTwo = this.selectedStageIndex >= 1;
-    const trackDiffMult = isTrackTwo ? 1.18 : 1.0;
+    const trackDiffMult = isTrackTwo ? 1.15 : 1.0;
 
     // Target angle aims toward player's current position with tight lead
     const aimAngle = Math.atan2(this.playerY - edgeY, this.playerX - edgeX) + (Math.random() - 0.5) * 0.22;
     const roll = Math.random();
     const type = roll < 0.38 ? "PULSAR" : (roll < 0.76 ? "SEEKER" : "WANDERER");
-    const speed = (185 + this.level * 15) * (type === "SEEKER" ? 1.12 : 0.98) * trackDiffMult * (mode.speed || 1.0);
+    const speed = (178 + this.level * 14) * (type === "SEEKER" ? 1.12 : 0.98) * trackDiffMult * sectionSpeedMult * (mode.speed || 1.0);
 
     this.telegraphs.push({
       edgeX,
