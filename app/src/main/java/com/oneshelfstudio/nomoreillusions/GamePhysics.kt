@@ -103,78 +103,88 @@ fun stepAndSpawnTelegraphedEnemies(
     }
 
     // 3. Only initiate new telegraphs on the beat when total active + telegraphed threats are below cap
-    val maxActiveEnemies = (5 * spawnRateScale).roundToInt().coerceIn(3, 6)
+    val maxActiveEnemies = ((5.5f + difficulty * 3.8f) * spawnRateScale).roundToInt().coerceIn(5, 12)
     if (enemies.size + telegraphs.size >= maxActiveEnemies) return
 
-    val isBeatOnset = beatPhase in 0f..0.24f
+    val isBeatOnset = beatPhase in 0f..0.32f
     if (!isBeatOnset) return
 
-    val rampFactor = (levelPlayTime / 20f).coerceIn(0.32f, 1.0f)
-    val energyScale = (0.50f + multiBand.bass * 0.45f + multiBand.rms * 0.30f).coerceIn(0.45f, 1.25f)
-    val effectiveSpawnChance = (0.045f + difficulty * 0.045f) * spawnRateScale * rampFactor * energyScale
+    val rampFactor = (levelPlayTime / 14f).coerceIn(0.48f, 1.0f)
+    val energyScale = (0.65f + multiBand.bass * 0.50f + multiBand.rms * 0.35f).coerceIn(0.60f, 1.40f)
+    val effectiveSpawnChance = (0.085f + difficulty * 0.080f) * spawnRateScale * rampFactor * energyScale
 
     if (Random.nextFloat() < effectiveSpawnChance) {
-        val side = Random.nextInt(4)
-        val margin = 24f
-        val (edgeX, edgeY, entryX, entryY) = when (side) {
-            0 -> {
-                val rx = (Random.nextFloat() * (screenWidth - 140f)) + 70f
-                floatArrayOf(rx, margin, rx, -28f)
-            }
-            1 -> {
-                val ry = (Random.nextFloat() * (screenHeight - 260f)) + 140f
-                floatArrayOf(screenWidth - margin, ry, screenWidth + 28f, ry)
-            }
-            2 -> {
-                val rx = (Random.nextFloat() * (screenWidth - 140f)) + 70f
-                floatArrayOf(rx, screenHeight - margin, rx, screenHeight + 28f)
-            }
-            else -> {
-                val ry = (Random.nextFloat() * (screenHeight - 260f)) + 140f
-                floatArrayOf(margin, ry, -28f, ry)
-            }
-        }
+        val spawnCount = if ((multiBand.bass > 0.62f || difficulty > 0.48f) &&
+            enemies.size + telegraphs.size + 1 < maxActiveEnemies &&
+            Random.nextFloat() < 0.42f
+        ) 2 else 1
+        val baseSide = Random.nextInt(4)
+        val warnSec = (0.86f - difficulty * 0.16f).coerceIn(0.56f, 0.86f)
 
-        val allowLaserSweeper = (stageMode == StageMode.SPEED_PORTAL || stageMode == StageMode.OVERDRIVE_SHATTER) &&
-            multiBand.high > 0.62f &&
-            enemies.none { it.type == EnemyType.LASER_SWEEPER } &&
-            telegraphs.none { it.spawnData.type == EnemyType.LASER_SWEEPER } &&
-            Random.nextFloat() < 0.12f
-
-        val spawnData = if (allowLaserSweeper) {
-            EnemySpawnData(EnemyType.LASER_SWEEPER, Color(0xFFFF1E42L), 2.4f, 58f)
-        } else {
-            when (customEnemyStyle) {
-                "PULSARS" -> EnemySpawnData(EnemyType.PULSE, Color(0xFFF43F5EL), 2.55f, 16f)
-                "SEEKERS" -> EnemySpawnData(EnemyType.SEEKER, Color(0xFFFF1E42L), 2.45f, 10f)
-                "WANDERERS" -> EnemySpawnData(EnemyType.WANDERER, Color(0xFFFB7185L), 2.35f, 22f)
+        for (sIdx in 0 until spawnCount) {
+            val side = (baseSide + sIdx * 2) % 4
+            val margin = 24f
+            val (edgeX, edgeY, entryX, entryY) = when (side) {
+                0 -> {
+                    val rx = (Random.nextFloat() * (screenWidth - 140f)) + 70f
+                    floatArrayOf(rx, margin, rx, -28f)
+                }
+                1 -> {
+                    val ry = (Random.nextFloat() * (screenHeight - 260f)) + 140f
+                    floatArrayOf(screenWidth - margin, ry, screenWidth + 28f, ry)
+                }
+                2 -> {
+                    val rx = (Random.nextFloat() * (screenWidth - 140f)) + 70f
+                    floatArrayOf(rx, screenHeight - margin, rx, screenHeight + 28f)
+                }
                 else -> {
-                    val roll = Random.nextFloat()
-                    when {
-                        roll < 0.38f -> EnemySpawnData(EnemyType.PULSE, Color(0xFFF43F5EL), 2.55f, 16f)
-                        roll < 0.68f -> EnemySpawnData(EnemyType.SEEKER, Color(0xFFFF1E42L), 2.45f, 10f)
-                        else -> EnemySpawnData(EnemyType.WANDERER, Color(0xFFFB7185L), 2.35f, 22f)
+                    val ry = (Random.nextFloat() * (screenHeight - 260f)) + 140f
+                    floatArrayOf(margin, ry, -28f, ry)
+                }
+            }
+
+            val allowLaserSweeper = sIdx == 0 &&
+                (stageMode == StageMode.SPEED_PORTAL || stageMode == StageMode.OVERDRIVE_SHATTER || difficulty > 0.55f) &&
+                multiBand.high > 0.56f &&
+                enemies.none { it.type == EnemyType.LASER_SWEEPER } &&
+                telegraphs.none { it.spawnData.type == EnemyType.LASER_SWEEPER } &&
+                Random.nextFloat() < 0.18f
+
+            val spawnData = if (allowLaserSweeper) {
+                EnemySpawnData(EnemyType.LASER_SWEEPER, Color(0xFFFF1E42L), 2.85f, 62f)
+            } else {
+                when (customEnemyStyle) {
+                    "PULSARS" -> EnemySpawnData(EnemyType.PULSE, Color(0xFFF43F5EL), 2.95f, 16f)
+                    "SEEKERS" -> EnemySpawnData(EnemyType.SEEKER, Color(0xFFFF1E42L), 2.90f, 10f)
+                    "WANDERERS" -> EnemySpawnData(EnemyType.WANDERER, Color(0xFFFB7185L), 2.75f, 22f)
+                    else -> {
+                        val roll = Random.nextFloat()
+                        when {
+                            roll < 0.36f -> EnemySpawnData(EnemyType.PULSE, Color(0xFFF43F5EL), 2.95f, 16f)
+                            roll < 0.74f -> EnemySpawnData(EnemyType.SEEKER, Color(0xFFFF1E42L), 2.90f, 10f)
+                            else -> EnemySpawnData(EnemyType.WANDERER, Color(0xFFFB7185L), 2.75f, 22f)
+                        }
                     }
                 }
             }
-        }
 
-        val targetAngle = atan2(player.y - edgeY, player.x - edgeX) + (Random.nextFloat() - 0.5f) * 0.22f
-        val finalSpeed = (spawnData.speed + difficulty * 1.15f) * speedScale * (0.72f + 0.28f * rampFactor)
+            val targetAngle = atan2(player.y - edgeY, player.x - edgeX) + (Random.nextFloat() - 0.5f) * 0.18f
+            val finalSpeed = (spawnData.speed + difficulty * 1.45f) * speedScale * (0.80f + 0.20f * rampFactor)
 
-        telegraphs.add(
-            EnemySpawnTelegraph(
-                edgeX = edgeX,
-                edgeY = edgeY,
-                entryX = entryX,
-                entryY = entryY,
-                targetAngle = targetAngle,
-                timer = 0.92f,
-                maxTimer = 0.92f,
-                spawnData = spawnData,
-                finalSpeed = finalSpeed
+            telegraphs.add(
+                EnemySpawnTelegraph(
+                    edgeX = edgeX,
+                    edgeY = edgeY,
+                    entryX = entryX,
+                    entryY = entryY,
+                    targetAngle = targetAngle,
+                    timer = warnSec,
+                    maxTimer = warnSec,
+                    spawnData = spawnData,
+                    finalSpeed = finalSpeed
+                )
             )
-        )
+        }
     }
 }
 
@@ -207,7 +217,7 @@ fun stepEnemyKinematicsAndFlocking(
     }
 
     val distToPlayer = hypot(player.x - e.x, player.y - e.y)
-    if (distToPlayer < 150f) {
+    if (distToPlayer < 68f) {
         e.hasPassedPlayer = true
     }
 
@@ -255,7 +265,7 @@ fun stepEnemyKinematicsAndFlocking(
             if (!e.hasPassedPlayer) {
                 val targetAngle = atan2(player.y - e.y, player.x - e.x)
                 val diff = normalizeAngle(targetAngle - e.angle)
-                val turnRate = if (beatKick > 0.5f) 0.012f else 0.024f
+                val turnRate = if (beatKick > 0.5f) 0.036f else 0.028f
                 e.angle += diff.coerceIn(-turnRate, turnRate) * currentScale
             }
         }
@@ -286,22 +296,22 @@ fun stepEnemyKinematicsAndFlocking(
         e.y += sepY * 12f * currentScale
     }
 
-    // Keep a generous 155px safe zone around the active target orb so enemies never camp on top of collectibles!
+    // Keep an 82px buffer around the active target orb so enemies don't sit directly on top of collectibles
     if (activeTargetOrb != null) {
         val odx = e.x - activeTargetOrb.x
         val ody = e.y - activeTargetOrb.y
         val oDist = hypot(odx, ody)
-        if (oDist in 1f..155f) {
-            val push = ((155f - oDist) / 155f) * 4.2f * currentScale
+        if (oDist in 1f..82f) {
+            val push = ((82f - oDist) / 82f) * 3.0f * currentScale
             e.x += (odx / oDist) * push
             e.y += (ody / oDist) * push
         }
     }
 
     val beatSpeedMult = when (e.type) {
-        EnemyType.SEEKER -> if (beatKick > 0.5f) 1.26f else 0.90f
-        EnemyType.PULSE -> if (beatKick > 0.5f) 1.20f else 0.92f
-        else -> 1.0f
+        EnemyType.SEEKER -> if (beatKick > 0.5f) 1.32f else 0.98f
+        EnemyType.PULSE -> if (beatKick > 0.5f) 1.28f else 0.98f
+        else -> 1.04f
     }
 
     val baseVx = cos(e.angle) * e.speed * beatSpeedMult

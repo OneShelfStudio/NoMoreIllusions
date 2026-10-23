@@ -30,6 +30,7 @@ class AudioEngine(private val context: Context) {
     private var trackPlayer: MediaPlayer? = null
     private var currentTrackIndex: Int? = null
     private var currentLobbyTrack: LobbyTrack = LobbyTrack.VELVET
+    private var currentLobbyRemixMode: TrackRemixMode = TrackRemixMode.ORIGINAL
     private var isTrackFinished: Boolean = false
     private var isDucked: Boolean = false
 
@@ -138,6 +139,31 @@ class AudioEngine(private val context: Context) {
 
     fun getLobbyTrack(): LobbyTrack = currentLobbyTrack
 
+    fun setLobbyRemixMode(remixMode: TrackRemixMode, playFeedback: Boolean = false) {
+        currentLobbyRemixMode = remixMode
+        if (isMusicEnabled) {
+            if (themePlayer == null && trackPlayer == null) {
+                startThemeMusic()
+            } else {
+                themePlayer?.runCatching {
+                    playbackParams = PlaybackParams()
+                        .setSpeed(remixMode.audioSpeed)
+                        .setPitch(remixMode.audioPitch)
+                }
+            }
+        }
+        if (playFeedback && isSoundEnabled) {
+            val p1 = when (remixMode) {
+                TrackRemixMode.OVERCLOCK -> 1.32f
+                TrackRemixMode.SLOWED -> 0.78f
+                TrackRemixMode.ENDLESS -> 1.18f
+                TrackRemixMode.ORIGINAL -> 1.0f
+            }
+            if (focusSound != 0) soundPool.play(focusSound, 0.55f, 0.55f, 1, 0, p1)
+            if (powerUpSound != 0) soundPool.play(powerUpSound, 0.40f, 0.40f, 1, 0, (p1 * 1.25f).coerceIn(0.5f, 2.0f))
+        }
+    }
+
     fun setLobbyTrack(lobbyTrack: LobbyTrack, restartIfPlaying: Boolean = true) {
         val changed = currentLobbyTrack != lobbyTrack
         currentLobbyTrack = lobbyTrack
@@ -166,6 +192,11 @@ class AudioEngine(private val context: Context) {
                     isLooping = true
                     setVolume(vol, vol)
                     start()
+                    runCatching {
+                        playbackParams = PlaybackParams()
+                            .setSpeed(currentLobbyRemixMode.audioSpeed)
+                            .setPitch(currentLobbyRemixMode.audioPitch)
+                    }
                 }
             }
         } else {
@@ -173,6 +204,9 @@ class AudioEngine(private val context: Context) {
             themePlayer?.runCatching {
                 setVolume(vol, vol)
                 if (!isPlaying) start()
+                playbackParams = PlaybackParams()
+                    .setSpeed(currentLobbyRemixMode.audioSpeed)
+                    .setPitch(currentLobbyRemixMode.audioPitch)
             }
         }
     }

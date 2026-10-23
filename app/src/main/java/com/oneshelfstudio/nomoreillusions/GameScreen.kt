@@ -117,13 +117,15 @@ fun GameScreen(
 
     // Dismissable control hint preference
     var showDragHint by remember { mutableStateOf(prefs.getBoolean("show_drag_hint", true)) }
+    var isRevivingRun by remember { mutableStateOf(false) }
 
     var gameState by remember { mutableStateOf(GameState.MENU) }
     var settingsReturnState by remember { mutableStateOf(GameState.MENU) }
 
-    LaunchedEffect(isMusicEnabled, isSoundEnabled, activeLobbyTrack) {
+    LaunchedEffect(isMusicEnabled, isSoundEnabled, activeLobbyTrack, selectedRemixMode) {
         audioEngine.isMusicEnabled = isMusicEnabled
         audioEngine.isSoundEnabled = isSoundEnabled
+        audioEngine.setLobbyRemixMode(selectedRemixMode, playFeedback = false)
         audioEngine.setLobbyTrack(activeLobbyTrack, restartIfPlaying = (gameState == GameState.MENU || (gameState == GameState.SETTINGS && settingsReturnState == GameState.MENU)))
         if (isMusicEnabled && (gameState == GameState.MENU || (gameState == GameState.SETTINGS && settingsReturnState == GameState.MENU))) {
             audioEngine.startThemeMusic()
@@ -260,9 +262,14 @@ fun GameScreen(
     var onBeatHitsThisRun by remember { mutableIntStateOf(0) }
 
     LaunchedEffect(gameState, selectedTrackIndex) {
-        if (gameState == GameState.COUNTDOWN || gameState == GameState.PLAYING) {
+        if (gameState == GameState.COUNTDOWN) {
+            audioEngine.pauseThemeMusic()
+        }
+        if (gameState == GameState.PLAYING) {
             audioEngine.resumeTrack()
-            if (!audioEngine.isTrackPlaying()) audioEngine.startTrack(selectedTrackIndex, remixMode = selectedRemixMode)
+            if (!audioEngine.isTrackPlaying()) {
+                audioEngine.startTrack(selectedTrackIndex, remixMode = selectedRemixMode)
+            }
         }
         if (gameState == GameState.MENU) {
             audioEngine.stopTrack()
@@ -375,16 +382,17 @@ fun GameScreen(
         GameDifficulty.REGULAR -> 1.0f
         GameDifficulty.HARD -> 1.5f
     }
+    val trackDifficultyBoost = 1.0f + (selectedTrackIndex - 1).coerceAtLeast(0) * 0.20f
     val speedScale = when (gameDifficulty) {
-        GameDifficulty.EASY -> 0.58f
-        GameDifficulty.REGULAR -> 0.72f
-        GameDifficulty.HARD -> 1.15f
-    }
+        GameDifficulty.EASY -> 0.78f
+        GameDifficulty.REGULAR -> 1.08f
+        GameDifficulty.HARD -> 1.38f
+    } * trackDifficultyBoost
     val spawnRateScale = when (gameDifficulty) {
-        GameDifficulty.EASY -> 0.65f
-        GameDifficulty.REGULAR -> 1.0f
-        GameDifficulty.HARD -> 1.4f
-    }
+        GameDifficulty.EASY -> 0.78f
+        GameDifficulty.REGULAR -> 1.15f
+        GameDifficulty.HARD -> 1.48f
+    } * trackDifficultyBoost
 
     val applyColorBlind: (Color) -> Color = { color ->
         when (colorBlindMode) {
@@ -445,11 +453,15 @@ fun GameScreen(
         shockwaves.clear()
         tetheredSatellites.clear()
         playerTrail.clear()
-        audioEngine.startTrack(selectedTrackIndex, forceRestart = true, remixMode = selectedRemixMode)
+        isRevivingRun = false
+        audioEngine.pauseThemeMusic()
+        audioEngine.stopTrack()
+        trackRevealMusicProgress = 0f
+        liveTrackSec = 0f
         player = GameObject(screenWidth / 2f, screenHeight * 0.72f, 18f, applyColorBlind(Color(0xFF22C55EL)))
         targetX = player.x
         targetY = player.y
-        spawnInvulnerabilityTime = 2.5f
+        spawnInvulnerabilityTime = 2.0f
         gameState = GameState.COUNTDOWN
     }
 
@@ -467,25 +479,36 @@ fun GameScreen(
         floatingTexts.clear()
         shockwaves.clear()
         playerTrail.clear()
+        isRevivingRun = true
         player = GameObject(screenWidth / 2f, screenHeight * 0.72f, 18f, applyColorBlind(Color(0xFF22C55EL)))
         targetX = player.x
         targetY = player.y
-        spawnInvulnerabilityTime = 2.5f
+        spawnInvulnerabilityTime = 2.2f
         gameState = GameState.COUNTDOWN
     }
 
     LaunchedEffect(gameState) {
         if (gameState == GameState.COUNTDOWN) {
             levelPlayTime = 0f
-            spawnInvulnerabilityTime = 2.5f
+            spawnInvulnerabilityTime = 2.0f
             countdownValue = 3
+            // Wait until the centered How-To-Play popup is dismissed before starting the countdown or music!
+            while (showDragHint) {
+                delay(50)
+            }
             voiceOverManager.playVoiceOver("vo_countdown")
             while (countdownValue > 0) {
-                delay(1000)
+                delay(950)
                 countdownValue--
             }
+            delay(220)
             levelPlayTime = 0f
-            spawnInvulnerabilityTime = 2.5f
+            spawnInvulnerabilityTime = 2.0f
+            if (isRevivingRun) {
+                audioEngine.resumeTrack()
+            } else {
+                audioEngine.startTrack(selectedTrackIndex, forceRestart = true, remixMode = selectedRemixMode)
+            }
             gameState = GameState.PLAYING
         }
     }
@@ -551,13 +574,6 @@ fun GameScreen(
                         beatFlashIntensity = 0.70f
                         scoreMultiplier = 4
                         multiplierTime = 16f
-                        enemyTelegraphs.clear()
-                        val eClearIter = enemies.iterator()
-                        while (eClearIter.hasNext()) {
-                            val e = eClearIter.next()
-                            shockwaves.add(Shockwave(e.x, e.y, 0f, 140f, Color(0xFFFACC15L), 0.90f))
-                            eClearIter.remove()
-                        }
                     }
 
                     when (currentSecObj.juiceTier) {
@@ -743,8 +759,9 @@ fun GameScreen(
                     focusPower = (focusPower + 0.0018f).coerceAtMost(1f)
                 }
 
-                val endlessEscalation = 1.0f + (audioEngine.loopCycleCount * 0.10f)
-                val difficulty = ((score / 6500f) * endlessEscalation).coerceAtMost(1.35f)
+                val endlessEscalation = 1.0f + (audioEngine.loopCycleCount * 0.18f)
+                val songProgressBoost = trackRevealMusicProgress.coerceIn(0f, 1f) * 0.65f
+                val difficulty = (((score / 4200f) + songProgressBoost) * endlessEscalation).coerceAtMost(1.75f)
 
                 // 4. Step & Spawn Beat-Locked Telegraphed Enemies (Zero random/invisible spawns!)
                 stepAndSpawnTelegraphedEnemies(
@@ -753,8 +770,8 @@ fun GameScreen(
                     shockwaves = shockwaves,
                     levelPlayTime = levelPlayTime,
                     difficulty = difficulty,
-                    spawnRateScale = spawnRateScale * (if (selectedRemixMode == TrackRemixMode.OVERCLOCK) 1.15f else 1.0f),
-                    speedScale = speedScale * selectedRemixMode.audioSpeed * endlessEscalation.coerceAtMost(1.35f),
+                    spawnRateScale = spawnRateScale * (if (selectedRemixMode == TrackRemixMode.OVERCLOCK) 1.22f else 1.0f),
+                    speedScale = speedScale * selectedRemixMode.audioSpeed * endlessEscalation.coerceAtMost(1.45f),
                     screenWidth = screenWidth,
                     screenHeight = screenHeight,
                     customEnemyStyle = customEnemyStyle,
@@ -973,8 +990,10 @@ fun GameScreen(
 
                     if (hitDist < e.radius + player.radius && !isAdminMode && spawnInvulnerabilityTime <= 0f) {
                         if (e.type != EnemyType.PHANTOM || e.life > 0.3f) {
-                            if (shieldTime > 0f || isGoldenActive) {
-                                if (!isGoldenActive) shieldTime = 0f
+                            if (shieldTime > 0f || starPowerTime > 0f) {
+                                shieldTime = 0f
+                                starPowerTime = 0f
+                                spawnInvulnerabilityTime = 1.15f
                                 audioEngine.playHit()
                                 triggerHaptic(55L)
                                 shakeAmount = 10f
@@ -1036,8 +1055,10 @@ fun GameScreen(
                     }
                     val lethalRad = if (w.kind == AnomalyKind.PHASE_BARRIER) 14f else (w.radius * 0.55f)
                     if (wDist < lethalRad + player.radius) {
-                        if (shieldTime > 0f || isGoldenActive) {
-                            if (!isGoldenActive) shieldTime = 0f
+                        if (shieldTime > 0f || starPowerTime > 0f) {
+                            shieldTime = 0f
+                            starPowerTime = 0f
+                            spawnInvulnerabilityTime = 1.15f
                             audioEngine.playHit()
                             triggerHaptic(50L)
                             shakeAmount = 10f
@@ -1233,8 +1254,8 @@ fun GameScreen(
                 activeLobbyTrack = activeLobbyTrack,
                 selectedRemixMode = selectedRemixMode,
                 onSelectRemixMode = { mode ->
-                    audioEngine.playMenuNote()
                     selectedRemixMode = mode
+                    audioEngine.setLobbyRemixMode(mode, playFeedback = true)
                 },
                 pulsePoints = pulsePoints,
                 highScore = highScore,
@@ -1264,16 +1285,18 @@ fun GameScreen(
             )
 
             GameState.COUNTDOWN -> {
-                CountdownUI(countdownValue)
+                CountdownUI(countdownValue, visible = !showDragHint)
                 if (showDragHint) {
                     TouchControlHintBanner(
                         btnPillCyan = btnPillCyan,
                         btnPillGreen = btnPillGreen,
                         onDismissPermanently = {
+                            audioEngine.playMenuNote()
                             prefs.edit().putBoolean("show_drag_hint", false).apply()
                             showDragHint = false
                         },
                         onDismissOnce = {
+                            audioEngine.playMenuNote()
                             showDragHint = false
                         }
                     )

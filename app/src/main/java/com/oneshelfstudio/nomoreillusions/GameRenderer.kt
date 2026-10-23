@@ -103,33 +103,24 @@ fun DrawScope.drawOrbitalPhenomenonAndSatellites(
     val cx = player.x
     val cy = player.y
 
-    // 1. Draw Tethered Orbital Satellites around the Hero
+    // 1. Draw Tethered Orbital Satellites around the Hero (soft orbital ring + glowing pearls, zero rigid spokes!)
     if (satellites.isNotEmpty()) {
+        drawCircle(
+            color = Color(0xFF38BDF8L).copy(alpha = 0.14f),
+            radius = 36f,
+            center = Offset(cx, cy),
+            style = Stroke(width = 1.2f)
+        )
         for (i in satellites.indices) {
             val sat = satellites[i]
-            drawLine(
-                color = sat.color.copy(alpha = 0.24f),
-                start = Offset(cx, cy),
-                end = Offset(sat.x, sat.y),
-                strokeWidth = 1.1f
-            )
-            if (satellites.size >= 2) {
-                val next = satellites[(i + 1) % satellites.size]
-                drawLine(
-                    color = sat.color.copy(alpha = 0.18f),
-                    start = Offset(sat.x, sat.y),
-                    end = Offset(next.x, next.y),
-                    strokeWidth = 1.0f
-                )
-            }
             drawCircle(
-                color = sat.color.copy(alpha = 0.35f),
-                radius = sat.size * 2.4f,
+                color = sat.color.copy(alpha = 0.36f),
+                radius = sat.size * 2.3f,
                 center = Offset(sat.x, sat.y)
             )
             drawCircle(
                 color = Color.White.copy(alpha = 0.92f),
-                radius = sat.size * 0.65f,
+                radius = sat.size * 0.68f,
                 center = Offset(sat.x, sat.y)
             )
         }
@@ -338,47 +329,45 @@ fun DrawScope.drawPowerUps(
     val sorted = if (powerUps.size >= 2) powerUps.sortedBy { it.sequenceIndex } else powerUps
     val beatKick = if (beatPhase >= 0f) exp(-beatPhase * 5.2f).coerceIn(0f, 1f) else 0.25f
 
-    // 1. Direct Hero -> Primary Target Orb Harmonic Guidance Beam (so the player ALWAYS sees what to collect!)
+    // 1. Organic Orbital Compass Arc + Curved Stardust Trail toward the #1 active target orb (Zero straight ruler lines!)
     val primaryTarget = sorted.first()
     val isPrimarySupernova = primaryTarget.keyWordEffect != KeyWordEffect.NONE
     val guideColor = if (isPrimarySupernova) Color(0xFFFACC15L) else Color(0xFF22D3EEL)
     val gdx = primaryTarget.x - player.x
     val gdy = primaryTarget.y - player.y
     val gDist = hypot(gdx, gdy)
-    if (gDist > 36f) {
-        drawLine(
-            brush = Brush.linearGradient(
-                colors = listOf(
-                    guideColor.copy(alpha = 0.14f + beatKick * 0.16f),
-                    guideColor.copy(alpha = if (isPrimarySupernova) 0.55f else 0.36f)
-                ),
-                start = Offset(player.x, player.y),
-                end = Offset(primaryTarget.x, primaryTarget.y)
-            ),
-            start = Offset(player.x, player.y),
-            end = Offset(primaryTarget.x, primaryTarget.y),
-            strokeWidth = if (isPrimarySupernova) 2.8f else 1.8f,
-            cap = StrokeCap.Round
+    if (gDist > 42f) {
+        val dirRad = atan2(gdy, gdx)
+        val dirDeg = (dirRad * 180f / PI.toFloat())
+        val compassR = player.radius * 2.95f
+        // Glowing directional compass arc hugging the player's halo
+        drawArc(
+            color = guideColor.copy(alpha = 0.58f + beatKick * 0.28f),
+            startAngle = dirDeg - 26f,
+            sweepAngle = 52f,
+            useCenter = false,
+            topLeft = Offset(player.x - compassR, player.y - compassR),
+            size = Size(compassR * 2f, compassR * 2f),
+            style = Stroke(width = if (isPrimarySupernova) 3.4f else 2.4f, cap = StrokeCap.Round)
         )
-        // Beat-synced guide photon racing from Hero to the target orb
-        val photonT = ((time * 2.2f) % 1f)
-        drawCircle(
-            color = Color.White.copy(alpha = 0.85f),
-            radius = if (isPrimarySupernova) 3.8f else 2.6f,
-            center = Offset(player.x + gdx * photonT, player.y + gdy * photonT)
-        )
-    }
-
-    // 2. Preview tether from Primary Target Orb to the Next Upcoming Beat Orb (if 2 orbs on screen)
-    if (sorted.size >= 2) {
-        val nextOrb = sorted[1]
-        drawLine(
-            color = Color(0xFF38BDF8L).copy(alpha = 0.22f),
-            start = Offset(primaryTarget.x, primaryTarget.y),
-            end = Offset(nextOrb.x, nextOrb.y),
-            strokeWidth = 1.4f,
-            cap = StrokeCap.Round
-        )
+        // Curved stardust wisps drifting along a sine arc toward the target orb
+        val nx = gdx / gDist
+        val ny = gdy / gDist
+        val perpX = -ny
+        val perpY = nx
+        val wispCount = 5
+        for (wIdx in 0 until wispCount) {
+            val t = ((time * 1.35f + wIdx / wispCount.toFloat()) % 1f)
+            val curveOffset = sin(t * PI.toFloat()) * 22f * sin(time * 2.4f + wIdx)
+            val wx = player.x + gdx * t + perpX * curveOffset
+            val wy = player.y + gdy * t + perpY * curveOffset
+            val wAlpha = sin(t * PI.toFloat()).coerceIn(0f, 1f) * (if (isPrimarySupernova) 0.72f else 0.50f)
+            drawCircle(
+                color = guideColor.copy(alpha = wAlpha),
+                radius = (if (isPrimarySupernova) 4.2f else 3.0f) * (0.6f + 0.4f * (1f - t)),
+                center = Offset(wx, wy)
+            )
+        }
     }
 
     // 3. Render each Beat Orb (Regular Flow Orb vs. 2x Larger Multi-Ringed Supernova Beat-Drop Orb)
@@ -571,30 +560,25 @@ fun DrawScope.drawEnemyTelegraphs(
         val urgencyPulse = 0.65f + 0.35f * sin(time * 24f)
         val warnCol = Color(0xFFFF1E42L)
         val coreCol = Color(0xFFFFB703L)
+        val deg = (tg.targetAngle * 180f / PI.toFloat())
 
-        // 1. Projected Crimson Trajectory Sightline showing where the enemy is about to charge
-        val lineLen = 190f + beatKick * 35f
-        val endX = tg.edgeX + cos(tg.targetAngle) * lineLen
-        val endY = tg.edgeY + sin(tg.targetAngle) * lineLen
-
-        drawLine(
-            brush = Brush.linearGradient(
-                colors = listOf(
-                    warnCol.copy(alpha = (0.68f + 0.25f * urgencyPulse)),
-                    warnCol.copy(alpha = 0.22f),
-                    Color.Transparent
-                ),
-                start = Offset(tg.edgeX, tg.edgeY),
-                end = Offset(endX, endY)
-            ),
-            start = Offset(tg.edgeX, tg.edgeY),
-            end = Offset(endX, endY),
-            strokeWidth = 2.6f + beatKick * 1.4f,
-            cap = StrokeCap.Round
-        )
+        // 1. Expanding Directional Warning Ripples (3 curved sonar arcs sweeping inward from the border—zero straight laser lines!)
+        for (w in 1..3) {
+            val waveR = 22f + w * 22f + ((time * 65f) % 22f)
+            val waveAlpha = (1f - w * 0.25f) * (0.55f + 0.30f * urgencyPulse)
+            drawArc(
+                color = warnCol.copy(alpha = waveAlpha.coerceIn(0f, 0.85f)),
+                startAngle = deg - 36f,
+                sweepAngle = 72f,
+                useCenter = false,
+                topLeft = Offset(tg.edgeX - waveR, tg.edgeY - waveR),
+                size = Size(waveR * 2f, waveR * 2f),
+                style = Stroke(width = 2.6f + beatKick * 1.2f, cap = StrokeCap.Round)
+            )
+        }
 
         // 2. Shrinking Lock-On Countdown Ring on the screen border
-        val lockRadius = 42f * (1f - progress * 0.65f)
+        val lockRadius = 40f * (1f - progress * 0.62f)
         drawCircle(
             color = warnCol.copy(alpha = 0.78f),
             radius = lockRadius,
@@ -955,24 +939,9 @@ fun DrawScope.drawEnemySprite(
         )
     }
 
-    // 4. Forward Trajectory Sightline & Directional Spearhead so the player sees the enemy's heading
+    // 4. Directional Spearhead Chevron so the player sees the enemy's heading (without a long straight line!)
     if (!e.hasPassedPlayer) {
-        val sightLen = if (e.type == EnemyType.SEEKER) (115f + beatKick * 35f) else (65f + beatKick * 20f)
-        val endX = e.x + cos(e.angle) * sightLen
-        val endY = e.y + sin(e.angle) * sightLen
-        drawLine(
-            brush = Brush.linearGradient(
-                colors = listOf(dangerRimColor.copy(alpha = safeAlpha * 0.62f), Color.Transparent),
-                start = Offset(e.x, e.y),
-                end = Offset(endX, endY)
-            ),
-            start = Offset(e.x, e.y),
-            end = Offset(endX, endY),
-            strokeWidth = 2.2f,
-            cap = StrokeCap.Round
-        )
-
-        val tipDist = visualRad * 1.44f
+        val tipDist = visualRad * 1.48f
         val sideAng1 = e.angle + 2.5f
         val sideAng2 = e.angle - 2.5f
         val chev = sharedEnemyChevron.apply {

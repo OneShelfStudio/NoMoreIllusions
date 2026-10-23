@@ -844,9 +844,36 @@
       color: #F43F5E;
     }
   
-    /* First-Time Mission Briefing & How-To-Play Modal */
+    /* First-Time Mission Briefing & How-To-Play Centered Bounce Pop-Up */
     #screen-HOW_TO_PLAY {
       z-index: 25;
+      align-items: center;
+      justify-content: center;
+    }
+    #screen-HOW_TO_PLAY .glass-modal-card {
+      transform-origin: center center;
+      animation: popupZoomBounceIn 0.52s cubic-bezier(0.34, 1.56, 0.64, 1) forwards,
+                 popupIdleBreathing 2.6s ease-in-out 0.55s infinite;
+      border: 1.8px solid rgba(56, 189, 248, 0.78);
+      box-shadow: 0 22px 58px rgba(0, 0, 0, 0.88), 0 0 34px rgba(56, 189, 248, 0.25);
+    }
+    #screen-HOW_TO_PLAY .glass-modal-card.bounce-out {
+      animation: popupZoomBounceOut 0.28s cubic-bezier(0.36, 0, 0.66, -0.56) forwards !important;
+    }
+    @keyframes popupZoomBounceIn {
+      0% { transform: scale(0.28); opacity: 0; }
+      62% { transform: scale(1.07); opacity: 1; }
+      82% { transform: scale(0.96); opacity: 1; }
+      100% { transform: scale(1.0); opacity: 1; }
+    }
+    @keyframes popupIdleBreathing {
+      0%, 100% { transform: scale(1.0); }
+      50% { transform: scale(1.018); }
+    }
+    @keyframes popupZoomBounceOut {
+      0% { transform: scale(1.0); opacity: 1; }
+      32% { transform: scale(1.08); opacity: 1; }
+      100% { transform: scale(0.22); opacity: 0; }
     }
     .guide-card-header {
       display: flex;
@@ -965,35 +992,35 @@
         <!-- 1. Track Vinyl Selector Cards with 3-Star Mastery Badges -->
         <div id="menu-track-deck-row" class="track-deck-row"></div>
 
-        <!-- 2. 4-Mode Replayability Selector (1.0x ORIGINAL | 1.20x OVERCLOCK | 0.85x SLOWED | ∞ ENDLESS) -->
+        <!-- 2. 4-Mode Replayability Selector (1.0x NORMAL | 1.2x FAST | 0.85x CHILL | ∞ ENDLESS) -->
         <div class="remix-header-row">
-          <span style="color:#94A3B8;">REMIX / GAMEPLAY MODE</span>
-          <span id="menu-remix-subtitle" style="color:#4ADE80;font-weight:700;">STUDIO MASTER TEMPO • BALANCED FLOW</span>
+          <span style="color:#CBD5E1;">GAME SPEED &amp; MODE</span>
+          <span id="menu-remix-subtitle" style="color:#4ADE80;font-weight:700;">Regular song speed • Balanced challenge</span>
         </div>
         <div id="menu-remix-pills" class="remix-pills-row"></div>
 
         <!-- 3. 3-Star Mastery Checklist Banner -->
-        <div class="mastery-checklist-banner">MASTERY: ★1 Clear Song &nbsp;•&nbsp; ★2 8x Beat Streak &nbsp;•&nbsp; ★3 Beat Nightcore/Slowed</div>
+        <div class="mastery-checklist-banner">STARS: ★1 Finish Song &nbsp;•&nbsp; ★2 8x Combo &nbsp;•&nbsp; ★3 Beat Fast or Chill Mode</div>
 
         <!-- 4. High-Dopamine Launch Button -->
         <div id="btn-launch-stage" class="btn-launch-stage" onclick="window.app.startStage()">
-          <div id="menu-launch-main" class="btn-launch-main">▶ &nbsp;DROP INTO CONFIDE (1.0x)</div>
+          <div id="menu-launch-main" class="btn-launch-main">▶ &nbsp;PLAY CONFIDE (NORMAL)</div>
         </div>
       </div>
 
       <!-- 3-Tile Bento Row (1:1 with MenuScreen.kt) -->
       <div class="bento-row">
-        <div class="bento-tile" style="border-color:rgba(250,204,21,0.55);" onclick="window.app.openScreen('CUSTOMIZER')">
-          <div class="bento-title">VAULT &amp; SHOP</div>
-          <div class="bento-sub" style="color:#FACC15;">Skins &amp; Exclusives</div>
+        <div class="bento-tile" style="border-color:rgba(250,204,21,0.55);flex:1;" onclick="window.app.openScreen('CUSTOMIZER')">
+          <div class="bento-title">ALBUM &amp; SHOP</div>
+          <div class="bento-sub" style="color:#FACC15;">Songs &amp; Skins</div>
         </div>
-        <div class="bento-tile" style="border-color:rgba(34,197,94,0.55);" onclick="window.app.openScreen('HOW_TO_PLAY')">
+        <div class="bento-tile" style="border-color:rgba(34,197,94,0.55);flex:1;" onclick="window.app.openScreen('HOW_TO_PLAY')">
           <div class="bento-title">HOW TO PLAY</div>
-          <div class="bento-sub" style="color:#22C55E;">Beat Comets &amp; Wormholes</div>
+          <div class="bento-sub" style="color:#22C55E;">Quick Guide</div>
         </div>
-        <div class="bento-tile" style="border-color:rgba(168,85,247,0.55);" onclick="window.app.openScreen('SETTINGS')">
+        <div class="bento-tile" style="border-color:rgba(168,85,247,0.55);flex:1;" onclick="window.app.openScreen('SETTINGS')">
           <div class="bento-title">SETTINGS</div>
-          <div class="bento-sub" style="color:#A855F7;">Audio &amp; Speed</div>
+          <div class="bento-sub" style="color:#A855F7;">Sound &amp; Info</div>
         </div>
       </div>
     </div>
@@ -1207,62 +1234,65 @@
        8. HOW TO PLAY MODAL
        ====================================================================== -->
   <div id="screen-HOW_TO_PLAY" class="screen-overlay modal-backdrop">
-    <div class="glass-modal-card" style="max-width:440px;">
+    <div id="htp-modal-card" class="glass-modal-card" style="max-width:410px;">
       <div class="guide-card-header">
         <div>
-          <div class="guide-title">MISSION BRIEFING</div>
-          <div style="font-size:10px;color:#94A3B8;font-weight:700;">AUDIO-REACTIVE ALBUM SURVIVAL GUIDE</div>
+          <div class="guide-title">HOW TO PLAY</div>
+          <div id="htp-sub-header" style="font-size:10.5px;color:#CBD5E1;font-weight:700;">Countdown waits until you tap Start below</div>
         </div>
-        <button class="btn-close-pill" onclick="window.app.dismissHowToPlay()">DISMISS</button>
+        <button class="btn-close-pill" onclick="window.app.dismissHowToPlay(false, false)">BACK</button>
       </div>
 
-      <!-- 1. ORBS (WHAT TO COLLECT) -->
+      <!-- 1. STEER -->
+      <div class="guide-item" style="border-color:rgba(56,189,248,0.45);">
+        <div class="guide-icon-badge" style="background:rgba(56,189,248,0.18);border:1.5px solid #38BDF8;color:#38BDF8;">✦</div>
+        <div>
+          <div class="guide-text-title" style="color:#38BDF8;">SLIDE ANYWHERE TO STEER</div>
+          <div class="guide-text-body">
+            Touch and drag anywhere on the screen (or move your mouse) to glide your glowing core smoothly through space.
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. COLLECT ORBS -->
       <div class="guide-item" style="border-color:rgba(250,204,21,0.45);">
         <div class="guide-icon-badge" style="background:rgba(250,204,21,0.18);border:1.5px solid #FACC15;color:#FACC15;">★</div>
         <div>
-          <div class="guide-text-title" style="color:#FACC15;">COLLECT BEAT ORBS (GOLDEN &amp; CYAN)</div>
+          <div class="guide-text-title" style="color:#FACC15;">COLLECT GLOWING ORBS</div>
           <div class="guide-text-body">
-            Orbs travel smoothly across the arena on the beat with comet trails. A <b>harmonic guidance beam</b> points directly from your hero core to the next orb! Collect them when the ring locks in for <b>PERFECT! +100</b> combos.
+            Follow the <b>curved stardust wisps</b> from your ship to catch <b>Cyan &amp; Gold Orbs</b> on the beat for big combo points and power-ups!
           </div>
         </div>
       </div>
 
-      <!-- 2. ENEMIES (WHAT TO DODGE) -->
+      <!-- 3. DODGE ENEMIES -->
       <div class="guide-item" style="border-color:rgba(255,30,66,0.45);">
         <div class="guide-icon-badge" style="background:rgba(255,30,66,0.18);border:1.5px solid #FF1E42;color:#FF1E42;">◆</div>
         <div>
-          <div class="guide-text-title" style="color:#FF1E42;">DODGE ENEMIES (CRIMSON TELEGRAPHS)</div>
+          <div class="guide-text-title" style="color:#FF1E42;">DODGE RED ENEMIES</div>
           <div class="guide-text-body">
-            Enemies <b>never spawn unfairly</b>. Look for <b>Crimson Warning Diamonds (◆)</b> and laser sightlines along the border 2 beats before an enemy lunges. Dodge their articulated tail cascades!
+            Watch the screen edges for <b>pulsing red warning ripples</b> before spiky enemies lunge in. Hold <b>FOCUS</b> at the bottom to slow down time!
           </div>
         </div>
       </div>
 
-      <!-- 3. UNLOCK FULL TRACKS -->
+      <!-- 4. UNLOCK SONGS -->
       <div class="guide-item" style="border-color:rgba(74,222,128,0.45);">
         <div class="guide-icon-badge" style="background:rgba(74,222,128,0.18);border:1.5px solid #4ADE80;color:#4ADE80;">♪</div>
         <div>
           <div class="guide-text-title" style="color:#4ADE80;">SURVIVE TO UNLOCK THE ALBUM</div>
           <div class="guide-text-body">
-            Survive until the end of <b>Confide</b> or <b>Number One</b> to unlock the 432Hz master track in your permanent Album Vault deck.
+            Survive to the end of <b>Confide</b> or <b>Number One</b> to unlock the full song in your Album Player!
           </div>
         </div>
       </div>
 
-      <!-- 4. CONTROLS -->
-      <div class="guide-item" style="border-color:rgba(192,132,252,0.45);">
-        <div class="guide-icon-badge" style="background:rgba(192,132,252,0.18);border:1.5px solid #C084FC;color:#C084FC;">⚡</div>
-        <div>
-          <div class="guide-text-title" style="color:#C084FC;">CONTROLS &amp; POWER-UPS</div>
-          <div class="guide-text-body">
-            Glide your finger or mouse anywhere to steer. Jump through <b>Wormhole Portals</b> to warp safely. Hold <b>FOCUS</b> to dilate time. Grab <b>Overdrive (crimson)</b> to vaporize enemies!
-          </div>
-        </div>
-      </div>
-
-      <div style="display:flex;gap:10px;margin-top:6px;">
-        <button class="btn-action-primary" onclick="window.app.dismissHowToPlay(true)" style="height:46px;">
-          ✓  I'M READY — START STAGE
+      <div style="display:flex;gap:10px;margin-top:4px;">
+        <button class="btn-action-secondary" onclick="window.app.dismissHowToPlay(true, true)" style="flex:0.95;height:46px;font-size:10.5px;">
+          DON'T SHOW AGAIN
+        </button>
+        <button id="htp-primary-btn" class="btn-action-primary" onclick="window.app.dismissHowToPlay(true, false)" style="flex:1.35;height:46px;background:linear-gradient(90deg,#22C55E,#0EA5E9);">
+          ▶ &nbsp;START COUNTDOWN
         </button>
       </div>
     </div>
@@ -1362,8 +1392,8 @@
     </div>
   </div>
 
-  <script src="multi_band_data.js"></script>
-  <script src="engine.js"></script>
+  <script src="multi_band_data.js?v=7"></script>
+  <script src="engine.js?v=7"></script>
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {

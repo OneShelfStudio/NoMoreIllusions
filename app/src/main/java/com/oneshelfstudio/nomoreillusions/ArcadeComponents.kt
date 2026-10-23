@@ -1,14 +1,29 @@
 package com.oneshelfstudio.nomoreillusions
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -22,11 +37,13 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.launch
 
 enum class ArcadeButtonPalette {
     EMERALD_PULSE,    // Forest Green (#22C55E)
@@ -412,62 +429,238 @@ fun TouchControlHintBanner(
     onDismissPermanently: () -> Unit,
     onDismissOnce: () -> Unit
 ) {
+    val scope = rememberCoroutineScope()
+    val popScale = remember { Animatable(0.32f) }
+    val popAlpha = remember { Animatable(0f) }
+    var isClosing by remember { mutableStateOf(false) }
+
+    // Elastic Zoom-In Bounce on appear
+    LaunchedEffect(Unit) {
+        launch {
+            popAlpha.animateTo(1f, animationSpec = tween(180))
+        }
+        popScale.animateTo(
+            targetValue = 1.06f,
+            animationSpec = tween(220, easing = FastOutSlowInEasing)
+        )
+        popScale.animateTo(
+            targetValue = 1.0f,
+            animationSpec = spring(
+                dampingRatio = Spring.DampingRatioMediumBouncy,
+                stiffness = Spring.StiffnessMedium
+            )
+        )
+    }
+
+    // Gentle idle zoom-in/out breathing bounce while open
+    val infiniteTransition = rememberInfiniteTransition(label = "popupBounce")
+    val idleBreath by infiniteTransition.animateFloat(
+        initialValue = 0.985f,
+        targetValue = 1.025f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(950, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "idleBreath"
+    )
+
+    fun triggerZoomOutAndDismiss(permanent: Boolean) {
+        if (isClosing) return
+        isClosing = true
+        scope.launch {
+            // Zoom-in anticipation pop before zooming out
+            popScale.animateTo(1.08f, animationSpec = tween(95, easing = FastOutSlowInEasing))
+            launch {
+                popAlpha.animateTo(0f, animationSpec = tween(160))
+            }
+            popScale.animateTo(0.25f, animationSpec = tween(165, easing = FastOutSlowInEasing))
+            if (permanent) onDismissPermanently() else onDismissOnce()
+        }
+    }
+
+    val combinedScale = if (isClosing) popScale.value else (popScale.value * idleBreath)
+
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 24.dp, vertical = 32.dp),
-        contentAlignment = Alignment.BottomCenter
+            .background(Color(0xD902050B).copy(alpha = popAlpha.value * 0.86f))
+            .padding(horizontal = 22.dp),
+        contentAlignment = Alignment.Center
     ) {
         Column(
             modifier = Modifier
+                .widthIn(max = 360.dp)
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(16.dp))
-                .background(Color(0xEE080C17))
-                .border(1.2.dp, Color(0x8838BDF8), RoundedCornerShape(16.dp))
-                .padding(16.dp),
+                .graphicsLayer(
+                    scaleX = combinedScale,
+                    scaleY = combinedScale,
+                    alpha = popAlpha.value
+                )
+                .shadow(
+                    elevation = 24.dp,
+                    shape = RoundedCornerShape(24.dp),
+                    ambientColor = Color(0xFF38BDF8),
+                    spotColor = Color(0xFF22C55E)
+                )
+                .clip(RoundedCornerShape(24.dp))
+                .background(
+                    Brush.verticalGradient(
+                        listOf(
+                            Color(0xFA091326),
+                            Color(0xFA040812)
+                        )
+                    )
+                )
+                .border(
+                    width = 1.8.dp,
+                    brush = Brush.horizontalGradient(
+                        listOf(Color(0xFF4ADE80), Color(0xFF38BDF8), Color(0xFF818CF8))
+                    ),
+                    shape = RoundedCornerShape(24.dp)
+                )
+                .padding(horizontal = 20.dp, vertical = 22.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            Box(
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .background(Color(0xFF0E291E))
+                    .border(1.dp, Color(0xFF4ADE80).copy(alpha = 0.7f), CircleShape)
+                    .padding(horizontal = 14.dp, vertical = 4.dp)
+            ) {
+                Text(
+                    text = "HOW TO PLAY",
+                    color = Color(0xFF4ADE80),
+                    fontSize = 10.5.sp,
+                    fontWeight = FontWeight.Black,
+                    letterSpacing = 1.6.sp
+                )
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
             Text(
-                text = "DRAG TO INTERCEPT RHYTHM ORBS",
-                color = Color(0xFF38BDF8),
-                fontSize = 13.sp,
+                text = "GLIDE TO THE BEAT",
+                color = Color.White,
+                fontSize = 20.sp,
                 fontWeight = FontWeight.Black,
-                letterSpacing = 1.6.sp
+                letterSpacing = 1.2.sp
             )
+
             Spacer(modifier = Modifier.height(6.dp))
+
             Text(
-                text = "Glide your finger anywhere on screen to catch Nebulous Orbs on the beat & lyrics while dodging enemy lunges.",
+                text = "Drag your finger anywhere on screen to steer your core. The countdown will start as soon as you're ready!",
                 color = Color(0xFFCBD5E1),
-                fontSize = 12.sp,
+                fontSize = 12.5.sp,
                 fontWeight = FontWeight.Medium,
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center
             )
-            Spacer(modifier = Modifier.height(12.dp))
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // 3 Quick Visual Guide Pills
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                QuickHintRow(
+                    badge = "●",
+                    badgeColor = Color(0xFF22D3EE),
+                    title = "CATCH CYAN & GOLD ORBS",
+                    desc = "Collect smooth glowing orbs on the beat to score & power up."
+                )
+                QuickHintRow(
+                    badge = "◆",
+                    badgeColor = Color(0xFFFF1E42),
+                    title = "DODGE RED SPIKED ENEMIES",
+                    desc = "Watch the screen edges for red warning ripples before foes lunge."
+                )
+                QuickHintRow(
+                    badge = "⚡",
+                    badgeColor = Color(0xFFA855F7),
+                    title = "HOLD FOCUS TO SLOW TIME",
+                    desc = "Press & hold the bottom-right Focus button in tight spots."
+                )
+            }
+
+            Spacer(modifier = Modifier.height(18.dp))
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 ArcadePillButton(
-                    text = "GOT IT",
+                    text = "START COUNTDOWN",
                     pillBitmap = btnPillGreen,
-                    onClick = onDismissOnce,
+                    onClick = { triggerZoomOutAndDismiss(permanent = false) },
                     modifier = Modifier
-                        .weight(1f)
-                        .height(40.dp),
+                        .weight(1.25f)
+                        .height(44.dp),
                     fontSize = 12.sp,
                     palette = ArcadeButtonPalette.EMERALD_PULSE
                 )
                 ArcadePillButton(
                     text = "DON'T SHOW AGAIN",
                     pillBitmap = btnPillCyan,
-                    onClick = onDismissPermanently,
+                    onClick = { triggerZoomOutAndDismiss(permanent = true) },
                     modifier = Modifier
-                        .weight(1.3f)
-                        .height(40.dp),
-                    fontSize = 11.sp,
+                        .weight(1.1f)
+                        .height(44.dp),
+                    fontSize = 10.5.sp,
                     palette = ArcadeButtonPalette.ASTRAL_CYAN
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun QuickHintRow(
+    badge: String,
+    badgeColor: Color,
+    title: String,
+    desc: String
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color(0xFF060B14))
+            .border(1.dp, badgeColor.copy(alpha = 0.35f), RoundedCornerShape(12.dp))
+            .padding(horizontal = 12.dp, vertical = 8.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(28.dp)
+                .clip(CircleShape)
+                .background(badgeColor.copy(alpha = 0.16f))
+                .border(1.dp, badgeColor.copy(alpha = 0.7f), CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = badge,
+                color = badgeColor,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Black
+            )
+        }
+        Spacer(modifier = Modifier.width(10.dp))
+        Column {
+            Text(
+                text = title,
+                color = Color.White,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Black,
+                letterSpacing = 0.5.sp
+            )
+            Text(
+                text = desc,
+                color = Color(0xFF94A3B8),
+                fontSize = 10.5.sp,
+                fontWeight = FontWeight.Medium
+            )
         }
     }
 }

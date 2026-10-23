@@ -181,15 +181,26 @@ fun DrawScope.drawNebulaBackground(
 
         val path = sharedAuroraPath.apply {
             reset()
-            val segments = 18
+            val segments = 24
             val stepX = size.width / segments
+            var prevX = 0f
+            var prevY = baseY
             for (s in 0..segments) {
                 val x = s * stepX
                 val nx = s.toFloat() / segments
                 val y = baseY +
                     sin(nx * 4.2f + time * speed + phaseOffset) * waveAmp +
                     cos(nx * 2.5f - time * (speed * 0.65f) + phaseOffset) * (waveAmp * 0.55f)
-                if (s == 0) moveTo(x, y) else lineTo(x, y)
+                if (s == 0) {
+                    moveTo(x, y)
+                } else {
+                    val midX = (prevX + x) * 0.5f
+                    val midY = (prevY + y) * 0.5f
+                    quadraticTo(prevX, prevY, midX, midY)
+                    if (s == segments) lineTo(x, y)
+                }
+                prevX = x
+                prevY = y
             }
         }
 
@@ -205,67 +216,60 @@ fun DrawScope.drawNebulaBackground(
         }
         val silkAlpha = (0.05f + vocal * 0.18f + swellBoost * 0.12f).coerceAtMost(0.32f)
 
-        // Outer soft silk aurora glow
+        // Outer soft volumetric silk aurora glow
         drawPath(
             path = path,
             brush = Brush.horizontalGradient(
                 listOf(
                     Color.Transparent,
-                    rCol1.copy(alpha = silkAlpha * 0.58f),
-                    rCol2.copy(alpha = silkAlpha * 0.48f),
+                    rCol1.copy(alpha = silkAlpha * 0.42f),
+                    rCol2.copy(alpha = silkAlpha * 0.38f),
                     Color.Transparent
                 )
             ),
-            style = Stroke(width = (16f + vocal * 28f - rIdx * 4f), cap = StrokeCap.Round)
+            style = Stroke(width = (26f + vocal * 36f - rIdx * 5f), cap = StrokeCap.Round)
         )
-        // Crisp inner neural vocal filament
+        // Soft inner bioluminescent ribbon
         drawPath(
             path = path,
             brush = Brush.horizontalGradient(
                 listOf(
                     Color.Transparent,
-                    rCol1.copy(alpha = (silkAlpha * 1.45f).coerceAtMost(0.50f)),
-                    rCol2.copy(alpha = (silkAlpha * 1.25f).coerceAtMost(0.45f)),
+                    rCol1.copy(alpha = (silkAlpha * 0.95f).coerceAtMost(0.38f)),
+                    rCol2.copy(alpha = (silkAlpha * 0.85f).coerceAtMost(0.34f)),
                     Color.Transparent
                 )
             ),
-            style = Stroke(width = 1.6f + vocal * 2.2f, cap = StrokeCap.Round)
+            style = Stroke(width = 4.5f + vocal * 5.0f, cap = StrokeCap.Round)
         )
 
-        // Living Bioluminescent Aurora Micro-Nodes & Synaptic Web when vocals or high synths swell
-        if (vocal > 0.36f || high > 0.35f) {
-            val nodeCount = 8
-            var prevNodePos: Offset? = null
+        // Living Bioluminescent Bokeh Orbs drifting along the aurora currents (zero straight lines!)
+        if (vocal > 0.34f || high > 0.32f) {
+            val nodeCount = 7
             for (n in 0 until nodeCount) {
-                val nx = ((n.toFloat() / nodeCount) + time * (0.05f + rIdx * 0.015f)) % 1f
+                val nx = ((n.toFloat() / nodeCount) + time * (0.045f + rIdx * 0.014f)) % 1f
                 val px = nx * size.width
                 val py = baseY +
                     sin(nx * 4.2f + time * speed + phaseOffset) * waveAmp +
                     cos(nx * 2.5f - time * (speed * 0.65f) + phaseOffset) * (waveAmp * 0.55f)
                 val curPos = Offset(px, py)
-                val nodeAlpha = ((maxOf(vocal, high) - 0.30f) * 0.85f).coerceIn(0.08f, 0.65f)
+                val nodeAlpha = ((maxOf(vocal, high) - 0.28f) * 0.80f).coerceIn(0.08f, 0.58f)
                 val nCol = if (n % 2 == 0) rCol1 else rCol2
 
                 drawCircle(
-                    color = nCol.copy(alpha = nodeAlpha * 0.35f),
-                    radius = 6.0f + vocal * 5f,
-                    center = curPos
+                    brush = Brush.radialGradient(
+                        colors = listOf(
+                            Color.White.copy(alpha = nodeAlpha * 0.85f),
+                            nCol.copy(alpha = nodeAlpha * 0.42f),
+                            Color.Transparent
+                        ),
+                        center = curPos,
+                        radius = 12f + vocal * 10f
+                    ),
+                    radius = 12f + vocal * 10f,
+                    center = curPos,
+                    blendMode = BlendMode.Screen
                 )
-                drawCircle(
-                    color = Color.White.copy(alpha = nodeAlpha),
-                    radius = 2.2f,
-                    center = curPos
-                )
-
-                if (prevNodePos != null && abs(curPos.x - prevNodePos.x) < size.width * 0.3f) {
-                    drawLine(
-                        color = nCol.copy(alpha = nodeAlpha * 0.38f),
-                        start = prevNodePos,
-                        end = curPos,
-                        strokeWidth = 1.1f
-                    )
-                }
-                prevNodePos = curPos
             }
         }
     }
@@ -300,62 +304,43 @@ fun DrawScope.drawNebulaBackground(
         }
     }
 
-    // 6. 24K GOLDEN OVERDRIVE & ON-BEAT CONCERT LASER SWEEPS + BORDER EQUALIZER COLUMNS
-    // (Replaces background constellations with high-dopamine concert lighting & beat-flash spectacle!)
+    // 6. VOLUMETRIC CHORUS AURORA CROWNS & PERIMETER HARMONIC BLOOMS (Zero straight laser lines or boxy bars!)
     val overdriveFlash = maxOf(goldBlend, beatFlashIntensity.coerceIn(0f, 1f))
     if (overdriveFlash > 0.04f) {
-        val beamCount = 6
-        for (b in 0 until beamCount) {
-            val anchorX = (size.width / (beamCount - 1).coerceAtLeast(1)) * b
-            val sway = sin(time * 2.4f + b * 0.9f) * (size.width * 0.22f)
-            val targetX = (centerX + sway).coerceIn(0f, size.width)
-            val beamCol = if (b % 2 == 0) Color(0xFFFACC15L) else Color(0xFF38BDF8L)
-            drawLine(
-                brush = Brush.verticalGradient(
+        val bloomCount = 4
+        for (b in 0 until bloomCount) {
+            val angle = time * 0.65f + (b * PI.toFloat() / 2f)
+            val orbitR = minOf(size.width, size.height) * (0.28f + 0.08f * sin(time * 1.8f + b))
+            val bx = centerX + cos(angle) * orbitR
+            val by = centerY + sin(angle) * orbitR
+            val bloomCol = if (b % 2 == 0) Color(0xFFFACC15L) else Color(0xFF38BDF8L)
+            val bloomRad = maxDim * (0.22f + 0.08f * beatPulse)
+            drawCircle(
+                brush = Brush.radialGradient(
                     colors = listOf(
-                        beamCol.copy(alpha = overdriveFlash * (0.28f + beatPulse * 0.20f)),
+                        bloomCol.copy(alpha = overdriveFlash * (0.18f + beatPulse * 0.14f)),
+                        bloomCol.copy(alpha = overdriveFlash * 0.06f),
                         Color.Transparent
-                    )
+                    ),
+                    center = Offset(bx, by),
+                    radius = bloomRad
                 ),
-                start = Offset(anchorX, 0f),
-                end = Offset(targetX, size.height * 0.85f),
-                strokeWidth = 14f + beatPulse * 16f,
-                cap = StrokeCap.Round
-            )
-        }
-        // Left & Right Perimeter Equalizer Bars pumping to Sub-Bass + Vocal
-        val eqBars = 14
-        val stepH = size.height / eqBars
-        for (i in 0 until eqBars) {
-            val wave = 0.25f + 0.75f * abs(sin(time * 5.2f + i * 0.55f))
-            val barW = (10f + (bass * 28f + vocal * 20f) * wave) * overdriveFlash
-            val y = i * stepH + stepH * 0.2f
-            val col = if (i % 2 == 0) Color(0xFFFACC15L) else Color(0xFF22D3EEL)
-            drawRoundRect(
-                color = col.copy(alpha = (0.35f + beatPulse * 0.35f) * overdriveFlash),
-                topLeft = Offset(0f, y),
-                size = Size(barW, stepH * 0.58f),
-                cornerRadius = CornerRadius(6f, 6f)
-            )
-            drawRoundRect(
-                color = col.copy(alpha = (0.35f + beatPulse * 0.35f) * overdriveFlash),
-                topLeft = Offset(size.width - barW, y),
-                size = Size(barW, stepH * 0.58f),
-                cornerRadius = CornerRadius(6f, 6f)
+                radius = bloomRad,
+                center = Offset(bx, by),
+                blendMode = BlendMode.Screen
             )
         }
     }
 
-    // 7. Signature No More Illusions Concentric Squircle Tunnel (breathes with Sub-Bass & Vocal swells)
-    val ringCount = if (isEclipseActive) 5 else 9
-    val ringSpeed = if (multiBand.bassDropOut) 0.04f else (0.07f + bass * 0.12f + high * 0.06f)
+    // 7. Organic Concentric Harmonic Halo Waves (Replaces boxy rectangular squircle tunnel with smooth circular/arc ripples!)
+    val ringCount = if (isEclipseActive) 4 else 6
+    val ringSpeed = if (multiBand.bassDropOut) 0.035f else (0.06f + bass * 0.10f + high * 0.05f)
     for (i in 0 until ringCount) {
         val rawPhase = ((i.toFloat() / ringCount) + time * ringSpeed) % 1f
         val curvedPhase = rawPhase * rawPhase
-        val boxHalf = curvedPhase * maxDim * (0.64f + bass * 0.06f)
-        if (boxHalf < 14f) continue
+        val waveRadius = curvedPhase * maxDim * (0.58f + bass * 0.06f)
+        if (waveRadius < 18f) continue
 
-        val rotDeg = sin(time * (0.50f + vocal * 0.45f) + i * 0.52f) * (9f + high * 16f)
         val isEven = i % 2 == 0
         val baseRingColor = when {
             isConstellationActive && isEven -> Color(0xFFFACC15L)
@@ -366,18 +351,19 @@ fun DrawScope.drawNebulaBackground(
         }
 
         val fadeAlpha = sin(rawPhase * PI.toFloat()).coerceIn(0f, 1f)
-        val finalAlpha = (fadeAlpha * (0.05f + energy * 0.20f + swellBoost * 0.14f)).coerceIn(0f, 0.36f)
-        val strokeW = 1.1f + rawPhase * (1.6f + bass * 2.6f)
+        val finalAlpha = (fadeAlpha * (0.04f + energy * 0.16f + swellBoost * 0.12f)).coerceIn(0f, 0.28f)
+        val strokeW = 1.2f + rawPhase * (1.8f + bass * 2.4f)
+        val rotDeg = (time * (18f + vocal * 16f) * (if (isEven) 1f else -1f) + i * 45f) % 360f
 
-        withTransform({
-            rotate(degrees = rotDeg, pivot = Offset(centerX, centerY))
-        }) {
-            drawRoundRect(
+        for (petal in 0 until 3) {
+            drawArc(
                 color = baseRingColor.copy(alpha = finalAlpha),
-                topLeft = Offset(centerX - boxHalf, centerY - boxHalf),
-                size = Size(boxHalf * 2f, boxHalf * 2f),
-                cornerRadius = CornerRadius(boxHalf * 0.38f, boxHalf * 0.38f),
-                style = Stroke(width = strokeW)
+                startAngle = rotDeg + petal * 120f,
+                sweepAngle = 78f + vocal * 22f,
+                useCenter = false,
+                topLeft = Offset(centerX - waveRadius, centerY - waveRadius),
+                size = Size(waveRadius * 2f, waveRadius * 2f),
+                style = Stroke(width = strokeW, cap = StrokeCap.Round)
             )
         }
     }

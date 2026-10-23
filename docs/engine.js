@@ -181,35 +181,71 @@ function drawNebulaBackground(ctx, W, H, palette, stars, time, beatPulse, multiB
     ctx.stroke();
   }
 
-  // 4. Aurora Silk Ribbons (3 waves with Synaptic Nodes)
+  // 4. Organic Aurora Silk Waves (Smooth Quadratic Bezier Curves + Volumetric Chorus Blooms)
   for (let rib = 0; rib < 3; rib++) {
-    ctx.beginPath();
-    const ribbonY = centerY - H * 0.18 + rib * (H * 0.12);
-    const waveFreq = 0.0035 + rib * 0.001;
-    const waveAmp = (22 + rib * 14) * (1 + bass * 0.45);
-    const speed = time * (1.2 + rib * 0.5);
+    const ribbonY = centerY - H * 0.20 + rib * (H * 0.14);
+    const waveFreq = 0.0032 + rib * 0.0009;
+    const waveAmp = (26 + rib * 16) * (1 + bass * 0.48 + vocal * 0.25);
+    const speed = time * (1.05 + rib * 0.42);
+    const ribCol = rib % 2 === 0 ? palette.nebTint : palette.starTint;
+    const ribAlpha = (0.07 + energy * 0.16) * (rib === 1 ? 1.25 : 0.85);
 
-    ctx.moveTo(0, ribbonY + Math.sin(speed) * waveAmp);
-    for (let x = 0; x <= W; x += 16) {
-      const y = ribbonY + Math.sin(x * waveFreq + speed) * waveAmp;
-      ctx.lineTo(x, y);
+    ctx.beginPath();
+    let prevX = 0;
+    let prevY = ribbonY + Math.sin(speed) * waveAmp;
+    ctx.moveTo(prevX, prevY);
+    const step = Math.max(48, W / 8);
+    for (let x = step; x <= W + step; x += step) {
+      const currX = Math.min(W, x);
+      const currY = ribbonY + Math.sin(currX * waveFreq + speed) * waveAmp + Math.cos(currX * waveFreq * 0.5 - speed * 0.7) * (waveAmp * 0.35);
+      const midX = (prevX + currX) * 0.5;
+      const midY = (prevY + currY) * 0.5;
+      ctx.quadraticCurveTo(prevX, prevY, midX, midY);
+      prevX = currX;
+      prevY = currY;
     }
-    const ribAlpha = (0.08 + energy * 0.18) * (rib === 1 ? 1.2 : 0.8);
-    ctx.strokeStyle = rgba(rib % 2 === 0 ? palette.nebTint : palette.starTint, ribAlpha);
-    ctx.lineWidth = 3.5 + high * 3;
+    ctx.lineTo(prevX, prevY);
+
+    // Outer soft volumetric aurora glow
+    ctx.strokeStyle = rgba(ribCol, ribAlpha * 0.42);
+    ctx.lineWidth = 14 + bass * 10;
+    ctx.lineCap = "round";
+    ctx.stroke();
+
+    // Inner silk core
+    ctx.strokeStyle = rgba(ribCol, ribAlpha);
+    ctx.lineWidth = 3.2 + high * 2.5;
     ctx.stroke();
   }
 
-  // 5. Signature Concentric Squircle Tunnel
-  const ringCount = isEclipseActive ? 5 : 9;
-  const ringSpeed = multiBand.bassDropOut ? 0.04 : (0.07 + bass * 0.12 + high * 0.06);
+  // Volumetric Chorus Radial Blooms (Replaces harsh ceiling laser lines)
+  if (isConstellationActive || energy > 0.62) {
+    const bloomCount = 3;
+    for (let b = 0; b < bloomCount; b++) {
+      const bx = W * (0.22 + b * 0.28) + Math.sin(time * 0.9 + b * 2.1) * (W * 0.08);
+      const by = H * (0.24 + (b % 2) * 0.16) + Math.cos(time * 0.7 + b) * (H * 0.06);
+      const bRad = maxDim * (0.22 + bass * 0.10 + beatPulse * 0.05);
+      const bCol = isConstellationActive ? [250, 204, 21] : (b % 2 === 0 ? palette.nebTint : palette.starTint);
+      const bGrad = ctx.createRadialGradient(bx, by, 4, bx, by, bRad);
+      bGrad.addColorStop(0, rgba(bCol, 0.16 + energy * 0.12));
+      bGrad.addColorStop(0.55, rgba(bCol, 0.06));
+      bGrad.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.beginPath();
+      ctx.arc(bx, by, bRad, 0, Math.PI * 2);
+      ctx.fillStyle = bGrad;
+      ctx.fill();
+    }
+  }
+
+  // 5. Organic Harmonic Halo Petal Rings (Replaces boxy rectangular squircle tunnel wireframes)
+  const ringCount = isEclipseActive ? 4 : 6;
+  const ringSpeed = multiBand.bassDropOut ? 0.035 : (0.06 + bass * 0.10 + high * 0.05);
   for (let i = 0; i < ringCount; i++) {
     const rawPhase = ((i / ringCount) + time * ringSpeed) % 1;
     const curvedPhase = rawPhase * rawPhase;
-    const boxHalf = curvedPhase * maxDim * (0.64 + bass * 0.06);
-    if (boxHalf < 14) continue;
+    const ringRadius = curvedPhase * maxDim * (0.58 + bass * 0.06);
+    if (ringRadius < 18) continue;
 
-    const rotRad = (Math.sin(time * (0.50 + vocal * 0.45) + i * 0.52) * (9 + high * 16)) * Math.PI / 180;
     const isEven = i % 2 === 0;
     const baseRingColor = isConstellationActive
       ? (isEven ? [250, 204, 21] : [56, 189, 248])
@@ -218,17 +254,21 @@ function drawNebulaBackground(ctx, W, H, palette, stars, time, beatPulse, multiB
       : (isEven ? palette.nebTint : palette.starTint);
 
     const fadeAlpha = Math.max(0, Math.min(1, Math.sin(rawPhase * Math.PI)));
-    const finalAlpha = Math.max(0, Math.min(0.36, fadeAlpha * (0.05 + energy * 0.20 + swellBoost * 0.14)));
-    const strokeW = 1.1 + rawPhase * (1.6 + bass * 2.6);
+    const finalAlpha = Math.max(0, Math.min(0.32, fadeAlpha * (0.05 + energy * 0.18 + swellBoost * 0.12)));
+    const strokeW = 1.2 + rawPhase * (1.5 + bass * 2.2);
+    const baseSpin = time * (isEven ? 0.38 : -0.32) + i * 0.75;
 
-    ctx.save();
-    ctx.translate(centerX, centerY);
-    ctx.rotate(rotRad);
-    ctx.strokeStyle = rgba(baseRingColor, finalAlpha);
-    ctx.lineWidth = strokeW;
-    roundRectPath(ctx, -boxHalf, -boxHalf, boxHalf * 2, boxHalf * 2, boxHalf * 0.38);
-    ctx.stroke();
-    ctx.restore();
+    // 3 soft rotating crescent arcs per halo ring
+    for (let p = 0; p < 3; p++) {
+      const startA = baseSpin + p * ((Math.PI * 2) / 3);
+      const sweepA = (74 + vocal * 24) * (Math.PI / 180);
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, ringRadius, startA, startA + sweepA);
+      ctx.strokeStyle = rgba(baseRingColor, finalAlpha);
+      ctx.lineWidth = strokeW;
+      ctx.lineCap = "round";
+      ctx.stroke();
+    }
   }
 
   // 6. Progressive Album Artwork Hologram Watermark Reveal in Center
@@ -437,10 +477,10 @@ const OFFICIAL_TRACKS = [
 
 
 const TRACK_REMIX_MODES = [
-  { id: "ORIGINAL", title: "Original Mix", shortTag: "1.0x", subtitle: "Studio Master Tempo • Balanced Flow", speed: 1.0, color: "#4ADE80" },
-  { id: "OVERCLOCK", title: "Nightcore Overclock", shortTag: "1.20x", subtitle: "High-Speed Reflexes • 2.0x ♪ Notes", speed: 1.20, color: "#F43F5E" },
-  { id: "SLOWED", title: "Slowed + Reverb", shortTag: "0.85x", subtitle: "Late-Night Abyssal Drift • 1.5x ♪ Notes", speed: 0.85, color: "#38BDF8" },
-  { id: "ENDLESS", title: "Endless Eclipse", shortTag: "∞ LOOP", subtitle: "Infinite Escalating Loop • 2.5x ♪ Notes", speed: 1.0, isEndless: true, color: "#FACC15" }
+  { id: "ORIGINAL", displayName: "NORMAL", title: "Normal Speed", shortTag: "1.0x", subtitle: "Regular song speed • Balanced challenge", speed: 1.0, pitch: 1.0, bonusText: "1.0x Score", color: "#4ADE80" },
+  { id: "OVERCLOCK", displayName: "FAST", title: "Fast Remix (1.2x)", shortTag: "1.2x", subtitle: "Faster song & pitch • Intense speed • 2x Notes", speed: 1.20, pitch: 1.12, bonusText: "2.0x ♪ Notes", color: "#F43F5E" },
+  { id: "SLOWED", displayName: "CHILL", title: "Slowed & Reverb (0.85x)", shortTag: "0.85x", subtitle: "Deep slowed vocals • Smooth flow • 1.5x Notes", speed: 0.85, pitch: 0.86, bonusText: "1.5x ♪ Notes", color: "#38BDF8" },
+  { id: "ENDLESS", displayName: "ENDLESS", title: "Endless Survival", shortTag: "∞ LOOP", subtitle: "Non-stop looping song • Rising speed • 2.5x Notes", speed: 1.0, pitch: 1.0, isEndless: true, bonusText: "2.5x ♪ Notes", color: "#FACC15" }
 ];
 
 const LOBBY_TRACKS = [
@@ -521,16 +561,25 @@ function drawWormholes(ctx, wormholes, time) {
     const alpha = Math.max(0, Math.min(1, fadeIn * fadeOut));
     if (alpha <= 0.02) continue;
 
-    // Subtle spatial tether line between Portals A and B
-    ctx.save();
-    ctx.setLineDash([12, 14]);
-    ctx.beginPath();
-    ctx.moveTo(wh.ax, wh.ay);
-    ctx.lineTo(wh.bx, wh.by);
-    ctx.strokeStyle = rgba([168, 85, 247], 0.22 * alpha);
-    ctx.lineWidth = 2;
-    ctx.stroke();
-    ctx.restore();
+    // Flowing curved stardust stream between Portals A and B (replaces straight dashed line)
+    const wdx = wh.bx - wh.ax;
+    const wdy = wh.by - wh.ay;
+    const wDist = Math.max(1, Math.hypot(wdx, wdy));
+    const wPerpX = -wdy / wDist;
+    const wPerpY = wdx / wDist;
+    const ctrlX = (wh.ax + wh.bx) * 0.5 + wPerpX * Math.sin(time * 2.2) * 38;
+    const ctrlY = (wh.ay + wh.by) * 0.5 + wPerpY * Math.sin(time * 2.2) * 38;
+
+    for (let m = 0; m < 5; m++) {
+      const mt = ((time * 0.65 + m * 0.2) % 1);
+      const inv = 1 - mt;
+      const mx = inv * inv * wh.ax + 2 * inv * mt * ctrlX + mt * mt * wh.bx;
+      const my = inv * inv * wh.ay + 2 * inv * mt * ctrlY + mt * mt * wh.by;
+      ctx.beginPath();
+      ctx.arc(mx, my, 2.6 * Math.sin(mt * Math.PI) + 1.2, 0, Math.PI * 2);
+      ctx.fillStyle = rgba([192, 132, 252], 0.48 * Math.sin(mt * Math.PI) * alpha);
+      ctx.fill();
+    }
 
     const portals = [
       { x: wh.ax, y: wh.ay, col: [56, 189, 248], rim: [168, 85, 247] },
@@ -685,7 +734,7 @@ function drawPowerUps(ctx, powerUps, playerX, playerY, time, trackSec, beatPulse
   const sorted = powerUps.slice().sort((a, b) => (a.sequenceIndex || 0) - (b.sequenceIndex || 0));
   const primaryTarget = sorted[0];
 
-  // 1. Direct Hero -> Primary Target Orb Harmonic Guidance Beam
+  // 1. Orbiting Hero Compass Arc + Curved Stardust Wisps to Primary Target Orb (No straight ruler line!)
   if (primaryTarget) {
     const isPrimarySupernova = primaryTarget.isSupernova || primaryTarget.keyWordEffect !== "NONE";
     const guideCol = isPrimarySupernova ? [250, 204, 21] : [34, 211, 238];
@@ -693,37 +742,61 @@ function drawPowerUps(ctx, powerUps, playerX, playerY, time, trackSec, beatPulse
     const gdy = primaryTarget.y - playerY;
     const gDist = Math.hypot(gdx, gdy);
 
-    if (gDist > 36) {
-      const beamGrad = ctx.createLinearGradient(playerX, playerY, primaryTarget.x, primaryTarget.y);
-      beamGrad.addColorStop(0, rgba(guideCol, 0.14 + beatPulse * 0.16));
-      beamGrad.addColorStop(1, rgba(guideCol, isPrimarySupernova ? 0.55 : 0.36));
+    if (gDist > 42) {
+      const aimAngle = Math.atan2(gdy, gdx);
+      const compassRad = 34 + beatPulse * 4;
+      const arcSpan = 0.56; // ~32 degrees
 
+      // Soft directional compass crescent around the hero pointing toward the next orb
       ctx.beginPath();
-      ctx.moveTo(playerX, playerY);
-      ctx.lineTo(primaryTarget.x, primaryTarget.y);
-      ctx.strokeStyle = beamGrad;
-      ctx.lineWidth = isPrimarySupernova ? 2.8 : 1.8;
+      ctx.arc(playerX, playerY, compassRad, aimAngle - arcSpan, aimAngle + arcSpan);
+      ctx.strokeStyle = rgba(guideCol, 0.58 + beatPulse * 0.28);
+      ctx.lineWidth = isPrimarySupernova ? 3.6 : 2.6;
       ctx.lineCap = "round";
       ctx.stroke();
 
-      // Beat-synced guide photon racing along the beam from Hero to Target Orb
-      const photonT = ((time * 2.2) % 1);
+      // Leading glowing pearl on the tip of the compass arc
+      const tipX = playerX + Math.cos(aimAngle) * (compassRad + 5);
+      const tipY = playerY + Math.sin(aimAngle) * (compassRad + 5);
       ctx.beginPath();
-      ctx.arc(playerX + gdx * photonT, playerY + gdy * photonT, isPrimarySupernova ? 3.8 : 2.6, 0, Math.PI * 2);
-      ctx.fillStyle = "rgba(255, 255, 255, 0.92)";
+      ctx.arc(tipX, tipY, isPrimarySupernova ? 4.2 : 3.2, 0, Math.PI * 2);
+      ctx.fillStyle = rgba([255, 255, 255], 0.92);
       ctx.fill();
+
+      // 4 Organic Stardust Wisps drifting along a curved quadratic path to the target orb
+      const perpX = -gdy / gDist;
+      const perpY = gdx / gDist;
+      const curveBend = Math.sin(time * 2.4) * Math.min(48, gDist * 0.18);
+      const ctrlX = (playerX + primaryTarget.x) * 0.5 + perpX * curveBend;
+      const ctrlY = (playerY + primaryTarget.y) * 0.5 + perpY * curveBend;
+
+      for (let w = 0; w < 4; w++) {
+        const wt = ((time * 1.35 + w * 0.25) % 1);
+        const inv = 1 - wt;
+        const wx = inv * inv * playerX + 2 * inv * wt * ctrlX + wt * wt * primaryTarget.x;
+        const wy = inv * inv * playerY + 2 * inv * wt * ctrlY + wt * wt * primaryTarget.y;
+        const wAlpha = Math.sin(wt * Math.PI) * (isPrimarySupernova ? 0.78 : 0.55);
+        const wRad = (isPrimarySupernova ? 3.6 : 2.6) * (0.65 + 0.5 * Math.sin(wt * Math.PI));
+
+        ctx.beginPath();
+        ctx.arc(wx, wy, wRad, 0, Math.PI * 2);
+        ctx.fillStyle = rgba(guideCol, wAlpha);
+        ctx.fill();
+      }
     }
 
-    // 2. Preview tether from Primary Target Orb to the Next Upcoming Beat Orb
+    // 2. Soft curved constellation motes from Primary Orb to Next Upcoming Beat Orb
     if (sorted.length >= 2) {
       const nextOrb = sorted[1];
-      ctx.beginPath();
-      ctx.moveTo(primaryTarget.x, primaryTarget.y);
-      ctx.lineTo(nextOrb.x, nextOrb.y);
-      ctx.strokeStyle = "rgba(56, 189, 248, 0.25)";
-      ctx.lineWidth = 1.4;
-      ctx.lineCap = "round";
-      ctx.stroke();
+      for (let m = 1; m <= 3; m++) {
+        const mt = m / 4;
+        const mx = primaryTarget.x + (nextOrb.x - primaryTarget.x) * mt;
+        const my = primaryTarget.y + (nextOrb.y - primaryTarget.y) * mt - Math.sin(mt * Math.PI) * 16;
+        ctx.beginPath();
+        ctx.arc(mx, my, 2.2, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(56, 189, 248, 0.36)";
+        ctx.fill();
+      }
     }
   }
 
@@ -825,27 +898,21 @@ function drawPowerUps(ctx, powerUps, playerX, playerY, time, trackSec, beatPulse
         ctx.stroke();
       }
 
-      // Counter-Rotating Outer Sacred Geometry Gyroscope Ring #1
-      ctx.save();
-      ctx.translate(pu.x, pu.y);
-      ctx.rotate((time * 115 * Math.PI) / 180);
-      const g1 = coreRad * 0.92;
-      ctx.strokeStyle = rgba([250, 204, 21], 0.92 * puAlpha);
-      ctx.lineWidth = 2.6;
-      roundRectPath(ctx, -g1, -g1, g1 * 2, g1 * 2, g1 * 0.22);
-      ctx.stroke();
-      ctx.restore();
-
-      // Counter-Rotating Inner Sacred Geometry Gyroscope Ring #2
-      ctx.save();
-      ctx.translate(pu.x, pu.y);
-      ctx.rotate((-time * 140 * Math.PI) / 180 + 0.78);
-      const g2 = coreRad * 0.68;
-      ctx.strokeStyle = rgba(effectCol, 0.95 * puAlpha);
-      ctx.lineWidth = 2.4;
-      roundRectPath(ctx, -g2, -g2, g2 * 2, g2 * 2, g2 * 0.18);
-      ctx.stroke();
-      ctx.restore();
+      // Counter-Rotating Curved Celestial Halo Arcs (No boxy squares!)
+      for (let h = 0; h < 2; h++) {
+        const spin = time * (h === 0 ? 2.2 : -2.6);
+        const hRad = coreRad * (h === 0 ? 0.96 : 0.72);
+        const hCol = h === 0 ? [250, 204, 21] : effectCol;
+        for (let a = 0; a < 2; a++) {
+          const startA = spin + a * Math.PI;
+          ctx.beginPath();
+          ctx.arc(pu.x, pu.y, hRad, startA, startA + 1.85);
+          ctx.strokeStyle = rgba(hCol, 0.92 * puAlpha);
+          ctx.lineWidth = 2.5;
+          ctx.lineCap = "round";
+          ctx.stroke();
+        }
+      }
 
       // Blazing White-Gold Singularity Core
       ctx.beginPath();
@@ -897,16 +964,17 @@ function drawPowerUps(ctx, powerUps, playerX, playerY, time, trackSec, beatPulse
       ctx.fillStyle = grad;
       ctx.fill();
 
-      // Outer geometric badge frame
-      const rot = (time * 90 * Math.PI) / 180;
-      ctx.save();
-      ctx.translate(pu.x, pu.y);
-      ctx.rotate(rot);
-      ctx.strokeStyle = rgba(effectCol, 0.95 * puAlpha);
-      ctx.lineWidth = 2.4;
-      roundRectPath(ctx, -coreRad * 0.75, -coreRad * 0.75, coreRad * 1.5, coreRad * 1.5, coreRad * 0.3);
-      ctx.stroke();
-      ctx.restore();
+      // Outer rotating crescent aura arcs (no boxy square frame)
+      const rot = time * 2.1;
+      for (let a = 0; a < 2; a++) {
+        const startA = rot + a * Math.PI;
+        ctx.beginPath();
+        ctx.arc(pu.x, pu.y, coreRad * 0.86, startA, startA + 1.9);
+        ctx.strokeStyle = rgba(effectCol, 0.95 * puAlpha);
+        ctx.lineWidth = 2.4;
+        ctx.lineCap = "round";
+        ctx.stroke();
+      }
 
       ctx.beginPath();
       ctx.arc(pu.x, pu.y, coreRad * 0.36, 0, Math.PI * 2);
@@ -925,28 +993,31 @@ function drawEnemyTelegraphs(ctx, telegraphs, time, beatPulse) {
     const urgencyPulse = 0.65 + 0.35 * Math.sin(time * 24);
     const warnCol = [255, 30, 66]; // High-contrast Crimson
 
-    // 1. Projected Crimson Trajectory Sightline showing where enemy will lunge
-    const lineLen = 220 + beatPulse * 45;
-    const endX = tg.edgeX + Math.cos(tg.targetAngle) * lineLen;
-    const endY = tg.edgeY + Math.sin(tg.targetAngle) * lineLen;
+    // 1. 3 Expanding Directional Sonar Warning Ripples (Replaces harsh straight red dashed sightlines!)
+    const arcSpread = 0.52; // ~30 deg half-cone
+    for (let w = 0; w < 3; w++) {
+      const wavePhase = ((time * 2.6 + w * 0.33) % 1);
+      const waveRad = 22 + wavePhase * (95 + beatPulse * 24);
+      const waveAlpha = (1 - wavePhase) * (0.45 + 0.35 * urgencyPulse);
+      ctx.beginPath();
+      ctx.arc(tg.edgeX, tg.edgeY, waveRad, tg.targetAngle - arcSpread, tg.targetAngle + arcSpread);
+      ctx.strokeStyle = rgba(warnCol, waveAlpha);
+      ctx.lineWidth = 3.2 * (1 - wavePhase * 0.5);
+      ctx.lineCap = "round";
+      ctx.stroke();
+    }
 
-    const sightGrad = ctx.createLinearGradient(tg.edgeX, tg.edgeY, endX, endY);
-    sightGrad.addColorStop(0, rgba(warnCol, 0.75 + 0.25 * urgencyPulse));
-    sightGrad.addColorStop(0.5, rgba(warnCol, 0.35));
-    sightGrad.addColorStop(1, "rgba(0,0,0,0)");
-
-    ctx.save();
-    ctx.setLineDash([8, 8]);
+    // 2. Soft Crimson Edge Glow Bloom
+    const bloomGrad = ctx.createRadialGradient(tg.edgeX, tg.edgeY, 2, tg.edgeX, tg.edgeY, 38);
+    bloomGrad.addColorStop(0, rgba(warnCol, 0.55 * urgencyPulse));
+    bloomGrad.addColorStop(1, "rgba(0,0,0,0)");
     ctx.beginPath();
-    ctx.moveTo(tg.edgeX, tg.edgeY);
-    ctx.lineTo(endX, endY);
-    ctx.strokeStyle = sightGrad;
-    ctx.lineWidth = 2.5;
-    ctx.stroke();
-    ctx.restore();
+    ctx.arc(tg.edgeX, tg.edgeY, 38, 0, Math.PI * 2);
+    ctx.fillStyle = bloomGrad;
+    ctx.fill();
 
-    // 2. High-Contrast Crimson Warning Diamond (◆) on screen perimeter
-    const dSize = 15 + urgencyPulse * 4;
+    // 3. High-Contrast Crimson Warning Diamond (◆) on screen perimeter
+    const dSize = 14 + urgencyPulse * 4;
     ctx.save();
     ctx.translate(tg.edgeX, tg.edgeY);
     ctx.rotate(Math.PI / 4);
@@ -957,11 +1028,11 @@ function drawEnemyTelegraphs(ctx, telegraphs, time, beatPulse) {
     ctx.strokeRect(-dSize / 2, -dSize / 2, dSize, dSize);
     ctx.restore();
 
-    // 3. Countdown ring contracting onto the diamond
+    // 4. Countdown ring contracting onto the diamond
     ctx.beginPath();
-    ctx.arc(tg.edgeX, tg.edgeY, (1 - progress) * 28 + 12, 0, Math.PI * 2);
-    ctx.strokeStyle = rgba([255, 183, 3], 0.85);
-    ctx.lineWidth = 2;
+    ctx.arc(tg.edgeX, tg.edgeY, (1 - progress) * 26 + 11, 0, Math.PI * 2);
+    ctx.strokeStyle = rgba([255, 183, 3], 0.88);
+    ctx.lineWidth = 2.2;
     ctx.stroke();
   }
 }
@@ -1422,9 +1493,12 @@ class NoMoreIllusionsApp {
   }
 
   setRemixMode(modeId) {
-    this.playSfx("click");
+    this.unlockAudioOnFirstGesture();
     this.prefs.selectedRemixModeId = modeId;
     localStorage.setItem("nmi_remix_mode", modeId);
+    const mode = this.getRemixMode();
+    this.synthModeSwitchChime(mode);
+    this.updateLobbyPlayback();
     this.syncUI();
   }
 
@@ -1445,6 +1519,7 @@ class NoMoreIllusionsApp {
       selectedSkin: localStorage.getItem("nmi_skin") || "skin_cyan",
       selectedTrail: localStorage.getItem("nmi_trail") || "trail_cyan",
       selectedTheme: localStorage.getItem("nmi_theme") || "theme_nebula",
+      selectedRemixModeId: localStorage.getItem("nmi_remix_mode") || "ORIGINAL",
       unlockedItems: JSON.parse(localStorage.getItem("nmi_unlocked_items") || '["skin_cyan","trail_cyan","theme_nebula"]'),
       unlockedTracks: JSON.parse(localStorage.getItem("nmi_unlocked_tracks") || "[]"),
       trackBestProgress: JSON.parse(localStorage.getItem("nmi_track_progress") || '{"track_01":0,"track_02":0}'),
@@ -1703,6 +1778,35 @@ class NoMoreIllusionsApp {
     } catch (e) {}
   }
 
+  synthModeSwitchChime(mode) {
+    if (!this.audioCtx || this.prefs.sfxMuted) return;
+    try {
+      if (this.audioCtx.state === "suspended") this.audioCtx.resume();
+      const pitchMult = mode.pitch || mode.speed || 1.0;
+      const baseNotes = mode.id === "OVERCLOCK"
+        ? [523.25, 659.25, 783.99, 1046.50] // Bright ascending C5-E5-G5-C6
+        : mode.id === "SLOWED"
+        ? [392.00, 311.13, 261.63] // Deep lush descending G4-Eb4-C4
+        : mode.id === "ENDLESS"
+        ? [440.00, 554.37, 659.25, 880.00] // Golden A-major shimmer
+        : [523.25, 622.25, 783.99]; // Balanced C-minor triad
+
+      baseNotes.forEach((freq, idx) => {
+        const osc = this.audioCtx.createOscillator();
+        const gain = this.audioCtx.createGain();
+        osc.type = mode.id === "SLOWED" ? "triangle" : "sine";
+        const startT = this.audioCtx.currentTime + idx * 0.045;
+        osc.frequency.setValueAtTime(freq * pitchMult, startT);
+        gain.gain.setValueAtTime(0.18, startT);
+        gain.gain.exponentialRampToValueAtTime(0.001, startT + 0.36);
+        osc.connect(gain);
+        gain.connect(this.audioCtx.destination);
+        osc.start(startT);
+        osc.stop(startT + 0.38);
+      });
+    } catch (e) {}
+  }
+
   unlockAudioOnFirstGesture() {
     if (this.audioUnlocked) return;
     this.audioUnlocked = true;
@@ -1719,6 +1823,13 @@ class NoMoreIllusionsApp {
     if (lobby && (!this.lobbyAudio.src || !this.lobbyAudio.src.endsWith(lobby.src))) {
       this.lobbyAudio.src = lobby.src;
     }
+    const mode = this.getRemixMode();
+    try {
+      this.lobbyAudio.preservesPitch = false;
+      this.lobbyAudio.webkitPreservesPitch = false;
+      this.lobbyAudio.mozPreservesPitch = false;
+      this.lobbyAudio.playbackRate = mode.speed || 1.0;
+    } catch (e) {}
     this.lobbyAudio.play().catch(() => {});
   }
 
@@ -1933,14 +2044,32 @@ class NoMoreIllusionsApp {
   // ==========================================================================
   // STAGE LAUNCH, PAUSE, REVIVE & COMPLETION
   // ==========================================================================
-    dismissHowToPlay(startImmediately = false) {
+  dismissHowToPlay(startImmediately = false, dontShowAgain = false) {
     this.playSfx("click");
-    this.prefs.seenHowToPlay = true;
-    localStorage.setItem("nmi_seen_htp", "true");
-    if (startImmediately) {
-      this.launchStageCountdown();
+    if (dontShowAgain) {
+      this.prefs.seenHowToPlay = true;
+      localStorage.setItem("nmi_seen_htp", "true");
+    }
+    const shouldLaunch = startImmediately || this.pendingStageLaunch;
+    this.pendingStageLaunch = false;
+
+    const card = document.getElementById("htp-modal-card");
+    if (card) {
+      card.classList.add("bounce-out");
+      setTimeout(() => {
+        card.classList.remove("bounce-out");
+        if (shouldLaunch) {
+          this.launchStageCountdown();
+        } else {
+          this.openScreen("MENU");
+        }
+      }, 250);
     } else {
-      this.openScreen("MENU");
+      if (shouldLaunch) {
+        this.launchStageCountdown();
+      } else {
+        this.openScreen("MENU");
+      }
     }
   }
 
@@ -1949,8 +2078,9 @@ class NoMoreIllusionsApp {
     this.playSfx("click");
     this.selectedStageIndex = stageIndex;
 
-    // Check if player has seen the How-To-Play guide
+    // Show centered zoom-bounce How-To-Play pop-up before countdown starts (unless user clicked "Don't Show Again")
     if (!this.prefs.seenHowToPlay) {
+      this.pendingStageLaunch = true;
       this.openScreen("HOW_TO_PLAY");
       return;
     }
@@ -1960,6 +2090,8 @@ class NoMoreIllusionsApp {
 
   launchStageCountdown() {
     this.gameState = "COUNTDOWN";
+    this.lobbyAudio.pause();
+    this.trackAudio.pause();
     this.syncUI();
 
     const countdownEl = document.getElementById("screen-COUNTDOWN");
@@ -1978,7 +2110,7 @@ class NoMoreIllusionsApp {
         if (countValEl) countValEl.textContent = String(count);
         this.playSfx("click", 0.7);
       } else if (count === 0) {
-        if (countValEl) countValEl.textContent = "GO!";
+        if (countValEl) countValEl.textContent = "DROP!";
         this.playSfx("orb", 0.85);
       } else {
         clearInterval(this.countdownTimerId);
@@ -2045,7 +2177,12 @@ class NoMoreIllusionsApp {
     this.trackAudio.currentTime = 0;
     this.trackAudio.muted = this.prefs.musicMuted;
     const mode = this.getRemixMode();
-    try { this.trackAudio.playbackRate = mode.speed; } catch (e) {}
+    try {
+      this.trackAudio.preservesPitch = false;
+      this.trackAudio.webkitPreservesPitch = false;
+      this.trackAudio.mozPreservesPitch = false;
+      this.trackAudio.playbackRate = mode.speed || 1.0;
+    } catch (e) {}
     this.trackAudio.play().catch(() => {});
 
     this.gameState = "PLAYING";
@@ -2374,16 +2511,28 @@ class NoMoreIllusionsApp {
       }
     }
 
-    // Initiate new telegraphs on the beat (never blindside the player!)
-    const maxEnemies = Math.min(6, 3 + Math.floor(this.level / 3));
-    this.spawnTimer += worldDt;
+    // Initiate new telegraphs on the beat (scaled for genuine progressive challenge!)
+    const mode = this.getRemixMode();
+    const isTrackTwo = this.selectedStageIndex >= 1;
+    const trackDiffMult = isTrackTwo ? 1.20 : 1.0;
+    const songProgress = Math.max(0, Math.min(1, this.trackElapsedSec / Math.max(1, this.activeTrackDurationSec)));
+    const maxEnemies = Math.min(11, Math.round((5 + Math.floor(this.level / 2) + (isTrackTwo ? 1 : 0)) * (mode.speed >= 1.15 ? 1.15 : 1.0)));
+
+    this.spawnTimer += worldDt * trackDiffMult * (1 + songProgress * 0.28) * (mode.speed || 1.0);
+    const spawnCooldown = Math.max(0.48, 0.88 - this.level * 0.03);
     const canSpawn = (this.enemies.length + this.telegraphs.length < maxEnemies) &&
                      !this.multiBandState.bassDropOut &&
-                     (this.beatPulse > 0.40 || this.spawnTimer >= 2.0);
+                     (this.beatPulse > 0.35 || this.spawnTimer >= 1.35);
 
-    if (canSpawn && this.spawnTimer >= 1.1) {
+    if (canSpawn && this.spawnTimer >= spawnCooldown) {
       this.spawnTimer = 0;
       this.initiateEnemyTelegraph();
+      // Spawn a 2nd pincer telegraph on chorus / high-energy beats!
+      if ((this.constellationRushTimer > 0 || this.multiBandState.rms > 0.68 || this.level >= 4) &&
+          (this.enemies.length + this.telegraphs.length < maxEnemies) &&
+          Math.random() < 0.48) {
+        this.initiateEnemyTelegraph();
+      }
     }
 
     // 7. Update Wormholes & Check Teleportation
@@ -2406,7 +2555,7 @@ class NoMoreIllusionsApp {
       }
     }
 
-    // 8. Update Collectible Orbs & PowerUps (Magnetic Suction + Beat Judgment)
+    // 8. Update Collectible Orbs & PowerUps (1:1 with Android — active steering required unless Magnet is active!)
     for (let i = this.powerUps.length - 1; i >= 0; i--) {
       const pu = this.powerUps[i];
       pu.age += worldDt;
@@ -2433,19 +2582,22 @@ class NoMoreIllusionsApp {
       if (pu.y < pad && pu.vy < 0) pu.vy *= -0.85;
       if (pu.y > this.H - pad && pu.vy > 0) pu.vy *= -0.85;
 
-      // Magnetic Suction toward player
       const dx = this.playerX - pu.x;
       const dy = this.playerY - pu.y;
       const dist = Math.max(1, Math.hypot(dx, dy));
-      const magnetRange = this.magnetTimer > 0 ? 310 : (pu.type === "SCORE_ORB" ? 135 : 95);
-      if (dist < magnetRange) {
-        const pullStrength = (1 - dist / magnetRange) * (this.magnetTimer > 0 ? 680 : 340);
-        pu.x += (dx / dist) * pullStrength * dt;
-        pu.y += (dy / dist) * pullStrength * dt;
+
+      // Only pull orbs automatically when Magnet power-up or Tractor Reach is active!
+      if (this.magnetTimer > 0 || pu.keyWordEffect === "TRACTOR_REACH") {
+        const magnetRange = 290;
+        if (dist < magnetRange) {
+          const pullStrength = (1 - dist / magnetRange) * 580;
+          pu.x += (dx / dist) * pullStrength * dt;
+          pu.y += (dy / dist) * pullStrength * dt;
+        }
       }
 
       // Collection Check
-      const collectRadius = this.playerRadius + (pu.type === "SCORE_ORB" ? pu.radius * 1.45 : pu.radius * 1.15);
+      const collectRadius = this.playerRadius + (pu.type === "SCORE_ORB" ? pu.radius * 1.25 : pu.radius * 1.10);
       if (dist <= collectRadius) {
         this.collectPowerUp(pu);
         this.powerUps.splice(i, 1);
@@ -2460,17 +2612,17 @@ class NoMoreIllusionsApp {
         const dy = this.playerY - e.y;
         const d = Math.max(1, Math.hypot(dx, dy));
         const curSpeed = Math.hypot(e.vx, e.vy);
-        e.vx += (dx / d) * 180 * worldDt;
-        e.vy += (dy / d) * 180 * worldDt;
+        e.vx += (dx / d) * 245 * worldDt;
+        e.vy += (dy / d) * 245 * worldDt;
         const newSpeed = Math.max(1, Math.hypot(e.vx, e.vy));
         e.vx = (e.vx / newSpeed) * curSpeed;
         e.vy = (e.vy / newSpeed) * curSpeed;
       } else if (e.type === "WANDERER") {
-        e.vx += Math.sin(this.time * 3.5 + e.phase) * 90 * worldDt;
-        e.vy += Math.cos(this.time * 3.5 + e.phase) * 90 * worldDt;
+        e.vx += Math.sin(this.time * 3.8 + e.phase) * 115 * worldDt;
+        e.vy += Math.cos(this.time * 3.8 + e.phase) * 115 * worldDt;
       }
 
-      const bassBoost = 1 + this.multiBandState.bass * 0.28;
+      const bassBoost = 1 + this.multiBandState.bass * 0.34;
       e.x += e.vx * bassBoost * worldDt;
       e.y += e.vy * bassBoost * worldDt;
 
@@ -2796,7 +2948,7 @@ class NoMoreIllusionsApp {
     }
   }
 
-    initiateEnemyTelegraph() {
+  initiateEnemyTelegraph() {
     const edge = Math.floor(Math.random() * 4);
     let edgeX, edgeY;
     if (edge === 0) { edgeX = 36 + Math.random() * (this.W - 72); edgeY = 24; }
@@ -2804,11 +2956,15 @@ class NoMoreIllusionsApp {
     else if (edge === 2) { edgeX = 24; edgeY = 80 + Math.random() * (this.H - 160); }
     else { edgeX = this.W - 24; edgeY = 80 + Math.random() * (this.H - 160); }
 
-    // Target angle aims toward player's current general position with slight variation
-    const aimAngle = Math.atan2(this.playerY - edgeY, this.playerX - edgeX) + (Math.random() - 0.5) * 0.28;
+    const mode = this.getRemixMode();
+    const isTrackTwo = this.selectedStageIndex >= 1;
+    const trackDiffMult = isTrackTwo ? 1.18 : 1.0;
+
+    // Target angle aims toward player's current position with tight lead
+    const aimAngle = Math.atan2(this.playerY - edgeY, this.playerX - edgeX) + (Math.random() - 0.5) * 0.22;
     const roll = Math.random();
-    const type = roll < 0.40 ? "PULSAR" : (roll < 0.72 ? "SEEKER" : "WANDERER");
-    const speed = (155 + this.level * 12) * (type === "SEEKER" ? 1.08 : 0.95);
+    const type = roll < 0.38 ? "PULSAR" : (roll < 0.76 ? "SEEKER" : "WANDERER");
+    const speed = (185 + this.level * 15) * (type === "SEEKER" ? 1.12 : 0.98) * trackDiffMult * (mode.speed || 1.0);
 
     this.telegraphs.push({
       edgeX,
@@ -2816,8 +2972,8 @@ class NoMoreIllusionsApp {
       targetAngle: aimAngle,
       speed,
       type,
-      timer: 0.92, // 2-beat warning before launch
-      maxTimer: 0.92
+      timer: 0.80, // Crisp warning before launch
+      maxTimer: 0.80
     });
   }
 
@@ -2999,23 +3155,24 @@ class NoMoreIllusionsApp {
     ctx.fillStyle = bgGrad;
     ctx.fillRect(0, 0, w, h);
 
-    // Subtle concentric squircle rings inside preview box
+    // Organic rotating halo petal arcs inside preview box
     const maxDim = Math.max(w, h);
-    for (let i = 0; i < 5; i++) {
-      const rawPhase = ((i / 5) + this.time * 0.14) % 1;
-      const boxHalf = rawPhase * rawPhase * maxDim * 0.55;
-      if (boxHalf < 10) continue;
-      const rotRad = Math.sin(this.time * 0.8 + i * 0.6) * 10 * Math.PI / 180;
+    for (let i = 0; i < 4; i++) {
+      const rawPhase = ((i / 4) + this.time * 0.12) % 1;
+      const ringRad = rawPhase * rawPhase * maxDim * 0.52;
+      if (ringRad < 12) continue;
       const col = i % 2 === 0 ? palette.nebTint : palette.starTint;
-      const fadeAlpha = Math.sin(rawPhase * Math.PI) * 0.25;
-      ctx.save();
-      ctx.translate(w / 2, h / 2);
-      ctx.rotate(rotRad);
-      ctx.strokeStyle = rgba(col, fadeAlpha);
-      ctx.lineWidth = 1.6;
-      roundRectPath(ctx, -boxHalf, -boxHalf, boxHalf * 2, boxHalf * 2, boxHalf * 0.36);
-      ctx.stroke();
-      ctx.restore();
+      const fadeAlpha = Math.sin(rawPhase * Math.PI) * 0.24;
+      const baseSpin = this.time * (i % 2 === 0 ? 0.45 : -0.38) + i * 0.8;
+      for (let p = 0; p < 3; p++) {
+        const startA = baseSpin + p * ((Math.PI * 2) / 3);
+        ctx.beginPath();
+        ctx.arc(w / 2, h / 2, ringRad, startA, startA + 1.35);
+        ctx.strokeStyle = rgba(col, fadeAlpha);
+        ctx.lineWidth = 1.6;
+        ctx.lineCap = "round";
+        ctx.stroke();
+      }
     }
 
     // Target position: user drag or smooth figure-8 orbit
@@ -3218,49 +3375,80 @@ class NoMoreIllusionsApp {
     if (ptsEl) ptsEl.textContent = String(this.prefs.points);
 
     const lobby = LOBBY_TRACKS[this.prefs.lobbyThemeIndex % LOBBY_TRACKS.length];
-    const lobbyBtn = document.getElementById("menu-lobby-pill");
-    if (lobbyBtn) lobbyBtn.textContent = `LOBBY: ${lobby.title} ↻`;
+    const activeRemix = this.getRemixMode();
+    const lobbyTextEl = document.getElementById("menu-lobby-text");
+    if (lobbyTextEl) {
+      lobbyTextEl.textContent = `LOBBY: ${lobby.title.toUpperCase()} (${activeRemix.shortTag}) ↻`;
+    }
 
     const titleMain = document.getElementById("menu-title-main");
     if (titleMain) titleMain.style.color = allGold ? "#FEF08A" : "#F8FAFC";
 
-    const subtitlePill = document.getElementById("menu-subtitle-pill");
-    if (subtitlePill) {
-      subtitlePill.textContent = allGold ? "★ GOLD MASTER EDITION ★" : "THE INTERACTIVE ALBUM EXPERIENCE";
-      subtitlePill.style.color = allGold ? "#FACC15" : "#38BDF8";
+    const subBanner = document.getElementById("menu-sub-banner");
+    if (subBanner) {
+      subBanner.style.color = allGold ? "#FACC15" : "#4ADE80";
+      subBanner.innerHTML = allGold
+        ? `★ 100% ALBUM MASTERY • BEST: <span id="menu-best-score">${this.prefs.highScore}</span>`
+        : `INTERACTIVE VISUAL ALBUM • BEST SCORE: <span id="menu-best-score">${this.prefs.highScore}</span>`;
     }
 
-    const bestScoreEl = document.getElementById("menu-best-score");
-    if (bestScoreEl) bestScoreEl.textContent = String(this.prefs.highScore);
-
-    // Stage Selector Pills inside Flagship Console Card
-    const stagePillsContainer = document.getElementById("menu-stage-pills");
     const activeStage = OFFICIAL_TRACKS[this.selectedStageIndex] || OFFICIAL_TRACKS[0];
-    if (stagePillsContainer) {
-      stagePillsContainer.innerHTML = OFFICIAL_TRACKS.map((track, idx) => {
+
+    // 1. Track Vinyl Selector Cards (#menu-track-deck-row) — 1:1 with Android MenuScreen.kt
+    const trackDeckRow = document.getElementById("menu-track-deck-row");
+    if (trackDeckRow) {
+      trackDeckRow.innerHTML = OFFICIAL_TRACKS.map((track, idx) => {
         const isSelected = idx === this.selectedStageIndex;
-        const isUnlocked = this.prefs.unlockedTracks.includes(track.id);
-        const bestProg = Math.max(isUnlocked ? 1 : 0, this.prefs.trackBestProgress[track.id] || 0);
-        const pct = Math.round(bestProg * 100);
-        const medal = this.prefs.trackMasteryMedals[track.id] || 0;
-        const medalStr = medal === 3 ? "🥇 " : medal === 2 ? "🥈 " : medal === 1 ? "🥉 " : "";
-        const statusStr = isUnlocked ? "★ UNLOCKED IN VAULT" : `${pct}% REVEALED`;
-        const statusCol = medal === 3 ? "#FACC15" : isUnlocked ? "#4ADE80" : isSelected ? "#FACC15" : "#64748B";
+        const stars = this.prefs.trackMasteryMedals[track.id] || 0;
+        const starsStr = [1, 2, 3].map(s => `<span style="color:${s <= stars ? "#FACC15" : "#334155"};">★</span>`).join("");
         return `
-          <div class="stage-pill ${isSelected ? "selected" : ""}" onclick="window.app.selectStage(${idx})">
-            <div class="stage-pill-title">${medalStr}STAGE ${idx + 1}: ${track.title.toUpperCase()}</div>
-            <div class="stage-pill-sub" style="color:${statusCol};">${statusStr}</div>
+          <div class="track-card ${isSelected ? "selected" : ""}" onclick="window.app.selectStage(${idx})">
+            <div class="track-card-header">
+              <span class="track-card-bpm">SONG 0${idx + 1} • ${track.bpm} BPM</span>
+              <span class="track-card-stars">${starsStr}</span>
+            </div>
+            <div class="track-card-title">${track.title.toUpperCase()}</div>
           </div>
         `;
       }).join("");
     }
 
-    const launchSub = document.getElementById("menu-launch-sub");
-    if (launchSub) {
-      const isUnlocked = this.prefs.unlockedTracks.includes(activeStage.id);
-      launchSub.textContent = isUnlocked
-        ? `STAGE ${this.selectedStageIndex + 1}: ${activeStage.title.toUpperCase()} (UNLOCKED)`
-        : `SURVIVE TO UNLOCK '${activeStage.title.toUpperCase()}'`;
+    // 2. 4-Mode Replayability Selector (#menu-remix-pills & #menu-remix-subtitle) — 1:1 with Android MenuScreen.kt
+    const remixSubEl = document.getElementById("menu-remix-subtitle");
+    if (remixSubEl) {
+      remixSubEl.textContent = activeRemix.subtitle;
+      remixSubEl.style.color = activeRemix.color;
+    }
+
+    const remixPillsEl = document.getElementById("menu-remix-pills");
+    if (remixPillsEl) {
+      remixPillsEl.innerHTML = TRACK_REMIX_MODES.map((mode) => {
+        const isSelected = mode.id === activeRemix.id;
+        return `
+          <div class="remix-pill ${isSelected ? "selected" : ""}"
+               style="border-color:${isSelected ? mode.color : "rgba(255,255,255,0.12)"};background:${isSelected ? "rgba(255,255,255,0.09)" : "#050911"};"
+               onclick="window.app.setRemixMode('${mode.id}')">
+            <div class="remix-pill-tag" style="color:${isSelected ? mode.color : "#94A3B8"};">${mode.shortTag}</div>
+            <div class="remix-pill-id" style="color:${isSelected ? "#FFFFFF" : "#64748B"};">${mode.displayName}</div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    // 3. Console Card Border & Launch Button (#menu-launch-main & #btn-launch-stage)
+    const consoleCard = document.getElementById("menu-console-card");
+    if (consoleCard) {
+      consoleCard.style.borderColor = allGold ? "#FACC15" : activeRemix.color;
+    }
+
+    const launchBtn = document.getElementById("btn-launch-stage");
+    if (launchBtn) {
+      launchBtn.style.borderColor = activeRemix.color;
+    }
+
+    const launchMain = document.getElementById("menu-launch-main");
+    if (launchMain) {
+      launchMain.innerHTML = `▶ &nbsp;PLAY ${activeStage.title.toUpperCase()} (${activeRemix.displayName})`;
     }
 
     const vaultCountEl = document.getElementById("menu-vault-count");

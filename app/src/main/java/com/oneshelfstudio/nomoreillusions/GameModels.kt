@@ -68,6 +68,7 @@ enum class LobbyTrack(val id: String, val title: String, val subtitle: String, v
  */
 enum class TrackRemixMode(
     val id: String,
+    val displayName: String,
     val title: String,
     val shortTag: String,
     val subtitle: String,
@@ -75,10 +76,10 @@ enum class TrackRemixMode(
     val audioPitch: Float,
     val noteMultiplier: Float
 ) {
-    ORIGINAL("ORIGINAL", "Original Mix", "1.0x", "Studio Master Tempo • Balanced Flow", 1.0f, 1.0f, 1.0f),
-    OVERCLOCK("OVERCLOCK", "Nightcore Overclock", "1.20x", "High-Speed Reflexes • 2.0x ♪ Notes", 1.20f, 1.10f, 2.0f),
-    SLOWED("SLOWED", "Slowed + Reverb", "0.85x", "Late-Night Abyssal Drift • 1.5x ♪ Notes", 0.85f, 0.88f, 1.5f),
-    ENDLESS("ENDLESS", "Endless Eclipse", "∞ LOOP", "Infinite Escalating Loop • 2.5x ♪ Notes", 1.0f, 1.0f, 2.5f);
+    ORIGINAL("ORIGINAL", "NORMAL", "Normal Speed", "1.0x", "Standard Tempo • 1x ♪ Notes", 1.0f, 1.0f, 1.0f),
+    OVERCLOCK("OVERCLOCK", "FAST", "Fast Mode", "1.2x", "Faster Music & Gameplay • 2x ♪ Notes", 1.20f, 1.12f, 2.0f),
+    SLOWED("SLOWED", "CHILL", "Chill Mode", "0.85x", "Slowed & Pitched Down • 1.5x ♪ Notes", 0.85f, 0.86f, 1.5f),
+    ENDLESS("ENDLESS", "ENDLESS", "Endless Loop", "∞ LOOP", "Non-Stop Rising Challenge • 2.5x ♪ Notes", 1.0f, 1.0f, 2.5f);
 
     companion object {
         fun fromId(id: String?): TrackRemixMode = entries.firstOrNull { it.id == id } ?: ORIGINAL
