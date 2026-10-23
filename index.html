@@ -953,6 +953,83 @@
       100% { transform: scale(0.95); opacity: 0.85; }
     }
 
+    /* Candy-Catcher-Style Top-Center Power-Up Pickup Toast (1:1 with Android GameHUD.kt) */
+    #hud-pickup-toast {
+      position: fixed;
+      top: calc(env(safe-area-inset-top, 12px) + 132px);
+      left: 50%;
+      transform: translateX(-50%);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      background: linear-gradient(90deg, rgba(6,11,24,0.95), rgba(30,20,50,0.92), rgba(6,11,24,0.95));
+      border: 1.5px solid #FACC15;
+      border-radius: 14px;
+      padding: 7px 16px;
+      pointer-events: none;
+      z-index: 12;
+      min-width: 220px;
+    }
+    #hud-pickup-toast.toast-pop { animation: toastBounce 0.42s cubic-bezier(0.34, 1.56, 0.64, 1); }
+    @keyframes toastBounce {
+      0% { transform: translateX(-50%) scale(0.4); opacity: 0; }
+      65% { transform: translateX(-50%) scale(1.08); opacity: 1; }
+      100% { transform: translateX(-50%) scale(1); opacity: 1; }
+    }
+    .toast-row { display: flex; align-items: center; gap: 8px; }
+    #hud-toast-icon {
+      width: 26px; height: 26px; border-radius: 50%;
+      border: 1px solid #FACC15; background: rgba(255,255,255,0.08);
+      display: flex; align-items: center; justify-content: center; font-size: 13px;
+    }
+    #hud-toast-title { font-size: 12px; font-weight: 900; letter-spacing: 0.9px; color: #FFFFFF; }
+    #hud-toast-sub { font-size: 9.5px; font-weight: 800; letter-spacing: 0.6px; }
+    .toast-bar-bg { width: 150px; height: 3px; border-radius: 3px; background: rgba(255,255,255,0.16); overflow: hidden; }
+    #hud-toast-bar { height: 100%; width: 100%; background: #FACC15; }
+
+    /* Google-Play/AdMob-compliant, uniquely identifiable rewarded-ad button */
+    .btn-ad-reward {
+      width: 100%;
+      min-height: 54px;
+      border-radius: 8px;
+      background: linear-gradient(90deg, #291804, #1F1203, #2D1B05);
+      border: 2px solid #FACC15;
+      box-shadow: 0 0 0 2px rgba(245,158,11,0.35), 0 6px 18px rgba(245,158,11,0.25);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 12px;
+      cursor: pointer;
+      color: #FEF08A;
+      text-align: left;
+    }
+    .ad-badge {
+      background: #FACC15; color: #090D16; border: 1px solid #FEF08A;
+      border-radius: 5px; padding: 3px 7px; font-size: 10.5px; font-weight: 900; letter-spacing: 0.8px;
+    }
+    .ad-main { font-size: 13px; font-weight: 900; letter-spacing: 0.8px; color: #FEF08A; }
+    .ad-sub { font-size: 8.5px; font-weight: 800; letter-spacing: 0.6px; color: #FBBF24; }
+
+    /* VIP Passcode & House-Promo overlays */
+    .center-overlay {
+      position: fixed; inset: 0; z-index: 40; display: none;
+      align-items: center; justify-content: center;
+      background: rgba(4,2,11,0.86); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+      padding: 18px;
+    }
+    .center-overlay .glass-modal-card { animation: popupZoomBounceIn 0.48s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+    #vip-input {
+      width: 100%; height: 44px; border-radius: 10px; background: #04070F;
+      border: 1.2px solid rgba(99,102,241,0.6); color: #FFFFFF; font-size: 15px; font-weight: 900;
+      letter-spacing: 2px; text-transform: uppercase; padding: 0 12px; outline: none;
+      user-select: text; -webkit-user-select: text;
+    }
+    .vip-pill {
+      background: rgba(5,11,20,0.88); border: 1px solid rgba(192,132,252,0.6); border-radius: 10px;
+      padding: 6px 10px; font-size: 9.5px; font-weight: 900; letter-spacing: 0.6px; color: #C084FC; cursor: pointer;
+    }
+
   </style>
 </head>
 <body>
@@ -968,8 +1045,9 @@
       <div class="pill-currency" onclick="window.app.openScreen('CUSTOMIZER')">
         <span style="color:#FACC15;font-size:12px;">♪</span>
         <span id="menu-points-val">350</span>
-        <span id="menu-vip-badge" class="pill-vip-badge">• VIP SAFE ADS</span>
+        <span id="menu-vip-badge" class="pill-vip-badge"></span>
       </div>
+      <div class="vip-pill" onclick="window.app.openVipPasscode()">🔑 VIP</div>
       <div id="menu-lobby-pill" class="pill-lobby" onclick="window.app.cycleLobbyTheme()">
         <span id="menu-lobby-dot" class="lobby-dot"></span>
         <span id="menu-lobby-text">LOBBY: VELVET SYNTH ↻</span>
@@ -1087,6 +1165,17 @@
       <div id="hud-choreo-sub">126 BPM PULSE LOCK</div>
     </div>
 
+    <div id="hud-pickup-toast">
+      <div class="toast-row">
+        <div id="hud-toast-icon">💥</div>
+        <div>
+          <div id="hud-toast-title">NOVA BLAST!</div>
+          <div id="hud-toast-sub" style="color:#F97316;">ENEMIES VAPORIZED</div>
+        </div>
+      </div>
+      <div class="toast-bar-bg"><div id="hud-toast-bar"></div></div>
+    </div>
+
     <div class="hud-bottom-row">
       <div id="btn-focus-hold" class="btn-focus-wrap">
         <div class="btn-focus-label">HOLD FOCUS</div>
@@ -1116,9 +1205,19 @@
       <div class="modal-title" style="color:#F43F5E;">SIGNAL INTERRUPTED</div>
       <div style="font-size:34px;font-weight:900;color:#F8FAFC;" id="gameover-score-val">0</div>
       <div style="font-size:11px;font-weight:800;color:#FACC15;letter-spacing:1.3px;" id="gameover-best-val">BEST RECORD: 0</div>
-      <button id="gameover-revive-btn" class="btn-action-gold" onclick="window.app.revivePlayer()">⚡ SECOND CHANCE SHIELD (FREE TEST)</button>
-      <button class="btn-action-primary" onclick="window.app.startStage()">↻  PLAY STAGE AGAIN</button>
-      <button class="btn-action-secondary" onclick="window.app.openScreen('CUSTOMIZER')">♪  STUDIO VAULT &amp; SHOP</button>
+      <button id="gameover-notes-btn" class="btn-action-primary" onclick="window.app.reviveWithNotes()">♪ USE 250 NOTES TO REVIVE</button>
+      <button id="gameover-revive-btn" class="btn-ad-reward" onclick="window.app.reviveWithAd()">
+        <span style="display:flex;align-items:center;gap:10px;">
+          <span class="ad-badge">AD</span>
+          <span style="display:flex;flex-direction:column;">
+            <span class="ad-main">WATCH AD TO REVIVE</span>
+            <span class="ad-sub">SPONSORED VIDEO • INSTANT REVIVE</span>
+          </span>
+        </span>
+        <span style="color:#FACC15;font-size:14px;font-weight:900;">▶</span>
+      </button>
+      <button class="btn-action-secondary" style="border-color:rgba(74,222,128,0.6);color:#4ADE80;" onclick="window.app.startStage()">↻  REPLAY TRACK</button>
+      <button class="btn-action-secondary" onclick="window.app.openScreen('CUSTOMIZER')">♪  ALBUM &amp; SHOP</button>
       <button class="btn-action-secondary" onclick="window.app.openScreen('MENU')">⌂  MAIN MENU</button>
     </div>
   </div>
@@ -1151,6 +1250,7 @@
         </div>
         <div style="display:flex;align-items:center;gap:8px;">
           <span id="cust-points-val" style="font-size:13px;font-weight:900;color:#FACC15;">♪ 350</span>
+          <button class="btn-close-pill" style="color:#FACC15;border-color:#FACC15;" onclick="window.app.openVipPasscode()">🔑 VIP</button>
           <button class="btn-close-pill" onclick="window.app.openScreen('MENU')">DONE</button>
         </div>
       </div>
@@ -1330,10 +1430,10 @@
       </div>
       <div class="cust-item-row">
         <div style="flex:1;">
-          <div class="cust-item-name">AdMob Partner Safe Mode</div>
-          <div class="cust-item-sub">Locked to Test Mode — Zero Live Impression Risk</div>
+          <div class="cust-item-name">Artist VIP Passcode</div>
+          <div class="cust-item-sub">Unlock all songs, skins, trails &amp; themes</div>
         </div>
-        <span style="font-size:10px;font-weight:900;color:#4ADE80;">LOCKED SAFE</span>
+        <button class="toggle-pill on" style="border-color:#FACC15;color:#FACC15;background:rgba(250,204,21,0.15);" onclick="window.app.openVipPasscode()">🔑 ENTER</button>
       </div>
       <button class="btn-action-primary" onclick="window.app.openScreen('MENU')">SAVE &amp; RETURN</button>
     </div>
@@ -1392,8 +1492,39 @@
     </div>
   </div>
 
-  <script src="multi_band_data.js?v=8"></script>
-  <script src="engine.js?v=8"></script>
+  <!-- Artist VIP Passcode Modal -->
+  <div id="vip-modal" class="center-overlay" onclick="if(event.target===this)window.app.closeVipPasscode()">
+    <div class="glass-modal-card" style="max-width:360px;text-align:center;border-color:#FACC15;">
+      <div class="modal-title" style="color:#FACC15;">🔑 ARTIST VIP PASSCODE</div>
+      <div style="font-size:11px;color:#CBD5E1;">Unlocks every song, hero skin, trail &amp; stage theme + 50,000 ♪ Notes.</div>
+      <input id="vip-input" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ENTER PASSCODE"
+             onkeydown="if(event.key==='Enter')window.app.submitVipPasscode()" />
+      <div id="vip-error" style="display:none;font-size:10.5px;font-weight:900;color:#F43F5E;">INVALID PASSCODE — TRY AGAIN</div>
+      <button class="btn-action-gold" onclick="window.app.submitVipPasscode()">UNLOCK ALL</button>
+      <button class="btn-action-secondary" onclick="window.app.closeVipPasscode()">CANCEL</button>
+    </div>
+  </div>
+
+  <!-- Web/iOS House Promo (AdMob only serves inside the native Android app) -->
+  <div id="house-ad-overlay" class="center-overlay">
+    <div class="glass-modal-card" style="max-width:360px;text-align:center;border-color:#FACC15;">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <span class="ad-badge">SPONSORED</span>
+        <span style="font-size:11px;font-weight:900;color:#FACC15;">REVIVING IN <span id="house-ad-count">5</span>s</span>
+      </div>
+      <img src="assets/nmi_logo.png" alt="No More Illusions" style="width:110px;height:110px;border-radius:20px;margin:6px auto;border:2px solid #FACC15;" />
+      <div class="modal-title" style="color:#F8FAFC;font-size:16px;">STREAM NO MORE ILLUSIONS</div>
+      <div style="font-size:11px;color:#CBD5E1;">Hear "Confide" &amp; "Number One" in full on your favorite platform.</div>
+      <div style="display:flex;gap:8px;justify-content:center;">
+        <a class="btn-close-pill" style="text-decoration:none;color:#1ED760;border-color:#1ED760;" href="https://open.spotify.com/artist/6tR26L15vR8nE2T6A4A383" target="_blank" rel="noopener">SPOTIFY</a>
+        <a class="btn-close-pill" style="text-decoration:none;color:#FA243C;border-color:#FA243C;" href="https://music.apple.com/us/artist/no-more-illusions/1781131407" target="_blank" rel="noopener">APPLE MUSIC</a>
+        <a class="btn-close-pill" style="text-decoration:none;color:#FF4444;border-color:#FF4444;" href="https://youtube.com/@nomoreillusions?si=p4sS722A3v1-B2rO" target="_blank" rel="noopener">YOUTUBE</a>
+      </div>
+    </div>
+  </div>
+
+  <script src="multi_band_data.js?v=9"></script>
+  <script src="engine.js?v=9"></script>
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {

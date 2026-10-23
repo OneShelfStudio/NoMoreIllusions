@@ -1,4 +1,4 @@
-const CACHE_NAME = "nmi-v8-musical-choreography";
+const CACHE_NAME = "nmi-v9-faceted-arcade";
 const ASSETS = [
   "./",
   "./index.html",
