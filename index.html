@@ -1216,7 +1216,7 @@
         </span>
         <span style="color:#FACC15;font-size:14px;font-weight:900;">▶</span>
       </button>
-      <button class="btn-action-secondary" style="border-color:rgba(74,222,128,0.6);color:#4ADE80;" onclick="window.app.startStage()">↻  REPLAY TRACK</button>
+      <button class="btn-action-secondary" style="border-color:rgba(74,222,128,0.6);color:#4ADE80;" onclick="window.app.replayFromGameOver()">↻  REPLAY TRACK</button>
       <button class="btn-action-secondary" onclick="window.app.openScreen('CUSTOMIZER')">♪  ALBUM &amp; SHOP</button>
       <button class="btn-action-secondary" onclick="window.app.openScreen('MENU')">⌂  MAIN MENU</button>
     </div>
@@ -1523,8 +1523,8 @@
     </div>
   </div>
 
-  <script src="multi_band_data.js?v=9"></script>
-  <script src="engine.js?v=9"></script>
+  <script src="multi_band_data.js?v=10"></script>
+  <script src="engine.js?v=10"></script>
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
