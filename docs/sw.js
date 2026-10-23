@@ -1,4 +1,4 @@
-const CACHE_NAME = "nmi-v9-faceted-arcade";
+const CACHE_NAME = "nmi-v10-h5-ads";
 const ASSETS = [
   "./",
   "./index.html",
@@ -51,6 +51,8 @@ self.addEventListener("fetch", (event) => {
 
   const url = event.request.url;
   if (!url.startsWith("http")) return;
+  // Never intercept cross-origin requests (Google AdSense / H5 Games Ads must always hit the network)
+  if (new URL(url).origin !== self.location.origin) return;
 
   // Audio files with range requests should never be cached as 206 partial responses
   const isRangeRequest = event.request.headers.has("range");

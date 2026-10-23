@@ -1614,6 +1614,7 @@ class NoMoreIllusionsApp {
     this.audioUnlocked = false;
     this.sfxPool = {};
     this.initSfxPool();
+    this.initH5Ads();
 
     // Screen State Machine
     this.gameState = "MENU"; // MENU, PLAYING, PAUSED, GAME_OVER, TRACK_COMPLETED, HOW_TO_PLAY, SETTINGS, DEMO_PLAYER, CUSTOMIZER
@@ -1710,6 +1711,91 @@ class NoMoreIllusionsApp {
       img.src = src;
       this.images[k] = img;
     }
+  }
+
+  // ==========================================================================
+  // GOOGLE ADSENSE H5 GAMES ADS (Ad Placement API) — web/iOS equivalent of Android AdMob
+  // Only loads on the AdSense-approved domain (www.digital-dads-llc.com/nomoreillusions/).
+  // H5_TEST_MODE serves Google test ads until H5 Games access is approved; flip to false afterwards.
+  // ==========================================================================
+  initH5Ads() {
+    const H5_TEST_MODE = true;
+    const PUB_ID = "ca-pub-7651037308656903";
+    this.h5AdsEnabled = /(^|\.)digital-dads-llc\.com$/i.test(location.hostname);
+    this.pendingShowRewardAd = null;
+    this.gameOverCount = 0;
+    if (!this.h5AdsEnabled) return;
+    try {
+      const s = document.createElement("script");
+      s.async = true;
+      s.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${PUB_ID}`;
+      s.crossOrigin = "anonymous";
+      s.setAttribute("data-ad-client", PUB_ID);
+      s.setAttribute("data-ad-frequency-hint", "30s");
+      if (H5_TEST_MODE) s.setAttribute("data-adbreak-test", "on");
+      document.head.appendChild(s);
+      window.adsbygoogle = window.adsbygoogle || [];
+      window.adBreak = window.adConfig = function (o) { window.adsbygoogle.push(o); };
+      window.adConfig({ preloadAdBreaks: "on", sound: "on" });
+    } catch (e) {
+      this.h5AdsEnabled = false;
+    }
+  }
+
+  pauseAllAudioForAd() {
+    this.audioPausedForAd = true;
+    try { this.trackAudio.pause(); } catch (e) {}
+    try { this.lobbyAudio.pause(); } catch (e) {}
+    try { this.demoAudio.pause(); } catch (e) {}
+  }
+
+  resumeAudioAfterAd() {
+    this.audioPausedForAd = false;
+    if (this.gameState === "PLAYING" && !this.prefs.musicMuted) this.trackAudio.play().catch(() => {});
+    else this.updateLobbyPlayback();
+  }
+
+  // Ask Google for a rewarded placement as soon as the Game Over screen appears.
+  // beforeReward only fires when an ad is actually ready; we hold showAdFn until the player taps the AD button.
+  prepareRewardedRevive() {
+    this.pendingShowRewardAd = null;
+    if (!this.h5AdsEnabled || this.reviveUsedThisRun || typeof window.adBreak !== "function") return;
+    let granted = false;
+    try {
+      window.adBreak({
+        type: "reward",
+        name: "revive_player",
+        beforeAd: () => this.pauseAllAudioForAd(),
+        afterAd: () => this.resumeAudioAfterAd(),
+        beforeReward: (showAdFn) => { this.pendingShowRewardAd = showAdFn; },
+        adDismissed: () => { granted = false; },
+        adViewed: () => { granted = true; },
+        adBreakDone: () => {
+          this.pendingShowRewardAd = null;
+          if (granted && this.gameState === "GAME_OVER") {
+            this.reviveUsedThisRun = true;
+            this.performRevive();
+          }
+        }
+      });
+    } catch (e) {}
+  }
+
+  // Interstitial between runs (every 3rd replay after a Game Over — matches Android cadence)
+  showInterstitialThen(next) {
+    if (!this.h5AdsEnabled || typeof window.adBreak !== "function") { next(); return; }
+    let done = false;
+    const finish = () => { if (!done) { done = true; next(); } };
+    try {
+      window.adBreak({
+        type: "next",
+        name: "replay_track",
+        beforeAd: () => this.pauseAllAudioForAd(),
+        afterAd: () => { this.audioPausedForAd = false; },
+        adBreakDone: finish
+      });
+      setTimeout(finish, 6000); // never block gameplay if the ad API stalls
+    } catch (e) { finish(); }
   }
 
   initSfxPool() {
@@ -2159,6 +2245,13 @@ class NoMoreIllusionsApp {
     this.launchStageCountdown();
   }
 
+  // Replay from Game Over: every 3rd Game Over shows an interstitial first (1:1 with Android AdManager cadence)
+  replayFromGameOver() {
+    const go = () => this.startStage();
+    if (this.gameOverCount > 0 && this.gameOverCount % 3 === 0) this.showInterstitialThen(go);
+    else go();
+  }
+
   launchStageCountdown() {
     this.gameState = "COUNTDOWN";
     this.lobbyAudio.pause();
@@ -2317,6 +2410,13 @@ class NoMoreIllusionsApp {
   reviveWithAd() {
     if (this.reviveUsedThisRun) return;
     this.playSfx("click");
+    // Real Google rewarded ad (H5 Games Ads) when one is ready on the approved domain
+    if (typeof this.pendingShowRewardAd === "function") {
+      const show = this.pendingShowRewardAd;
+      this.pendingShowRewardAd = null;
+      try { show(); return; } catch (e) {}
+    }
+    // Fallback: 5-second No More Illusions house promo (no third-party ad available)
     const overlay = document.getElementById("house-ad-overlay");
     const countEl = document.getElementById("house-ad-count");
     if (!overlay) { this.reviveUsedThisRun = true; this.performRevive(); return; }
@@ -2450,7 +2550,9 @@ class NoMoreIllusionsApp {
     this.savePrefs();
 
     this.gameState = "GAME_OVER";
+    this.gameOverCount = (this.gameOverCount || 0) + 1;
     this.syncUI();
+    this.prepareRewardedRevive();
   }
 
   // ==========================================================================
