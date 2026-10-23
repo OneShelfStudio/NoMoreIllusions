@@ -18,7 +18,11 @@ data class TrackSection(
     val label: String,
     val juiceTier: JuiceTier = JuiceTier.SECTION_SHIFT,
     val stageMode: StageMode = StageMode.ABYSSAL_WAVE,
-    val isGoldenOverdrive: Boolean = false
+    val isGoldenOverdrive: Boolean = false,
+    val maxEnemies: Int = 4,
+    val enemySpeedMult: Float = 1.0f,
+    val clearEnemiesOnEnter: Boolean = false,
+    val allowAnomalies: Boolean = false
 )
 
 /**
@@ -136,8 +140,10 @@ object MusicLibrary {
         val prevHigh = sample4Hz(highArr, (positionSec - 0.75f).coerceAtLeast(0f))
         val swellDelta = maxOf(rms - prevRms, (vocal - prevVocal) * 0.85f, (high - prevHigh) * 0.85f).coerceIn(-0.5f, 0.7f)
 
-        // True when the bass/kick drum intentionally drops out for vocal intimacy or stop-time
-        val bassDropOut = positionSec > 8.0f && bass < 0.14f
+        // True when the bass/kick drum intentionally drops out for vocal intimacy, pre-chorus hushes, or intros/outros
+        val isConfideLull = isTrack1 && (positionSec < 7.0f || positionSec in 62.0f..68.9f || positionSec in 124.0f..130.9f || positionSec >= 207.8f)
+        val isNumberOneLull = !isTrack1 && (positionSec < 9.5f || positionSec in 51.0f..53.2f || positionSec in 105.0f..107.6f || positionSec >= 152.5f)
+        val bassDropOut = isConfideLull || isNumberOneLull || (positionSec > 8.0f && bass < 0.12f)
 
         return MultiBandAudioState(
             rms = rms,
@@ -172,58 +178,28 @@ object MusicLibrary {
      */
     private fun buildConfideOrbChart(): List<BeatOrbCue> {
         val beatSec = 60f / 124f // 0.48387s
+        // ONLY 6 true milestone Supernova moments across the entire 3:39 track (matched to Ethan's exact notes!)
+        // so that when a Supernova Orb appears, it feels unmistakably special!
         val specialMoments = listOf(
-            // 0:07.5 Bass & Synth Swell Enters -> 0:14.5 Full Drum & High Ignition
-            KeyWordAnchor(7.26f, KeyWordEffect.TRACTOR_REACH),
-            KeyWordAnchor(14.52f, KeyWordEffect.CONSTELLATION_STAR),
-            KeyWordAnchor(21.29f, KeyWordEffect.MAGNETAR_WAR),
-            KeyWordAnchor(28.55f, KeyWordEffect.PRISM_SHATTER),
-            // Verse 1: Vocal Entry (31.68s), Syncopated Bass Cuts & Re-entrances (36.5s, 44.2s, 46.0s, 53.7s, 61.0s)
-            KeyWordAnchor(31.94f, KeyWordEffect.TRACTOR_REACH),
-            KeyWordAnchor(36.29f, KeyWordEffect.ECLIPSE_DARK),
-            KeyWordAnchor(43.06f, KeyWordEffect.PRISM_SHATTER),
-            KeyWordAnchor(45.97f, KeyWordEffect.MAGNETAR_WAR),
-            KeyWordAnchor(53.71f, KeyWordEffect.MAGNETAR_WAR),
-            KeyWordAnchor(60.97f, KeyWordEffect.ECLIPSE_DARK),
-            // 1:02 - 1:09 Zero-Bass Vocal Breakdown -> 1:09.2 Bass Re-Entry Crescendo -> 1:15.5 Chorus 1 Supernova Drop!
-            KeyWordAnchor(65.81f, KeyWordEffect.BINARY_HEART),
-            KeyWordAnchor(69.68f, KeyWordEffect.TRACTOR_REACH),
-            KeyWordAnchor(72.58f, KeyWordEffect.MAGNETAR_WAR),
-            KeyWordAnchor(75.48f, KeyWordEffect.CONSTELLATION_STAR),
-            KeyWordAnchor(83.23f, KeyWordEffect.CONSTELLATION_STAR),
-            KeyWordAnchor(90.97f, KeyWordEffect.MAGNETAR_WAR),
-            // Verse 2 Groove & Syncopated Swells (93.0s - 123.0s)
-            KeyWordAnchor(97.26f, KeyWordEffect.PRISM_SHATTER),
-            KeyWordAnchor(102.10f, KeyWordEffect.MAGNETAR_WAR),
-            KeyWordAnchor(107.90f, KeyWordEffect.BINARY_HEART),
-            KeyWordAnchor(113.71f, KeyWordEffect.TRACTOR_REACH),
-            KeyWordAnchor(119.52f, KeyWordEffect.PRISM_SHATTER),
-            // 2:04 - 2:11 Second Zero-Bass Breakdown -> 2:11.2 Pre-Chorus Crescendo -> 2:17.5 Chorus 2 Drop!
-            KeyWordAnchor(127.26f, KeyWordEffect.ECLIPSE_DARK),
-            KeyWordAnchor(131.61f, KeyWordEffect.TRACTOR_REACH),
-            KeyWordAnchor(134.52f, KeyWordEffect.MAGNETAR_WAR),
-            KeyWordAnchor(137.42f, KeyWordEffect.CONSTELLATION_STAR),
-            KeyWordAnchor(145.16f, KeyWordEffect.PRISM_SHATTER),
-            KeyWordAnchor(152.90f, KeyWordEffect.MAGNETAR_WAR),
-            // Bridge -> 2:49.2 Vocal Battle Swell -> 3:04.8 Grand Finale Climax!
-            KeyWordAnchor(160.65f, KeyWordEffect.BINARY_HEART),
-            KeyWordAnchor(169.35f, KeyWordEffect.MAGNETAR_WAR),
-            KeyWordAnchor(176.13f, KeyWordEffect.BINARY_HEART),
-            KeyWordAnchor(184.84f, KeyWordEffect.CONSTELLATION_STAR),
-            KeyWordAnchor(192.58f, KeyWordEffect.PRISM_SHATTER),
-            KeyWordAnchor(201.29f, KeyWordEffect.CONSTELLATION_STAR),
-            KeyWordAnchor(208.06f, KeyWordEffect.ECLIPSE_DARK)
+            KeyWordAnchor(14.52f, KeyWordEffect.CONSTELLATION_STAR), // 0:14.5 Intro Drop (EXTRA JUICE)
+            KeyWordAnchor(45.97f, KeyWordEffect.PRISM_SHATTER),      // 0:46.0 Pre-Chorus Surge
+            KeyWordAnchor(75.48f, KeyWordEffect.CONSTELLATION_STAR), // 1:15.5 Hook Instrumental Drop I (EXTRA JUICE)
+            KeyWordAnchor(137.42f, KeyWordEffect.CONSTELLATION_STAR),// 2:17.5 Hook Instrumental Drop II (EXTRA JUICE)
+            KeyWordAnchor(169.35f, KeyWordEffect.MAGNETAR_WAR),      // 2:49.5 Bridge Vocal Battle Swell
+            KeyWordAnchor(183.87f, KeyWordEffect.CONSTELLATION_STAR) // 3:03.9 Ending Breakdown Climax (EXTRA JUICE)
         )
 
-        val cues = ArrayList<BeatOrbCue>(115)
+        val cues = ArrayList<BeatOrbCue>(110)
         val usedAnchors = HashSet<Int>()
-        // Beat-locked every 4 beats (1 bar = 1.935s) during standard sections, and every 2 beats (0.967s) during pre-chorus risers!
-        var beatIdx = 4
+        var beatIdx = 6
         var seq = 1
-        while (beatIdx * beatSec <= 214.0f) {
+        while (beatIdx * beatSec <= 212.0f) {
             val t = beatIdx * beatSec
+            val inIntroLull = t < 7.2f
             val inBreakdown = (t in 62.0f..68.8f) || (t in 124.0f..130.8f)
             val inRiser = (t in 69.0f..75.4f) || (t in 131.0f..137.3f)
+            val inChorusOrFinale = (t in 14.5f..30.8f) || (t in 75.5f..92.8f) || (t in 137.5f..154.8f) || (t in 183.5f..201.0f)
+            val inOutro = t >= 207.8f
 
             var matchedIdx = -1
             var bestDist = beatSec * 1.6f
@@ -245,30 +221,36 @@ object MusicLibrary {
             val effect = anchor?.effect ?: KeyWordEffect.NONE
             val isGolden = effect == KeyWordEffect.CONSTELLATION_STAR
 
-            // Musical choreography of orb positions on screen:
-            // - During Pre-Chorus Risers (69-75s, 131-137s), orbs climb upward in a dramatic rising staircase!
-            // - During Breakdowns, orbs float calmly near the center.
-            // - Otherwise, orbs weave a clean figure-8 / S-curve across the arena.
+            // Section-choreographed orb trajectories:
+            // - Intro / Breakdown / Outro: gentle, centered floating arc
+            // - Pre-Chorus Riser: dramatic alternating ascending staircase climbing toward the drop
+            // - Chorus / Finale: wide, sweeping high-energy diamond arcs
+            // - Verse: smooth, hypnotic figure-8 S-curve
             val (nx, ny) = when {
                 inRiser -> {
                     val riserProgress = if (t < 100f) ((t - 69f) / 6.5f).coerceIn(0f, 1f) else ((t - 131f) / 6.5f).coerceIn(0f, 1f)
-                    val side = if (seq % 2 == 0) 0.32f else 0.68f
-                    side to (0.72f - riserProgress * 0.40f).coerceIn(0.28f, 0.74f)
+                    val side = if (seq % 2 == 0) 0.30f else 0.70f
+                    side to (0.74f - riserProgress * 0.42f).coerceIn(0.28f, 0.74f)
                 }
-                inBreakdown -> {
-                    0.50f + 0.16f * sin(seq * 0.8f) to 0.52f + 0.10f * cos(seq * 0.8f)
+                inIntroLull || inBreakdown || inOutro -> {
+                    0.50f + 0.14f * sin(seq * 0.85f) to 0.50f + 0.08f * cos(seq * 0.85f)
+                }
+                inChorusOrFinale -> {
+                    val phase = seq * 0.82f
+                    (0.50f + 0.32f * sin(phase)).coerceIn(0.18f, 0.82f) to
+                        (0.48f + 0.24f * cos(phase * 0.75f)).coerceIn(0.26f, 0.74f)
                 }
                 else -> {
-                    val ribbonPhase = seq * 0.58f
-                    (0.50f + 0.28f * sin(ribbonPhase)).coerceIn(0.20f, 0.80f) to
-                        (0.50f + 0.21f * cos(ribbonPhase * 0.70f)).coerceIn(0.28f, 0.74f)
+                    val ribbonPhase = seq * 0.56f
+                    (0.50f + 0.25f * sin(ribbonPhase)).coerceIn(0.22f, 0.78f) to
+                        (0.50f + 0.18f * cos(ribbonPhase * 0.70f)).coerceIn(0.30f, 0.72f)
                 }
             }
 
             val pType = when (effect) {
                 KeyWordEffect.MAGNETAR_WAR, KeyWordEffect.PRISM_SHATTER -> PowerUpType.BLAST
                 KeyWordEffect.ECLIPSE_DARK, KeyWordEffect.BINARY_HEART -> PowerUpType.SHIELD
-                else -> PowerUpType.MULTIPLIER
+                else -> if (seq % 9 == 0) PowerUpType.SHIELD else PowerUpType.MULTIPLIER
             }
 
             cues.add(
@@ -284,9 +266,10 @@ object MusicLibrary {
             )
             seq++
             beatIdx += when {
-                inRiser -> 3      // Tighter climbing pulse during pre-chorus drum risers
-                inBreakdown -> 6  // Spacious, breathing cadence during zero-bass vocal breakdowns
-                else -> 4         // Exact 1-bar (4-beat) downbeat lock!
+                inIntroLull || inBreakdown || inOutro -> 6 // Spacious, floating cadence during lulls
+                inRiser -> 2                               // Rapid climbing pulse on drum risers!
+                inChorusOrFinale -> 3                      // Energetic 3-beat chorus drive
+                else -> 4                                  // Clean 1-bar (4-beat) verse pocket
             }
         }
         return cues
@@ -294,58 +277,29 @@ object MusicLibrary {
 
     /**
      * Builds the Beat-Quantized Orb Chart for Track 02: Number One (88.0 BPM, beat = 0.6818s).
-     * Every orb is locked to the 88 BPM beat grid.
+     * Restricted to 5 milestone Supernova moments matched to Ethan's exact notes!
      */
     private fun buildNumberOneOrbChart(): List<BeatOrbCue> {
         val beatSec = 60f / 88f // 0.6818s
         val specialMoments = listOf(
-            // Intro Bass Entry (6.5s) & Shimmer Opening (9.75s)
-            KeyWordAnchor(6.82f, KeyWordEffect.TRACTOR_REACH),
-            KeyWordAnchor(10.23f, KeyWordEffect.BINARY_HEART),
-            KeyWordAnchor(17.73f, KeyWordEffect.TRACTOR_REACH),
-            // Verse 1 Swells (24.5s, 31.25s, 39.5s)
-            KeyWordAnchor(24.55f, KeyWordEffect.TRACTOR_REACH),
-            KeyWordAnchor(31.36f, KeyWordEffect.BINARY_HEART),
-            KeyWordAnchor(39.55f, KeyWordEffect.MAGNETAR_WAR),
-            // Pre-Chorus & Shimmer Riser (45.0s, 52.5s) -> Chorus 1 Swell (55.25s - 75.0s)
-            KeyWordAnchor(45.00f, KeyWordEffect.PRISM_SHATTER),
-            KeyWordAnchor(52.50f, KeyWordEffect.ECLIPSE_DARK),
-            KeyWordAnchor(55.23f, KeyWordEffect.CONSTELLATION_STAR),
-            KeyWordAnchor(58.64f, KeyWordEffect.CONSTELLATION_STAR),
-            KeyWordAnchor(64.09f, KeyWordEffect.BINARY_HEART),
-            KeyWordAnchor(70.23f, KeyWordEffect.BINARY_HEART),
-            KeyWordAnchor(75.00f, KeyWordEffect.CONSTELLATION_STAR),
-            // Verse 2 Pullback (76.0s) -> Groove Re-entry (79.0s, 84.5s)
-            KeyWordAnchor(79.09f, KeyWordEffect.ECLIPSE_DARK),
-            KeyWordAnchor(84.55f, KeyWordEffect.TRACTOR_REACH),
-            // 1:31.2 Rap Cadence & Bass Swells
-            KeyWordAnchor(91.36f, KeyWordEffect.BINARY_HEART),
-            KeyWordAnchor(94.09f, KeyWordEffect.PRISM_SHATTER),
-            KeyWordAnchor(97.50f, KeyWordEffect.MAGNETAR_WAR),
-            // Pre-Chorus 2 (104.5s) -> Chorus 2 Swell (109.75s - 125.0s)
-            KeyWordAnchor(104.32f, KeyWordEffect.ECLIPSE_DARK),
-            KeyWordAnchor(109.77f, KeyWordEffect.CONSTELLATION_STAR),
-            KeyWordAnchor(113.18f, KeyWordEffect.CONSTELLATION_STAR),
-            KeyWordAnchor(120.68f, KeyWordEffect.PRISM_SHATTER),
-            KeyWordAnchor(124.09f, KeyWordEffect.BINARY_HEART),
-            // Grand Finale Climax ("Don't go out!" 129.5s - 152.5s)
-            KeyWordAnchor(129.55f, KeyWordEffect.CONSTELLATION_STAR),
-            KeyWordAnchor(135.00f, KeyWordEffect.BINARY_HEART),
-            KeyWordAnchor(139.09f, KeyWordEffect.PRISM_SHATTER),
-            KeyWordAnchor(145.91f, KeyWordEffect.MAGNETAR_WAR),
-            KeyWordAnchor(148.64f, KeyWordEffect.CONSTELLATION_STAR),
-            KeyWordAnchor(152.73f, KeyWordEffect.CONSTELLATION_STAR),
-            KeyWordAnchor(159.55f, KeyWordEffect.ECLIPSE_DARK)
+            KeyWordAnchor(44.32f, KeyWordEffect.TRACTOR_REACH),      // 0:44.3 Pre-Chorus I Swell
+            KeyWordAnchor(54.55f, KeyWordEffect.CONSTELLATION_STAR), // 0:54.5 Chorus I Drop (EXTRA JUICE)
+            KeyWordAnchor(92.05f, KeyWordEffect.PRISM_SHATTER),      // 1:32.0 Verse Two "Rap" (SLIGHT EXTRA JUICE)
+            KeyWordAnchor(109.09f, KeyWordEffect.CONSTELLATION_STAR),// 1:49.1 Chorus II Drop (EXTRA JUICE)
+            KeyWordAnchor(129.55f, KeyWordEffect.CONSTELLATION_STAR) // 2:09.5 Ending Breakdown Climax (EXTRA JUICE)
         )
 
-        val cues = ArrayList<BeatOrbCue>(95)
+        val cues = ArrayList<BeatOrbCue>(90)
         val usedAnchors = HashSet<Int>()
-        var beatIdx = 3
+        var beatIdx = 4
         var seq = 1
-        while (beatIdx * beatSec <= 162.0f) {
+        while (beatIdx * beatSec <= 160.0f) {
             val t = beatIdx * beatSec
-            val isRap = t in 91.0f..98.5f
-            val isClimax = t in 129.0f..152.5f
+            val inIntroOrOutro = t < 9.8f || t >= 152.5f
+            val inHush = (t in 51.0f..53.5f) || (t in 105.0f..107.8f)
+            val isRap = t in 91.5f..98.5f
+            val isChorus = (t in 54.5f..75.5f) || (t in 109.0f..129.0f)
+            val isClimax = t in 129.0f..152.4f
 
             var matchedIdx = -1
             var bestDist = beatSec * 1.4f
@@ -367,14 +321,32 @@ object MusicLibrary {
             val effect = anchor?.effect ?: KeyWordEffect.NONE
             val isGolden = effect == KeyWordEffect.CONSTELLATION_STAR
 
-            val ribbonPhase = if (isRap) seq * 0.65f else seq * 0.52f
-            val nx = (0.50f + 0.28f * cos(ribbonPhase)).coerceIn(0.20f, 0.80f)
-            val ny = (0.50f + 0.21f * sin(ribbonPhase * 0.72f)).coerceIn(0.28f, 0.74f)
+            val (nx, ny) = when {
+                isRap -> {
+                    // Tight double-time zigzag rhythm lane across the center during Ethan's 1:32 Rap!
+                    val side = if (seq % 2 == 0) 0.34f else 0.66f
+                    val yStep = 0.36f + ((seq % 4) * 0.09f)
+                    side to yStep
+                }
+                inIntroOrOutro || inHush -> {
+                    0.50f + 0.14f * cos(seq * 0.8f) to 0.50f + 0.08f * sin(seq * 0.8f)
+                }
+                isClimax -> {
+                    val p = seq * 0.85f
+                    (0.50f + 0.33f * cos(p)).coerceIn(0.18f, 0.82f) to
+                        (0.48f + 0.24f * sin(p * 0.78f)).coerceIn(0.26f, 0.74f)
+                }
+                else -> {
+                    val ribbonPhase = seq * 0.52f
+                    (0.50f + 0.25f * cos(ribbonPhase)).coerceIn(0.22f, 0.78f) to
+                        (0.50f + 0.18f * sin(ribbonPhase * 0.72f)).coerceIn(0.30f, 0.72f)
+                }
+            }
 
             val pType = when (effect) {
                 KeyWordEffect.MAGNETAR_WAR, KeyWordEffect.PRISM_SHATTER -> PowerUpType.BLAST
                 KeyWordEffect.ECLIPSE_DARK, KeyWordEffect.BINARY_HEART -> PowerUpType.SHIELD
-                else -> PowerUpType.MULTIPLIER
+                else -> if (seq % 8 == 0) PowerUpType.SHIELD else PowerUpType.MULTIPLIER
             }
 
             cues.add(
@@ -390,9 +362,11 @@ object MusicLibrary {
             )
             seq++
             beatIdx += when {
-                isRap -> 2     // 2-beat cadence during the 1:32 rap flow
-                isClimax -> 2  // 2-beat cadence during the 2:10 Grand Finale
-                else -> 3      // Smooth 3-beat harmonic cadence at 88 BPM
+                inIntroOrOutro || inHush -> 5 // Calm, spacious breathing room
+                isRap -> 2                    // Tight 2-beat double-time Rap cadence at 1:32!
+                isClimax -> 2                 // High-energy 2-beat Ending Breakdown climax at 2:09!
+                isChorus -> 3                 // Flowing 3-beat Chorus stride
+                else -> 4                     // Laid-back 1-bar (4-beat) 88 BPM hip-hop pocket
             }
         }
         return cues
@@ -407,24 +381,42 @@ object MusicLibrary {
             unlockCost = 0,
             audioResName = "track_01",
             sections = listOf(
-                TrackSection(0f, "INTRO", JuiceTier.SECTION_SHIFT, StageMode.ABYSSAL_WAVE, isGoldenOverdrive = false),
-                TrackSection(7.25f, "BASS & GUITAR SWELL", JuiceTier.SECTION_SHIFT, StageMode.SPEED_PORTAL, isGoldenOverdrive = false),
-                TrackSection(14.5f, "DRUM & SYNTH DROP", JuiceTier.EXTRA_JUICE, StageMode.GOLDEN_OVERDRIVE, isGoldenOverdrive = true),
-                TrackSection(31.2f, "VERSE ONE", JuiceTier.SECTION_SHIFT, StageMode.ABYSSAL_WAVE, isGoldenOverdrive = false),
-                TrackSection(45.5f, "PRE-CHORUS SURGE", JuiceTier.SLIGHT_EXTRA_JUICE, StageMode.SPEED_PORTAL, isGoldenOverdrive = false),
-                TrackSection(62.0f, "VOCAL BREAKDOWN", JuiceTier.SECTION_SHIFT, StageMode.MAGIC_LANES, isGoldenOverdrive = false),
-                TrackSection(69.25f, "PRE-CHORUS RISER", JuiceTier.SLIGHT_EXTRA_JUICE, StageMode.SPEED_PORTAL, isGoldenOverdrive = false),
-                TrackSection(75.5f, "CHORUS SUPERNOVA", JuiceTier.EXTRA_JUICE, StageMode.GOLDEN_OVERDRIVE, isGoldenOverdrive = true),
-                TrackSection(93.0f, "VERSE TWO", JuiceTier.SECTION_SHIFT, StageMode.ABYSSAL_WAVE, isGoldenOverdrive = false),
-                TrackSection(107.8f, "MID-VERSE BASS SURGE", JuiceTier.SLIGHT_EXTRA_JUICE, StageMode.SPEED_PORTAL, isGoldenOverdrive = false),
-                TrackSection(124.0f, "VOCAL BREAKDOWN II", JuiceTier.SECTION_SHIFT, StageMode.MAGIC_LANES, isGoldenOverdrive = false),
-                TrackSection(131.25f, "PRE-CHORUS RISER II", JuiceTier.SLIGHT_EXTRA_JUICE, StageMode.SPEED_PORTAL, isGoldenOverdrive = false),
-                TrackSection(137.5f, "CHORUS II SUPERNOVA", JuiceTier.EXTRA_JUICE, StageMode.GOLDEN_OVERDRIVE, isGoldenOverdrive = true),
-                TrackSection(155.0f, "BRIDGE BREATHER", JuiceTier.SECTION_SHIFT, StageMode.ABYSSAL_WAVE, isGoldenOverdrive = false),
-                TrackSection(169.25f, "VOCAL BATTLE SWELL", JuiceTier.SLIGHT_EXTRA_JUICE, StageMode.SPEED_PORTAL, isGoldenOverdrive = false),
-                TrackSection(184.75f, "GRAND FINALE CLIMAX", JuiceTier.EXTRA_JUICE, StageMode.GOLDEN_OVERDRIVE, isGoldenOverdrive = true),
-                TrackSection(201.25f, "SUB-BASS HEARTBEAT", JuiceTier.SECTION_SHIFT, StageMode.ABYSSAL_WAVE, isGoldenOverdrive = false),
-                TrackSection(208.0f, "OUTRO ECLIPSE", JuiceTier.SECTION_SHIFT, StageMode.ABYSSAL_WAVE, isGoldenOverdrive = false)
+                // 0:00 Ambient Vocal Intro (0 enemies, pure floating calm)
+                TrackSection(0f, "INTRO • VOCAL FLOAT", JuiceTier.NONE, StageMode.ABYSSAL_WAVE, isGoldenOverdrive = false, maxEnemies = 0, enemySpeedMult = 0.0f, clearEnemiesOnEnter = true, allowAnomalies = false),
+                // 0:07.2 Bass & Guitar Swell (1-2 slow Wanderers building tension)
+                TrackSection(7.25f, "BASS & GUITAR SWELL", JuiceTier.SECTION_SHIFT, StageMode.SPEED_PORTAL, isGoldenOverdrive = false, maxEnemies = 2, enemySpeedMult = 0.78f, clearEnemiesOnEnter = false, allowAnomalies = false),
+                // 0:14.5 Intro Drop (EXTRA JUICE — Ethan's Note: 0:14 Intro Drop!)
+                TrackSection(14.5f, "INTRO DROP", JuiceTier.EXTRA_JUICE, StageMode.GOLDEN_OVERDRIVE, isGoldenOverdrive = true, maxEnemies = 6, enemySpeedMult = 1.12f, clearEnemiesOnEnter = false, allowAnomalies = true),
+                // 0:31.0 Verse One (Ethan's Note: 0:31 Verse One — calm back down to 3 smooth enemies)
+                TrackSection(31.0f, "VERSE ONE", JuiceTier.SECTION_SHIFT, StageMode.ABYSSAL_WAVE, isGoldenOverdrive = false, maxEnemies = 3, enemySpeedMult = 0.86f, clearEnemiesOnEnter = false, allowAnomalies = false),
+                // 0:45.5 Pre-Chorus Surge (4-5 enemies building intensity)
+                TrackSection(45.5f, "PRE-CHORUS SURGE", JuiceTier.SLIGHT_EXTRA_JUICE, StageMode.SPEED_PORTAL, isGoldenOverdrive = false, maxEnemies = 5, enemySpeedMult = 1.00f, clearEnemiesOnEnter = false, allowAnomalies = false),
+                // 1:02.0 Hook Part 1: Zero-Bass Vocal Breakdown (Ethan's Note: 1:03 Hook — 0 enemies, complete lull!)
+                TrackSection(62.0f, "HOOK • VOCAL FLOAT", JuiceTier.SECTION_SHIFT, StageMode.MAGIC_LANES, isGoldenOverdrive = false, maxEnemies = 0, enemySpeedMult = 0.0f, clearEnemiesOnEnter = true, allowAnomalies = false),
+                // 1:09.2 Pre-Drop Drum Riser (Ascending staircase + warning build)
+                TrackSection(69.25f, "DRUM RISER BUILD", JuiceTier.SLIGHT_EXTRA_JUICE, StageMode.SPEED_PORTAL, isGoldenOverdrive = false, maxEnemies = 3, enemySpeedMult = 0.95f, clearEnemiesOnEnter = false, allowAnomalies = false),
+                // 1:15.5 Hook Instrumental Drop (Ethan's Note: 1:17 Instrumental — 7 fast enemies + wormholes!)
+                TrackSection(75.5f, "INSTRUMENTAL DROP", JuiceTier.EXTRA_JUICE, StageMode.GOLDEN_OVERDRIVE, isGoldenOverdrive = true, maxEnemies = 7, enemySpeedMult = 1.16f, clearEnemiesOnEnter = false, allowAnomalies = true),
+                // 1:33.0 Verse Two (Ethan's Note: 1:33 Verse Two — strips back to 3-4 flowing enemies)
+                TrackSection(93.0f, "VERSE TWO", JuiceTier.SECTION_SHIFT, StageMode.ABYSSAL_WAVE, isGoldenOverdrive = false, maxEnemies = 3, enemySpeedMult = 0.88f, clearEnemiesOnEnter = false, allowAnomalies = false),
+                // 1:48.0 Mid-Verse Bass Surge (4-5 enemies)
+                TrackSection(108.0f, "VERSE BASS SURGE", JuiceTier.SLIGHT_EXTRA_JUICE, StageMode.SPEED_PORTAL, isGoldenOverdrive = false, maxEnemies = 5, enemySpeedMult = 0.98f, clearEnemiesOnEnter = false, allowAnomalies = false),
+                // 2:04.0 Hook II Part 1: Second Zero-Bass Vocal Breakdown (Ethan's Note: 2:05 Hook — 0 enemies, complete lull!)
+                TrackSection(124.0f, "HOOK II • VOCAL FLOAT", JuiceTier.SECTION_SHIFT, StageMode.MAGIC_LANES, isGoldenOverdrive = false, maxEnemies = 0, enemySpeedMult = 0.0f, clearEnemiesOnEnter = true, allowAnomalies = false),
+                // 2:11.2 Second Drum Riser
+                TrackSection(131.25f, "DRUM RISER II", JuiceTier.SLIGHT_EXTRA_JUICE, StageMode.SPEED_PORTAL, isGoldenOverdrive = false, maxEnemies = 4, enemySpeedMult = 1.00f, clearEnemiesOnEnter = false, allowAnomalies = false),
+                // 2:17.5 Second Instrumental Drop (Ethan's Note: 2:18 Instrumental — 8 fast enemies!)
+                TrackSection(137.5f, "INSTRUMENTAL DROP II", JuiceTier.EXTRA_JUICE, StageMode.GOLDEN_OVERDRIVE, isGoldenOverdrive = true, maxEnemies = 8, enemySpeedMult = 1.20f, clearEnemiesOnEnter = false, allowAnomalies = true),
+                // 2:35.0 Pre-Bridge Breather (Highs drop out -> calm down to 3 enemies)
+                TrackSection(155.0f, "BRIDGE BREATHER", JuiceTier.SECTION_SHIFT, StageMode.ABYSSAL_WAVE, isGoldenOverdrive = false, maxEnemies = 3, enemySpeedMult = 0.86f, clearEnemiesOnEnter = false, allowAnomalies = false),
+                // 2:49.5 Bridge Vocal Battle Swell (Ethan's Note: 2:50 Bridge — escalates toward finale)
+                TrackSection(169.5f, "BRIDGE VOCAL SWELL", JuiceTier.SLIGHT_EXTRA_JUICE, StageMode.SPEED_PORTAL, isGoldenOverdrive = false, maxEnemies = 6, enemySpeedMult = 1.06f, clearEnemiesOnEnter = false, allowAnomalies = true),
+                // 3:03.5 Ending Breakdown Climax (Ethan's Note: 3:03 Ending Breakdown EXTRA JUICE — peak 10 enemies!)
+                TrackSection(183.5f, "ENDING BREAKDOWN", JuiceTier.EXTRA_JUICE, StageMode.GOLDEN_OVERDRIVE, isGoldenOverdrive = true, maxEnemies = 10, enemySpeedMult = 1.26f, clearEnemiesOnEnter = false, allowAnomalies = true),
+                // 3:21.0 Isolated 808 Sub-Bass Heartbeat (Bass = 0.99! Heavy gravity shockwaves)
+                TrackSection(201.0f, "808 HEARTBEAT PULSE", JuiceTier.SLIGHT_EXTRA_JUICE, StageMode.OVERDRIVE_SHATTER, isGoldenOverdrive = true, maxEnemies = 6, enemySpeedMult = 1.05f, clearEnemiesOnEnter = false, allowAnomalies = false),
+                // 3:27.5 Velvet Outro Lull (0 enemies — peaceful victory glide!)
+                TrackSection(207.8f, "OUTRO • VICTORY GLIDE", JuiceTier.SECTION_SHIFT, StageMode.ABYSSAL_WAVE, isGoldenOverdrive = false, maxEnemies = 0, enemySpeedMult = 0.0f, clearEnemiesOnEnter = true, allowAnomalies = false)
             ),
             orbChart = buildConfideOrbChart()
         ),
@@ -436,18 +428,32 @@ object MusicLibrary {
             unlockCost = 1200,
             audioResName = "track_02",
             sections = listOf(
-                TrackSection(0f, "INTRO", JuiceTier.SECTION_SHIFT, StageMode.ABYSSAL_WAVE, isGoldenOverdrive = false),
-                TrackSection(6.5f, "SUB-BASS WARMTH", JuiceTier.SECTION_SHIFT, StageMode.ABYSSAL_WAVE, isGoldenOverdrive = false),
-                TrackSection(9.75f, "PERCUSSION SHIMMER", JuiceTier.SLIGHT_EXTRA_JUICE, StageMode.SPEED_PORTAL, isGoldenOverdrive = false),
-                TrackSection(22.0f, "VERSE ONE", JuiceTier.SECTION_SHIFT, StageMode.ABYSSAL_WAVE, isGoldenOverdrive = false),
-                TrackSection(42.25f, "PRE-CHORUS SWELL", JuiceTier.SLIGHT_EXTRA_JUICE, StageMode.SPEED_PORTAL, isGoldenOverdrive = false),
-                TrackSection(55.25f, "CHORUS DROP", JuiceTier.EXTRA_JUICE, StageMode.GOLDEN_OVERDRIVE, isGoldenOverdrive = true),
-                TrackSection(76.0f, "VERSE TWO", JuiceTier.SECTION_SHIFT, StageMode.ABYSSAL_WAVE, isGoldenOverdrive = false),
-                TrackSection(91.25f, "RAP CADENCE", JuiceTier.SLIGHT_EXTRA_JUICE, StageMode.MAGIC_LANES, isGoldenOverdrive = false),
-                TrackSection(101.5f, "PRE-CHORUS II", JuiceTier.SECTION_SHIFT, StageMode.ABYSSAL_WAVE, isGoldenOverdrive = false),
-                TrackSection(109.75f, "CHORUS II DROP", JuiceTier.EXTRA_JUICE, StageMode.GOLDEN_OVERDRIVE, isGoldenOverdrive = true),
-                TrackSection(129.5f, "GRAND FINALE CLIMAX", JuiceTier.EXTRA_JUICE, StageMode.GOLDEN_OVERDRIVE, isGoldenOverdrive = true),
-                TrackSection(152.5f, "VELVET TWILIGHT OUTRO", JuiceTier.SECTION_SHIFT, StageMode.ABYSSAL_WAVE, isGoldenOverdrive = false)
+                // 0:00 Warm Chord Intro (Ethan's Note: 0:00 Intro — 0 enemies for first 9.8s)
+                TrackSection(0f, "INTRO • WARM CHORDS", JuiceTier.NONE, StageMode.ABYSSAL_WAVE, isGoldenOverdrive = false, maxEnemies = 0, enemySpeedMult = 0.0f, clearEnemiesOnEnter = true, allowAnomalies = false),
+                // 0:09.8 Percussion Shimmer Opening (1-2 gentle enemies)
+                TrackSection(9.8f, "BEAT OPENING", JuiceTier.SECTION_SHIFT, StageMode.ABYSSAL_WAVE, isGoldenOverdrive = false, maxEnemies = 2, enemySpeedMult = 0.80f, clearEnemiesOnEnter = false, allowAnomalies = false),
+                // 0:21.0 Verse One (Ethan's Note: 0:21 Verse One — smooth 88 BPM pocket, max 3 enemies)
+                TrackSection(21.0f, "VERSE ONE", JuiceTier.SECTION_SHIFT, StageMode.ABYSSAL_WAVE, isGoldenOverdrive = false, maxEnemies = 3, enemySpeedMult = 0.88f, clearEnemiesOnEnter = false, allowAnomalies = false),
+                // 0:43.5 Pre-Chorus (Ethan's Note: 0:44 Pre-Chorus — steps up to 5 enemies)
+                TrackSection(43.5f, "PRE-CHORUS SWELL", JuiceTier.SLIGHT_EXTRA_JUICE, StageMode.SPEED_PORTAL, isGoldenOverdrive = false, maxEnemies = 5, enemySpeedMult = 1.00f, clearEnemiesOnEnter = false, allowAnomalies = false),
+                // 0:51.0 Pre-Drop Hush (2-second vocal breath before Chorus I)
+                TrackSection(51.0f, "PRE-DROP HUSH", JuiceTier.NONE, StageMode.MAGIC_LANES, isGoldenOverdrive = false, maxEnemies = 0, enemySpeedMult = 0.0f, clearEnemiesOnEnter = true, allowAnomalies = false),
+                // 0:54.5 Chorus I (Ethan's Note: 0:54 Chorus — 7 rhythmic enemies + Golden bloom!)
+                TrackSection(54.5f, "CHORUS • NUMBER ONE", JuiceTier.EXTRA_JUICE, StageMode.GOLDEN_OVERDRIVE, isGoldenOverdrive = true, maxEnemies = 7, enemySpeedMult = 1.15f, clearEnemiesOnEnter = false, allowAnomalies = true),
+                // 1:15.5 Verse Two Pullback (Ethan's Note: 1:15 Verse Two — cool stripped-back groove, 3 enemies)
+                TrackSection(75.5f, "VERSE TWO • COOL GROOVE", JuiceTier.SECTION_SHIFT, StageMode.ABYSSAL_WAVE, isGoldenOverdrive = false, maxEnemies = 3, enemySpeedMult = 0.86f, clearEnemiesOnEnter = false, allowAnomalies = false),
+                // 1:31.5 Verse Two "Rap" (Ethan's Note: 1:32 Verse Two "Rap" SLIGHT EXTRA JUICE — double-time cadence!)
+                TrackSection(91.5f, "DOUBLE-TIME RAP FLOW", JuiceTier.SLIGHT_EXTRA_JUICE, StageMode.MAGIC_LANES, isGoldenOverdrive = false, maxEnemies = 6, enemySpeedMult = 1.14f, clearEnemiesOnEnter = false, allowAnomalies = true),
+                // 1:38.5 Pre-Chorus II (Ethan's Note: 1:38 Pre-Chorus)
+                TrackSection(98.5f, "PRE-CHORUS II", JuiceTier.SECTION_SHIFT, StageMode.SPEED_PORTAL, isGoldenOverdrive = false, maxEnemies = 5, enemySpeedMult = 1.02f, clearEnemiesOnEnter = false, allowAnomalies = false),
+                // 1:45.0 Pre-Chorus II Hush (2.5s breather before Chorus II)
+                TrackSection(105.0f, "VOCAL BREATHER", JuiceTier.NONE, StageMode.MAGIC_LANES, isGoldenOverdrive = false, maxEnemies = 0, enemySpeedMult = 0.0f, clearEnemiesOnEnter = true, allowAnomalies = false),
+                // 1:49.0 Chorus II (Ethan's Note: 1:49 Chorus — 8 enemies + Wormholes!)
+                TrackSection(109.0f, "CHORUS II DROP", JuiceTier.EXTRA_JUICE, StageMode.GOLDEN_OVERDRIVE, isGoldenOverdrive = true, maxEnemies = 8, enemySpeedMult = 1.20f, clearEnemiesOnEnter = false, allowAnomalies = true),
+                // 2:09.0 Ending Breakdown Climax (Ethan's Note: 2:09 Ending Breakdown EXTRA JUICE — peak 11 enemies!)
+                TrackSection(129.0f, "ENDING BREAKDOWN CLIMAX", JuiceTier.EXTRA_JUICE, StageMode.GOLDEN_OVERDRIVE, isGoldenOverdrive = true, maxEnemies = 11, enemySpeedMult = 1.30f, clearEnemiesOnEnter = false, allowAnomalies = true),
+                // 2:32.5 Velvet Twilight Outro (0 enemies — peaceful victory glide!)
+                TrackSection(152.5f, "OUTRO • VICTORY GLIDE", JuiceTier.SECTION_SHIFT, StageMode.ABYSSAL_WAVE, isGoldenOverdrive = false, maxEnemies = 0, enemySpeedMult = 0.0f, clearEnemiesOnEnter = true, allowAnomalies = false)
             ),
             orbChart = buildNumberOneOrbChart()
         )

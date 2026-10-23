@@ -59,12 +59,14 @@ fun stepAndSpawnTelegraphedEnemies(
     stageMode: StageMode = StageMode.ABYSSAL_WAVE,
     multiBand: MultiBandAudioState = MultiBandAudioState(),
     beatPhase: Float = 0f,
-    currentScale: Float = 1f
+    currentScale: Float = 1f,
+    sectionMaxEnemies: Int = 5,
+    sectionSpeedMult: Float = 1.0f
 ) {
     if (screenWidth <= 0f || screenHeight <= 0f) return
 
-    // 1. During Zero-Bass Vocal Breakdowns, pause enemy telegraphs so the screen breathes with Ethan's voice!
-    if (multiBand.bassDropOut) {
+    // 1. During Zero-Bass Vocal Breakdowns, Intros, Hushes, or Outros, pause enemy telegraphs so the screen breathes with Ethan's voice!
+    if (multiBand.bassDropOut || sectionMaxEnemies <= 0) {
         telegraphs.clear()
         return
     }
@@ -102,21 +104,22 @@ fun stepAndSpawnTelegraphedEnemies(
         }
     }
 
-    // 3. Only initiate new telegraphs on the beat when total active + telegraphed threats are below cap
-    val maxActiveEnemies = ((5.5f + difficulty * 3.8f) * spawnRateScale).roundToInt().coerceIn(5, 12)
+    // 3. Only initiate new telegraphs on the beat when total active + telegraphed threats are below the section's musical cap
+    val maxActiveEnemies = (sectionMaxEnemies * spawnRateScale).roundToInt().coerceIn(1, 12)
     if (enemies.size + telegraphs.size >= maxActiveEnemies) return
 
     val isBeatOnset = beatPhase in 0f..0.32f
     if (!isBeatOnset) return
 
-    val rampFactor = (levelPlayTime / 14f).coerceIn(0.48f, 1.0f)
-    val energyScale = (0.65f + multiBand.bass * 0.50f + multiBand.rms * 0.35f).coerceIn(0.60f, 1.40f)
-    val effectiveSpawnChance = (0.085f + difficulty * 0.080f) * spawnRateScale * rampFactor * energyScale
+    val rampFactor = (levelPlayTime / 14f).coerceIn(0.60f, 1.0f)
+    val energyScale = (0.65f + multiBand.bass * 0.55f + multiBand.rms * 0.40f).coerceIn(0.55f, 1.45f)
+    val sectionUrgency = if (sectionMaxEnemies >= 7) 1.35f else if (sectionMaxEnemies >= 5) 1.10f else 0.78f
+    val effectiveSpawnChance = (0.095f + difficulty * 0.085f) * spawnRateScale * rampFactor * energyScale * sectionUrgency
 
     if (Random.nextFloat() < effectiveSpawnChance) {
-        val spawnCount = if ((multiBand.bass > 0.62f || difficulty > 0.48f) &&
+        val spawnCount = if ((sectionMaxEnemies >= 7 || multiBand.bass > 0.68f) &&
             enemies.size + telegraphs.size + 1 < maxActiveEnemies &&
-            Random.nextFloat() < 0.42f
+            Random.nextFloat() < 0.48f
         ) 2 else 1
         val baseSide = Random.nextInt(4)
         val warnSec = (0.86f - difficulty * 0.16f).coerceIn(0.56f, 0.86f)
@@ -144,11 +147,12 @@ fun stepAndSpawnTelegraphedEnemies(
             }
 
             val allowLaserSweeper = sIdx == 0 &&
-                (stageMode == StageMode.SPEED_PORTAL || stageMode == StageMode.OVERDRIVE_SHATTER || difficulty > 0.55f) &&
-                multiBand.high > 0.56f &&
+                sectionMaxEnemies >= 6 &&
+                (stageMode == StageMode.SPEED_PORTAL || stageMode == StageMode.OVERDRIVE_SHATTER || stageMode == StageMode.GOLDEN_OVERDRIVE) &&
+                multiBand.high > 0.54f &&
                 enemies.none { it.type == EnemyType.LASER_SWEEPER } &&
                 telegraphs.none { it.spawnData.type == EnemyType.LASER_SWEEPER } &&
-                Random.nextFloat() < 0.18f
+                Random.nextFloat() < 0.22f
 
             val spawnData = if (allowLaserSweeper) {
                 EnemySpawnData(EnemyType.LASER_SWEEPER, Color(0xFFFF1E42L), 2.85f, 62f)
@@ -169,7 +173,7 @@ fun stepAndSpawnTelegraphedEnemies(
             }
 
             val targetAngle = atan2(player.y - edgeY, player.x - edgeX) + (Random.nextFloat() - 0.5f) * 0.18f
-            val finalSpeed = (spawnData.speed + difficulty * 1.45f) * speedScale * (0.80f + 0.20f * rampFactor)
+            val finalSpeed = (spawnData.speed + difficulty * 1.45f) * speedScale * sectionSpeedMult * (0.82f + 0.18f * rampFactor)
 
             telegraphs.add(
                 EnemySpawnTelegraph(
@@ -313,11 +317,13 @@ fun stepEnemyKinematicsAndFlocking(
         EnemyType.PULSE -> if (beatKick > 0.5f) 1.28f else 0.98f
         else -> 1.04f
     }
+    // Syncopated drum-cut breathing (e.g., 0:51 in Confide): when bass dips below 0.16, enemies briefly suspend/slow
+    val drumCutScale = if (multiBand.bass < 0.16f) 0.42f else 1.0f
 
-    val baseVx = cos(e.angle) * e.speed * beatSpeedMult
-    val baseVy = sin(e.angle) * e.speed * beatSpeedMult
+    val baseVx = cos(e.angle) * e.speed * beatSpeedMult * drumCutScale
+    val baseVy = sin(e.angle) * e.speed * beatSpeedMult * drumCutScale
     val perpAngle = e.angle + (PI.toFloat() / 2f)
-    val oscFactor = cos(gameTime * 3.8f + e.phase) * (e.orbitRadius * 0.09f)
+    val oscFactor = cos(gameTime * 3.8f + e.phase) * (e.orbitRadius * 0.09f) * drumCutScale
     val oscVx = cos(perpAngle) * oscFactor
     val oscVy = sin(perpAngle) * oscFactor
 
@@ -386,8 +392,7 @@ fun stepNebulousBeatOrbs(
 
 /**
  * V5 FADING SINGULARITY WORMHOLES & HARMONIC PHASE BARRIERS:
- * - Spawns occasional swirling wormholes or rotating laser phase barriers that smoothly fade in (1.45s warning),
- *   stay active for 4.6s (warping enemy trajectories & creating spatial obstacles), and fade out (1.15s).
+ * - Spawns occasional swirling wormholes or rotating laser phase barriers ONLY during high-energy Chorus Drops & Breakdowns (`allowAnomalies = true`).
  */
 @Suppress("UNUSED_PARAMETER")
 fun stepAndSpawnWormholes(
@@ -400,7 +405,8 @@ fun stepAndSpawnWormholes(
     screenHeight: Float,
     multiBand: MultiBandAudioState,
     beatPhase: Float,
-    remixMode: TrackRemixMode = TrackRemixMode.ORIGINAL
+    remixMode: TrackRemixMode = TrackRemixMode.ORIGINAL,
+    allowAnomalies: Boolean = false
 ) {
     if (screenWidth <= 0f || screenHeight <= 0f) return
 
@@ -428,8 +434,9 @@ fun stepAndSpawnWormholes(
         }
     }
 
+    if (!allowAnomalies || multiBand.bassDropOut) return
     val maxAnomalies = if (remixMode == TrackRemixMode.SLOWED || remixMode == TrackRemixMode.ENDLESS) 2 else 1
-    if (wormholes.size >= maxAnomalies || multiBand.bassDropOut) return
+    if (wormholes.size >= maxAnomalies) return
 
     val isBeatOnset = beatPhase in 0f..0.20f
     if (!isBeatOnset) return

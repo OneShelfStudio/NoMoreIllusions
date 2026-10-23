@@ -569,6 +569,40 @@ fun GameScreen(
                     activeSectionLabel = currentSecObj.label
                     activeStageMode = currentSecObj.stageMode
 
+                    // If entering a Vocal Float, Pre-Drop Hush, or Victory Outro, dissolve all active enemies into stardust!
+                    if (currentSecObj.clearEnemiesOnEnter) {
+                        enemyTelegraphs.clear()
+                        wormholes.clear()
+                        for (e in enemies) {
+                            shockwaves.add(
+                                Shockwave(
+                                    x = e.x,
+                                    y = e.y,
+                                    radius = 0f,
+                                    maxRadius = 90f,
+                                    color = Color(0xFF38BDF8L),
+                                    life = 0.75f
+                                )
+                            )
+                            repeat(8) {
+                                val a = Random.nextFloat() * 6.283f
+                                val sp = 1.4f + Random.nextFloat() * 3.2f
+                                particles.add(
+                                    GameObject(
+                                        x = e.x,
+                                        y = e.y,
+                                        radius = 2.6f + Random.nextFloat() * 2.2f,
+                                        color = if (it % 2 == 0) Color(0xFFFDE047L) else Color(0xFF38BDF8L),
+                                        vx = cos(a) * sp,
+                                        vy = sin(a) * sp,
+                                        life = 1.0f
+                                    )
+                                )
+                            }
+                        }
+                        enemies.clear()
+                    }
+
                     if (currentSecObj.isGoldenOverdrive || currentSecObj.stageMode == StageMode.GOLDEN_OVERDRIVE) {
                         goldenOverdriveIntensity = 1.0f
                         beatFlashIntensity = 0.70f
@@ -615,6 +649,21 @@ fun GameScreen(
                             }
                         }
                     }
+                }
+
+                // 808 Sub-Bass Heartbeat Pulse during Confide's 3:21–3:27.5 Breakdown
+                if (selectedTrackIndex == 0 && trackSec in 201.0f..207.5f && liveBeatPhase in 0f..0.14f && shockwaves.size < 6) {
+                    cameraPunch = maxOf(cameraPunch, 0.030f)
+                    shockwaves.add(
+                        Shockwave(
+                            x = screenWidth * 0.5f,
+                            y = screenHeight * 0.45f,
+                            radius = 12f,
+                            maxRadius = maxOf(screenWidth, screenHeight) * 0.62f,
+                            color = Color(0xFFFACC15L),
+                            life = 0.65f
+                        )
+                    )
                 }
 
                 // Update 24K Golden Overdrive intensity smoothly from section swells or Supernova Constellation orbs
@@ -724,7 +773,8 @@ fun GameScreen(
                     screenHeight = screenHeight,
                     multiBand = mb,
                     beatPhase = liveBeatPhase,
-                    remixMode = selectedRemixMode
+                    remixMode = selectedRemixMode,
+                    allowAnomalies = currentSecObj.allowAnomalies
                 )
 
                 // Smoothly decay juiceIntensity, cameraPunch & beatFlashIntensity
@@ -763,7 +813,7 @@ fun GameScreen(
                 val songProgressBoost = trackRevealMusicProgress.coerceIn(0f, 1f) * 0.65f
                 val difficulty = (((score / 4200f) + songProgressBoost) * endlessEscalation).coerceAtMost(1.75f)
 
-                // 4. Step & Spawn Beat-Locked Telegraphed Enemies (Zero random/invisible spawns!)
+                // 4. Step & Spawn Beat-Locked Telegraphed Enemies (Zero random/invisible spawns, choreographed to TrackSection!)
                 stepAndSpawnTelegraphedEnemies(
                     enemies = enemies,
                     telegraphs = enemyTelegraphs,
@@ -780,7 +830,9 @@ fun GameScreen(
                     stageMode = if (isGoldenActive) StageMode.GOLDEN_OVERDRIVE else activeStageMode,
                     multiBand = mb,
                     beatPhase = liveBeatPhase,
-                    currentScale = currentScale
+                    currentScale = currentScale,
+                    sectionMaxEnemies = currentSecObj.maxEnemies,
+                    sectionSpeedMult = currentSecObj.enemySpeedMult
                 )
 
                 // 5. Differentiated Beat Orb Collection + Unmistakable ON-BEAT HARMONIC SPECTACLE!
