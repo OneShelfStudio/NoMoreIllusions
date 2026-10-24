@@ -261,11 +261,7 @@ fun GameScreen(
     var trackRevealMusicProgress by remember { mutableFloatStateOf(0f) }
     var onBeatHitsThisRun by remember { mutableIntStateOf(0) }
     var maxComboThisRun by remember { mutableIntStateOf(1) }
-    var activeDiscovery by remember {
-        mutableStateOf<FirstTimeDiscovery?>(
-            if (!hasSeenDiscovery(prefs, FirstTimeDiscovery.FAN_WELCOME)) FirstTimeDiscovery.FAN_WELCOME else null
-        )
-    }
+    var activeDiscovery by remember { mutableStateOf<FirstTimeDiscovery?>(null) }
 
     LaunchedEffect(gameState, selectedTrackIndex) {
         if (gameState == GameState.COUNTDOWN) {
@@ -762,10 +758,10 @@ fun GameScreen(
                 val targetGoldIntensity = if (isGoldenActive) 1.0f else (mb.high - 0.70f).coerceAtLeast(0f) * 2.0f
                 goldenOverdriveIntensity += (targetGoldIntensity.coerceIn(0f, 1f) - goldenOverdriveIntensity) * 0.12f
 
-                // 3. STATIONARY ANCHORED SEQUENTIAL BEAT NODE SPAWNING + TTL APPROACH RINGS (Osu! / Guitar Hero Flow!)
+                // 3. BAND HERO / GUITAR HERO SCROLLING RHYTHM HIGHWAY NOTE SPAWNING
                 val beatDurationSec = 60f / activeTrack.bpm.coerceAtLeast(60f)
-                val spawnLeadTime = beatDurationSec * 2.5f
-                val ttlGraceSec = beatDurationSec * 0.92f
+                val spawnLeadTime = (beatDurationSec * 3.8f).coerceIn(1.75f, 2.35f)
+                val ttlGraceSec = (beatDurationSec * 0.72f).coerceIn(0.32f, 0.52f)
                 val chart = activeTrack.orbChart
                 if (selectedRemixMode == TrackRemixMode.ENDLESS && nextOrbCueIdx >= chart.size && trackSec < 5f) {
                     nextOrbCueIdx = 0
@@ -784,7 +780,7 @@ fun GameScreen(
                     shockwaves = shockwaves
                 )
 
-                // Step Stationary Beat Nodes + TTL Expiration Check (Miss resets combo only, never health!)
+                // Step Scrolling Highway Beat Notes + Expiration Check (Miss resets combo only, never health!)
                 stepNebulousBeatOrbs(
                     powerUps = powerUps,
                     player = player,
@@ -796,7 +792,7 @@ fun GameScreen(
                     activePhenomenon = activePhenomenon,
                     currentScale = currentScale,
                     beatPhase = liveBeatPhase,
-                    magnetActive = magnetTime > 0f || activePhenomenon?.effect == KeyWordEffect.TRACTOR_REACH,
+                    magnetActive = false,
                     onBeatMissed = { missedOrb ->
                         if (rhythmCombo > 0) {
                             rhythmCombo = 0
@@ -911,36 +907,23 @@ fun GameScreen(
                     sectionSpeedMult = currentSecObj.enemySpeedMult
                 )
 
-                // First-Time Contextual Discovery Check: Pauses gameplay the VERY FIRST TIME a new mechanic appears!
-                if (activeDiscovery == null && levelPlayTime > 0.65f) {
-                    val triggerDiscovery: FirstTimeDiscovery? = when {
-                        powerUps.isNotEmpty() && !hasSeenDiscovery(prefs, FirstTimeDiscovery.BEAT_CHAIN) -> FirstTimeDiscovery.BEAT_CHAIN
-                        powerUps.any { it.keyWordEffect != KeyWordEffect.NONE } && !hasSeenDiscovery(prefs, FirstTimeDiscovery.SUPERNOVA_ORB) -> FirstTimeDiscovery.SUPERNOVA_ORB
-                        wormholes.isNotEmpty() && !hasSeenDiscovery(prefs, FirstTimeDiscovery.SLIDE_STREAM) -> FirstTimeDiscovery.SLIDE_STREAM
-                        (enemyTelegraphs.isNotEmpty() || enemies.isNotEmpty()) && !hasSeenDiscovery(prefs, FirstTimeDiscovery.HAZARD_SHIELD) -> FirstTimeDiscovery.HAZARD_SHIELD
-                        else -> null
-                    }
-                    if (triggerDiscovery != null) {
-                        markDiscoverySeen(prefs, triggerDiscovery)
-                        activeDiscovery = triggerDiscovery
-                        audioEngine.pauseTrack()
-                        audioEngine.playWhooshChime("MODAL")
-                        return@withFrameNanos
-                    }
-                }
-
-                // 5. Differentiated Beat Orb Collection + Unmistakable ON-BEAT HARMONIC SPECTACLE!
+                // 5. Differentiated Beat Orb Collection + Unmistakable ON-BEAT STRIKE LINE SPECTACLE!
                 val pIter = powerUps.iterator()
                 while (pIter.hasNext()) {
                     val p = pIter.next()
                     val dist = hypot(p.x - player.x, p.y - player.y)
-                    val catchRadius = p.radius + player.radius + (if (isGoldenActive) 20f else 15f)
+                    val catchRadius = p.radius + player.radius + (if (isGoldenActive) 22f else 18f)
                     if (dist < catchRadius) {
                         rhythmCombo++
                         if (rhythmCombo > maxComboThisRun) maxComboThisRun = rhythmCombo
                         val isSupernovaOrb = p.keyWordEffect != KeyWordEffect.NONE
-                        val beatDelta = abs(trackSec - p.targetBeatSec)
-                        val isCaughtOnBeat = (beatDelta <= beatDurationSec * 0.42f) || (liveBeatPhase <= 0.38f || liveBeatPhase >= 0.76f) || isSupernovaOrb
+                        val leadDur = (p.targetBeatSec - p.spawnBeatSec).coerceAtLeast(0.45f)
+                        val uHit = (trackSec - p.spawnBeatSec) / leadDur
+                        val isCaughtOnBeat = uHit in 0.78f..1.18f ||
+                            abs(p.y - screenHeight * 0.74f) <= 74f ||
+                            abs(trackSec - p.targetBeatSec) <= 0.25f ||
+                            isSupernovaOrb ||
+                            p.powerUpType != PowerUpType.NONE
                         if (isCaughtOnBeat) {
                             onBeatHitsThisRun++
                         }
@@ -953,29 +936,29 @@ fun GameScreen(
                             isKeyWordPeg = isSupernovaOrb || isCaughtOnBeat
                         )
 
-                        // Guaranteed ON-BEAT visual transformation (fires Concert Lasers + Equalizer Columns + Golden Shockwave!)
+                        // Guaranteed ON-BEAT visual transformation (Fret Flame + Concert Lasers + Golden Shockwave!)
                         if (isCaughtOnBeat) {
-                            beatFlashIntensity = maxOf(beatFlashIntensity, if (isSupernovaOrb) 0.85f else 0.55f)
-                            goldenOverdriveIntensity = maxOf(goldenOverdriveIntensity, if (isSupernovaOrb) 1.0f else 0.65f)
-                            cameraPunch = maxOf(cameraPunch, if (isSupernovaOrb) 0.042f else 0.026f)
-                            scoreMultiplier = maxOf(scoreMultiplier, if (isSupernovaOrb) 4 else 2)
+                            beatFlashIntensity = maxOf(beatFlashIntensity, if (isSupernovaOrb) 0.85f else 0.65f)
+                            goldenOverdriveIntensity = maxOf(goldenOverdriveIntensity, if (isSupernovaOrb) 1.0f else 0.70f)
+                            cameraPunch = maxOf(cameraPunch, if (isSupernovaOrb) 0.042f else 0.028f)
+                            scoreMultiplier = maxOf(scoreMultiplier, if (isSupernovaOrb || rhythmCombo >= 12) 4 else 2)
                             multiplierTime = maxOf(multiplierTime, 6.5f)
-                            shockwaves.add(Shockwave(p.x, p.y, 0f, 280f, Color(0xFFFACC15L), 0.95f))
+                            shockwaves.add(Shockwave(p.x, p.y, 0f, 310f, Color(0xFFFACC15L), 0.95f))
                         }
 
                         if (!isSupernovaOrb) {
                             triggerHaptic(if (isCaughtOnBeat) 28L else 14L)
                             val mult = if (isGoldenActive) maxOf(scoreMultiplier, 4) else scoreMultiplier
-                            val gainedPts = ((if (isCaughtOnBeat) 80 else 45) * mult * (1f + (rhythmCombo.coerceAtMost(12) * 0.10f)) * difficultyScoreMultiplier).toInt()
+                            val gainedPts = ((if (isCaughtOnBeat) 100 else 45) * mult * (1f + (rhythmCombo.coerceAtMost(12) * 0.10f)) * difficultyScoreMultiplier).toInt()
                             score += gainedPts
                             floatingTexts.add(
                                 FloatingText(
                                     x = p.x,
-                                    y = p.y - 18f,
-                                    text = if (isCaughtOnBeat) "PERFECT! +$gainedPts (x$rhythmCombo)" else "GOOD! +$gainedPts",
-                                    life = 0.90f,
-                                    color = if (isCaughtOnBeat) Color(0xFF4ADE80L) else Color(0xFFFACC15L),
-                                    isLarge = false
+                                    y = p.y - 24f,
+                                    text = if (isCaughtOnBeat) "★ PERFECT ON-BEAT! +$gainedPts (x$rhythmCombo)" else "EARLY +$gainedPts",
+                                    life = 0.95f,
+                                    color = if (isCaughtOnBeat) Color(0xFF4ADE80L) else Color(0xFF38BDF8L),
+                                    isLarge = isCaughtOnBeat
                                 )
                             )
 
@@ -1174,7 +1157,7 @@ fun GameScreen(
                     }
                 }
 
-                // 6b. Musical Slide-Note Wormhole Surf (Entry Portal A -> Bezier Light Stream -> Exit Portal B!)
+                // 6b. Band-Hero Sustain Slide Ribbon Tracking
                 val surfRes = stepWormholeSlideAndPortals(
                     activeWormholeSlide = activeWormholeSlide,
                     wormholes = wormholes,
@@ -1193,7 +1176,9 @@ fun GameScreen(
                     audioEngine = audioEngine,
                     triggerHaptic = triggerHaptic,
                     shockwaves = shockwaves,
-                    floatingTexts = floatingTexts
+                    floatingTexts = floatingTexts,
+                    screenWidth = screenWidth,
+                    screenHeight = screenHeight
                 )
                 activeWormholeSlide = surfRes.nextSlide
                 targetX = surfRes.targetX

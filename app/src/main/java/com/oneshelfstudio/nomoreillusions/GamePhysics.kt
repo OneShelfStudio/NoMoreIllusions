@@ -333,11 +333,34 @@ fun stepEnemyKinematicsAndFlocking(
     e.y += (baseVy + oscVy) * currentScale
 }
 
+internal fun computeHighwayPoint(
+    laneFloat: Float,
+    u: Float,
+    screenWidth: Float,
+    screenHeight: Float
+): Offset {
+    val horizonY = screenHeight * 0.16f
+    val strikeY = screenHeight * 0.74f
+    val topHalfW = screenWidth * 0.14f
+    val strikeHalfW = screenWidth * 0.42f
+    val clampedU = u.coerceIn(-0.05f, 1.32f)
+    val p = if (clampedU >= 0f) clampedU.pow(1.25f) else clampedU
+    val halfW = topHalfW + (strikeHalfW - topHalfW) * p
+    val laneNorm = ((laneFloat - 1.5f) / 1.5f) * 0.78f
+    val x = screenWidth * 0.5f + laneNorm * halfW
+    val y = horizonY + (strikeY - horizonY) * p
+    return Offset(x, y)
+}
+
+internal fun computeHighwayScale(u: Float): Float {
+    val clampedU = u.coerceIn(0f, 1.25f)
+    return (0.44f + 0.56f * clampedU.pow(1.15f)).coerceIn(0.42f, 1.15f)
+}
+
 /**
- * V5 TRAVELING HARMONIC COMET ORBS (ZERO GRAVITATIONAL PULL!):
- * - Collectibles NEVER yank or pull toward the player (`magnetRadius = 0`).
- * - Instead, they enter from the perimeter and travel smoothly across the playfield along curved
- *   harmonic trajectories (similar to enemy sprites), pulsing on every quarter-note beat!
+ * V6 BAND HERO / GUITAR HERO SCROLLING RHYTHM HIGHWAY NOTES (ZERO MAGNET PULL!):
+ * - Notes spawn at the top horizon (`u = 0`, `y = 16%`) in 1 of 4 perspective fret lanes and scroll down
+ *   toward the Glowing Beat Strike Line (`u = 1.0`, `y = 74%`), crossing the line at the exact millisecond of `targetBeatSec`!
  */
 @Suppress("UNUSED_PARAMETER")
 fun stepNebulousBeatOrbs(
@@ -359,28 +382,21 @@ fun stepNebulousBeatOrbs(
 
     while (iter.hasNext()) {
         val orb = iter.next()
-        val expireSec = if (orb.expireBeatSec > 0f) orb.expireBeatSec else (orb.targetBeatSec + 0.55f)
-        if (trackSec > expireSec) {
+        val leadDur = (orb.targetBeatSec - orb.spawnBeatSec).coerceAtLeast(0.45f)
+        val u = (trackSec - orb.spawnBeatSec) / leadDur
+        val expireSec = if (orb.expireBeatSec > 0f) orb.expireBeatSec else (orb.targetBeatSec + 0.45f)
+        if (trackSec > expireSec || u > 1.24f) {
             onBeatMissed(orb)
             iter.remove()
             continue
         }
 
-        // When ORB MAGNET power-up is active, gently pull nearby orbs within 300px toward the player
-        if (magnetActive) {
-            val dx = player.x - orb.anchorX
-            val dy = player.y - orb.anchorY
-            val dist = hypot(dx, dy)
-            if (dist in 6f..300f) {
-                val pull = ((300f - dist) / 300f) * 6.5f * currentScale
-                orb.anchorX += (dx / dist) * pull
-                orb.anchorY += (dy / dist) * pull
-            }
-        }
-
-        // Stationary anchored coordinate with subtle 2.4px musical breathing hover
-        orb.x = orb.anchorX + cos(gameTime * 2.8f + orb.phase) * 2.4f
-        orb.y = orb.anchorY + sin(gameTime * 2.8f + orb.phase) * 2.4f
+        val laneIdx = (orb.phraseBeatNum - 1).coerceIn(0, 3).toFloat()
+        val pt = computeHighwayPoint(laneIdx, u, screenWidth, screenHeight)
+        orb.anchorX = pt.x
+        orb.anchorY = pt.y
+        orb.x = pt.x
+        orb.y = pt.y
     }
 }
 
@@ -407,7 +423,7 @@ fun stepAndSpawnWormholes(
         if (w.slideCooldownSec > 0f) {
             w.slideCooldownSec = (w.slideCooldownSec - 0.016f * currentScale).coerceAtLeast(0f)
         }
-        if (w.ageSec >= w.totalDuration) {
+        if (w.ageSec >= 3.2f) {
             wIter.remove()
         }
     }
@@ -418,39 +434,26 @@ fun stepAndSpawnWormholes(
     val isBeatOnset = beatPhase in 0f..0.22f
     if (!isBeatOnset) return
 
-    val swellTrigger = multiBand.rms > 0.45f || multiBand.swellDelta > 0.06f
-    val spawnChance = if (swellTrigger) 0.14f else 0.055f
+    val swellTrigger = multiBand.rms > 0.42f || multiBand.swellDelta > 0.05f
+    val spawnChance = if (swellTrigger) 0.16f else 0.065f
     if (Random.nextFloat() < spawnChance) {
-        val marginX = 88f
-        val topHalf = player.y > screenHeight * 0.52f
-        val startX = (marginX + Random.nextFloat() * (screenWidth - marginX * 2f).coerceAtLeast(80f))
-        val startY = if (topHalf) {
-            (screenHeight * 0.56f + Random.nextFloat() * (screenHeight * 0.22f)).coerceIn(200f, screenHeight - 130f)
-        } else {
-            (screenHeight * 0.26f + Random.nextFloat() * (screenHeight * 0.20f)).coerceIn(180f, screenHeight - 130f)
-        }
-        val endX = (screenWidth - startX).coerceIn(marginX, screenWidth - marginX)
-        val endY = if (topHalf) {
-            (screenHeight * 0.25f + Random.nextFloat() * (screenHeight * 0.18f)).coerceIn(180f, screenHeight - 140f)
-        } else {
-            (screenHeight * 0.60f + Random.nextFloat() * (screenHeight * 0.20f)).coerceIn(200f, screenHeight - 130f)
-        }
-        val midX = (startX + endX) * 0.5f + (if (startX < endX) 65f else -65f)
-        val midY = (startY + endY) * 0.5f - 45f
+        val startLane = Random.nextInt(4)
+        val delta = if (Random.nextBoolean()) 1 else -1
+        val endLane = (startLane + delta).coerceIn(0, 3).let { if (it == startLane) (startLane + 1) % 4 else it }
 
         wormholes.add(
             SingularityWormhole(
-                x = startX,
-                y = startY,
-                radius = 40f,
+                x = startLane.toFloat(),
+                y = 0f,
+                radius = 34f,
                 kind = AnomalyKind.WORMHOLE_VORTEX,
                 angle = 0f,
-                length = hypot(endX - startX, endY - startY),
-                color = Color(0xFF38BDF8L),
-                exitX = endX,
-                exitY = endY,
-                ctrlX = midX,
-                ctrlY = midY
+                length = 1f,
+                color = Color(0xFFFACC15L),
+                exitX = endLane.toFloat(),
+                exitY = 1f,
+                ctrlX = (startLane + endLane) * 0.5f,
+                ctrlY = 0.5f
             )
         )
     }

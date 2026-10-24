@@ -1,5 +1,6 @@
 package com.oneshelfstudio.nomoreillusions
 
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import kotlin.math.*
 import kotlin.random.Random
@@ -51,25 +52,25 @@ internal fun handleRegularOrbPowerUp(
             nextShake = 14f
             nextPunch = 0.045f
             nextFlash = 0.85f
-            shockwaves.add(Shockwave(p.x, p.y, 0f, 520f, Color(0xFFF97316L), 1.20f))
+            shockwaves.add(Shockwave(p.x, p.y, 0f, 560f, Color(0xFFF97316L), 1.25f))
             var vaporizedCount = 0
             val clearIter = enemies.iterator()
             while (clearIter.hasNext()) {
                 val en = clearIter.next()
                 vaporizedCount++
-                bonusScore += (100 * mult * difficultyScoreMultiplier).toInt()
-                shockwaves.add(Shockwave(en.x, en.y, 0f, 130f, Color(0xFFFACC15L), 0.85f))
-                repeat(8) { idx ->
-                    val a = (idx / 8f) * 6.283185f
+                bonusScore += (150 * mult * difficultyScoreMultiplier).toInt()
+                shockwaves.add(Shockwave(en.x, en.y, 0f, 145f, Color(0xFFFACC15L), 0.90f))
+                repeat(10) { idx ->
+                    val a = (idx / 10f) * 6.283185f
                     particles.add(
                         GameObject(
                             x = en.x,
                             y = en.y,
-                            radius = 4.6f,
+                            radius = 4.8f,
                             color = if (idx % 2 == 0) Color(0xFFFACC15L) else Color(0xFFF97316L),
-                            vx = cos(a) * 8.2f,
-                            vy = sin(a) * 8.2f,
-                            life = 0.80f
+                            vx = cos(a) * 8.6f,
+                            vy = sin(a) * 8.6f,
+                            life = 0.85f
                         )
                     )
                 }
@@ -78,47 +79,23 @@ internal fun handleRegularOrbPowerUp(
             enemyTelegraphs.clear()
             toast = PowerUpBannerToast(
                 icon = "💥",
-                title = "NOVA BLAST!",
-                subtitle = if (vaporizedCount > 0) "$vaporizedCount ENEMIES VAPORIZED + 5.5s OVERDRIVE!" else "5.5s OVERDRIVE • RAM ENEMIES TO VAPORIZE!",
+                title = "BOMB DETONATED!",
+                subtitle = if (vaporizedCount > 0) "$vaporizedCount HAZARDS VAPORIZED! (+${vaporizedCount * 150 * mult} PTS)" else "ALL HAZARDS CLEARED + 5.5s OVERDRIVE!",
                 accentColor = Color(0xFFF97316L),
-                timer = 2.6f,
-                maxTimer = 2.6f
+                timer = 2.4f,
+                maxTimer = 2.4f
             )
         }
         PowerUpType.SHIELD -> {
-            nextShield = maxOf(nextShield, 7.0f)
-            shockwaves.add(Shockwave(p.x, p.y, 0f, 220f, Color(0xFF38BDF8L), 0.90f))
+            nextShield = maxOf(nextShield, 8.0f)
+            shockwaves.add(Shockwave(p.x, p.y, 0f, 240f, Color(0xFF38BDF8L), 0.90f))
             toast = PowerUpBannerToast(
                 icon = "🛡️",
-                title = "AEGIS SHIELD!",
-                subtitle = "ABSORBS NEXT COLLISION • 7.0s ACTIVE",
+                title = "SHIELD ACTIVE!",
+                subtitle = "BLOCKS NEXT HAZARD COLLISION • 8.0s",
                 accentColor = Color(0xFF38BDF8L),
-                timer = 2.4f,
-                maxTimer = 2.4f
-            )
-        }
-        PowerUpType.SLOW_MO -> {
-            nextSlowMo = maxOf(nextSlowMo, 5.5f)
-            shockwaves.add(Shockwave(p.x, p.y, 0f, 240f, Color(0xFFA855F7L), 0.95f))
-            toast = PowerUpBannerToast(
-                icon = "⏳",
-                title = "CHRONO SHIFT!",
-                subtitle = "ENEMIES SLOWED 50% • 5.5s ACTIVE",
-                accentColor = Color(0xFFA855F7L),
-                timer = 2.4f,
-                maxTimer = 2.4f
-            )
-        }
-        PowerUpType.MAGNET -> {
-            nextMagnet = maxOf(nextMagnet, 7.0f)
-            shockwaves.add(Shockwave(p.x, p.y, 0f, 220f, Color(0xFF10B981L), 0.90f))
-            toast = PowerUpBannerToast(
-                icon = "🧲",
-                title = "ORB MAGNET!",
-                subtitle = "PULLING NEARBY ORBS • 7.0s ACTIVE",
-                accentColor = Color(0xFF10B981L),
-                timer = 2.4f,
-                maxTimer = 2.4f
+                timer = 2.2f,
+                maxTimer = 2.2f
             )
         }
         else -> {}
@@ -227,32 +204,7 @@ internal fun handleSupernovaOrbPickup(
     val toast: PowerUpBannerToast
 
     val burstColor = when (p.keyWordEffect) {
-        KeyWordEffect.TRACTOR_REACH -> {
-            nextMagnet = maxOf(nextMagnet, 6.0f)
-            toast = PowerUpBannerToast("🧲", "TRACTOR REACH!", "PULLING ORBS + $keywordBonus PTS", Color(0xFF22D3EEL), 2.5f, 2.5f)
-            Color(0xFF22D3EEL)
-        }
-        KeyWordEffect.PRISM_SHATTER -> {
-            nextShake = 9f
-            shockwaves.add(Shockwave(p.x, p.y, 0f, 400f, Color(0xFFE879F9L), 1.15f))
-            toast = PowerUpBannerToast("💎", "PRISM SHATTER!", "DEFLECTING ENEMIES + $keywordBonus PTS", Color(0xFFE879F9L), 2.5f, 2.5f)
-            Color(0xFFE879F9L)
-        }
-        KeyWordEffect.MAGNETAR_WAR -> {
-            nextShake = 12f
-            shockwaves.add(Shockwave(p.x, p.y, 0f, 540f, Color(0xFFFB7185L), 1.25f))
-            val eIter = enemies.iterator()
-            while (eIter.hasNext()) {
-                val e = eIter.next()
-                if (hypot(e.x - player.x, e.y - player.y) < 420f) {
-                    shockwaves.add(Shockwave(e.x, e.y, 0f, 125f, Color(0xFFFDE047L), 0.85f))
-                    eIter.remove()
-                }
-            }
-            toast = PowerUpBannerToast("💥", "MAGNETAR SHOCKWAVE!", "ENEMIES VAPORIZED + $keywordBonus PTS", Color(0xFFFB7185L), 2.6f, 2.6f)
-            Color(0xFFFB7185L)
-        }
-        KeyWordEffect.CONSTELLATION_STAR -> {
+        KeyWordEffect.TRACTOR_REACH, KeyWordEffect.CONSTELLATION_STAR, KeyWordEffect.BINARY_HEART -> {
             nextStarPower = 8.0f
             nextMult = 4
             nextMultTime = 12f
@@ -271,24 +223,29 @@ internal fun handleSupernovaOrbPickup(
                     )
                 )
             }
-            toast = PowerUpBannerToast("★", "24K OVERDRIVE STAR!", "8s ENEMY VAPORIZE + 4x SCORE", Color(0xFFFACC15L), 2.8f, 2.8f)
+            toast = PowerUpBannerToast("★", "STAR POWER OVERDRIVE!", "8s 4x SCORE MULTIPLIER + RAM HAZARDS!", Color(0xFFFACC15L), 2.6f, 2.6f)
             Color(0xFFFACC15L)
         }
-        KeyWordEffect.BINARY_HEART -> {
-            nextMult = maxOf(nextMult, 2)
-            nextMultTime = 12f
-            shockwaves.add(Shockwave(p.x, p.y, 0f, 360f, Color(0xFF4ADE80L), 1.10f))
-            toast = PowerUpBannerToast("💚", "HARMONIC PULSE!", "ENEMY REPULSION + 2x SCORE", Color(0xFF4ADE80L), 2.5f, 2.5f)
-            Color(0xFF4ADE80L)
+        KeyWordEffect.PRISM_SHATTER, KeyWordEffect.MAGNETAR_WAR -> {
+            nextShake = 12f
+            shockwaves.add(Shockwave(p.x, p.y, 0f, 540f, Color(0xFFF97316L), 1.25f))
+            val eIter = enemies.iterator()
+            while (eIter.hasNext()) {
+                val e = eIter.next()
+                shockwaves.add(Shockwave(e.x, e.y, 0f, 135f, Color(0xFFFDE047L), 0.85f))
+                eIter.remove()
+            }
+            toast = PowerUpBannerToast("💥", "BOMB SHOCKWAVE!", "ALL HAZARDS VAPORIZED + $keywordBonus PTS", Color(0xFFF97316L), 2.5f, 2.5f)
+            Color(0xFFF97316L)
         }
         KeyWordEffect.ECLIPSE_DARK -> {
             nextShield = maxOf(nextShield, 8.5f)
-            shockwaves.add(Shockwave(p.x, p.y, 0f, 440f, Color(0xFFFDE047L), 1.20f))
-            toast = PowerUpBannerToast("🛡️", "SOLAR ECLIPSE SHIELD!", "8.5s INVINCIBILITY BARRIER", Color(0xFFFDE047L), 2.5f, 2.5f)
-            Color(0xFFFDE047L)
+            shockwaves.add(Shockwave(p.x, p.y, 0f, 440f, Color(0xFF38BDF8L), 1.20f))
+            toast = PowerUpBannerToast("🛡️", "SHIELD BARRIER!", "8.5s PROTECTIVE DOME ACTIVE", Color(0xFF38BDF8L), 2.4f, 2.4f)
+            Color(0xFF38BDF8L)
         }
         KeyWordEffect.NONE -> {
-            toast = PowerUpBannerToast("♪", "RESONANCE!", "+$keywordBonus PTS", Color(0xFF38BDF8L), 2.0f, 2.0f)
+            toast = PowerUpBannerToast("♪", "ON-BEAT STREAK!", "+$keywordBonus PTS", Color(0xFF38BDF8L), 2.0f, 2.0f)
             Color(0xFF38BDF8L)
         }
     }
@@ -339,60 +296,72 @@ internal fun spawnStationaryBeatOrbsForFrame(
     var nextOrbCueIdx = startCueIdx
     while (
         nextOrbCueIdx < chart.size &&
-        powerUps.size < 4 &&
+        powerUps.size < 10 &&
         (trackSec >= chart[nextOrbCueIdx].timestampSec - spawnLeadTime || (powerUps.isEmpty() && trackSec + spawnLeadTime * 1.5f >= chart[nextOrbCueIdx].timestampSec))
     ) {
         val cue = chart[nextOrbCueIdx]
         nextOrbCueIdx++
         if (trackSec <= cue.timestampSec + ttlGraceSec && screenWidth > 0f && screenHeight > 0f) {
-            val destX = (cue.normX * screenWidth).coerceIn(72f, screenWidth - 72f)
-            val destY = (cue.normY * screenHeight).coerceIn(168f, screenHeight - 115f)
-            val isSupernova = cue.keyWordEffect != KeyWordEffect.NONE
-            val isOrbGolden = cue.isGoldenCue || cue.keyWordEffect == KeyWordEffect.CONSTELLATION_STAR
-            val pColor = when (cue.keyWordEffect) {
-                KeyWordEffect.TRACTOR_REACH -> Color(0xFF22D3EEL)
-                KeyWordEffect.PRISM_SHATTER -> Color(0xFFE879F9L)
-                KeyWordEffect.MAGNETAR_WAR -> Color(0xFFFB7185L)
-                KeyWordEffect.CONSTELLATION_STAR -> Color(0xFFFACC15L)
-                KeyWordEffect.BINARY_HEART -> Color(0xFF4ADE80L)
-                KeyWordEffect.ECLIPSE_DARK -> Color(0xFFFDE047L)
-                KeyWordEffect.NONE -> when (cue.powerUpType) {
-                    PowerUpType.BLAST -> Color(0xFFF97316L)
-                    PowerUpType.SHIELD -> Color(0xFF38BDF8L)
-                    PowerUpType.SLOW_MO -> Color(0xFFA855F7L)
-                    PowerUpType.MAGNET -> Color(0xFF10B981L)
-                    else -> if (isGoldenActive) Color(0xFFFDE047L) else Color(0xFF06B6D4L)
+            // Quantize into 4 Guitar-Hero / Band-Hero perspective lanes (0, 1, 2, 3)
+            val laneIdx = (((cue.normX - 0.16f) / 0.68f * 4f).toInt() + cue.sequenceIndex) % 4
+            val clampedLane = laneIdx.coerceIn(0, 3)
+            val startPt = computeHighwayPoint(clampedLane.toFloat(), 0f, screenWidth, screenHeight)
+
+            // Simplify pickups strictly to:
+            // 1. Standard Beat Notes (PowerUpType.SCORE_ORB, KeyWordEffect.NONE)
+            // 2. 24K Star Notes (KeyWordEffect.CONSTELLATION_STAR)
+            // 3. 💥 BOMB (PowerUpType.BLAST) - vaporizes all enemies on screen
+            // 4. 🛡️ SHIELD (PowerUpType.SHIELD) - protective barrier dome
+            val mappedPowerUpType = when (cue.powerUpType) {
+                PowerUpType.BLAST, PowerUpType.MAGNET -> PowerUpType.BLAST
+                PowerUpType.SHIELD, PowerUpType.SLOW_MO -> PowerUpType.SHIELD
+                else -> when (cue.keyWordEffect) {
+                    KeyWordEffect.MAGNETAR_WAR, KeyWordEffect.PRISM_SHATTER -> PowerUpType.BLAST
+                    KeyWordEffect.ECLIPSE_DARK -> PowerUpType.SHIELD
+                    else -> PowerUpType.NONE
                 }
             }
-            shockwaves.add(
-                Shockwave(
-                    x = destX,
-                    y = destY,
-                    radius = 0f,
-                    maxRadius = if (isSupernova) 115f else 62f,
-                    color = pColor,
-                    life = 0.55f
-                )
+            val mappedKeyWord = when {
+                mappedPowerUpType == PowerUpType.BLAST || mappedPowerUpType == PowerUpType.SHIELD -> KeyWordEffect.NONE
+                cue.keyWordEffect != KeyWordEffect.NONE || cue.isGoldenCue -> KeyWordEffect.CONSTELLATION_STAR
+                else -> KeyWordEffect.NONE
+            }
+            val isSupernova = mappedKeyWord == KeyWordEffect.CONSTELLATION_STAR
+            val isOrbGolden = isSupernova || isGoldenActive
+
+            val laneColors = listOf(
+                Color(0xFF22C55EL), // Lane 1: Emerald Fret
+                Color(0xFFFB7185L), // Lane 2: Crimson Fret
+                Color(0xFFFACC15L), // Lane 3: Gold Fret
+                Color(0xFF38BDF8L)  // Lane 4: Cyan Fret
             )
+            val pColor = when {
+                mappedPowerUpType == PowerUpType.BLAST -> Color(0xFFF97316L)
+                mappedPowerUpType == PowerUpType.SHIELD -> Color(0xFF38BDF8L)
+                isSupernova -> Color(0xFFFACC15L)
+                else -> laneColors[clampedLane]
+            }
+
+            val spawnSec = minOf(trackSec, cue.timestampSec - spawnLeadTime * 0.85f)
             powerUps.add(
                 GameObject(
-                    x = destX,
-                    y = destY,
-                    radius = if (isSupernova) 36f else 23f,
+                    x = startPt.x,
+                    y = startPt.y,
+                    radius = if (isSupernova || mappedPowerUpType != PowerUpType.NONE) 31f else 24f,
                     color = applyColorBlind(pColor),
                     angle = 0f,
                     speed = 0f,
-                    powerUpType = cue.powerUpType,
+                    powerUpType = mappedPowerUpType,
                     phase = cue.sequenceIndex * 0.7f,
-                    anchorX = destX,
-                    anchorY = destY,
-                    spawnBeatSec = trackSec,
+                    anchorX = startPt.x,
+                    anchorY = startPt.y,
+                    spawnBeatSec = spawnSec,
                     targetBeatSec = cue.timestampSec,
                     expireBeatSec = cue.timestampSec + ttlGraceSec,
-                    phraseBeatNum = ((cue.sequenceIndex - 1) % 4) + 1,
+                    phraseBeatNum = clampedLane + 1,
                     sequenceIndex = cue.sequenceIndex,
                     isGoldenOrb = isOrbGolden,
-                    keyWordEffect = cue.keyWordEffect
+                    keyWordEffect = mappedKeyWord
                 )
             )
         }
@@ -414,6 +383,7 @@ internal data class WormholeSurfStepResult(
     val toast: PowerUpBannerToast?
 )
 
+@Suppress("UNUSED_PARAMETER")
 internal fun stepWormholeSlideAndPortals(
     activeWormholeSlide: WormholeSlideState?,
     wormholes: List<SingularityWormhole>,
@@ -432,11 +402,10 @@ internal fun stepWormholeSlideAndPortals(
     audioEngine: AudioEngine,
     triggerHaptic: (Long) -> Unit,
     shockwaves: MutableList<Shockwave>,
-    floatingTexts: MutableList<FloatingText>
+    floatingTexts: MutableList<FloatingText>,
+    screenWidth: Float = 1080f,
+    screenHeight: Float = 1920f
 ): WormholeSurfStepResult {
-    var nextSlide = activeWormholeSlide
-    var nextTargetX = targetX
-    var nextTargetY = targetY
     var nextInvuln = spawnInvulnerabilityTime
     var nextCombo = rhythmCombo
     var nextHits = onBeatHitsThisRun
@@ -444,121 +413,65 @@ internal fun stepWormholeSlideAndPortals(
     var ptsDelta = 0
     var nextPunch = cameraPunch
     var nextFlash = beatFlashIntensity
-    var toast: PowerUpBannerToast? = null
+    val toast: PowerUpBannerToast? = null
 
-    if (nextSlide != null) {
-        val nextProg = nextSlide.progress + (0.016f * currentScale) / nextSlide.durationSec.coerceAtLeast(0.45f)
-        val clampedT = nextProg.coerceIn(0f, 1f)
-        val inv = 1f - clampedT
-        val sx = inv * inv * nextSlide.startX + 2f * inv * clampedT * nextSlide.ctrlX + clampedT * clampedT * nextSlide.endX
-        val sy = inv * inv * nextSlide.startY + 2f * inv * clampedT * nextSlide.ctrlY + clampedT * clampedT * nextSlide.endY
-        player.x = sx
-        player.y = sy
-        nextTargetX = sx
-        nextTargetY = sy
-        nextInvuln = maxOf(nextInvuln, 0.45f)
+    // Guitar-Hero / Beatstar Sustain Slide Ribbon Tracking:
+    // Player steers freely! Holding the ship inside the scrolling sustain ribbon awards rapid SLIDE ♪ sparks.
+    for (w in wormholes) {
+        val uHead = (w.ageSec / 2.2f)
+        val uTail = (uHead - 0.44f).coerceAtLeast(0f)
+        if (uHead < 0.25f || uTail > 1.18f) continue
 
-        val tickIdx = (clampedT * 5f).toInt()
-        if (tickIdx > nextSlide.lastTickIndex && tickIdx <= 5) {
-            nextSlide.lastTickIndex = tickIdx
-            nextCombo++
-            nextHits++
-            val tickPts = (55 * maxOf(scoreMultiplier, 2) * difficultyScoreMultiplier).toInt()
-            scoreDelta += tickPts
-            ptsDelta += 2
-            audioEngine.playOrbBeatHit(combo = nextCombo, isKeyWordPeg = tickIdx == 5)
-            triggerHaptic(18L)
-            shockwaves.add(Shockwave(sx, sy, 0f, 115f, Color(0xFF38BDF8L), 0.65f))
-            floatingTexts.add(
-                FloatingText(
-                    x = sx,
-                    y = sy - 18f,
-                    text = "SLIDE ♪ +$tickPts",
-                    life = 0.72f,
-                    color = Color(0xFFFACC15L),
-                    isLarge = false
-                )
-            )
+        val startLane = w.x.coerceIn(0f, 3f)
+        val endLane = w.exitX.coerceIn(0f, 3f)
+        var minRibbonDist = 9999f
+        var hitPt = Offset(player.x, player.y)
+
+        for (step in 0..8) {
+            val s = step / 8f
+            val uSample = uTail + (uHead - uTail) * s
+            if (uSample < 0f || uSample > 1.22f) continue
+            val laneAtS = startLane + (endLane - startLane) * (0.5f - 0.5f * cos(s * PI.toFloat()))
+            val pt = computeHighwayPoint(laneAtS, uSample, screenWidth, screenHeight)
+            val d = hypot(player.x - pt.x, player.y - pt.y)
+            if (d < minRibbonDist) {
+                minRibbonDist = d
+                hitPt = pt
+            }
         }
-        if (nextProg >= 1f) {
-            val dropPts = (180 * maxOf(scoreMultiplier, 2) * difficultyScoreMultiplier).toInt()
-            scoreDelta += dropPts
-            nextPunch = 0.036f
-            nextFlash = 0.65f
-            shockwaves.add(Shockwave(sx, sy, 0f, 260f, Color(0xFFFACC15L), 0.95f))
-            floatingTexts.add(
-                FloatingText(
-                    x = sx,
-                    y = sy - 24f,
-                    text = "SLIDE DROP! +$dropPts",
-                    life = 0.95f,
-                    color = Color(0xFF4ADE80L),
-                    isLarge = false
+
+        if (minRibbonDist <= 66f) {
+            nextInvuln = maxOf(nextInvuln, 0.25f)
+            if (w.slideCooldownSec <= 0f) {
+                w.slideCooldownSec = 0.18f
+                nextCombo++
+                nextHits++
+                val tickPts = (60 * maxOf(scoreMultiplier, 2) * difficultyScoreMultiplier).toInt()
+                scoreDelta += tickPts
+                ptsDelta += 2
+                nextPunch = maxOf(nextPunch, 0.018f)
+                nextFlash = maxOf(nextFlash, 0.35f)
+                audioEngine.playOrbBeatHit(combo = nextCombo, isKeyWordPeg = true)
+                triggerHaptic(16L)
+                shockwaves.add(Shockwave(hitPt.x, hitPt.y, 0f, 110f, Color(0xFFFACC15L), 0.55f))
+                floatingTexts.add(
+                    FloatingText(
+                        x = hitPt.x,
+                        y = hitPt.y - 22f,
+                        text = "SLIDE ♪ +$tickPts",
+                        life = 0.65f,
+                        color = Color(0xFFFACC15L),
+                        isLarge = false
+                    )
                 )
-            )
-            nextSlide = null
-        } else {
-            nextSlide.progress = nextProg
-        }
-    } else {
-        for (w in wormholes) {
-            if (w.slideCooldownSec > 0f || w.alphaProgress < 0.35f) continue
-            val bx = if (w.exitX > 0f) w.exitX else (w.x + 180f)
-            val by = if (w.exitY > 0f) w.exitY else (w.y - 140f)
-            val cx = if (w.ctrlX > 0f) w.ctrlX else ((w.x + bx) * 0.5f + 55f)
-            val cy = if (w.ctrlY > 0f) w.ctrlY else ((w.y + by) * 0.5f - 45f)
-            val distA = hypot(player.x - w.x, player.y - w.y)
-            val distB = hypot(player.x - bx, player.y - by)
-            if (distA < w.radius + player.radius * 0.85f) {
-                w.slideCooldownSec = 2.4f
-                nextInvuln = maxOf(nextInvuln, 1.35f)
-                nextSlide = WormholeSlideState(
-                    startX = w.x,
-                    startY = w.y,
-                    ctrlX = cx,
-                    ctrlY = cy,
-                    endX = bx,
-                    endY = by,
-                    durationSec = (beatDurationSec * 1.85f).coerceIn(0.75f, 1.15f)
-                )
-                toast = PowerUpBannerToast(
-                    icon = "🌀",
-                    title = "WORMHOLE SLIDE STREAM!",
-                    subtitle = "SURFING THE BEAT RIBBON • INVINCIBLE!",
-                    accentColor = Color(0xFF38BDF8L),
-                    timer = 1.8f,
-                    maxTimer = 1.8f
-                )
-                break
-            } else if (distB < w.radius + player.radius * 0.85f) {
-                w.slideCooldownSec = 2.4f
-                nextInvuln = maxOf(nextInvuln, 1.35f)
-                nextSlide = WormholeSlideState(
-                    startX = bx,
-                    startY = by,
-                    ctrlX = cx,
-                    ctrlY = cy,
-                    endX = w.x,
-                    endY = w.y,
-                    durationSec = (beatDurationSec * 1.85f).coerceIn(0.75f, 1.15f)
-                )
-                toast = PowerUpBannerToast(
-                    icon = "🌀",
-                    title = "WORMHOLE SLIDE STREAM!",
-                    subtitle = "SURFING THE BEAT RIBBON • INVINCIBLE!",
-                    accentColor = Color(0xFFE879F9L),
-                    timer = 1.8f,
-                    maxTimer = 1.8f
-                )
-                break
             }
         }
     }
 
     return WormholeSurfStepResult(
-        nextSlide = nextSlide,
-        targetX = nextTargetX,
-        targetY = nextTargetY,
+        nextSlide = null,
+        targetX = targetX,
+        targetY = targetY,
         spawnInvulnerabilityTime = nextInvuln,
         rhythmCombo = nextCombo,
         onBeatHitsThisRun = nextHits,

@@ -10,7 +10,7 @@
   <title>No More Illusions — Interactive Album Experience</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="apple-touch-icon" href="assets/nmi_logo.png" />
-  <link rel="stylesheet" href="styles.css?v=12" />
+  <link rel="stylesheet" href="styles.css?v=14" />
 </head>
 <body>
   <!-- Full-Screen 60FPS Audio-Reactive Game & Nebula Canvas -->
@@ -64,13 +64,24 @@
 
         <!-- 2. 4-Mode Replayability Selector (1.0x NORMAL | 1.2x FAST | 0.85x CHILL | ∞ ENDLESS) -->
         <div class="remix-header-row">
-          <span style="color:#CBD5E1;">GAME SPEED &amp; MODE</span>
-          <span id="menu-remix-subtitle" style="color:#4ADE80;font-weight:700;">Regular song speed • Balanced challenge</span>
+          <span style="color:#EAB308;letter-spacing:1.2px;">STUDIO TAPE SPEED &amp; MODE</span>
+          <span id="menu-remix-subtitle" style="color:#4ADE80;font-weight:800;">1.0x Master Speed • 1.0x Score</span>
         </div>
         <div id="menu-remix-pills" class="remix-pills-row"></div>
 
+        <!-- Explicit Mode Spec & High-Score Loop Breakdown Box -->
+        <div id="menu-mode-spec-box" style="width:100%;background:rgba(8,10,18,0.92);border:1.2px solid rgba(74,222,128,0.55);border-radius:10px;padding:7px 10px;text-align:left;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px;">
+            <span id="menu-spec-title" style="font-size:9.5px;font-weight:900;color:#4ADE80;letter-spacing:0.8px;">NORMAL STUDIO MASTER (1.0X SPEED)</span>
+            <span id="menu-spec-badge" style="font-size:8.5px;font-weight:900;color:#050814;background:#4ADE80;padding:1.5px 6px;border-radius:4px;">1.0X SCORE</span>
+          </div>
+          <div id="menu-spec-desc" style="font-size:10px;color:#E2E8F0;line-height:1.35;">
+            Balanced 4-lane rhythm highway &amp; light hazards. Finish the track to unlock the full song &amp; Ethan's Studio Vault notes!
+          </div>
+        </div>
+
         <!-- 3. 3-Star Mastery Checklist Banner -->
-        <div class="mastery-checklist-banner">STARS: ★1 Finish Song &nbsp;•&nbsp; ★2 8x Combo &nbsp;•&nbsp; ★3 Beat Fast or Chill Mode</div>
+        <div class="mastery-checklist-banner">HIGH-SCORE LOOP: ★1 Finish Song &nbsp;•&nbsp; ★2 8x Combo &nbsp;•&nbsp; ★3 Master ∞ Endless or Fast Mode</div>
 
         <!-- 4. High-Dopamine Launch Button -->
         <div id="btn-launch-stage" class="btn-launch-stage" onclick="window.app.startStage()">
@@ -362,58 +373,63 @@
   </div>
 
   <!-- ======================================================================
-       8. HOW TO PLAY MODAL
+       8. HOW TO PLAY MODAL (WITH 12-SECOND AUTO-PLAYING MINI-VIDEO REEL)
        ====================================================================== -->
   <div id="screen-HOW_TO_PLAY" class="screen-overlay modal-backdrop">
-    <div id="htp-modal-card" class="glass-modal-card" style="max-width:410px;">
+    <div id="htp-modal-card" class="glass-modal-card" style="max-width:420px;max-height:92vh;overflow-y:auto;">
       <div class="guide-card-header">
         <div>
-          <div class="guide-title">HOW TO PLAY</div>
-          <div id="htp-sub-header" style="font-size:10.5px;color:#CBD5E1;font-weight:700;">Countdown waits until you tap Start below</div>
+          <div class="guide-title">STAGE BRIEFING &amp; MINI-VIDEO</div>
+          <div id="htp-sub-header" style="font-size:10.5px;color:#CBD5E1;font-weight:700;">Zero mid-game pop-ups • Countdown waits until you tap Start</div>
         </div>
         <button class="btn-close-pill" onclick="window.app.dismissHowToPlay(false, false)">BACK</button>
       </div>
 
-      <!-- 1. STEER -->
-      <div class="guide-item" style="border-color:rgba(56,189,248,0.45);">
-        <div class="guide-icon-badge" style="background:rgba(56,189,248,0.18);border:1.5px solid #38BDF8;color:#38BDF8;">✦</div>
-        <div>
-          <div class="guide-text-title" style="color:#38BDF8;">SLIDE ANYWHERE TO STEER</div>
-          <div class="guide-text-body">
-            Touch and drag anywhere on the screen (or move your mouse) to glide your glowing core smoothly through space.
-          </div>
+      <!-- 12-Second Looping Mini-Video Reel -->
+      <div style="background:#050814;border:1.5px solid rgba(56,189,248,0.55);border-radius:14px;padding:8px;text-align:left;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+          <span style="font-size:8.5px;font-weight:900;color:#22C55E;letter-spacing:1.1px;">● LIVE GAMEPLAY PREVIEW REEL (12s LOOP)</span>
+          <span style="font-size:8.5px;font-weight:800;color:#94A3B8;">AUTO-PLAYING</span>
+        </div>
+        <canvas id="htp-video-canvas" width="320" height="148" style="width:100%;height:148px;border-radius:10px;border:1px solid rgba(255,255,255,0.14);display:block;"></canvas>
+        <div id="htp-video-title" style="font-size:10.5px;font-weight:900;color:#FACC15;margin-top:6px;">1/3 • HIT FRET NOTES ON THE GLOWING BEAT LINE</div>
+        <div id="htp-video-sub" style="font-size:9.5px;color:#E2E8F0;margin-top:1px;">Notes scroll down 4 lanes — catch them at the Strike Line for ★ PERFECT ON-BEAT!</div>
+        <div style="display:flex;gap:5px;margin-top:6px;">
+          <div style="flex:1;height:4px;background:rgba(255,255,255,0.14);border-radius:2px;overflow:hidden;"><div id="htp-video-bar-0" style="width:0%;height:100%;background:#FACC15;"></div></div>
+          <div style="flex:1;height:4px;background:rgba(255,255,255,0.14);border-radius:2px;overflow:hidden;"><div id="htp-video-bar-1" style="width:0%;height:100%;background:#38BDF8;"></div></div>
+          <div style="flex:1;height:4px;background:rgba(255,255,255,0.14);border-radius:2px;overflow:hidden;"><div id="htp-video-bar-2" style="width:0%;height:100%;background:#EF4444;"></div></div>
         </div>
       </div>
 
-      <!-- 2. COLLECT ORBS -->
+      <!-- 1. GUITAR-HERO BEAT LINE -->
       <div class="guide-item" style="border-color:rgba(250,204,21,0.45);">
         <div class="guide-icon-badge" style="background:rgba(250,204,21,0.18);border:1.5px solid #FACC15;color:#FACC15;">★</div>
         <div>
-          <div class="guide-text-title" style="color:#FACC15;">COLLECT GLOWING ORBS</div>
+          <div class="guide-text-title" style="color:#FACC15;">HIT NOTES ON THE BEAT STRIKE LINE</div>
           <div class="guide-text-body">
-            Follow the <b>curved stardust wisps</b> from your ship to catch <b>Cyan &amp; Gold Orbs</b> on the beat for big combo points and power-ups!
+            Colored Fret Gems scroll down the 4-lane highway. Catch them as they cross the <b>Glowing Beat Strike Line</b> for <b>★ PERFECT ON-BEAT!</b> points &amp; Fret Flames!
           </div>
         </div>
       </div>
 
-      <!-- 3. DODGE ENEMIES -->
-      <div class="guide-item" style="border-color:rgba(255,30,66,0.45);">
-        <div class="guide-icon-badge" style="background:rgba(255,30,66,0.18);border:1.5px solid #FF1E42;color:#FF1E42;">◆</div>
+      <!-- 2. HOLD & SLIDE RIBBONS -->
+      <div class="guide-item" style="border-color:rgba(56,189,248,0.45);">
+        <div class="guide-icon-badge" style="background:rgba(56,189,248,0.18);border:1.5px solid #38BDF8;color:#38BDF8;">♪</div>
         <div>
-          <div class="guide-text-title" style="color:#FF1E42;">DODGE RED ENEMIES</div>
+          <div class="guide-text-title" style="color:#38BDF8;">HOLD &amp; FOLLOW SUSTAIN SLIDE RIBBONS</div>
           <div class="guide-text-body">
-            Watch the screen edges for <b>pulsing red warning ripples</b> before spiky enemies lunge in. Hold <b>FOCUS</b> at the bottom to slow down time!
+            When a glowing <b>HOLD &amp; SLIDE ♪</b> ribbon scrolls down the highway, steer inside the ribbon to rack up rapid <b>SLIDE ♪ +65</b> combo ticks!
           </div>
         </div>
       </div>
 
-      <!-- 4. UNLOCK SONGS -->
-      <div class="guide-item" style="border-color:rgba(74,222,128,0.45);">
-        <div class="guide-icon-badge" style="background:rgba(74,222,128,0.18);border:1.5px solid #4ADE80;color:#4ADE80;">♪</div>
+      <!-- 3. BOMBS & SHIELDS -->
+      <div class="guide-item" style="border-color:rgba(239,68,68,0.45);">
+        <div class="guide-icon-badge" style="background:rgba(239,68,68,0.18);border:1.5px solid #EF4444;color:#EF4444;">💥</div>
         <div>
-          <div class="guide-text-title" style="color:#4ADE80;">SURVIVE TO UNLOCK THE ALBUM</div>
+          <div class="guide-text-title" style="color:#EF4444;">GRAB 💥 BOMBS TO DESTROY RED ENEMIES</div>
           <div class="guide-text-body">
-            Survive to the end of <b>Confide</b> or <b>Number One</b> to unlock the full song in your Album Player!
+            Collect labeled <b>💥 BOMB</b> items to instantly vaporize every enemy on screen (+150 pts each), or grab <b>🛡️ SHIELD</b> to block a hit!
           </div>
         </div>
       </div>
@@ -569,16 +585,16 @@
     </div>
   </div>
 
-  <script src="multi_band_data.js?v=13"></script>
-  <script src="music_library.js?v=13"></script>
-  <script src="background_renderer.js?v=13"></script>
-  <script src="beat_orb_renderer.js?v=13"></script>
-  <script src="game_renderer.js?v=13"></script>
-  <script src="engine.js?v=13"></script>
-  <script src="audio_synth.js?v=13"></script>
-  <script src="game_physics.js?v=13"></script>
-  <script src="ui_screens.js?v=13"></script>
-  <script src="tutorial_overlay.js?v=13"></script>
+  <script src="multi_band_data.js?v=14"></script>
+  <script src="music_library.js?v=14"></script>
+  <script src="background_renderer.js?v=14"></script>
+  <script src="beat_orb_renderer.js?v=14"></script>
+  <script src="game_renderer.js?v=14"></script>
+  <script src="engine.js?v=14"></script>
+  <script src="audio_synth.js?v=14"></script>
+  <script src="game_physics.js?v=14"></script>
+  <script src="ui_screens.js?v=14"></script>
+  <script src="tutorial_overlay.js?v=14"></script>
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {

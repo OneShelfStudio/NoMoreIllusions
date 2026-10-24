@@ -26,6 +26,12 @@ class NoMoreIllusionsApp {
     this.hudRevealCtx = this.hudRevealCanvas ? this.hudRevealCanvas.getContext("2d") : null;
     this.previewCanvas = document.getElementById("customizer-preview-canvas");
     this.previewCtx = this.previewCanvas ? this.previewCanvas.getContext("2d") : null;
+    this.htpVideoCanvas = document.getElementById("htp-video-canvas");
+    this.htpVideoCtx = this.htpVideoCanvas ? this.htpVideoCanvas.getContext("2d") : null;
+    if (typeof computeHighwayPoint === "function") {
+      this.computeHighwayPoint = computeHighwayPoint;
+      this.computeHighwayScale = computeHighwayScale;
+    }
 
     // Persistent Preferences (matching DodgePreferences.kt)
     this.prefs = {
@@ -143,11 +149,6 @@ class NoMoreIllusionsApp {
     this.initStars();
     this.bindEvents();
     this.syncUI();
-    setTimeout(() => {
-      if (this.gameState === "MENU" && typeof this.triggerDiscoveryIfUnseen === "function") {
-        this.triggerDiscoveryIfUnseen("FAN_WELCOME");
-      }
-    }, 450);
     requestAnimationFrame((ts) => this.loop(ts));
   }
 
@@ -747,7 +748,229 @@ class NoMoreIllusionsApp {
       this.updateDemoPlayerProgress();
     }
 
+    if (this.gameState === "HOW_TO_PLAY") {
+      this.renderHowToPlayVideoReel();
+    }
+
     requestAnimationFrame((ts) => this.loop(ts));
+  }
+
+  renderHowToPlayVideoReel() {
+    if (!this.htpVideoCanvas) {
+      this.htpVideoCanvas = document.getElementById("htp-video-canvas");
+      this.htpVideoCtx = this.htpVideoCanvas ? this.htpVideoCanvas.getContext("2d") : null;
+    }
+    if (!this.htpVideoCanvas || !this.htpVideoCtx) return;
+
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const rect = this.htpVideoCanvas.getBoundingClientRect();
+    const w = rect.width || 320;
+    const h = rect.height || 148;
+    if (this.htpVideoCanvas.width !== Math.round(w * dpr) || this.htpVideoCanvas.height !== Math.round(h * dpr)) {
+      this.htpVideoCanvas.width = Math.round(w * dpr);
+      this.htpVideoCanvas.height = Math.round(h * dpr);
+      this.htpVideoCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+
+    const ctx = this.htpVideoCtx;
+    const cycleSec = this.time % 12.0;
+    const sceneIdx = cycleSec < 4.0 ? 0 : (cycleSec < 8.0 ? 1 : 2);
+    const sceneT = (cycleSec % 4.0) / 4.0;
+
+    // Update caption & progress bars
+    const titleEl = document.getElementById("htp-video-title");
+    const subEl = document.getElementById("htp-video-sub");
+    if (titleEl && subEl) {
+      if (sceneIdx === 0) {
+        titleEl.textContent = "1/3 • HIT FRET NOTES ON THE GLOWING BEAT LINE";
+        subEl.textContent = "Notes scroll down 4 lanes — catch them at the Strike Line for ★ PERFECT ON-BEAT!";
+      } else if (sceneIdx === 1) {
+        titleEl.textContent = "2/3 • HOLD & FOLLOW SUSTAIN SLIDE RIBBONS";
+        subEl.textContent = "Steer inside scrolling neon ribbons to rack up rapid SLIDE ♪ combo ticks!";
+      } else {
+        titleEl.textContent = "3/3 • GRAB 💥 BOMBS TO VAPORIZE RED HAZARDS";
+        subEl.textContent = "Collect labeled 💥 BOMB cores to wipe out every enemy on screen for +150 pts each!";
+      }
+    }
+    for (let i = 0; i < 3; i++) {
+      const barFill = document.getElementById(`htp-video-bar-${i}`);
+      if (barFill) {
+        const pct = i < sceneIdx ? 100 : (i === sceneIdx ? Math.round(sceneT * 100) : 0);
+        barFill.style.width = `${pct}%`;
+      }
+    }
+
+    ctx.clearRect(0, 0, w, h);
+    const bgGrad = ctx.createLinearGradient(0, 0, 0, h);
+    bgGrad.addColorStop(0, "#050814");
+    bgGrad.addColorStop(1, "#0B1329");
+    ctx.fillStyle = bgGrad;
+    ctx.fillRect(0, 0, w, h);
+
+    // Draw mini 3D perspective 4-lane highway
+    const topY = h * 0.12;
+    const strikeY = h * 0.76;
+    const botY = h * 0.96;
+    const lanePt = (laneFloat, u) => {
+      const y = topY + (strikeY - topY) * u;
+      const depthT = (y - topY) / Math.max(1, botY - topY);
+      const halfSpan = w * (0.14 + (0.40 - 0.14) * depthT);
+      const normOffset = ((laneFloat - 1.5) / 1.5);
+      return { x: w * 0.5 + normOffset * halfSpan, y };
+    };
+
+    const tl = lanePt(-0.5, 0);
+    const tr = lanePt(3.5, 0);
+    const bl = lanePt(-0.5, 1.22);
+    const br = lanePt(3.5, 1.22);
+    ctx.beginPath();
+    ctx.moveTo(tl.x, tl.y);
+    ctx.lineTo(tr.x, tr.y);
+    ctx.lineTo(br.x, br.y);
+    ctx.lineTo(bl.x, bl.y);
+    ctx.closePath();
+    ctx.fillStyle = "rgba(15, 23, 42, 0.85)";
+    ctx.fill();
+    ctx.strokeStyle = "rgba(56, 189, 248, 0.4)";
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    for (let d = 1; d <= 3; d++) {
+      const pTop = lanePt(d - 0.5, 0);
+      const pBot = lanePt(d - 0.5, 1.22);
+      ctx.beginPath();
+      ctx.moveTo(pTop.x, pTop.y);
+      ctx.lineTo(pBot.x, pBot.y);
+      ctx.strokeStyle = "rgba(148, 163, 184, 0.22)";
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+
+    // Glowing Beat Strike Line
+    const sLeft = lanePt(-0.45, 1.0);
+    const sRight = lanePt(3.45, 1.0);
+    ctx.beginPath();
+    ctx.moveTo(sLeft.x, strikeY);
+    ctx.lineTo(sRight.x, strikeY);
+    ctx.strokeStyle = "rgba(250, 204, 21, 0.85)";
+    ctx.lineWidth = 2.8;
+    ctx.stroke();
+
+    const laneColors = ["#22C55E", "#FB7185", "#FACC15", "#38BDF8"];
+    for (let l = 0; l < 4; l++) {
+      const rp = lanePt(l, 1.0);
+      ctx.beginPath();
+      ctx.arc(rp.x, rp.y, 8, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(7, 11, 25, 0.9)";
+      ctx.fill();
+      ctx.strokeStyle = laneColors[l];
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+
+    let shipX = w * 0.5;
+    const shipY = strikeY;
+
+    if (sceneIdx === 0) {
+      const subBeat = (sceneT * 2.0) % 1.0;
+      const activeLane = sceneT < 0.5 ? 1 : 2;
+      const notePt = lanePt(activeLane, subBeat);
+      const targetRp = lanePt(activeLane, 1.0);
+      shipX = w * 0.5 + (targetRp.x - w * 0.5) * Math.min(1, subBeat * 1.35);
+
+      ctx.beginPath();
+      ctx.arc(notePt.x, notePt.y, 9, 0, Math.PI * 2);
+      ctx.fillStyle = laneColors[activeLane];
+      ctx.fill();
+      ctx.strokeStyle = "#FFFFFF";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      if (subBeat > 0.78) {
+        ctx.beginPath();
+        ctx.arc(targetRp.x, strikeY, 20 * (subBeat - 0.72) * 3.2, 0, Math.PI * 2);
+        ctx.strokeStyle = "#4ADE80";
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+        ctx.font = "900 10px sans-serif";
+        ctx.fillStyle = "#4ADE80";
+        ctx.textAlign = "center";
+        ctx.fillText("★ PERFECT ON-BEAT! +240", targetRp.x, strikeY - 18);
+      }
+    } else if (sceneIdx === 1) {
+      const headU = 0.25 + sceneT * 0.85;
+      const tailU = headU - 0.50;
+      const pHead = lanePt(1.0 + sceneT * 1.2, headU);
+      const pTail = lanePt(1.0, Math.max(0, tailU));
+      shipX = pHead.x;
+
+      ctx.beginPath();
+      ctx.moveTo(pTail.x, pTail.y);
+      ctx.lineTo(pHead.x, pHead.y);
+      ctx.strokeStyle = "rgba(56, 189, 248, 0.55)";
+      ctx.lineWidth = 14;
+      ctx.lineCap = "round";
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.moveTo(pTail.x, pTail.y);
+      ctx.lineTo(pHead.x, pHead.y);
+      ctx.strokeStyle = "#FFFFFF";
+      ctx.lineWidth = 3;
+      ctx.stroke();
+
+      ctx.font = "900 10px sans-serif";
+      ctx.fillStyle = "#38BDF8";
+      ctx.textAlign = "center";
+      ctx.fillText("SLIDE ♪ +65", shipX, shipY - 18);
+    } else {
+      const bombU = Math.min(1.0, sceneT * 1.55);
+      const bombPt = lanePt(2, bombU);
+      shipX = lanePt(2, 1.0).x;
+
+      if (sceneT < 0.65) {
+        ctx.beginPath();
+        ctx.arc(bombPt.x, bombPt.y, 10, 0, Math.PI * 2);
+        ctx.fillStyle = "#EF4444";
+        ctx.fill();
+        ctx.strokeStyle = "#FACC15";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.font = "900 9px sans-serif";
+        ctx.fillStyle = "#FFFFFF";
+        ctx.textAlign = "center";
+        ctx.fillText("💥 BOMB", bombPt.x, bombPt.y - 13);
+
+        // Two red enemies on sides
+        const enemies = [{ x: w * 0.24, y: h * 0.44 }, { x: w * 0.76, y: h * 0.48 }];
+        for (const en of enemies) {
+          ctx.beginPath();
+          ctx.arc(en.x, en.y, 8, 0, Math.PI * 2);
+          ctx.fillStyle = "#FF1E42";
+          ctx.fill();
+        }
+      } else {
+        const blastT = (sceneT - 0.65) / 0.35;
+        ctx.beginPath();
+        ctx.arc(shipX, shipY, 12 + blastT * 120, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(239, 68, 68, ${Math.max(0, 1 - blastT)})`;
+        ctx.lineWidth = 3.5;
+        ctx.stroke();
+        ctx.font = "900 10px sans-serif";
+        ctx.fillStyle = "#FACC15";
+        ctx.textAlign = "center";
+        ctx.fillText("💥 BOMB DETONATED! +300 PTS", w * 0.5, h * 0.42);
+      }
+    }
+
+    // Draw player ship at shipX, shipY
+    ctx.beginPath();
+    ctx.arc(shipX, shipY, 10, 0, Math.PI * 2);
+    ctx.fillStyle = "#22D3EE";
+    ctx.fill();
+    ctx.strokeStyle = "#FFFFFF";
+    ctx.lineWidth = 2;
+    ctx.stroke();
   }
 
   renderGameCanvas() {

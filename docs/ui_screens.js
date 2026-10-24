@@ -363,13 +363,41 @@ Object.assign(NoMoreIllusionsApp.prototype, {
         const isSelected = mode.id === activeRemix.id;
         return `
           <div class="remix-pill ${isSelected ? "selected" : ""}"
-               style="border-color:${isSelected ? mode.color : "rgba(255,255,255,0.12)"};background:${isSelected ? "rgba(255,255,255,0.09)" : "#050911"};"
+               style="border-color:${isSelected ? mode.color : "rgba(255,255,255,0.14)"};background:${isSelected ? "rgba(255,255,255,0.10)" : "#07090E"};"
                onclick="window.app.setRemixMode('${mode.id}')">
             <div class="remix-pill-tag" style="color:${isSelected ? mode.color : "#94A3B8"};">${mode.shortTag}</div>
-            <div class="remix-pill-id" style="color:${isSelected ? "#FFFFFF" : "#64748B"};">${mode.displayName}</div>
+            <div class="remix-pill-id" style="color:${isSelected ? "#FAF8F5" : "#64748B"};">${mode.displayName}</div>
           </div>
         `;
       }).join("");
+    }
+
+    // 2B. Explicit Mode Spec & High-Score Loop Breakdown Box (#menu-mode-spec-box)
+    const specBox = document.getElementById("menu-mode-spec-box");
+    const specTitle = document.getElementById("menu-spec-title");
+    const specBadge = document.getElementById("menu-spec-badge");
+    const specDesc = document.getElementById("menu-spec-desc");
+    if (specBox && specTitle && specBadge && specDesc) {
+      specBox.style.borderColor = activeRemix.color;
+      specTitle.style.color = activeRemix.color;
+      specBadge.style.background = activeRemix.color;
+      if (activeRemix.id === "NIGHTCORE") {
+        specTitle.textContent = "FAST OVERDRIVE TAPE (1.20X SPEED)";
+        specBadge.textContent = "1.5X SCORE & NOTES";
+        specDesc.textContent = "20% faster song tempo & denser beat highway. Awards +50% bonus score & ♪ Notes — complete once to earn ★3 Mastery!";
+      } else if (activeRemix.id === "CHILLWAVE") {
+        specTitle.textContent = "CHILL REVERB TAPE (0.85X SPEED)";
+        specBadge.textContent = "1.2X SCORE & NOTES";
+        specDesc.textContent = "Dreamy slowed-down tempo with wider timing windows on the Beat Strike Line. Great for learning the rhythm chart!";
+      } else if (activeRemix.id === "ENDLESS_LOOP") {
+        specTitle.textContent = "∞ ENDLESS HIGH-SCORE LOOP (ESCALATING)";
+        specBadge.textContent = "2.0X+ HIGH-SCORE MODE";
+        specDesc.textContent = "THE ULTIMATE HIGH-SCORE CHASE: Song loops seamlessly on completion (+8% speed & massive multiplier boost every loop until you fall)!";
+      } else {
+        specTitle.textContent = "NORMAL STUDIO MASTER (1.0X SPEED)";
+        specBadge.textContent = "1.0X SCORE";
+        specDesc.textContent = "Original studio master tempo & balanced 4-lane rhythm highway. Finish the track to unlock the full song & Ethan's Studio Vault!";
+      }
     }
 
     // 3. Console Card Border & Launch Button (#menu-launch-main & #btn-launch-stage)

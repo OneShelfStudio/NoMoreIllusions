@@ -19,483 +19,465 @@ fun DrawScope.drawPowerUps(
     goldenOverdriveIntensity: Float = 0f,
     multiBand: MultiBandAudioState = MultiBandAudioState()
 ) {
+    val w = size.width
+    val h = size.height
+    if (w <= 0f || h <= 0f) return
+    val beatKick = if (beatPhase >= 0f) exp(-beatPhase * 5.2f).coerceIn(0f, 1f) else 0.25f
+    val isGoldStage = goldenOverdriveIntensity > 0.35f
+
+    val laneColors = listOf(
+        Color(0xFF22C55EL), // Lane 1: Emerald Fret
+        Color(0xFFFB7185L), // Lane 2: Crimson Fret
+        Color(0xFFFACC15L), // Lane 3: Gold Fret
+        Color(0xFF38BDF8L)  // Lane 4: Cyan Fret
+    )
+
+    // =========================================================================
+    // 1. 3D PERSPECTIVE BAND-HERO / GUITAR-HERO RHYTHM HIGHWAY & BEAT STRIKE LINE
+    // =========================================================================
+    val topL = computeHighwayPoint(-0.45f, 0f, w, h)
+    val topR = computeHighwayPoint(3.45f, 0f, w, h)
+    val strikeL = computeHighwayPoint(-0.45f, 1.0f, w, h)
+    val strikeR = computeHighwayPoint(3.45f, 1.0f, w, h)
+    val botL = computeHighwayPoint(-0.45f, 1.18f, w, h)
+    val botR = computeHighwayPoint(3.45f, 1.18f, w, h)
+
+    val deckPath = Path().apply {
+        moveTo(topL.x, topL.y)
+        lineTo(topR.x, topR.y)
+        lineTo(botR.x, botR.y)
+        lineTo(botL.x, botL.y)
+        close()
+    }
+    drawPath(
+        path = deckPath,
+        brush = Brush.verticalGradient(
+            colors = listOf(
+                Color(0xFF070A16L).copy(alpha = 0.22f),
+                Color(0xFF0A1022L).copy(alpha = 0.62f),
+                Color(0xFF111832L).copy(alpha = 0.76f),
+                Color(0xFF070A16L).copy(alpha = 0.30f)
+            ),
+            startY = topL.y,
+            endY = botL.y
+        )
+    )
+
+    // Highway outer side rails
+    val railColor = if (isGoldStage) Color(0xFFFACC15L) else Color(0xFF38BDF8L)
+    drawLine(
+        color = railColor.copy(alpha = 0.42f + beatKick * 0.25f),
+        start = topL,
+        end = botL,
+        strokeWidth = 3.2f,
+        cap = StrokeCap.Round
+    )
+    drawLine(
+        color = railColor.copy(alpha = 0.42f + beatKick * 0.25f),
+        start = topR,
+        end = botR,
+        strokeWidth = 3.2f,
+        cap = StrokeCap.Round
+    )
+
+    // Scrolling horizontal beat-measure bars synced to the quarter-note beatPhase!
+    val phaseFrac = if (beatPhase >= 0f) (1f - beatPhase.coerceIn(0f, 1f)) else ((time * 2f) % 1f)
+    for (barIdx in 0..3) {
+        val uBar = ((barIdx + phaseFrac) / 4f).coerceIn(0.02f, 1.12f)
+        val bL = computeHighwayPoint(-0.42f, uBar, w, h)
+        val bR = computeHighwayPoint(3.42f, uBar, w, h)
+        val barAlpha = (0.10f + 0.26f * uBar) * (if (uBar in 0.92f..1.05f) 1.5f else 1.0f)
+        drawLine(
+            color = Color(0xFFE2E8F0L).copy(alpha = barAlpha.coerceIn(0.05f, 0.48f)),
+            start = bL,
+            end = bR,
+            strokeWidth = 1.4f + uBar * 1.8f
+        )
+    }
+
+    // 4 Perspective Fret Lane Strings
+    for (lane in 0..3) {
+        val lTop = computeHighwayPoint(lane.toFloat(), 0f, w, h)
+        val lBot = computeHighwayPoint(lane.toFloat(), 1.16f, w, h)
+        val lCol = laneColors[lane]
+        drawLine(
+            brush = Brush.verticalGradient(
+                colors = listOf(
+                    lCol.copy(alpha = 0.12f),
+                    lCol.copy(alpha = 0.42f + beatKick * 0.18f),
+                    lCol.copy(alpha = 0.72f)
+                ),
+                startY = lTop.y,
+                endY = lBot.y
+            ),
+            start = lTop,
+            end = lBot,
+            strokeWidth = 2.4f,
+            cap = StrokeCap.Round
+        )
+    }
+
+    // GLOWING BEAT STRIKE LINE at u = 1.0 (Y = 74% of screen height)
+    val strikeGlowCol = if (isGoldStage) Color(0xFFFACC15L) else Color(0xFF38BDF8L)
+    drawLine(
+        color = strikeGlowCol.copy(alpha = 0.28f + beatKick * 0.24f),
+        start = Offset(strikeL.x - 10f, strikeL.y),
+        end = Offset(strikeR.x + 10f, strikeR.y),
+        strokeWidth = 14f + beatKick * 6f,
+        cap = StrokeCap.Round
+    )
+    drawLine(
+        color = Color.White.copy(alpha = 0.82f + beatKick * 0.18f),
+        start = strikeL,
+        end = strikeR,
+        strokeWidth = 3.2f,
+        cap = StrokeCap.Round
+    )
+
+    // 4 Guitar-Hero Fret Receptors along the Beat Strike Line
+    for (lane in 0..3) {
+        val recPt = computeHighwayPoint(lane.toFloat(), 1.0f, w, h)
+        val lCol = laneColors[lane]
+        val hasNoteOnLine = powerUps.any {
+            val lead = (it.targetBeatSec - it.spawnBeatSec).coerceAtLeast(0.45f)
+            val uNote = (trackSec - it.spawnBeatSec) / lead
+            (it.phraseBeatNum - 1) == lane && uNote in 0.85f..1.14f
+        }
+        val recR = if (hasNoteOnLine) 28f + beatKick * 6f else 22f + beatKick * 2.5f
+        drawCircle(
+            color = lCol.copy(alpha = if (hasNoteOnLine) 0.52f else 0.20f),
+            radius = recR * 1.35f,
+            center = recPt
+        )
+        drawCircle(
+            color = Color(0xFF090D1AL).copy(alpha = 0.88f),
+            radius = recR,
+            center = recPt
+        )
+        drawCircle(
+            color = if (hasNoteOnLine) Color.White else lCol.copy(alpha = 0.85f),
+            radius = recR,
+            center = recPt,
+            style = Stroke(width = if (hasNoteOnLine) 4.2f else 2.6f)
+        )
+        drawCircle(
+            color = lCol.copy(alpha = if (hasNoteOnLine) 0.95f else 0.45f),
+            radius = recR * 0.38f,
+            center = recPt
+        )
+    }
+
+    drawIntoCanvas { canvas ->
+        cachedSubPaint.textSize = 15.5f
+        cachedSubPaint.color = android.graphics.Color.argb(190, 250, 204, 21)
+        canvas.nativeCanvas.drawText(
+            "★ BEAT STRIKE LINE • CATCH NOTES HERE ON TIME ★",
+            w * 0.5f,
+            strikeL.y + 38f,
+            cachedSubPaint
+        )
+    }
+
     if (powerUps.isEmpty()) return
     val sorted = if (powerUps.size >= 2) powerUps.sortedBy { it.sequenceIndex } else powerUps
-    val beatKick = if (beatPhase >= 0f) exp(-beatPhase * 5.2f).coerceIn(0f, 1f) else 0.25f
 
-    // 1. Organic Orbital Compass Arc + Curved Stardust Trail toward the #1 active target orb (Zero straight ruler lines!)
-    val primaryTarget = sorted.first()
-    val isPrimarySupernova = primaryTarget.keyWordEffect != KeyWordEffect.NONE
-    val guideColor = if (isPrimarySupernova) Color(0xFFFACC15L) else Color(0xFF22D3EEL)
-    val gdx = primaryTarget.x - player.x
-    val gdy = primaryTarget.y - player.y
-    val gDist = hypot(gdx, gdy)
-    if (gDist > 42f) {
-        val dirRad = atan2(gdy, gdx)
-        val dirDeg = (dirRad * 180f / PI.toFloat())
-        val compassR = player.radius * 2.95f
-        // Glowing directional compass arc hugging the player's halo
-        drawArc(
-            color = guideColor.copy(alpha = 0.58f + beatKick * 0.28f),
-            startAngle = dirDeg - 26f,
-            sweepAngle = 52f,
-            useCenter = false,
-            topLeft = Offset(player.x - compassR, player.y - compassR),
-            size = Size(compassR * 2f, compassR * 2f),
-            style = Stroke(width = if (isPrimarySupernova) 3.4f else 2.4f, cap = StrokeCap.Round)
-        )
-        // Curved stardust wisps drifting along a sine arc toward the target orb
-        val nx = gdx / gDist
-        val ny = gdy / gDist
-        val perpX = -ny
-        val perpY = nx
-        val wispCount = 5
-        for (wIdx in 0 until wispCount) {
-            val t = ((time * 1.35f + wIdx / wispCount.toFloat()) % 1f)
-            val curveOffset = sin(t * PI.toFloat()) * 22f * sin(time * 2.4f + wIdx)
-            val wx = player.x + gdx * t + perpX * curveOffset
-            val wy = player.y + gdy * t + perpY * curveOffset
-            val wAlpha = sin(t * PI.toFloat()).coerceIn(0f, 1f) * (if (isPrimarySupernova) 0.72f else 0.50f)
-            drawCircle(
-                color = guideColor.copy(alpha = wAlpha),
-                radius = (if (isPrimarySupernova) 4.2f else 3.0f) * (0.6f + 0.4f * (1f - t)),
-                center = Offset(wx, wy)
-            )
-        }
-    }
-
-    // 2. Sequential Rhythm Silk Stream (smooth curved quadratic Bezier ribbon + drifting pearls connecting 1 -> 2 -> 3 -> 4!)
-    if (sorted.size >= 2) {
-        for (cIdx in 0 until sorted.size - 1) {
-            val pA = sorted[cIdx]
-            val pB = sorted[cIdx + 1]
-            val dx = pB.x - pA.x
-            val dy = pB.y - pA.y
-            val dist = hypot(dx, dy).coerceAtLeast(1f)
-            val perpX = -dy / dist
-            val perpY = dx / dist
-            val bend = sin(time * 1.6f + cIdx * 1.4f) * (dist * 0.18f).coerceIn(14f, 44f)
-            val ctrlX = (pA.x + pB.x) * 0.5f + perpX * bend
-            val ctrlY = (pA.y + pB.y) * 0.5f + perpY * bend
-            val linkAlpha = (0.48f - cIdx * 0.12f).coerceIn(0.16f, 0.50f)
-
-            val streamPath = Path().apply {
-                moveTo(pA.x, pA.y)
-                quadraticTo(ctrlX, ctrlY, pB.x, pB.y)
-            }
-            drawPath(
-                path = streamPath,
-                color = Color(0xFF38BDF8L).copy(alpha = linkAlpha * 0.28f),
-                style = Stroke(width = 8.5f, cap = StrokeCap.Round)
-            )
-            drawPath(
-                path = streamPath,
-                color = Color(0xFF38BDF8L).copy(alpha = linkAlpha * 0.65f),
-                style = Stroke(width = 2.2f, cap = StrokeCap.Round)
-            )
-
-            // Flowing beat-pulse pearls gliding along the curved quadratic Bezier stream from pA -> pB
-            for (step in 1..3) {
-                val mt = ((step / 4f) + time * 0.85f) % 1f
-                val inv = 1f - mt
-                val mx = inv * inv * pA.x + 2f * inv * mt * ctrlX + mt * mt * pB.x
-                val my = inv * inv * pA.y + 2f * inv * mt * ctrlY + mt * mt * pB.y
-                drawCircle(
-                    color = Color(0xFFFACC15L).copy(alpha = linkAlpha * 0.90f),
-                    radius = if (cIdx == 0) 3.4f else 2.4f,
-                    center = Offset(mx, my)
-                )
-            }
-        }
-    }
-
-    // 3. Render each Stationary Beat Node with Shrinking TTL Approach Ring & Phrase Badge (1 -> 2 -> 3 -> 4)
-    sorted.forEachIndexed { idx, p ->
+    // 2. Render each Scrolling Highway Beat Note & Labeled Power-Up (BOMB / SHIELD / 4X STAR)
+    sorted.forEach { p ->
+        val leadDur = (p.targetBeatSec - p.spawnBeatSec).coerceAtLeast(0.45f)
+        val u = ((trackSec - p.spawnBeatSec) / leadDur).coerceIn(0f, 1.25f)
+        val perspScale = computeHighwayScale(u)
         val center = Offset(p.x, p.y)
-        val isSupernova = p.keyWordEffect != KeyWordEffect.NONE
-        val isPrimary = idx == 0
+        val isSupernova = p.keyWordEffect == KeyWordEffect.CONSTELLATION_STAR
+        val isBomb = p.powerUpType == PowerUpType.BLAST
+        val isShield = p.powerUpType == PowerUpType.SHIELD
 
-        // Materialization pop-in scale when spawning ahead of the beat
-        val spawnAge = (trackSec - p.spawnBeatSec).coerceAtLeast(0f)
-        val popInScale = (spawnAge / 0.22f).coerceIn(0.45f, 1.0f)
-
-        // Expire fade-out when approaching TTL deadline
-        val expireSec = if (p.expireBeatSec > 0f) p.expireBeatSec else (p.targetBeatSec + 0.55f)
+        val expireSec = if (p.expireBeatSec > 0f) p.expireBeatSec else (p.targetBeatSec + 0.45f)
         val ttlRemaining = (expireSec - trackSec).coerceAtLeast(0f)
-        val ttlAlpha = (ttlRemaining / 0.28f).coerceIn(0.15f, 1.0f)
+        val ttlAlpha = (ttlRemaining / 0.22f).coerceIn(0.20f, 1.0f)
 
-        // Quarter-note beat pulse + sub-bass swell
-        val beatPulseScale = 1.0f + (if (isSupernova) 0.32f else 0.22f) * beatKick + multiBand.bass * 0.12f
-        val coreRad = p.radius * popInScale * beatPulseScale * (if (isPrimary) 1.08f else 0.90f)
+        val isOnStrikeLine = u in 0.86f..1.14f
+        val beatPulseScale = 1.0f + (if (isOnStrikeLine) 0.26f else 0.12f) * beatKick
+        val coreRad = p.radius * perspScale * beatPulseScale
 
+        val laneIdx = (p.phraseBeatNum - 1).coerceIn(0, 3)
         val effectColor = when {
-            p.keyWordEffect != KeyWordEffect.NONE -> when (p.keyWordEffect) {
-                KeyWordEffect.TRACTOR_REACH -> Color(0xFF22D3EEL)
-                KeyWordEffect.PRISM_SHATTER -> Color(0xFFE879F9L)
-                KeyWordEffect.MAGNETAR_WAR -> Color(0xFFFB7185L)
-                KeyWordEffect.CONSTELLATION_STAR -> Color(0xFFFACC15L)
-                KeyWordEffect.BINARY_HEART -> Color(0xFF4ADE80L)
-                KeyWordEffect.ECLIPSE_DARK -> Color(0xFFFDE047L)
-                KeyWordEffect.NONE -> Color(0xFF06B6D4L)
-            }
-            p.powerUpType == PowerUpType.BLAST -> Color(0xFFF97316L)
-            p.powerUpType == PowerUpType.SHIELD -> Color(0xFF38BDF8L)
-            p.powerUpType == PowerUpType.SLOW_MO -> Color(0xFFA855F7L)
-            p.powerUpType == PowerUpType.MAGNET -> Color(0xFF10B981L)
-            else -> Color(0xFF06B6D4L)
+            isBomb -> Color(0xFFF97316L)
+            isShield -> Color(0xFF38BDF8L)
+            isSupernova -> Color(0xFFFACC15L)
+            else -> laneColors[laneIdx]
         }
 
-        // Osu!-Style Shrinking Time-To-Live (TTL) Approach Ring:
-        // Contracts smoothly from 2.45x radius down to 1.02x radius right as trackSec hits p.targetBeatSec!
-        val leadWindow = (p.targetBeatSec - p.spawnBeatSec).coerceAtLeast(0.45f)
-        val timeToBeat = p.targetBeatSec - trackSec
-        val approachRatio = (timeToBeat / leadWindow).coerceIn(0f, 1f)
-        val isOnBeatWindow = abs(timeToBeat) <= 0.24f
-        val isLateGrace = timeToBeat < -0.24f
-        val ringRadius = coreRad * (1.03f + approachRatio * (if (isSupernova) 1.65f else 1.42f))
-        val ringCol = when {
-            isOnBeatWindow -> Color(0xFF4ADE80L) // Blazing Emerald-Gold when on-beat!
-            isLateGrace -> Color(0xFFFB7185L)    // Coral warning when TTL is about to expire
-            else -> effectColor
-        }
-
-        drawCircle(
-            color = ringCol.copy(
-                alpha = (if (isOnBeatWindow) 0.98f else (if (isSupernova) 0.85f else 0.68f)) * ttlAlpha
-            ),
-            radius = ringRadius,
-            center = center,
-            style = Stroke(width = if (isOnBeatWindow) 4.2f + beatKick * 1.8f else 2.5f)
-        )
-        if (isOnBeatWindow) {
+        // Vertical Fret Flame Column when a note is crossing the Beat Strike Line!
+        if (isOnStrikeLine) {
             drawCircle(
-                color = Color(0xFFFACC15L).copy(alpha = 0.72f * ttlAlpha),
-                radius = coreRad * 1.18f,
+                color = Color(0xFFFACC15L).copy(alpha = 0.85f * ttlAlpha),
+                radius = coreRad * 1.42f,
                 center = center,
-                style = Stroke(width = 2.0f)
+                style = Stroke(width = 3.5f)
+            )
+            drawLine(
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        Color.Transparent,
+                        effectColor.copy(alpha = 0.65f * ttlAlpha),
+                        Color.White.copy(alpha = 0.90f * ttlAlpha)
+                    ),
+                    startY = center.y - coreRad * 2.8f,
+                    endY = center.y
+                ),
+                start = Offset(center.x, center.y - coreRad * 2.8f),
+                end = center,
+                strokeWidth = coreRad * 0.85f,
+                cap = StrokeCap.Round
             )
         }
 
-        if (isSupernova) {
+        if (isBomb) {
             // =========================================================================
-            // SPECIAL BEAT-DROP SUPERNOVA ORB (24K GOLD & PRISMATIC GYROSCOPE STAR!)
+            // 💥 BOMB PICKUP (UNMISTAKABLE LABELED ENEMY-DESTROYER ORDNANCE!)
             // =========================================================================
-            drawCircle(
-                color = Color(0xFFFACC15L).copy(alpha = 0.52f + beatKick * 0.35f),
-                radius = ringRadius * 1.18f,
-                center = center,
-                style = Stroke(width = 1.8f)
-            )
-
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
-                        Color.White.copy(alpha = 0.98f),
-                        effectColor.copy(alpha = 0.82f),
-                        Color(0xFFFACC15L).copy(alpha = 0.45f),
+                        Color(0xFFFACC15L).copy(alpha = 0.85f * ttlAlpha),
+                        Color(0xFFF97316L).copy(alpha = 0.55f * ttlAlpha),
+                        Color(0xFFEF4444L).copy(alpha = 0.22f * ttlAlpha),
                         Color.Transparent
                     ),
                     center = center,
-                    radius = coreRad * 2.5f
+                    radius = coreRad * 2.3f
                 ),
-                radius = coreRad * 2.5f,
+                radius = coreRad * 2.3f,
                 center = center,
                 blendMode = BlendMode.Screen
             )
-
-            // Smooth Counter-Rotating Celestial Crescent Halo Arcs & Orbiting Gold Pearls (Zero straight spikes or boxy squares!)
-            for (h in 0..1) {
-                val hRad = coreRad * (if (h == 0) 1.05f else 0.76f)
-                val hCol = if (h == 0) Color(0xFFFACC15L) else effectColor
-                val startDeg = ((time * (if (h == 0) 130f else -155f)) % 360f)
-                for (a in 0..1) {
-                    drawArc(
-                        color = hCol.copy(alpha = 0.92f * ttlAlpha),
-                        startAngle = startDeg + a * 180f,
-                        sweepAngle = 112f,
-                        useCenter = false,
-                        topLeft = Offset(p.x - hRad, p.y - hRad),
-                        size = Size(hRad * 2f, hRad * 2f),
-                        style = Stroke(width = if (h == 0) 3.0f else 2.4f, cap = StrokeCap.Round)
-                    )
-                }
-            }
-            for (orbIdx in 0 until 6) {
-                val ang = (orbIdx * PI.toFloat() / 3f) + time * 1.4f
-                val orbitR = coreRad * (1.36f + 0.18f * beatKick)
-                val ox = p.x + cos(ang) * orbitR
-                val oy = p.y + sin(ang) * orbitR
-                drawCircle(
-                    color = (if (orbIdx % 2 == 0) Color(0xFFFFFBEBL) else effectColor).copy(alpha = 0.88f * ttlAlpha),
-                    radius = if (orbIdx % 2 == 0) 3.4f else 2.4f,
-                    center = Offset(ox, oy)
+            // 8 Ordnance Detonator Nubs around the sphere
+            for (nub in 0 until 8) {
+                val ang = nub * (PI.toFloat() / 4f) + time * 1.8f
+                val p1 = Offset(center.x + cos(ang) * (coreRad * 0.85f), center.y + sin(ang) * (coreRad * 0.85f))
+                val p2 = Offset(center.x + cos(ang) * (coreRad * 1.28f), center.y + sin(ang) * (coreRad * 1.28f))
+                drawLine(
+                    color = Color(0xFFFACC15L).copy(alpha = 0.95f * ttlAlpha),
+                    start = p1,
+                    end = p2,
+                    strokeWidth = 4.2f * perspScale,
+                    cap = StrokeCap.Round
                 )
             }
-
             drawCircle(
-                color = Color(0xFFFACC15L),
-                radius = coreRad * 0.48f,
+                color = Color(0xFF180808L).copy(alpha = 0.96f * ttlAlpha),
+                radius = coreRad,
                 center = center
             )
             drawCircle(
-                color = Color.White,
-                radius = coreRad * 0.28f,
+                color = Color(0xFFF97316L).copy(alpha = 0.98f * ttlAlpha),
+                radius = coreRad,
+                center = center,
+                style = Stroke(width = 3.4f)
+            )
+            drawCircle(
+                color = Color(0xFFFACC15L).copy(alpha = 0.92f * ttlAlpha),
+                radius = coreRad * 0.45f,
                 center = center
             )
+            drawIntoCanvas { canvas ->
+                cachedSubPaint.textSize = (17f * perspScale).coerceAtLeast(12f)
+                cachedSubPaint.color = android.graphics.Color.WHITE
+                canvas.nativeCanvas.drawText("💥 BOMB", center.x, center.y - coreRad * 1.38f, cachedSubPaint)
+            }
+        } else if (isShield) {
+            // =========================================================================
+            // 🛡️ SHIELD PICKUP (UNMISTAKABLE LABELED PROTECTIVE DOME!)
+            // =========================================================================
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(
+                        Color(0xFF38BDF8L).copy(alpha = 0.72f * ttlAlpha),
+                        Color(0xFF0284C7L).copy(alpha = 0.28f * ttlAlpha),
+                        Color.Transparent
+                    ),
+                    center = center,
+                    radius = coreRad * 2.1f
+                ),
+                radius = coreRad * 2.1f,
+                center = center,
+                blendMode = BlendMode.Screen
+            )
+            drawCircle(
+                color = Color(0xFF061528L).copy(alpha = 0.94f * ttlAlpha),
+                radius = coreRad,
+                center = center
+            )
+            drawCircle(
+                color = Color(0xFF38BDF8L).copy(alpha = 0.98f * ttlAlpha),
+                radius = coreRad,
+                center = center,
+                style = Stroke(width = 3.4f)
+            )
+            drawCircle(
+                color = Color.White.copy(alpha = 0.90f * ttlAlpha),
+                radius = coreRad * 0.62f,
+                center = center,
+                style = Stroke(width = 2.2f)
+            )
+            drawIntoCanvas { canvas ->
+                cachedSubPaint.textSize = (17f * perspScale).coerceAtLeast(12f)
+                cachedSubPaint.color = android.graphics.Color.rgb(186, 230, 253)
+                canvas.nativeCanvas.drawText("🛡️ SHIELD", center.x, center.y - coreRad * 1.32f, cachedSubPaint)
+            }
+        } else if (isSupernova) {
+            // =========================================================================
+            // ★ 24K STAR POWER NOTE (4X MULTIPLIER & OVERDRIVE!)
+            // =========================================================================
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(
+                        Color.White.copy(alpha = 0.98f * ttlAlpha),
+                        Color(0xFFFACC15L).copy(alpha = 0.82f * ttlAlpha),
+                        Color(0xFFF97316L).copy(alpha = 0.35f * ttlAlpha),
+                        Color.Transparent
+                    ),
+                    center = center,
+                    radius = coreRad * 2.3f
+                ),
+                radius = coreRad * 2.3f,
+                center = center,
+                blendMode = BlendMode.Screen
+            )
+            drawCircle(
+                color = Color(0xFF1C1404L).copy(alpha = 0.95f * ttlAlpha),
+                radius = coreRad,
+                center = center
+            )
+            drawCircle(
+                color = Color(0xFFFACC15L).copy(alpha = 0.98f * ttlAlpha),
+                radius = coreRad,
+                center = center,
+                style = Stroke(width = 3.6f)
+            )
+            drawCircle(
+                color = Color.White.copy(alpha = 0.95f * ttlAlpha),
+                radius = coreRad * 0.46f,
+                center = center
+            )
+            drawIntoCanvas { canvas ->
+                cachedSubPaint.textSize = (16.5f * perspScale).coerceAtLeast(11.5f)
+                cachedSubPaint.color = android.graphics.Color.rgb(254, 240, 138)
+                canvas.nativeCanvas.drawText("★ 4X STAR", center.x, center.y - coreRad * 1.30f, cachedSubPaint)
+            }
         } else {
             // =========================================================================
-            // SMOOTH SPHERICAL LUMINOUS GLASS / PLASMA ORB (ZERO STRAIGHT POLYGON LINES!)
+            // GUITAR-HERO / BAND-HERO FRET GEM BEAT NOTE
             // =========================================================================
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
-                        effectColor.copy(alpha = 0.56f * ttlAlpha),
-                        effectColor.copy(alpha = 0.20f * ttlAlpha),
+                        effectColor.copy(alpha = 0.65f * ttlAlpha),
+                        effectColor.copy(alpha = 0.22f * ttlAlpha),
                         Color.Transparent
                     ),
                     center = center,
-                    radius = coreRad * 1.95f
+                    radius = coreRad * 1.85f
                 ),
-                radius = coreRad * 1.95f,
+                radius = coreRad * 1.85f,
                 center = center,
                 blendMode = BlendMode.Screen
             )
-
-            // Smooth Spherical Glass Body with Volumetric Off-Center Radial Shading
+            // Outer Fret Gem Body
             drawCircle(
-                brush = Brush.radialGradient(
-                    colors = listOf(
-                        effectColor.copy(alpha = 0.42f * ttlAlpha),
-                        Color(0xFF0A1428L).copy(alpha = 0.94f * ttlAlpha),
-                        Color(0xFF040812L).copy(alpha = 0.96f * ttlAlpha)
-                    ),
-                    center = Offset(p.x - coreRad * 0.25f, p.y - coreRad * 0.25f),
-                    radius = coreRad * 1.15f
-                ),
-                radius = coreRad * 0.96f,
+                color = Color(0xFF090F20L).copy(alpha = 0.95f * ttlAlpha),
+                radius = coreRad,
                 center = center
             )
             drawCircle(
-                color = (if (isOnBeatWindow) Color(0xFFFACC15L) else effectColor).copy(alpha = 0.94f * ttlAlpha),
-                radius = coreRad * 0.96f,
+                color = (if (isOnStrikeLine) Color.White else effectColor).copy(alpha = 0.98f * ttlAlpha),
+                radius = coreRad,
                 center = center,
-                style = Stroke(width = 2.6f)
+                style = Stroke(width = if (isOnStrikeLine) 3.8f else 2.8f)
             )
-
-            // Soft Curved Upper-Left Specular Glass Crescent Highlight
-            val specRad = coreRad * 0.74f
-            drawArc(
-                color = Color.White.copy(alpha = 0.68f * ttlAlpha),
-                startAngle = 200f,
-                sweepAngle = 72f,
-                useCenter = false,
-                topLeft = Offset(p.x - specRad, p.y - specRad),
-                size = Size(specRad * 2f, specRad * 2f),
-                style = Stroke(width = 2.2f, cap = StrokeCap.Round)
-            )
-
-            // Inner Luminous Ring
+            // Bright Guitar-Hero Center Cap
             drawCircle(
-                color = effectColor.copy(alpha = 0.42f * ttlAlpha),
-                radius = coreRad * 0.60f,
-                center = center,
-                style = Stroke(width = 1.4f)
+                color = effectColor.copy(alpha = 0.88f * ttlAlpha),
+                radius = coreRad * 0.62f,
+                center = center
             )
-
-            // Smooth Curved Core Emblem (Nova Rings, Shield Halo, Chrono Rings, Magnet Arc, or Phrase Number 1..4)
-            when (p.powerUpType) {
-                PowerUpType.BLAST -> {
-                    drawCircle(
-                        color = Color(0xFFFDE047L).copy(alpha = 0.85f * ttlAlpha),
-                        radius = coreRad * 0.44f,
-                        center = center,
-                        style = Stroke(width = 2.2f)
-                    )
-                    drawCircle(color = Color.White, radius = coreRad * 0.24f, center = center)
-                }
-                PowerUpType.SHIELD -> {
-                    val sh = coreRad * 0.42f
-                    drawCircle(
-                        color = Color.White.copy(alpha = 0.92f * ttlAlpha),
-                        radius = sh,
-                        center = center,
-                        style = Stroke(width = 2.4f)
-                    )
-                    drawCircle(
-                        color = Color(0xFF38BDF8L).copy(alpha = 0.65f * ttlAlpha),
-                        radius = sh * 0.55f,
-                        center = center
-                    )
-                }
-                PowerUpType.SLOW_MO -> {
-                    val hg = coreRad * 0.38f
-                    drawArc(
-                        color = Color.White,
-                        startAngle = (time * 90f) % 360f,
-                        sweepAngle = 240f,
-                        useCenter = false,
-                        topLeft = Offset(p.x - hg, p.y - hg),
-                        size = Size(hg * 2f, hg * 2f),
-                        style = Stroke(width = 2.4f, cap = StrokeCap.Round)
-                    )
-                    drawCircle(color = Color.White, radius = coreRad * 0.14f, center = center)
-                }
-                PowerUpType.MAGNET -> {
-                    val mr = coreRad * 0.38f
-                    drawArc(
-                        color = Color.White,
-                        startAngle = 180f,
-                        sweepAngle = 180f,
-                        useCenter = false,
-                        topLeft = Offset(p.x - mr, p.y - mr * 0.6f),
-                        size = Size(mr * 2f, mr * 2f),
-                        style = Stroke(width = 2.6f, cap = StrokeCap.Round)
-                    )
-                }
-                else -> {
-                    val phraseNum = ((p.sequenceIndex - 1).coerceAtLeast(0) % 4) + 1
-                    drawIntoCanvas { canvas ->
-                        cachedSubPaint.textSize = coreRad * 0.92f
-                        cachedSubPaint.color = android.graphics.Color.WHITE
-                        canvas.nativeCanvas.drawText(
-                            phraseNum.toString(),
-                            p.x,
-                            p.y + coreRad * 0.32f,
-                            cachedSubPaint
-                        )
-                    }
-                }
-            }
+            drawCircle(
+                color = Color.White.copy(alpha = 0.95f * ttlAlpha),
+                radius = coreRad * 0.30f,
+                center = center
+            )
         }
     }
 }
 
 /**
- * V4 BEAT-LOCKED PERIMETER ENEMY WARNING TELEGRAPHS:
- * Renders a high-contrast Crimson Warning Diamond (◆) on the screen border + a Crimson Laser
- * Trajectory Sightline 2 beats (~0.92s) before an enemy enters the playfield, eliminating random/unfair spawns!
+ * V6 BAND-HERO / BEATSTAR SCROLLING SUSTAIN SLIDE RIBBONS:
+ * Renders a glowing note head + long snaking sustain ribbon scrolling down the 4-lane perspective highway!
  */
-
 fun DrawScope.drawWormholes(
     wormholes: List<SingularityWormhole>,
     time: Float,
     beatPhase: Float
 ) {
     if (wormholes.isEmpty()) return
+    val wScreen = size.width
+    val hScreen = size.height
+    if (wScreen <= 0f || hScreen <= 0f) return
     val beatKick = if (beatPhase >= 0f) exp(-beatPhase * 5f).coerceIn(0f, 1f) else 0.25f
 
     wormholes.forEach { w ->
-        val a = w.alphaProgress
-        if (a <= 0.02f) return@forEach
+        val uHead = (w.ageSec / 2.2f)
+        val uTail = (uHead - 0.44f).coerceAtLeast(0f)
+        if (uHead <= 0.02f || uTail >= 1.22f) return@forEach
 
-        val ax = w.x
-        val ay = w.y
-        val bx = if (w.exitX > 0f) w.exitX else (w.x + 180f)
-        val by = if (w.exitY > 0f) w.exitY else (w.y - 140f)
-        val cx = if (w.ctrlX > 0f) w.ctrlX else ((ax + bx) * 0.5f + 55f)
-        val cy = if (w.ctrlY > 0f) w.ctrlY else ((ay + by) * 0.5f - 45f)
-
-        // 1. Curved Bezier Musical Light-Ribbon connecting Entry Portal A -> Exit Portal B
-        val ribbonPath = Path().apply {
-            moveTo(ax, ay)
-            quadraticTo(cx, cy, bx, by)
-        }
-        drawPath(
-            path = ribbonPath,
-            color = Color(0xFF38BDF8L).copy(alpha = a * (0.28f + 0.18f * beatKick)),
-            style = Stroke(width = 22f + beatKick * 6f, cap = StrokeCap.Round)
-        )
-        drawPath(
-            path = ribbonPath,
-            color = Color(0xFFE879F9L).copy(alpha = a * 0.55f),
-            style = Stroke(width = 8f, cap = StrokeCap.Round)
-        )
-        drawPath(
-            path = ribbonPath,
-            color = Color.White.copy(alpha = a * 0.85f),
-            style = Stroke(width = 2.6f, cap = StrokeCap.Round)
-        )
-
-        // 2. 5 Pulsing Mini Rhythm Pearls + Flowing Wave Particles along the Slide Stream
-        for (i in 1..5) {
-            val t = i / 6f
-            val inv = 1f - t
-            val px = inv * inv * ax + 2f * inv * t * cx + t * t * bx
-            val py = inv * inv * ay + 2f * inv * t * cy + t * t * by
-            val pearlR = 6.5f + 2.5f * beatKick
-            drawCircle(
-                color = Color(0xFFFACC15L).copy(alpha = a * 0.88f),
-                radius = pearlR,
-                center = Offset(px, py)
-            )
-            drawCircle(
-                color = Color.White.copy(alpha = a * 0.96f),
-                radius = pearlR * 0.48f,
-                center = Offset(px, py)
-            )
-        }
-        for (m in 0 until 4) {
-            val mt = ((time * 1.15f + m * 0.25f) % 1f)
-            val inv = 1f - mt
-            val mx = inv * inv * ax + 2f * inv * mt * cx + mt * mt * bx
-            val my = inv * inv * ay + 2f * inv * mt * cy + mt * mt * by
-            drawCircle(
-                color = Color(0xFF38BDF8L).copy(alpha = a * sin(mt * PI.toFloat()).coerceIn(0f, 1f) * 0.85f),
-                radius = 5.2f,
-                center = Offset(mx, my)
-            )
+        val startLane = w.x.coerceIn(0f, 3f)
+        val endLane = w.exitX.coerceIn(0f, 3f)
+        val ribbonPath = Path()
+        val steps = 14
+        var headPt = Offset.Zero
+        for (i in 0..steps) {
+            val s = i / steps.toFloat()
+            val uSample = (uTail + (uHead - uTail) * s).coerceIn(0f, 1.24f)
+            val laneAtS = startLane + (endLane - startLane) * (0.5f - 0.5f * cos(s * PI.toFloat()))
+            val pt = computeHighwayPoint(laneAtS, uSample, wScreen, hScreen)
+            if (i == 0) ribbonPath.moveTo(pt.x, pt.y) else ribbonPath.lineTo(pt.x, pt.y)
+            if (i == steps) headPt = pt
         }
 
-        // 3. Render Entry Portal A (Cyan/Gold "SLIDE") & Exit Portal B (Magenta/Gold "EXIT")
-        val portals = listOf(
-            Triple(Offset(ax, ay), Color(0xFF38BDF8L), "SLIDE ♪"),
-            Triple(Offset(bx, by), Color(0xFFE879F9L), "EXIT ★")
+        // Glowing Sustain Ribbon Tail
+        drawPath(
+            path = ribbonPath,
+            color = Color(0xFFFACC15L).copy(alpha = 0.35f + 0.20f * beatKick),
+            style = Stroke(width = 28f + beatKick * 6f, cap = StrokeCap.Round, join = StrokeJoin.Round)
         )
-        portals.forEachIndexed { pIdx, (pCenter, pCol, label) ->
-            val r = w.radius * (0.88f + 0.14f * beatKick)
-            drawCircle(
-                brush = Brush.radialGradient(
-                    colors = listOf(
-                        Color(0xFF040210L).copy(alpha = a * 0.94f),
-                        pCol.copy(alpha = a * 0.68f),
-                        Color(0xFFFACC15L).copy(alpha = a * 0.35f),
-                        Color.Transparent
-                    ),
-                    center = pCenter,
-                    radius = r * 1.95f
-                ),
-                radius = r * 1.95f,
-                center = pCenter
-            )
-            for (ring in 0..2) {
-                val rr = r * (0.55f + ring * 0.30f)
-                val startDeg = ((time * (180f - ring * 50f) * (if (ring % 2 == 0) 1f else -1f)) % 360f)
-                drawArc(
-                    color = (if (ring % 2 == 0) pCol else Color(0xFFFACC15L)).copy(alpha = a * (0.88f - ring * 0.18f)),
-                    startAngle = startDeg,
-                    sweepAngle = 120f,
-                    useCenter = false,
-                    topLeft = Offset(pCenter.x - rr, pCenter.y - rr),
-                    size = Size(rr * 2f, rr * 2f),
-                    style = Stroke(width = 3.5f - ring * 0.6f, cap = StrokeCap.Round)
-                )
-            }
-            drawCircle(
-                color = Color.White.copy(alpha = a * 0.92f),
-                radius = r * 0.36f,
-                center = pCenter,
-                style = Stroke(width = 2.2f)
-            )
-            drawIntoCanvas { canvas ->
-                cachedSubPaint.textSize = 18f
-                cachedSubPaint.color = android.graphics.Color.argb(
-                    (a * 240).toInt().coerceIn(0, 255),
-                    if (pIdx == 0) 250 else 255,
-                    if (pIdx == 0) 204 else 255,
-                    if (pIdx == 0) 21 else 255
-                )
-                canvas.nativeCanvas.drawText(label, pCenter.x, pCenter.y - r * 1.15f, cachedSubPaint)
-            }
+        drawPath(
+            path = ribbonPath,
+            color = Color(0xFF38BDF8L).copy(alpha = 0.72f),
+            style = Stroke(width = 12f, cap = StrokeCap.Round, join = StrokeJoin.Round)
+        )
+        drawPath(
+            path = ribbonPath,
+            color = Color.White.copy(alpha = 0.92f),
+            style = Stroke(width = 3.5f, cap = StrokeCap.Round, join = StrokeJoin.Round)
+        )
+
+        // Sustain Note Head
+        val headScale = computeHighwayScale(uHead.coerceIn(0f, 1.2f))
+        val headR = 26f * headScale * (1f + 0.15f * beatKick)
+        drawCircle(
+            color = Color(0xFFFACC15L).copy(alpha = 0.95f),
+            radius = headR,
+            center = headPt
+        )
+        drawCircle(
+            color = Color.White,
+            radius = headR * 0.52f,
+            center = headPt
+        )
+        drawIntoCanvas { canvas ->
+            cachedSubPaint.textSize = (16f * headScale).coerceAtLeast(12f)
+            cachedSubPaint.color = android.graphics.Color.rgb(254, 240, 138)
+            canvas.nativeCanvas.drawText("HOLD & SLIDE ♪", headPt.x, headPt.y - headR * 1.35f, cachedSubPaint)
         }
     }
 }

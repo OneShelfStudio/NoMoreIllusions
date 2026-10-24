@@ -2,7 +2,9 @@ package com.oneshelfstudio.nomoreillusions
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
+import kotlin.math.cos
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -446,6 +448,248 @@ fun ArcadeIconButton(
 }
 
 @Composable
+fun MiniGameplayVideoReel(
+    modifier: Modifier = Modifier
+        .fillMaxWidth()
+        .height(176.dp)
+) {
+    val infiniteTransition = rememberInfiniteTransition(label = "miniVideoReel")
+    val reelSec by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 12f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 12000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "reelSec"
+    )
+
+    val chapterIdx = (reelSec / 4f).toInt().coerceIn(0, 2)
+    val chapterProgress = (reelSec % 4f) / 4f
+    val chapterTitle = when (chapterIdx) {
+        0 -> "SCENE 1/3 • CATCH NOTES ON THE BEAT STRIKE LINE"
+        1 -> "SCENE 2/3 • HOLD & FOLLOW SUSTAIN SLIDE RIBBONS"
+        else -> "SCENE 3/3 • GRAB 💥 BOMBS TO VAPORIZE RED HAZARDS"
+    }
+    val chapterSub = when (chapterIdx) {
+        0 -> "Wait for notes to cross the glowing lower Beat Line for ★ PERFECT ON-BEAT!"
+        1 -> "Steer onto the note head and stay inside the scrolling golden ribbon tail!"
+        else -> "💥 BOMB destroys all red enemies! 🛡️ SHIELD blocks 1 collision!"
+    }
+    val chapterAccent = when (chapterIdx) {
+        0 -> Color(0xFF4ADE80)
+        1 -> Color(0xFFFACC15)
+        else -> Color(0xFFF97316)
+    }
+
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(10.dp))
+            .background(Color(0xFF050811))
+            .border(1.5.dp, chapterAccent.copy(alpha = 0.75f), RoundedCornerShape(10.dp))
+    ) {
+        // Top Video Header Bar
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color(0xFF0B1120))
+                .padding(horizontal = 10.dp, vertical = 5.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(7.dp)
+                        .clip(CircleShape)
+                        .background(chapterAccent)
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = chapterTitle,
+                    color = Color(0xFFFAF8F5),
+                    fontSize = 9.5.sp,
+                    fontWeight = FontWeight.Black,
+                    letterSpacing = 0.6.sp
+                )
+            }
+            Text(
+                text = "▶ MINI-VIDEO",
+                color = chapterAccent,
+                fontSize = 8.5.sp,
+                fontWeight = FontWeight.Black
+            )
+        }
+
+        // Animated Gameplay Stage Canvas
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
+        ) {
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                val w = size.width
+                val h = size.height
+                val horizonY = h * 0.14f
+                val strikeY = h * 0.76f
+                val topHalfW = w * 0.15f
+                val strikeHalfW = w * 0.42f
+
+                fun hwyPt(lane: Float, u: Float): Offset {
+                    val p = u.coerceIn(0f, 1.2f)
+                    val hw = topHalfW + (strikeHalfW - topHalfW) * p
+                    val ln = ((lane - 1.5f) / 1.5f) * 0.78f
+                    return Offset(w * 0.5f + ln * hw, horizonY + (strikeY - horizonY) * p)
+                }
+
+                // Draw perspective highway deck
+                val tl = hwyPt(-0.4f, 0f)
+                val tr = hwyPt(3.4f, 0f)
+                val bl = hwyPt(-0.4f, 1.15f)
+                val br = hwyPt(3.4f, 1.15f)
+                val deck = Path().apply {
+                    moveTo(tl.x, tl.y); lineTo(tr.x, tr.y); lineTo(br.x, br.y); lineTo(bl.x, bl.y); close()
+                }
+                drawPath(deck, color = Color(0xFF0A1224))
+                val laneCols = listOf(Color(0xFF22C55E), Color(0xFFFB7185), Color(0xFFFACC15), Color(0xFF38BDF8))
+                for (l in 0..3) {
+                    drawLine(
+                        color = laneCols[l].copy(alpha = 0.45f),
+                        start = hwyPt(l.toFloat(), 0f),
+                        end = hwyPt(l.toFloat(), 1.15f),
+                        strokeWidth = 2f
+                    )
+                }
+                // Strike Line
+                val sl = hwyPt(-0.4f, 1.0f)
+                val sr = hwyPt(3.4f, 1.0f)
+                drawLine(color = Color(0xFF38BDF8).copy(alpha = 0.4f), start = sl, end = sr, strokeWidth = 9f, cap = StrokeCap.Round)
+                drawLine(color = Color.White, start = sl, end = sr, strokeWidth = 2.5f, cap = StrokeCap.Round)
+                for (l in 0..3) {
+                    val rp = hwyPt(l.toFloat(), 1.0f)
+                    drawCircle(color = laneCols[l], radius = 9f, center = rp, style = Stroke(width = 2.2f))
+                }
+
+                if (chapterIdx == 0) {
+                    // Chapter 1: Notes scrolling down to Beat Strike Line + PERFECT ON-BEAT flame!
+                    val u1 = (chapterProgress * 1.45f).coerceIn(0f, 1.15f)
+                    val notePt = hwyPt(1f, u1)
+                    val shipX = w * 0.5f + (notePt.x - w * 0.5f) * (chapterProgress * 1.4f).coerceIn(0f, 1f)
+                    val shipPt = Offset(shipX, strikeY)
+
+                    if (u1 < 1.02f) {
+                        drawCircle(color = Color(0xFFFB7185), radius = 11f, center = notePt)
+                        drawCircle(color = Color.White, radius = 5f, center = notePt)
+                    } else {
+                        // Hit explosion at Strike Line!
+                        val ringR = 14f + (u1 - 1.0f) * 190f
+                        drawCircle(color = Color(0xFFFACC15).copy(alpha = 0.85f), radius = ringR, center = shipPt, style = Stroke(width = 3.5f))
+                        drawLine(
+                            color = Color(0xFF4ADE80),
+                            start = Offset(shipPt.x, shipPt.y - 52f),
+                            end = shipPt,
+                            strokeWidth = 10f,
+                            cap = StrokeCap.Round
+                        )
+                    }
+                    // Player core
+                    drawCircle(color = Color(0xFF22C55E), radius = 12f, center = shipPt)
+                    drawCircle(color = Color.White, radius = 5f, center = shipPt)
+                } else if (chapterIdx == 1) {
+                    // Chapter 2: Hold & Slide Sustain Ribbon!
+                    val uHead = (0.25f + chapterProgress * 0.95f)
+                    val uTail = (uHead - 0.55f).coerceAtLeast(0.05f)
+                    val rPath = Path()
+                    var shipPt = Offset(w * 0.5f, strikeY)
+                    for (i in 0..10) {
+                        val s = i / 10f
+                        val uS = uTail + (uHead - uTail) * s
+                        val ln = 0.6f + 1.8f * (0.5f - 0.5f * cos(s * 3.14159f))
+                        val pt = hwyPt(ln, uS)
+                        if (i == 0) rPath.moveTo(pt.x, pt.y) else rPath.lineTo(pt.x, pt.y)
+                        if (i == 7) shipPt = pt
+                    }
+                    drawPath(rPath, color = Color(0xFFFACC15).copy(alpha = 0.45f), style = Stroke(width = 18f, cap = StrokeCap.Round))
+                    drawPath(rPath, color = Color(0xFF38BDF8), style = Stroke(width = 7f, cap = StrokeCap.Round))
+                    drawCircle(color = Color(0xFF22C55E), radius = 12f, center = shipPt)
+                    drawCircle(color = Color.White, radius = 6f, center = shipPt)
+                    drawCircle(color = Color(0xFFFACC15), radius = 19f, center = shipPt, style = Stroke(width = 2.5f))
+                } else {
+                    // Chapter 3: Grabbing 💥 BOMB vaporizes Red Spiked Hazards!
+                    val uBomb = (chapterProgress * 1.35f).coerceIn(0f, 1.0f)
+                    val bombPt = hwyPt(2f, uBomb)
+                    val shipPt = Offset(bombPt.x, strikeY)
+                    val detonated = chapterProgress >= 0.72f
+
+                    if (!detonated) {
+                        drawCircle(color = Color(0xFFF97316), radius = 13f, center = bombPt)
+                        drawCircle(color = Color(0xFFFACC15), radius = 6f, center = bombPt)
+                        // 2 incoming red hazards
+                        val e1 = Offset(w * 0.25f + chapterProgress * 45f, h * 0.42f + chapterProgress * 35f)
+                        val e2 = Offset(w * 0.76f - chapterProgress * 45f, h * 0.48f + chapterProgress * 30f)
+                        drawCircle(color = Color(0xFFFF1E42), radius = 11f, center = e1)
+                        drawCircle(color = Color(0xFFFF1E42), radius = 11f, center = e2)
+                    } else {
+                        val blastT = (chapterProgress - 0.72f) / 0.28f
+                        drawCircle(
+                            color = Color(0xFFF97316).copy(alpha = (1f - blastT).coerceIn(0f, 1f)),
+                            radius = 20f + blastT * 160f,
+                            center = shipPt,
+                            style = Stroke(width = 4.5f)
+                        )
+                    }
+                    drawCircle(color = Color(0xFF22C55E), radius = 12f, center = shipPt)
+                    drawCircle(color = Color.White, radius = 5f, center = shipPt)
+                }
+            }
+        }
+
+        // Caption & Scrubber Footer
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color(0xFF090E1A))
+                .padding(horizontal = 10.dp, vertical = 5.dp)
+        ) {
+            Text(
+                text = chapterSub,
+                color = Color(0xFFCBD5E1),
+                fontSize = 9.5.sp,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                for (c in 0..2) {
+                    val fillFrac = when {
+                        c < chapterIdx -> 1f
+                        c == chapterIdx -> chapterProgress
+                        else -> 0f
+                    }
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(3.5.dp)
+                            .clip(RoundedCornerShape(2.dp))
+                            .background(Color.White.copy(alpha = 0.16f))
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxHeight()
+                                .fillMaxWidth(fillFrac)
+                                .background(chapterAccent)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
 fun TouchControlHintBanner(
     btnPillCyan: ImageBitmap,
     btnPillGreen: ImageBitmap,
@@ -457,14 +701,13 @@ fun TouchControlHintBanner(
     val popAlpha = remember { Animatable(0f) }
     var isClosing by remember { mutableStateOf(false) }
 
-    // Elastic Zoom-In Bounce on appear
     LaunchedEffect(Unit) {
         launch {
             popAlpha.animateTo(1f, animationSpec = tween(180))
         }
         popScale.animateTo(
-            targetValue = 1.06f,
-            animationSpec = tween(220, easing = FastOutSlowInEasing)
+            targetValue = 1.03f,
+            animationSpec = tween(210, easing = FastOutSlowInEasing)
         )
         popScale.animateTo(
             targetValue = 1.0f,
@@ -475,146 +718,116 @@ fun TouchControlHintBanner(
         )
     }
 
-    // Gentle idle zoom-in/out breathing bounce while open
-    val infiniteTransition = rememberInfiniteTransition(label = "popupBounce")
-    val idleBreath by infiniteTransition.animateFloat(
-        initialValue = 0.985f,
-        targetValue = 1.025f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(950, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "idleBreath"
-    )
-
     fun triggerZoomOutAndDismiss(permanent: Boolean) {
         if (isClosing) return
         isClosing = true
         scope.launch {
-            // Zoom-in anticipation pop before zooming out
-            popScale.animateTo(1.08f, animationSpec = tween(95, easing = FastOutSlowInEasing))
+            popScale.animateTo(1.05f, animationSpec = tween(90, easing = FastOutSlowInEasing))
             launch {
-                popAlpha.animateTo(0f, animationSpec = tween(160))
+                popAlpha.animateTo(0f, animationSpec = tween(150))
             }
-            popScale.animateTo(0.25f, animationSpec = tween(165, easing = FastOutSlowInEasing))
+            popScale.animateTo(0.25f, animationSpec = tween(155, easing = FastOutSlowInEasing))
             if (permanent) onDismissPermanently() else onDismissOnce()
         }
     }
 
-    val combinedScale = if (isClosing) popScale.value else (popScale.value * idleBreath)
-
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xD902050B).copy(alpha = popAlpha.value * 0.86f))
-            .padding(horizontal = 22.dp),
+            .background(Color(0xE604060C).copy(alpha = popAlpha.value * 0.90f))
+            .padding(horizontal = 18.dp),
         contentAlignment = Alignment.Center
     ) {
         Column(
             modifier = Modifier
-                .widthIn(max = 360.dp)
+                .widthIn(max = 380.dp)
                 .fillMaxWidth()
                 .graphicsLayer(
-                    scaleX = combinedScale,
-                    scaleY = combinedScale,
+                    scaleX = popScale.value,
+                    scaleY = popScale.value,
                     alpha = popAlpha.value
                 )
                 .shadow(
                     elevation = 24.dp,
-                    shape = RoundedCornerShape(24.dp),
-                    ambientColor = Color(0xFF38BDF8),
+                    shape = RoundedCornerShape(14.dp),
+                    ambientColor = Color(0xFFEAB308),
                     spotColor = Color(0xFF22C55E)
                 )
-                .clip(RoundedCornerShape(24.dp))
+                .clip(RoundedCornerShape(14.dp))
                 .background(
                     Brush.verticalGradient(
                         listOf(
-                            Color(0xFA091326),
-                            Color(0xFA040812)
+                            Color(0xFA0C101D),
+                            Color(0xFA05070E)
                         )
                     )
                 )
                 .border(
-                    width = 1.8.dp,
-                    brush = Brush.horizontalGradient(
-                        listOf(Color(0xFF4ADE80), Color(0xFF38BDF8), Color(0xFF818CF8))
-                    ),
-                    shape = RoundedCornerShape(24.dp)
+                    width = 1.6.dp,
+                    color = Color(0xFFEAB308).copy(alpha = 0.78f),
+                    shape = RoundedCornerShape(14.dp)
                 )
-                .padding(horizontal = 20.dp, vertical = 22.dp),
+                .padding(horizontal = 16.dp, vertical = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Box(
-                modifier = Modifier
-                    .clip(CircleShape)
-                    .background(Color(0xFF0E291E))
-                    .border(1.dp, Color(0xFF4ADE80).copy(alpha = 0.7f), CircleShape)
-                    .padding(horizontal = 14.dp, vertical = 4.dp)
-            ) {
-                Text(
-                    text = "HOW TO PLAY",
-                    color = Color(0xFF4ADE80),
-                    fontSize = 10.5.sp,
-                    fontWeight = FontWeight.Black,
-                    letterSpacing = 1.6.sp
-                )
-            }
+            Text(
+                text = "STAGE BRIEFING • BAND HERO RHYTHM HIGHWAY",
+                color = Color(0xFFEAB308),
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Black,
+                letterSpacing = 1.4.sp
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Text(
+                text = "HIT THE BEAT STRIKE LINE",
+                color = Color(0xFFFAF8F5),
+                fontSize = 19.sp,
+                fontWeight = FontWeight.Black,
+                letterSpacing = 1.0.sp
+            )
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            Text(
-                text = "GLIDE TO THE BEAT",
-                color = Color.White,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Black,
-                letterSpacing = 1.2.sp
-            )
+            // 12-Second Looping Mini-Video Gameplay Reel
+            MiniGameplayVideoReel()
 
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
-            Text(
-                text = "Drag your finger anywhere on screen to steer your core. The countdown will start as soon as you're ready!",
-                color = Color(0xFFCBD5E1),
-                fontSize = 12.5.sp,
-                fontWeight = FontWeight.Medium,
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center
-            )
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            // 3 Quick Visual Guide Pills
+            // 3 Unmistakable Item & Timing Rules
             Column(
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 QuickHintRow(
-                    badge = "●",
-                    badgeColor = Color(0xFF22D3EE),
-                    title = "CATCH CYAN & GOLD ORBS",
-                    desc = "Collect smooth glowing orbs on the beat to score & power up."
+                    badge = "♪",
+                    badgeColor = Color(0xFF4ADE80),
+                    title = "BEAT LINE = ★ PERFECT ON-BEAT (+200)",
+                    desc = "Catch scrolling fret notes right as they cross the lower Beat Strike Line."
                 )
                 QuickHintRow(
-                    badge = "◆",
-                    badgeColor = Color(0xFFFF1E42),
-                    title = "DODGE RED SPIKED ENEMIES",
-                    desc = "Watch the screen edges for red warning ripples before foes lunge."
+                    badge = "💥",
+                    badgeColor = Color(0xFFF97316),
+                    title = "💥 BOMB = VAPORIZES ALL ENEMIES",
+                    desc = "Grab any pickup labeled 💥 BOMB to blow up every red hazard on screen!"
                 )
                 QuickHintRow(
-                    badge = "⚡",
-                    badgeColor = Color(0xFFA855F7),
-                    title = "HOLD FOCUS TO SLOW TIME",
-                    desc = "Press & hold the bottom-right Focus button in tight spots."
+                    badge = "🛡️",
+                    badgeColor = Color(0xFF38BDF8),
+                    title = "🛡️ SHIELD & SUSTAIN RIBBONS",
+                    desc = "🛡️ SHIELD blocks 1 hit. Follow HOLD & SLIDE ♪ ribbons for rapid bonus points!"
                 )
             }
 
-            Spacer(modifier = Modifier.height(18.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 ArcadePillButton(
-                    text = "START COUNTDOWN",
+                    text = "DROP THE BEAT ▶",
                     pillBitmap = btnPillGreen,
                     onClick = { triggerZoomOutAndDismiss(permanent = false) },
                     modifier = Modifier
@@ -624,11 +837,11 @@ fun TouchControlHintBanner(
                     palette = ArcadeButtonPalette.EMERALD_PULSE
                 )
                 ArcadePillButton(
-                    text = "DON'T SHOW AGAIN",
+                    text = "GOT IT (HIDE)",
                     pillBitmap = btnPillCyan,
                     onClick = { triggerZoomOutAndDismiss(permanent = true) },
                     modifier = Modifier
-                        .weight(1.1f)
+                        .weight(1.05f)
                         .height(44.dp),
                     fontSize = 10.5.sp,
                     palette = ArcadeButtonPalette.ASTRAL_CYAN

@@ -87,336 +87,403 @@ function drawShockwaves(ctx, shockwaves) {
   }
 }
 
+function computeHighwayPoint(laneFloat, u, w, h) {
+  const horizonY = h * 0.16;
+  const strikeY = h * 0.74;
+  const topHalfW = w * 0.14;
+  const strikeHalfW = w * 0.42;
+  const clampedU = Math.max(-0.05, Math.min(1.32, u));
+  const p = clampedU >= 0 ? Math.pow(clampedU, 1.25) : clampedU;
+  const halfW = topHalfW + (strikeHalfW - topHalfW) * p;
+  const laneNorm = ((laneFloat - 1.5) / 1.5) * 0.78;
+  return {
+    x: w * 0.5 + laneNorm * halfW,
+    y: horizonY + (strikeY - horizonY) * p
+  };
+}
+
+function computeHighwayScale(u) {
+  const clampedU = Math.max(0, Math.min(1.25, u));
+  return Math.max(0.42, Math.min(1.15, 0.44 + 0.56 * Math.pow(clampedU, 1.15)));
+}
+
+const HIGHWAY_LANE_COLORS = [
+  [34, 197, 94],   // Lane 1: Emerald Fret
+  [251, 113, 133], // Lane 2: Crimson Fret
+  [250, 204, 21],  // Lane 3: Gold Fret
+  [56, 189, 248]   // Lane 4: Cyan Fret
+];
+
 function drawWormholes(ctx, wormholes, time, beatPulse = 0) {
+  if (!wormholes || wormholes.length === 0) return;
+  const w = window.innerWidth || ctx.canvas.width;
+  const h = window.innerHeight || ctx.canvas.height;
   for (let i = 0; i < wormholes.length; i++) {
     const wh = wormholes[i];
-    const fadeIn = Math.min(1, wh.age / 0.8);
-    const fadeOut = Math.min(1, (wh.maxLifetime - wh.age) / 0.8);
-    const alpha = Math.max(0, Math.min(1, fadeIn * fadeOut));
-    if (alpha <= 0.02) continue;
+    const uHead = wh.age / 2.2;
+    const uTail = Math.max(0, uHead - 0.44);
+    if (uHead <= 0.02 || uTail >= 1.22) continue;
 
-    // Musical Slide-Note Ribbon Stream between Portal A and Portal B
-    const ctrlX = (typeof wh.ctrlX === "number" && wh.ctrlX !== 0) ? wh.ctrlX : (wh.ax + wh.bx) * 0.5;
-    const ctrlY = (typeof wh.ctrlY === "number" && wh.ctrlY !== 0) ? wh.ctrlY : (wh.ay + wh.by) * 0.5 - 60;
+    const startLane = Math.max(0, Math.min(3, typeof wh.startLane === "number" ? wh.startLane : 1));
+    const endLane = Math.max(0, Math.min(3, typeof wh.endLane === "number" ? wh.endLane : 2));
+    const steps = 14;
+    let headPt = { x: w * 0.5, y: h * 0.5 };
 
-    // 1. Outer Volumetric Light-Ribbon Track
-    ctx.beginPath();
-    ctx.moveTo(wh.ax, wh.ay);
-    ctx.quadraticCurveTo(ctrlX, ctrlY, wh.bx, wh.by);
-    ctx.strokeStyle = rgba([168, 85, 247], 0.24 * alpha);
-    ctx.lineWidth = 22 + beatPulse * 6;
+    ctx.save();
     ctx.lineCap = "round";
-    ctx.stroke();
+    ctx.lineJoin = "round";
 
-    // 2. Inner Silk Slide Core
-    ctx.beginPath();
-    ctx.moveTo(wh.ax, wh.ay);
-    ctx.quadraticCurveTo(ctrlX, ctrlY, wh.bx, wh.by);
-    ctx.strokeStyle = rgba([34, 211, 238], (0.58 + beatPulse * 0.25) * alpha);
-    ctx.lineWidth = 5.5;
-    ctx.lineCap = "round";
-    ctx.stroke();
-
-    // 3. 5 Pulsing Mini Rhythm Pearls along the Slide Stream
-    for (let nodeIdx = 1; nodeIdx <= 5; nodeIdx++) {
-      const nt = nodeIdx / 6.0;
-      const inv = 1 - nt;
-      const nx = inv * inv * wh.ax + 2 * inv * nt * ctrlX + nt * nt * wh.bx;
-      const ny = inv * inv * wh.ay + 2 * inv * nt * ctrlY + nt * nt * wh.by;
-      const nodePulse = 1.0 + 0.30 * Math.sin(time * 6.5 - nodeIdx * 0.9);
-      const nCol = nodeIdx % 2 === 0 ? [250, 204, 21] : [34, 211, 238];
-
+    const buildPath = () => {
       ctx.beginPath();
-      ctx.arc(nx, ny, 9.0 * nodePulse, 0, Math.PI * 2);
-      ctx.fillStyle = rgba(nCol, 0.35 * alpha);
-      ctx.fill();
-
-      ctx.beginPath();
-      ctx.arc(nx, ny, 4.5 * nodePulse, 0, Math.PI * 2);
-      ctx.fillStyle = rgba([255, 255, 255], 0.92 * alpha);
-      ctx.fill();
-    }
-
-    // 4. Flowing Speed Chevrons along the Ribbon
-    for (let m = 0; m < 4; m++) {
-      const mt = ((time * 0.85 + m * 0.25) % 1);
-      const inv = 1 - mt;
-      const mx = inv * inv * wh.ax + 2 * inv * mt * ctrlX + mt * mt * wh.bx;
-      const my = inv * inv * wh.ay + 2 * inv * mt * ctrlY + mt * mt * wh.by;
-      ctx.beginPath();
-      ctx.arc(mx, my, 4.2 * Math.sin(mt * Math.PI) + 1.5, 0, Math.PI * 2);
-      ctx.fillStyle = rgba([250, 204, 21], 0.72 * Math.sin(mt * Math.PI) * alpha);
-      ctx.fill();
-    }
-
-    const portals = [
-      { x: wh.ax, y: wh.ay, col: [56, 189, 248], rim: [168, 85, 247], label: "SLIDE ♪" },
-      { x: wh.bx, y: wh.by, col: [244, 114, 182], rim: [250, 204, 21], label: "EXIT ★" }
-    ];
-    for (const p of portals) {
-      const grad = ctx.createRadialGradient(p.x, p.y, 2, p.x, p.y, wh.radius * 1.9);
-      grad.addColorStop(0, rgba([5, 3, 15], 0.95 * alpha));
-      grad.addColorStop(0.5, rgba(p.col, 0.55 * alpha));
-      grad.addColorStop(0.8, rgba(p.rim, 0.25 * alpha));
-      grad.addColorStop(1, "rgba(0,0,0,0)");
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, wh.radius * 1.9, 0, Math.PI * 2);
-      ctx.fillStyle = grad;
-      ctx.fill();
-
-      for (let ring = 0; ring < 3; ring++) {
-        const r = wh.radius * (0.55 + ring * 0.32);
-        const startRad = ((time * (190 - ring * 55) * (ring % 2 === 0 ? 1 : -1)) % 360) * Math.PI / 180;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, r, startRad, startRad + (115 * Math.PI / 180));
-        ctx.strokeStyle = rgba(ring % 2 === 0 ? p.col : p.rim, (0.85 - ring * 0.2) * alpha);
-        ctx.lineWidth = 4 - ring * 0.8;
-        ctx.lineCap = "round";
-        ctx.stroke();
-
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, r, startRad + Math.PI, startRad + Math.PI + (115 * Math.PI / 180));
-        ctx.stroke();
+      for (let sIdx = 0; sIdx <= steps; sIdx++) {
+        const s = sIdx / steps;
+        const uSample = Math.max(0, Math.min(1.24, uTail + (uHead - uTail) * s));
+        const laneAtS = startLane + (endLane - startLane) * (0.5 - 0.5 * Math.cos(s * Math.PI));
+        const pt = computeHighwayPoint(laneAtS, uSample, w, h);
+        if (sIdx === 0) ctx.moveTo(pt.x, pt.y);
+        else ctx.lineTo(pt.x, pt.y);
+        if (sIdx === steps) headPt = pt;
       }
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, wh.radius * 0.38, 0, Math.PI * 2);
-      ctx.fillStyle = rgba([6, 4, 16], 0.94 * alpha);
-      ctx.fill();
-      ctx.strokeStyle = rgba([255, 255, 255], 0.8 * alpha);
-      ctx.lineWidth = 1.8;
-      ctx.stroke();
+    };
 
-      ctx.save();
-      ctx.globalAlpha = alpha * 0.92;
-      ctx.font = "900 11px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
-      ctx.textAlign = "center";
-      ctx.fillStyle = "#FFFFFF";
-      ctx.fillText(p.label, p.x, p.y - wh.radius * 1.35);
-      ctx.restore();
-    }
+    buildPath();
+    ctx.strokeStyle = rgba([250, 204, 21], 0.36 + beatPulse * 0.2);
+    ctx.lineWidth = 26 + beatPulse * 6;
+    ctx.stroke();
+
+    buildPath();
+    ctx.strokeStyle = rgba([56, 189, 248], 0.75);
+    ctx.lineWidth = 11;
+    ctx.stroke();
+
+    buildPath();
+    ctx.strokeStyle = rgba([255, 255, 255], 0.94);
+    ctx.lineWidth = 3.2;
+    ctx.stroke();
+
+    const headScale = computeHighwayScale(uHead);
+    const headR = 24 * headScale * (1 + beatPulse * 0.14);
+    ctx.beginPath();
+    ctx.arc(headPt.x, headPt.y, headR, 0, Math.PI * 2);
+    ctx.fillStyle = rgba([250, 204, 21], 0.95);
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(headPt.x, headPt.y, headR * 0.5, 0, Math.PI * 2);
+    ctx.fillStyle = "#FFFFFF";
+    ctx.fill();
+
+    ctx.font = `900 ${Math.max(11, Math.round(14 * headScale))}px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#FEF08A";
+    ctx.fillText("HOLD & SLIDE ♪", headPt.x, headPt.y - headR * 1.35);
+    ctx.restore();
   }
 }
 
 function drawPowerUps(ctx, powerUps, playerX, playerY, time, trackSec, beatPulse, isConstellationActive, multiBand) {
-  if (!powerUps || powerUps.length === 0) return;
+  const w = window.innerWidth || ctx.canvas.width;
+  const h = window.innerHeight || ctx.canvas.height;
+  if (w <= 0 || h <= 0) return;
 
-  const sorted = powerUps.slice().sort((a, b) => (a.sequenceIndex || 0) - (b.sequenceIndex || 0));
-  const primaryTarget = sorted[0];
+  // =========================================================================
+  // 1. 3D PERSPECTIVE BAND-HERO / GUITAR-HERO RHYTHM HIGHWAY & BEAT STRIKE LINE
+  // =========================================================================
+  const topL = computeHighwayPoint(-0.45, 0, w, h);
+  const topR = computeHighwayPoint(3.45, 0, w, h);
+  const strikeL = computeHighwayPoint(-0.45, 1.0, w, h);
+  const strikeR = computeHighwayPoint(3.45, 1.0, w, h);
+  const botL = computeHighwayPoint(-0.45, 1.18, w, h);
+  const botR = computeHighwayPoint(3.45, 1.18, w, h);
 
-  // 1. Orbiting Hero Compass Arc + Curved Stardust Wisps to Primary Target Orb (No straight ruler line!)
-  if (primaryTarget) {
-    const isPrimarySupernova = primaryTarget.isSupernova || primaryTarget.keyWordEffect !== "NONE";
-    const guideCol = isPrimarySupernova ? [250, 204, 21] : [34, 211, 238];
-    const gdx = primaryTarget.x - playerX;
-    const gdy = primaryTarget.y - playerY;
-    const gDist = Math.hypot(gdx, gdy);
+  ctx.save();
+  const deckGrad = ctx.createLinearGradient(0, topL.y, 0, botL.y);
+  deckGrad.addColorStop(0, "rgba(7, 10, 22, 0.22)");
+  deckGrad.addColorStop(0.5, "rgba(10, 16, 34, 0.64)");
+  deckGrad.addColorStop(0.85, "rgba(17, 24, 50, 0.78)");
+  deckGrad.addColorStop(1, "rgba(7, 10, 22, 0.30)");
 
-    if (gDist > 42) {
-      const aimAngle = Math.atan2(gdy, gdx);
-      const compassRad = 34 + beatPulse * 4;
-      const arcSpan = 0.56; // ~32 degrees
+  ctx.beginPath();
+  ctx.moveTo(topL.x, topL.y);
+  ctx.lineTo(topR.x, topR.y);
+  ctx.lineTo(botR.x, botR.y);
+  ctx.lineTo(botL.x, botL.y);
+  ctx.closePath();
+  ctx.fillStyle = deckGrad;
+  ctx.fill();
 
-      // Soft directional compass crescent around the hero pointing toward the next orb
-      ctx.beginPath();
-      ctx.arc(playerX, playerY, compassRad, aimAngle - arcSpan, aimAngle + arcSpan);
-      ctx.strokeStyle = rgba(guideCol, 0.58 + beatPulse * 0.28);
-      ctx.lineWidth = isPrimarySupernova ? 3.6 : 2.6;
-      ctx.lineCap = "round";
-      ctx.stroke();
+  const railCol = isConstellationActive ? [250, 204, 21] : [56, 189, 248];
+  ctx.strokeStyle = rgba(railCol, 0.45 + beatPulse * 0.25);
+  ctx.lineWidth = 3;
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(topL.x, topL.y);
+  ctx.lineTo(botL.x, botL.y);
+  ctx.moveTo(topR.x, topR.y);
+  ctx.lineTo(botR.x, botR.y);
+  ctx.stroke();
 
-      // Leading glowing pearl on the tip of the compass arc
-      const tipX = playerX + Math.cos(aimAngle) * (compassRad + 5);
-      const tipY = playerY + Math.sin(aimAngle) * (compassRad + 5);
-      ctx.beginPath();
-      ctx.arc(tipX, tipY, isPrimarySupernova ? 4.2 : 3.2, 0, Math.PI * 2);
-      ctx.fillStyle = rgba([255, 255, 255], 0.92);
-      ctx.fill();
-
-      // 4 Organic Stardust Wisps drifting along a curved quadratic path to the target orb
-      const perpX = -gdy / gDist;
-      const perpY = gdx / gDist;
-      const curveBend = Math.sin(time * 2.4) * Math.min(48, gDist * 0.18);
-      const ctrlX = (playerX + primaryTarget.x) * 0.5 + perpX * curveBend;
-      const ctrlY = (playerY + primaryTarget.y) * 0.5 + perpY * curveBend;
-
-      for (let w = 0; w < 4; w++) {
-        const wt = ((time * 1.35 + w * 0.25) % 1);
-        const inv = 1 - wt;
-        const wx = inv * inv * playerX + 2 * inv * wt * ctrlX + wt * wt * primaryTarget.x;
-        const wy = inv * inv * playerY + 2 * inv * wt * ctrlY + wt * wt * primaryTarget.y;
-        const wAlpha = Math.sin(wt * Math.PI) * (isPrimarySupernova ? 0.78 : 0.55);
-        const wRad = (isPrimarySupernova ? 3.6 : 2.6) * (0.65 + 0.5 * Math.sin(wt * Math.PI));
-
-        ctx.beginPath();
-        ctx.arc(wx, wy, wRad, 0, Math.PI * 2);
-        ctx.fillStyle = rgba(guideCol, wAlpha);
-        ctx.fill();
-      }
-    }
-
-    // 2. Sequential Silk Stream connecting 1 -> 2 -> 3 -> 4 via smooth curved quadratic Bezier arcs!
-    if (sorted.length >= 2) {
-      for (let cIdx = 0; cIdx < sorted.length - 1; cIdx++) {
-        const curOrb = sorted[cIdx];
-        const nextOrb = sorted[cIdx + 1];
-        const dx = nextOrb.x - curOrb.x;
-        const dy = nextOrb.y - curOrb.y;
-        const dist = Math.max(1, Math.hypot(dx, dy));
-        const perpX = -dy / dist;
-        const perpY = dx / dist;
-        const bend = Math.sin(time * 1.6 + cIdx * 1.4) * Math.min(42, Math.max(14, dist * 0.18));
-        const ctrlX = (curOrb.x + nextOrb.x) * 0.5 + perpX * bend;
-        const ctrlY = (curOrb.y + nextOrb.y) * 0.5 + perpY * bend;
-        const linkAlpha = cIdx === 0 ? 0.52 : (cIdx === 1 ? 0.34 : 0.20);
-
-        ctx.beginPath();
-        ctx.moveTo(curOrb.x, curOrb.y);
-        ctx.quadraticCurveTo(ctrlX, ctrlY, nextOrb.x, nextOrb.y);
-        ctx.strokeStyle = rgba([56, 189, 248], linkAlpha * 0.36);
-        ctx.lineWidth = cIdx === 0 ? 8.0 : 5.5;
-        ctx.lineCap = "round";
-        ctx.stroke();
-
-        ctx.beginPath();
-        ctx.moveTo(curOrb.x, curOrb.y);
-        ctx.quadraticCurveTo(ctrlX, ctrlY, nextOrb.x, nextOrb.y);
-        ctx.strokeStyle = rgba([56, 189, 248], linkAlpha);
-        ctx.lineWidth = cIdx === 0 ? 2.4 : 1.6;
-        ctx.lineCap = "round";
-        ctx.stroke();
-
-        for (let m = 1; m <= 3; m++) {
-          const mt = ((m / 4) + time * 0.9) % 1;
-          const inv = 1 - mt;
-          const mx = inv * inv * curOrb.x + 2 * inv * mt * ctrlX + mt * mt * nextOrb.x;
-          const my = inv * inv * curOrb.y + 2 * inv * mt * ctrlY + mt * mt * nextOrb.y;
-          ctx.beginPath();
-          ctx.arc(mx, my, cIdx === 0 ? 3.2 : 2.2, 0, Math.PI * 2);
-          ctx.fillStyle = rgba([250, 204, 21], Math.min(1, linkAlpha * 1.35));
-          ctx.fill();
-        }
-      }
-    }
+  // Scrolling horizontal beat-measure bars
+  const phaseFrac = (time * 2.1) % 1;
+  for (let bIdx = 0; bIdx < 4; bIdx++) {
+    const uBar = Math.max(0.02, Math.min(1.12, (bIdx + phaseFrac) / 4));
+    const bL = computeHighwayPoint(-0.42, uBar, w, h);
+    const bR = computeHighwayPoint(3.42, uBar, w, h);
+    const barAlpha = Math.min(0.46, (0.10 + 0.26 * uBar) * (uBar >= 0.92 && uBar <= 1.05 ? 1.5 : 1.0));
+    ctx.beginPath();
+    ctx.moveTo(bL.x, bL.y);
+    ctx.lineTo(bR.x, bR.y);
+    ctx.strokeStyle = rgba([226, 232, 240], barAlpha);
+    ctx.lineWidth = 1.3 + uBar * 1.6;
+    ctx.stroke();
   }
 
-  // 3. Render Each Collectible Orb with 100% Visual Clarity & Distinction
-  for (let idx = 0; idx < sorted.length; idx++) {
-    const pu = sorted[idx];
-    const isPrimary = idx === 0;
-    const isScoreOrb = pu.type === "SCORE_ORB";
-    const isSupernova = isScoreOrb && (pu.isSupernova || pu.keyWordEffect !== "NONE");
+  // 4 Perspective Fret Lane Strings
+  for (let lane = 0; lane < 4; lane++) {
+    const lTop = computeHighwayPoint(lane, 0, w, h);
+    const lBot = computeHighwayPoint(lane, 1.16, w, h);
+    const lCol = HIGHWAY_LANE_COLORS[lane];
+    const lGrad = ctx.createLinearGradient(0, lTop.y, 0, lBot.y);
+    lGrad.addColorStop(0, rgba(lCol, 0.14));
+    lGrad.addColorStop(0.65, rgba(lCol, 0.45 + beatPulse * 0.18));
+    lGrad.addColorStop(1, rgba(lCol, 0.72));
+    ctx.beginPath();
+    ctx.moveTo(lTop.x, lTop.y);
+    ctx.lineTo(lBot.x, lBot.y);
+    ctx.strokeStyle = lGrad;
+    ctx.lineWidth = 2.4;
+    ctx.stroke();
+  }
 
-    const fadeIn = Math.min(1, pu.age / 0.25);
-    const remTtl = pu.expireBeatSec > 0 ? Math.max(0, pu.expireBeatSec - trackSec) : (pu.maxLifetime - pu.age);
-    const fadeOut = Math.min(1, remTtl / 0.22);
-    const puAlpha = Math.max(0, Math.min(1, fadeIn * fadeOut));
-    if (puAlpha <= 0.01) continue;
+  // GLOWING BEAT STRIKE LINE at u = 1.0 (Y = 74%)
+  ctx.beginPath();
+  ctx.moveTo(strikeL.x - 10, strikeL.y);
+  ctx.lineTo(strikeR.x + 10, strikeR.y);
+  ctx.strokeStyle = rgba(railCol, 0.30 + beatPulse * 0.25);
+  ctx.lineWidth = 14 + beatPulse * 6;
+  ctx.stroke();
 
-    let effectCol;
-    if (isScoreOrb) {
-      switch (pu.keyWordEffect) {
-        case "TRACTOR_REACH": effectCol = [34, 211, 238]; break; // Cyan
-        case "PRISM_SHATTER": effectCol = [232, 121, 249]; break; // Magenta
-        case "MAGNETAR_WAR": effectCol = [251, 113, 133]; break; // Coral Rose
-        case "CONSTELLATION_STAR": effectCol = [250, 204, 21]; break; // 24K Gold
-        case "BINARY_HEART": effectCol = [74, 222, 128]; break; // Emerald
-        case "ECLIPSE_DARK": effectCol = [253, 224, 71]; break; // Solar Yellow
-        default: effectCol = isSupernova ? [250, 204, 21] : [6, 182, 212];
-      }
-    } else {
-      switch (pu.type) {
-        case "SHIELD": effectCol = [56, 189, 248]; break;
-        case "SLOW_MO": effectCol = [168, 85, 247]; break;
-        case "BLAST":
-        case "OVERDRIVE": effectCol = [249, 115, 22]; break;
-        case "MAGNET": effectCol = [16, 185, 129]; break;
-        default: effectCol = [250, 204, 21];
-      }
-    }
+  ctx.beginPath();
+  ctx.moveTo(strikeL.x, strikeL.y);
+  ctx.lineTo(strikeR.x, strikeR.y);
+  ctx.strokeStyle = rgba([255, 255, 255], 0.85 + beatPulse * 0.15);
+  ctx.lineWidth = 3.2;
+  ctx.stroke();
 
-    const popInScale = Math.min(1.0, 0.55 + (pu.age / 0.22) * 0.45);
-    const beatPulseScale = 1.0 + (isSupernova ? 0.34 : 0.22) * beatPulse;
-    const coreRad = (pu.radius || 22) * popInScale * beatPulseScale * (isPrimary ? 1.08 : 0.90);
-
-    // -----------------------------------------------------------------------
-    // OSU! / PIANO-TILES SHRINKING APPROACH RING (Time-To-Live Beat Indicator)
-    // Contracts smoothly from 2.35x -> 1.0x right at targetBeatSec!
-    // -----------------------------------------------------------------------
-    const leadWindow = Math.max(0.25, (pu.targetBeatSec || trackSec) - (pu.spawnBeatSec || (trackSec - 1.0)));
-    const timeToBeat = (pu.targetBeatSec || trackSec) - trackSec;
-    const approachRatio = timeToBeat >= 0
-      ? (1.0 + Math.max(0, Math.min(1, timeToBeat / leadWindow)) * 1.35)
-      : Math.max(0.86, 1.0 + (timeToBeat / 0.45) * 0.14);
-    const isPerfectWindow = Math.abs(timeToBeat) <= 0.19 || beatPulse > 0.48;
-    const isExpiringSoon = timeToBeat < -0.18;
-    const ringCol = isPerfectWindow ? [74, 222, 128] : (isExpiringSoon ? [251, 113, 133] : effectCol);
+  // 4 Fret Receptor Rings on the Beat Strike Line
+  for (let lane = 0; lane < 4; lane++) {
+    const recPt = computeHighwayPoint(lane, 1.0, w, h);
+    const lCol = HIGHWAY_LANE_COLORS[lane];
+    const hasNoteOnLine = powerUps && powerUps.some((it) => {
+      const lead = Math.max(0.45, (it.targetBeatSec || trackSec) - (it.spawnBeatSec || (trackSec - 1.8)));
+      const uNote = (trackSec - (it.spawnBeatSec || 0)) / lead;
+      return ((it.phraseBeatNum || 1) - 1) === lane && uNote >= 0.85 && uNote <= 1.14;
+    });
+    const recR = hasNoteOnLine ? (26 + beatPulse * 5) : (20 + beatPulse * 2);
 
     ctx.beginPath();
-    ctx.arc(pu.x, pu.y, coreRad * approachRatio, 0, Math.PI * 2);
-    ctx.strokeStyle = rgba(ringCol, (isPerfectWindow ? 0.96 : 0.72) * puAlpha);
-    ctx.lineWidth = isPerfectWindow ? 3.8 : 2.2;
+    ctx.arc(recPt.x, recPt.y, recR * 1.35, 0, Math.PI * 2);
+    ctx.fillStyle = rgba(lCol, hasNoteOnLine ? 0.52 : 0.20);
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(recPt.x, recPt.y, recR, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(9, 13, 26, 0.90)";
+    ctx.fill();
+    ctx.strokeStyle = hasNoteOnLine ? "#FFFFFF" : rgba(lCol, 0.86);
+    ctx.lineWidth = hasNoteOnLine ? 4.0 : 2.5;
     ctx.stroke();
 
-    if (isSupernova) {
-      // -----------------------------------------------------------------------
-      // SPECIAL BEAT-DROP SUPERNOVA ORB (24K Gold & Prismatic Gyroscope Star!)
-      // -----------------------------------------------------------------------
-      // Volumetric Radial Halo
-      const haloGrad = ctx.createRadialGradient(pu.x, pu.y, 2, pu.x, pu.y, coreRad * 2.5);
-      haloGrad.addColorStop(0, rgba([255, 255, 255], 0.98 * puAlpha));
-      haloGrad.addColorStop(0.35, rgba(effectCol, 0.82 * puAlpha));
-      haloGrad.addColorStop(0.70, rgba([250, 204, 21], 0.45 * puAlpha));
-      haloGrad.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.beginPath();
+    ctx.arc(recPt.x, recPt.y, recR * 0.38, 0, Math.PI * 2);
+    ctx.fillStyle = rgba(lCol, hasNoteOnLine ? 0.96 : 0.45);
+    ctx.fill();
+  }
+
+  ctx.font = "900 11px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillStyle = "rgba(250, 204, 21, 0.82)";
+  ctx.fillText("★ BEAT STRIKE LINE • CATCH NOTES HERE ON TIME ★", w * 0.5, strikeL.y + 34);
+  ctx.restore();
+
+  if (!powerUps || powerUps.length === 0) return;
+  const sorted = powerUps.slice().sort((a, b) => (a.sequenceIndex || 0) - (b.sequenceIndex || 0));
+
+  // =========================================================================
+  // 2. RENDER EACH SCROLLING HIGHWAY BEAT NOTE & LABELED PICKUP (BOMB / SHIELD)
+  // =========================================================================
+  for (let idx = 0; idx < sorted.length; idx++) {
+    const pu = sorted[idx];
+    const leadDur = Math.max(0.45, (pu.targetBeatSec || trackSec) - (pu.spawnBeatSec || (trackSec - 1.8)));
+    const u = Math.max(0, Math.min(1.25, (trackSec - (pu.spawnBeatSec || 0)) / leadDur));
+    const perspScale = computeHighwayScale(u);
+
+    const remTtl = pu.expireBeatSec > 0 ? Math.max(0, pu.expireBeatSec - trackSec) : (pu.maxLifetime - pu.age);
+    const puAlpha = Math.max(0.20, Math.min(1, remTtl / 0.22));
+
+    const isBomb = pu.type === "BLAST" || pu.type === "OVERDRIVE";
+    const isShield = pu.type === "SHIELD";
+    const isSupernova = !isBomb && !isShield && (pu.isSupernova || pu.keyWordEffect === "CONSTELLATION_STAR");
+    const laneIdx = Math.max(0, Math.min(3, (pu.phraseBeatNum || 1) - 1));
+    const effectCol = isBomb
+      ? [249, 115, 22]
+      : isShield
+      ? [56, 189, 248]
+      : isSupernova
+      ? [250, 204, 21]
+      : HIGHWAY_LANE_COLORS[laneIdx];
+
+    const isOnStrikeLine = u >= 0.86 && u <= 1.14;
+    const beatPulseScale = 1.0 + (isOnStrikeLine ? 0.26 : 0.12) * beatPulse;
+    const coreRad = (pu.radius || 24) * perspScale * beatPulseScale;
+
+    ctx.save();
+    // Vertical Fret Flame Column when crossing the Beat Strike Line!
+    if (isOnStrikeLine) {
       ctx.beginPath();
-      ctx.arc(pu.x, pu.y, coreRad * 2.5, 0, Math.PI * 2);
-      ctx.fillStyle = haloGrad;
+      ctx.arc(pu.x, pu.y, coreRad * 1.42, 0, Math.PI * 2);
+      ctx.strokeStyle = rgba([250, 204, 21], 0.88 * puAlpha);
+      ctx.lineWidth = 3.2;
+      ctx.stroke();
+
+      const flameGrad = ctx.createLinearGradient(pu.x, pu.y - coreRad * 2.8, pu.x, pu.y);
+      flameGrad.addColorStop(0, "rgba(0,0,0,0)");
+      flameGrad.addColorStop(0.55, rgba(effectCol, 0.65 * puAlpha));
+      flameGrad.addColorStop(1, rgba([255, 255, 255], 0.92 * puAlpha));
+      ctx.beginPath();
+      ctx.moveTo(pu.x, pu.y - coreRad * 2.8);
+      ctx.lineTo(pu.x, pu.y);
+      ctx.strokeStyle = flameGrad;
+      ctx.lineWidth = coreRad * 0.82;
+      ctx.lineCap = "round";
+      ctx.stroke();
+    }
+
+    if (isBomb) {
+      // 💥 BOMB PICKUP (LABELED ENEMY-DESTROYER ORDNANCE)
+      const glow = ctx.createRadialGradient(pu.x, pu.y, 2, pu.x, pu.y, coreRad * 2.2);
+      glow.addColorStop(0, rgba([250, 204, 21], 0.85 * puAlpha));
+      glow.addColorStop(0.5, rgba([249, 115, 22], 0.52 * puAlpha));
+      glow.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.beginPath();
+      ctx.arc(pu.x, pu.y, coreRad * 2.2, 0, Math.PI * 2);
+      ctx.fillStyle = glow;
       ctx.fill();
 
-      // 6 Orbiting Solar Stardust Pearls (Replaces 8 straight spike lines!)
-      for (let sIdx = 0; sIdx < 6; sIdx++) {
-        const ang = (sIdx * (Math.PI / 3)) + time * 1.4;
-        const orbitR = coreRad * (1.36 + 0.18 * beatPulse);
-        const ox = pu.x + Math.cos(ang) * orbitR;
-        const oy = pu.y + Math.sin(ang) * orbitR;
+      for (let nub = 0; nub < 8; nub++) {
+        const ang = nub * (Math.PI / 4) + time * 1.8;
         ctx.beginPath();
-        ctx.arc(ox, oy, sIdx % 2 === 0 ? 3.5 : 2.5, 0, Math.PI * 2);
-        ctx.fillStyle = rgba(sIdx % 2 === 0 ? [255, 254, 235] : effectCol, 0.92 * puAlpha);
-        ctx.fill();
+        ctx.moveTo(pu.x + Math.cos(ang) * (coreRad * 0.85), pu.y + Math.sin(ang) * (coreRad * 0.85));
+        ctx.lineTo(pu.x + Math.cos(ang) * (coreRad * 1.28), pu.y + Math.sin(ang) * (coreRad * 1.28));
+        ctx.strokeStyle = rgba([250, 204, 21], 0.95 * puAlpha);
+        ctx.lineWidth = Math.max(2.5, 4.0 * perspScale);
+        ctx.lineCap = "round";
+        ctx.stroke();
       }
 
-      // Counter-Rotating Curved Celestial Halo Arcs (No boxy squares!)
-      for (let h = 0; h < 2; h++) {
-        const spin = time * (h === 0 ? 2.2 : -2.6);
-        const hRad = coreRad * (h === 0 ? 0.96 : 0.72);
-        const hCol = h === 0 ? [250, 204, 21] : effectCol;
-        for (let a = 0; a < 2; a++) {
-          const startA = spin + a * Math.PI;
-          ctx.beginPath();
-          ctx.arc(pu.x, pu.y, hRad, startA, startA + 1.85);
-          ctx.strokeStyle = rgba(hCol, 0.92 * puAlpha);
-          ctx.lineWidth = 2.5;
-          ctx.lineCap = "round";
-          ctx.stroke();
-        }
-      }
-
-      // Blazing White-Gold Singularity Core
       ctx.beginPath();
-      ctx.arc(pu.x, pu.y, coreRad * 0.46, 0, Math.PI * 2);
-      ctx.fillStyle = rgba([250, 204, 21], 0.98 * puAlpha);
+      ctx.arc(pu.x, pu.y, coreRad, 0, Math.PI * 2);
+      ctx.fillStyle = rgba([24, 8, 8], 0.96 * puAlpha);
+      ctx.fill();
+      ctx.strokeStyle = rgba([249, 115, 22], 0.98 * puAlpha);
+      ctx.lineWidth = 3.2;
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(pu.x, pu.y, coreRad * 0.45, 0, Math.PI * 2);
+      ctx.fillStyle = rgba([250, 204, 21], 0.95 * puAlpha);
+      ctx.fill();
+
+      ctx.font = `900 ${Math.max(11, Math.round(14 * perspScale))}px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
+      ctx.textAlign = "center";
+      ctx.fillStyle = "#FFFFFF";
+      ctx.fillText("💥 BOMB", pu.x, pu.y - coreRad * 1.42);
+    } else if (isShield) {
+      // 🛡️ SHIELD PICKUP (LABELED PROTECTIVE DOME)
+      const glow = ctx.createRadialGradient(pu.x, pu.y, 2, pu.x, pu.y, coreRad * 2.1);
+      glow.addColorStop(0, rgba([56, 189, 248], 0.72 * puAlpha));
+      glow.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.beginPath();
+      ctx.arc(pu.x, pu.y, coreRad * 2.1, 0, Math.PI * 2);
+      ctx.fillStyle = glow;
       ctx.fill();
 
       ctx.beginPath();
-      ctx.arc(pu.x, pu.y, coreRad * 0.28, 0, Math.PI * 2);
+      ctx.arc(pu.x, pu.y, coreRad, 0, Math.PI * 2);
+      ctx.fillStyle = rgba([6, 21, 40], 0.95 * puAlpha);
+      ctx.fill();
+      ctx.strokeStyle = rgba([56, 189, 248], 0.98 * puAlpha);
+      ctx.lineWidth = 3.2;
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(pu.x, pu.y, coreRad * 0.62, 0, Math.PI * 2);
+      ctx.strokeStyle = rgba([255, 255, 255], 0.92 * puAlpha);
+      ctx.lineWidth = 2.2;
+      ctx.stroke();
+
+      ctx.font = `900 ${Math.max(11, Math.round(14 * perspScale))}px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
+      ctx.textAlign = "center";
+      ctx.fillStyle = "#BAE6FD";
+      ctx.fillText("🛡️ SHIELD", pu.x, pu.y - coreRad * 1.34);
+    } else if (isSupernova) {
+      // ★ 4X STAR POWER NOTE
+      const glow = ctx.createRadialGradient(pu.x, pu.y, 2, pu.x, pu.y, coreRad * 2.2);
+      glow.addColorStop(0, rgba([255, 255, 255], 0.96 * puAlpha));
+      glow.addColorStop(0.45, rgba([250, 204, 21], 0.80 * puAlpha));
+      glow.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.beginPath();
+      ctx.arc(pu.x, pu.y, coreRad * 2.2, 0, Math.PI * 2);
+      ctx.fillStyle = glow;
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.arc(pu.x, pu.y, coreRad, 0, Math.PI * 2);
+      ctx.fillStyle = rgba([28, 20, 4], 0.95 * puAlpha);
+      ctx.fill();
+      ctx.strokeStyle = rgba([250, 204, 21], 0.98 * puAlpha);
+      ctx.lineWidth = 3.4;
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(pu.x, pu.y, coreRad * 0.45, 0, Math.PI * 2);
       ctx.fillStyle = "#FFFFFF";
       ctx.fill();
 
+      ctx.font = `900 ${Math.max(11, Math.round(13.5 * perspScale))}px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
+      ctx.textAlign = "center";
+      ctx.fillStyle = "#FEF08A";
+      ctx.fillText("★ 4X STAR", pu.x, pu.y - coreRad * 1.32);
     } else {
-      // -----------------------------------------------------------------------
-      // FACETED 6-SIDED HEXAGONAL MUSICAL GEMSTONE (1..4 Beat Gem / 💥 Blast / 🛡️ Shield / ⏳ Slow-Mo / 🧲 Magnet)
-      // -----------------------------------------------------------------------
-      drawHexGem(ctx, pu.x, pu.y, coreRad, effectCol, isScoreOrb ? "SCORE_ORB" : pu.type, time + (pu.phase || 0), puAlpha, pu.phraseBeatNum || (((pu.sequenceIndex || 1) - 1) % 4) + 1);
+      // GUITAR-HERO / BAND-HERO FRET GEM BEAT NOTE
+      const glow = ctx.createRadialGradient(pu.x, pu.y, 2, pu.x, pu.y, coreRad * 1.85);
+      glow.addColorStop(0, rgba(effectCol, 0.65 * puAlpha));
+      glow.addColorStop(0.55, rgba(effectCol, 0.22 * puAlpha));
+      glow.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.beginPath();
+      ctx.arc(pu.x, pu.y, coreRad * 1.85, 0, Math.PI * 2);
+      ctx.fillStyle = glow;
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.arc(pu.x, pu.y, coreRad, 0, Math.PI * 2);
+      ctx.fillStyle = rgba([9, 15, 32], 0.95 * puAlpha);
+      ctx.fill();
+      ctx.strokeStyle = isOnStrikeLine ? "#FFFFFF" : rgba(effectCol, 0.98 * puAlpha);
+      ctx.lineWidth = isOnStrikeLine ? 3.6 : 2.6;
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(pu.x, pu.y, coreRad * 0.62, 0, Math.PI * 2);
+      ctx.fillStyle = rgba(effectCol, 0.88 * puAlpha);
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.arc(pu.x, pu.y, coreRad * 0.30, 0, Math.PI * 2);
+      ctx.fillStyle = "#FFFFFF";
+      ctx.fill();
     }
+    ctx.restore();
   }
 }
 

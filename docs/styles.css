@@ -41,8 +41,21 @@
     }
 
     /* ========================================================================
-       1. MENU SCREEN (100% 1:1 Match with MenuScreen.kt)
+       1. MENU SCREEN (100% 1:1 Match with MenuScreen.kt — Scrollable Analog Studio Deck)
        ======================================================================== */
+    #screen-MENU {
+      overflow-y: auto;
+      overflow-x: hidden;
+      justify-content: flex-start;
+      gap: 10px;
+      padding-bottom: calc(env(safe-area-inset-bottom, 16px) + 34px);
+      -webkit-overflow-scrolling: touch;
+      pointer-events: auto;
+      touch-action: pan-y;
+    }
+    #screen-MENU > * {
+      flex-shrink: 0;
+    }
     .menu-top-bar {
       width: 100%;
       max-width: 430px;
@@ -51,16 +64,16 @@
       justify-content: space-between;
     }
     .pill-currency {
-      background: rgba(5, 11, 20, 0.88);
-      border: 1px solid rgba(250, 204, 21, 0.55);
-      border-radius: 10px;
+      background: #0B0D14;
+      border: 1.3px solid #EAB308;
+      border-radius: 6px;
       padding: 6px 10px;
       display: inline-flex;
       align-items: center;
       gap: 6px;
       font-size: 11px;
       font-weight: 900;
-      color: #FACC15;
+      color: #FAF8F5;
       cursor: pointer;
     }
     .pill-vip-badge {
@@ -70,14 +83,14 @@
       letter-spacing: 0.5px;
     }
     .pill-lobby {
-      background: rgba(5, 11, 20, 0.88);
-      border: 1px solid rgba(99, 102, 241, 0.45);
-      border-radius: 10px;
+      background: #0B0D14;
+      border: 1.2px solid rgba(234, 179, 8, 0.55);
+      border-radius: 6px;
       padding: 6px 10px;
       font-size: 9.5px;
       font-weight: 900;
-      letter-spacing: 0.6px;
-      color: #C7D2FE;
+      letter-spacing: 0.8px;
+      color: #FAF8F5;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
@@ -100,8 +113,8 @@
       text-align: center;
     }
     #menu-turntable-canvas {
-      width: 138px;
-      height: 138px;
+      width: 132px;
+      height: 132px;
       display: block;
       margin-bottom: 2px;
       touch-action: none;
@@ -118,7 +131,7 @@
       font-size: 28px;
       font-weight: 900;
       letter-spacing: 2px;
-      color: rgba(79, 70, 229, 0.85);
+      color: rgba(180, 83, 9, 0.85);
       pointer-events: none;
       white-space: nowrap;
     }
@@ -128,30 +141,30 @@
       font-size: 28px;
       font-weight: 900;
       letter-spacing: 2px;
-      color: #FFFFFF;
+      color: #FAF8F5;
       white-space: nowrap;
     }
     .menu-sub-banner {
       font-size: 9.5px;
       font-weight: 900;
       letter-spacing: 1.4px;
-      color: #4ADE80;
-      margin-bottom: 8px;
+      color: #EAB308;
+      margin-bottom: 6px;
       transition: color 0.25s ease;
     }
 
-    /* Flagship Artist Stage Console Card (1:1 with MenuScreen.kt) */
+    /* Flagship Artist Stage Console Card (Analog Studio Master Deck) */
     .console-card {
       width: 100%;
       max-width: 430px;
-      background: linear-gradient(180deg, rgba(8, 19, 34, 0.95), rgba(4, 8, 17, 0.98));
-      border: 1.5px solid #4ADE80;
-      border-radius: 18px;
+      background: linear-gradient(180deg, rgba(16, 18, 28, 0.97), rgba(8, 9, 15, 0.99));
+      border: 1.6px solid #EAB308;
+      border-radius: 10px;
       padding: 12px;
       display: flex;
       flex-direction: column;
       gap: 8px;
-      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.75);
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.85);
       transition: border-color 0.25s ease;
     }
     .track-deck-row {
@@ -161,9 +174,9 @@
     }
     .track-card {
       flex: 1;
-      border-radius: 11px;
-      background: #050A12;
-      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 6px;
+      background: #08090F;
+      border: 1.2px solid rgba(255, 255, 255, 0.16);
       padding: 8px 10px;
       cursor: pointer;
       display: flex;
@@ -172,9 +185,9 @@
       transition: all 0.2s ease;
     }
     .track-card.selected {
-      background: linear-gradient(90deg, #0E291E, #15193C);
-      border: 1.6px solid #4ADE80;
-      box-shadow: 0 0 16px rgba(74, 222, 128, 0.22);
+      background: linear-gradient(90deg, #1E1B12, #111827);
+      border: 1.8px solid #EAB308;
+      box-shadow: 0 0 16px rgba(234, 179, 8, 0.25);
     }
     .track-card-header {
       display: flex;
@@ -182,13 +195,13 @@
       justify-content: space-between;
       font-size: 9px;
       font-weight: 900;
-      letter-spacing: 0.6px;
+      letter-spacing: 0.8px;
     }
     .track-card-bpm {
-      color: #A5B4FC;
+      color: #94A3B8;
     }
     .track-card.selected .track-card-bpm {
-      color: #4ADE80;
+      color: #EAB308;
     }
     .track-card-stars {
       color: #FACC15;
@@ -198,8 +211,8 @@
     .track-card-title {
       font-size: 13.5px;
       font-weight: 900;
-      letter-spacing: 0.5px;
-      color: #FFFFFF;
+      letter-spacing: 0.6px;
+      color: #FAF8F5;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -220,9 +233,9 @@
     }
     .remix-pill {
       flex: 1;
-      border-radius: 8px;
-      background: #050911;
-      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 5px;
+      background: #07090E;
+      border: 1.2px solid rgba(255, 255, 255, 0.14);
       padding: 6px 4px;
       text-align: center;
       cursor: pointer;
@@ -233,7 +246,7 @@
       transition: all 0.18s ease;
     }
     .remix-pill.selected {
-      border-width: 1.4px;
+      border-width: 1.6px;
     }
     .remix-pill-tag {
       font-size: 10px;
@@ -242,15 +255,15 @@
     }
     .remix-pill-id {
       font-size: 7.5px;
-      font-weight: 700;
+      font-weight: 800;
       line-height: 1.1;
       margin-top: 1px;
     }
 
     .mastery-checklist-banner {
       font-size: 8.5px;
-      font-weight: 600;
-      color: rgba(199, 210, 254, 0.85);
+      font-weight: 700;
+      color: #CBD5E1;
       text-align: center;
       letter-spacing: 0.3px;
       white-space: nowrap;
@@ -261,14 +274,14 @@
     .btn-launch-stage {
       width: 100%;
       height: 48px;
-      border-radius: 12px;
-      background: linear-gradient(90deg, #16A34A, #0D9488, #4F46E5);
-      border: 1.5px solid #4ADE80;
+      border-radius: 7px;
+      background: linear-gradient(90deg, #CA8A04, #16A34A, #0284C7);
+      border: 1.6px solid #FAF8F5;
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      box-shadow: 0 4px 18px rgba(22, 163, 74, 0.35);
+      box-shadow: 0 4px 18px rgba(234, 179, 8, 0.35);
       transition: all 0.15s ease;
     }
     .btn-launch-stage:active {
@@ -291,9 +304,9 @@
     }
     .bento-tile {
       height: 58px;
-      border-radius: 13px;
-      background: linear-gradient(180deg, #0A111E, #04070D);
-      border: 1.2px solid rgba(255, 255, 255, 0.25);
+      border-radius: 6px;
+      background: linear-gradient(180deg, #10131E, #07090F);
+      border: 1.3px solid rgba(234, 179, 8, 0.35);
       display: flex;
       flex-direction: column;
       align-items: center;

@@ -15,9 +15,12 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.CutCornerShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -195,15 +198,15 @@ fun MenuUI(
 
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 26.dp)
+                .verticalScroll(rememberScrollState())
+                .padding(top = 34.dp, bottom = 36.dp)
         ) {
             // BESPOKE HOLOGRAPHIC VINYL TURNTABLE PLATTER + LASER TONE-ARM + RADIAL SPECTRUM
             Box(
                 modifier = Modifier
-                    .size(138.dp)
+                    .size(128.dp)
                     .graphicsLayer(scaleX = pulseScale, scaleY = pulseScale),
                 contentAlignment = Alignment.Center
             ) {
@@ -211,11 +214,10 @@ fun MenuUI(
                     val cx = center.x
                     val cy = center.y
                     val spinSpeed = selectedRemixMode.audioSpeed
-                    // 1. Smooth Concentric Harmonic Wave Rings & Aurora Crescents (Zero straight stick lines!)
                     for (rIdx in 0..2) {
-                        val waveR = 59f + rIdx * 5.5f
+                        val waveR = 54f + rIdx * 5.2f
                         val startDeg = ((menuTime * (if (rIdx % 2 == 0) 42f else -36f) * spinSpeed) + rIdx * 60f) % 360f
-                        val ringCol = if (rIdx % 2 == 0) modeAccent else Color(0xFF818CF8L)
+                        val ringCol = if (rIdx % 2 == 0) modeAccent else Color(0xFFEAB308L)
                         for (seg in 0..2) {
                             drawArc(
                                 color = ringCol.copy(alpha = 0.68f - rIdx * 0.16f),
@@ -229,14 +231,10 @@ fun MenuUI(
                         }
                     }
 
-                    // 2. Obsidian Vinyl Platter + Spinning Iridescent Grooves
-                    drawCircle(
-                        color = Color(0xFF050811L),
-                        radius = 55f,
-                        center = center
-                    )
+                    // Obsidian Vinyl Platter + Spinning Grooves
+                    drawCircle(color = Color(0xFF06080FL), radius = 51f, center = center)
                     for (g in 1..4) {
-                        val gr = 30f + g * 5.5f
+                        val gr = 28f + g * 5.2f
                         drawCircle(
                             color = modeAccent.copy(alpha = 0.16f + (g % 2) * 0.10f),
                             radius = gr,
@@ -246,21 +244,21 @@ fun MenuUI(
                     }
                     drawCircle(
                         color = modeAccent.copy(alpha = glowAlpha * 0.65f),
-                        radius = 56f,
+                        radius = 52f,
                         center = center,
                         style = Stroke(width = 2.2f)
                     )
 
-                    // 3. Smooth S-Curved Holographic Stylus / Tone-Arm
-                    val armPivot = Offset(cx + 56f, cy - 46f)
-                    val stylusTip = Offset(cx + 28f, cy + 12f)
+                    // Smooth S-Curved Studio Tone-Arm
+                    val armPivot = Offset(cx + 52f, cy - 42f)
+                    val stylusTip = Offset(cx + 26f, cy + 10f)
                     val armPath = androidx.compose.ui.graphics.Path().apply {
                         moveTo(armPivot.x, armPivot.y)
-                        quadraticTo(cx + 54f, cy - 10f, stylusTip.x, stylusTip.y)
+                        quadraticTo(cx + 50f, cy - 8f, stylusTip.x, stylusTip.y)
                     }
                     drawPath(
                         path = armPath,
-                        color = Color(0xFFE2E8F0L).copy(alpha = 0.78f),
+                        color = Color(0xFFFAF8F5L).copy(alpha = 0.82f),
                         style = Stroke(width = 2.6f, cap = StrokeCap.Round)
                     )
                     drawCircle(color = modeAccent, radius = 4.5f, center = armPivot)
@@ -270,54 +268,55 @@ fun MenuUI(
                     bitmap = nmiLogo,
                     contentDescription = "No More Illusions Vinyl Emblem",
                     modifier = Modifier
-                        .size(78.dp)
+                        .size(72.dp)
                         .graphicsLayer(rotationZ = (menuTime * 32f * selectedRemixMode.audioSpeed) % 360f)
                 )
             }
 
             Spacer(modifier = Modifier.height(4.dp))
 
-            // Artist Signature Header + Interactive Album Badge
+            // Artist Signature Header + High-Score Record Banner
             Box(contentAlignment = Alignment.Center) {
                 Text(
                     text = "No Morē Illusīons",
-                    color = Color(0xFF4F46E5L).copy(alpha = 0.85f),
-                    fontSize = 28.sp,
+                    color = Color(0xFFEAB308L).copy(alpha = 0.45f),
+                    fontSize = 27.sp,
                     fontWeight = FontWeight.Black,
-                    letterSpacing = 2.sp,
-                    modifier = Modifier.offset(x = 2.5.dp, y = 3.dp)
+                    letterSpacing = 2.2.sp,
+                    modifier = Modifier.offset(x = 2.dp, y = 2.5.dp)
                 )
                 Text(
                     text = "No Morē Illusīons",
-                    color = Color.White,
-                    fontSize = 28.sp,
+                    color = Color(0xFFFAF8F5L),
+                    fontSize = 27.sp,
                     fontWeight = FontWeight.Black,
-                    letterSpacing = 2.sp
+                    letterSpacing = 2.2.sp
                 )
             }
             Text(
-                text = "INTERACTIVE VISUAL ALBUM • BEST SCORE: $highScore",
-                color = modeAccent,
+                text = "GAMIFIED STUDIO ALBUM • PERSONAL RECORD: $highScore PTS",
+                color = Color(0xFFEAB308L),
                 fontSize = 9.5.sp,
                 fontWeight = FontWeight.Black,
                 letterSpacing = 1.4.sp
             )
 
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-            // Upfront Fan Incentive Banner: Makes it 100% clear what exclusive artist rewards fans unlock!
+            // Upfront Fan Incentive Studio Plate (Chamfered Analog Vinyl Sleeve Card)
+            val sleeveShape = CutCornerShape(topStart = 10.dp, bottomEnd = 10.dp)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
+                    .clip(sleeveShape)
                     .background(
                         Brush.horizontalGradient(
-                            listOf(Color(0xFF132242L), Color(0xFF0A1428L))
+                            listOf(Color(0xFF141108L), Color(0xFF0A0D16L))
                         )
                     )
-                    .border(1.2.dp, Color(0xFFFACC15L).copy(alpha = 0.78f), RoundedCornerShape(12.dp))
+                    .border(1.4.dp, Color(0xFFEAB308L).copy(alpha = 0.85f), sleeveShape)
                     .clickable { onMusicDemo() }
-                    .padding(horizontal = 12.dp, vertical = 7.dp)
+                    .padding(horizontal = 12.dp, vertical = 8.dp)
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -326,30 +325,29 @@ fun MenuUI(
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "★ FAN VAULT: UNLOCK ETHAN'S NOTES & STUDIO EXCLUSIVES",
-                            color = Color(0xFFFACC15L),
+                            text = "★ ARTIST VAULT: UNLOCK ETHAN'S LINER NOTES & EXCLUSIVES",
+                            color = Color(0xFFEAB308L),
                             fontSize = 9.5.sp,
                             fontWeight = FontWeight.Black,
-                            letterSpacing = 0.4.sp
+                            letterSpacing = 0.5.sp
                         )
                         Text(
-                            text = "Personal Liner Notes • Slowed/Nightcore Reels • Backstage Storyboards",
-                            color = Color.White.copy(alpha = 0.85f),
+                            text = "Hit High Scores & Earn ♪ Notes to unlock Ethan's Studio Letters & Remixes",
+                            color = Color(0xFFFAF8F5L).copy(alpha = 0.88f),
                             fontSize = 8.5.sp,
                             fontWeight = FontWeight.SemiBold
                         )
                     }
-                    Spacer(modifier = Modifier.width(6.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
                     Box(
                         modifier = Modifier
-                            .clip(CircleShape)
-                            .background(Color(0xFFFACC15L).copy(alpha = 0.20f))
-                            .border(1.dp, Color(0xFFFACC15L), CircleShape)
-                            .padding(horizontal = 8.dp, vertical = 3.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(Color(0xFFEAB308L))
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
                     ) {
                         Text(
                             text = "$unlockedExclusivesCount/${ARTIST_EXCLUSIVES_CATALOG.size} OPEN →",
-                            color = Color(0xFFFACC15L),
+                            color = Color(0xFF080A0FL),
                             fontSize = 8.5.sp,
                             fontWeight = FontWeight.Black
                         )
@@ -359,31 +357,40 @@ fun MenuUI(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Flagship Artist Stage Console (Track Deck + 4 Remix Modes + 3-Star Mastery)
+            // Custom Analog Studio Mastering Console (Chamfered Architectural Deck — Zero Generic AI Pill Boxes!)
+            val consoleShape = CutCornerShape(topStart = 14.dp, bottomEnd = 14.dp)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .shadow(16.dp, RoundedCornerShape(18.dp), ambientColor = modeAccent, spotColor = Color(0xFF6366F1L))
-                    .clip(RoundedCornerShape(18.dp))
+                    .shadow(16.dp, consoleShape, ambientColor = modeAccent, spotColor = Color(0xFFEAB308L))
+                    .clip(consoleShape)
                     .background(
                         Brush.verticalGradient(
                             listOf(
-                                Color(0xF2081322L),
-                                Color(0xF8040811L)
+                                Color(0xF50A0E17L),
+                                Color(0xFA05070CL)
                             )
                         )
                     )
                     .border(
-                        width = 1.5.dp,
+                        width = 1.6.dp,
                         brush = Brush.horizontalGradient(
-                            listOf(modeAccent.copy(alpha = 0.85f), Color(0xFF6366F1L).copy(alpha = 0.72f))
+                            listOf(modeAccent.copy(alpha = 0.90f), Color(0xFFEAB308L).copy(alpha = 0.78f))
                         ),
-                        shape = RoundedCornerShape(18.dp)
+                        shape = consoleShape
                     )
                     .padding(12.dp)
             ) {
                 Column(modifier = Modifier.fillMaxWidth()) {
-                    // 1. Track Vinyl Selector Cards with 3-Star Mastery Badges (01 CONFIDE | 02 NUMBER ONE)
+                    // 1. Concert Setlist Vinyl Track Cards (SIDE A: CONFIDE | SIDE B: NUMBER ONE)
+                    Text(
+                        text = "SELECT STUDIO MASTER TRACK",
+                        color = Color(0xFF94A3B8L),
+                        fontSize = 8.5.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 1.2.sp
+                    )
+                    Spacer(modifier = Modifier.height(5.dp))
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         modifier = Modifier.fillMaxWidth()
@@ -396,18 +403,19 @@ fun MenuUI(
                             val starText = buildString {
                                 for (s in 1..3) append(if (s <= stars) "★" else "☆")
                             }
+                            val cardCut = CutCornerShape(topEnd = 10.dp, bottomStart = 10.dp)
                             Box(
                                 modifier = Modifier
                                     .weight(1f)
-                                    .clip(RoundedCornerShape(11.dp))
+                                    .clip(cardCut)
                                     .background(
-                                        if (isSel) Brush.horizontalGradient(listOf(Color(0xFF0E291EL), Color(0xFF15193CL)))
-                                        else Brush.horizontalGradient(listOf(Color(0xFF050A12L), Color(0xFF050A12L)))
+                                        if (isSel) Brush.horizontalGradient(listOf(Color(0xFF131D18L), Color(0xFF171308L)))
+                                        else Brush.horizontalGradient(listOf(Color(0xFF070A10L), Color(0xFF070A10L)))
                                     )
                                     .border(
-                                        width = if (isSel) 1.6.dp else 1.dp,
-                                        color = if (isSel) modeAccent else Color.White.copy(alpha = 0.14f),
-                                        shape = RoundedCornerShape(11.dp)
+                                        width = if (isSel) 1.8.dp else 1.dp,
+                                        color = if (isSel) modeAccent else Color.White.copy(alpha = 0.16f),
+                                        shape = cardCut
                                     )
                                     .clickable {
                                         if (isUnlocked) onSelectQuickTrack(idx) else onMusicDemo()
@@ -421,24 +429,26 @@ fun MenuUI(
                                         modifier = Modifier.fillMaxWidth()
                                     ) {
                                         Text(
-                                            text = if (isUnlocked) "SONG 0$idx • ${(t.bpm * selectedRemixMode.audioSpeed).toInt()} BPM" else "SONG 0$idx • LOCKED",
-                                            color = if (isSel) modeAccent else Color(0xFFA5B4FCL),
-                                            fontSize = 9.sp,
+                                            text = if (isUnlocked) "SIDE 0$idx • ${(t.bpm * selectedRemixMode.audioSpeed).toInt()} BPM" else "SIDE 0$idx • LOCKED",
+                                            color = if (isSel) modeAccent else Color(0xFF94A3B8L),
+                                            fontSize = 8.5.sp,
                                             fontWeight = FontWeight.Black,
                                             letterSpacing = 0.5.sp
                                         )
                                         Text(
                                             text = starText,
-                                            color = Color(0xFFFACC15L),
+                                            color = Color(0xFFEAB308L),
                                             fontSize = 10.sp,
                                             fontWeight = FontWeight.Black
                                         )
                                     }
+                                    Spacer(modifier = Modifier.height(2.dp))
                                     Text(
                                         text = t.title.uppercase(),
-                                        color = if (isUnlocked) Color.White else Color.White.copy(alpha = 0.45f),
+                                        color = if (isUnlocked) Color(0xFFFAF8F5L) else Color.White.copy(alpha = 0.45f),
                                         fontSize = 14.sp,
-                                        fontWeight = FontWeight.Black
+                                        fontWeight = FontWeight.Black,
+                                        letterSpacing = 0.6.sp
                                     )
                                 }
                             }
@@ -447,24 +457,24 @@ fun MenuUI(
 
                     Spacer(modifier = Modifier.height(10.dp))
 
-                    // 2. 4-Mode Replayability Selector (1.0x NORMAL | 1.2x FAST | 0.85x CHILL | ∞ ENDLESS)
+                    // 2. Physical Studio Tape Speed Switches + Explicit Mode Spec Readout
                     Row(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(
-                            text = "GAME SPEED & MODE",
-                            color = Color(0xFFCBD5E1L),
+                            text = "TAPE SPEED & HIGH-SCORE MODE",
+                            color = Color(0xFFFAF8F5L),
                             fontSize = 9.sp,
                             fontWeight = FontWeight.Black,
-                            letterSpacing = 0.8.sp
+                            letterSpacing = 1.0.sp
                         )
                         Text(
-                            text = selectedRemixMode.subtitle.uppercase(),
+                            text = "TAP MODE TO PREVIEW",
                             color = modeAccent,
                             fontSize = 8.5.sp,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Black
                         )
                     }
                     Spacer(modifier = Modifier.height(5.dp))
@@ -478,17 +488,18 @@ fun MenuUI(
                                 TrackRemixMode.ORIGINAL -> Color(0xFF4ADE80L)
                                 TrackRemixMode.OVERCLOCK -> Color(0xFFF43F5EL)
                                 TrackRemixMode.SLOWED -> Color(0xFF38BDF8L)
-                                TrackRemixMode.ENDLESS -> Color(0xFFFACC15L)
+                                TrackRemixMode.ENDLESS -> Color(0xFFEAB308L)
                             }
+                            val switchShape = RoundedCornerShape(4.dp)
                             Box(
                                 modifier = Modifier
                                     .weight(1f)
-                                    .clip(RoundedCornerShape(9.dp))
-                                    .background(if (isModeSel) mCol.copy(alpha = 0.20f) else Color(0xFF050911L))
+                                    .clip(switchShape)
+                                    .background(if (isModeSel) mCol.copy(alpha = 0.22f) else Color(0xFF06080EL))
                                     .border(
-                                        width = if (isModeSel) 1.5.dp else 1.dp,
-                                        color = if (isModeSel) mCol else Color.White.copy(alpha = 0.14f),
-                                        shape = RoundedCornerShape(9.dp)
+                                        width = if (isModeSel) 1.8.dp else 1.dp,
+                                        color = if (isModeSel) mCol else Color.White.copy(alpha = 0.18f),
+                                        shape = switchShape
                                     )
                                     .clickable { onSelectRemixMode(mode) }
                                     .padding(vertical = 7.dp, horizontal = 4.dp),
@@ -497,14 +508,14 @@ fun MenuUI(
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                     Text(
                                         text = mode.shortTag,
-                                        color = if (isModeSel) mCol else Color.White,
-                                        fontSize = 11.sp,
+                                        color = if (isModeSel) mCol else Color(0xFFFAF8F5L),
+                                        fontSize = 11.5.sp,
                                         fontWeight = FontWeight.Black,
                                         maxLines = 1
                                     )
                                     Text(
                                         text = mode.displayName,
-                                        color = Color.White.copy(alpha = if (isModeSel) 0.95f else 0.60f),
+                                        color = Color(0xFFFAF8F5L).copy(alpha = if (isModeSel) 1f else 0.65f),
                                         fontSize = 8.5.sp,
                                         fontWeight = FontWeight.Bold,
                                         maxLines = 1
@@ -514,43 +525,95 @@ fun MenuUI(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(7.dp))
 
-                    // 3. 3-Star Mastery Checklist Banner
-                    Text(
-                        text = "★1 Finish Song  •  ★2 Catch 8 Orbs on Beat  •  ★3 Beat in Fast/Chill",
-                        color = Color(0xFFC7D2FEL).copy(alpha = 0.88f),
-                        fontSize = 8.5.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        maxLines = 1,
-                        modifier = Modifier.align(Alignment.CenterHorizontally)
-                    )
+                    // Explicit Mode Spec & High-Score Loop Readout Box
+                    val (modeHeadline, modeDetail, modeRewardBadge) = when (selectedRemixMode) {
+                        TrackRemixMode.ORIGINAL -> Triple(
+                            "NORMAL (1.0x STUDIO MASTER)",
+                            "Original album tempo & balanced Beat Highway. Finish the song to unlock the next track!",
+                            "1.0x SCORE • 1.0x ♪"
+                        )
+                        TrackRemixMode.OVERCLOCK -> Triple(
+                            "FAST / NIGHTCORE (1.20x OVERCLOCK)",
+                            "20% faster tempo & denser highway notes. Beat the song here to earn your ★3 Mastery Star!",
+                            "1.5x SCORE • 1.5x ♪"
+                        )
+                        TrackRemixMode.SLOWED -> Triple(
+                            "CHILL / DAYDREAM (0.85x REVERB)",
+                            "Dreamy 85% pitched-down studio mix with wider timing windows & relaxed hazard speed.",
+                            "0.9x SCORE • 1.1x ♪"
+                        )
+                        TrackRemixMode.ENDLESS -> Triple(
+                            "∞ ENDLESS HIGH-SCORE LOOP (BEST FOR RECORDS!)",
+                            "Song loops infinitely and speeds up +8% every cycle with +500 Loop Bonuses until you fall!",
+                            "2.0x ♪ + HIGH-SCORE CHASE"
+                        )
+                    }
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(5.dp))
+                            .background(Color(0xFF05070DL))
+                            .border(1.dp, modeAccent.copy(alpha = 0.55f), RoundedCornerShape(5.dp))
+                            .padding(horizontal = 10.dp, vertical = 7.dp)
+                    ) {
+                        Column {
+                            Row(
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(
+                                    text = modeHeadline,
+                                    color = modeAccent,
+                                    fontSize = 9.5.sp,
+                                    fontWeight = FontWeight.Black,
+                                    letterSpacing = 0.4.sp
+                                )
+                                Text(
+                                    text = modeRewardBadge,
+                                    color = Color(0xFFEAB308L),
+                                    fontSize = 8.5.sp,
+                                    fontWeight = FontWeight.Black
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = modeDetail,
+                                color = Color(0xFFCBD5E1L),
+                                fontSize = 8.8.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(9.dp))
 
-                    // 4. High-Dopamine Launch Button
+                    // 4. Chamfered Studio Master Launch Button
+                    val launchShape = CutCornerShape(topStart = 10.dp, bottomEnd = 10.dp)
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(50.dp)
-                            .clip(RoundedCornerShape(12.dp))
+                            .clip(launchShape)
                             .background(
                                 Brush.horizontalGradient(
                                     listOf(
-                                        Color(0xFF16A34AL),
-                                        Color(0xFF0D9488L),
-                                        Color(0xFF4F46E5L)
+                                        Color(0xFF15803DL),
+                                        Color(0xFF0F766EL),
+                                        Color(0xFFB45309L)
                                     )
                                 )
                             )
-                            .border(1.6.dp, modeAccent, RoundedCornerShape(12.dp))
+                            .border(1.8.dp, modeAccent, launchShape)
                             .clickable { onStart() },
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "▶  PLAY ${selectedTrack.title.uppercase()} (${selectedRemixMode.displayName})",
-                            color = Color.White,
-                            fontSize = 14.5.sp,
+                            text = "▶  DROP INTO ${selectedTrack.title.uppercase()} (${selectedRemixMode.displayName})",
+                            color = Color(0xFFFAF8F5L),
+                            fontSize = 13.5.sp,
                             fontWeight = FontWeight.Black,
                             letterSpacing = 1.1.sp
                         )
@@ -560,29 +623,29 @@ fun MenuUI(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // Clean 3-Tile Bento Navigation Row
+            // 3-Tile Studio Console Navigation Row (Always visible & scrollable!)
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 MenuBentoTile(
-                    title = "★ SPECIALS & ALBUM",
-                    subtitle = "Artist Notes & Vault",
-                    accent = Color(0xFFFACC15L),
+                    title = "★ ALBUM & VAULT",
+                    subtitle = "Ethan's Notes & Skins",
+                    accent = Color(0xFFEAB308L),
                     onClick = onMusicDemo,
                     modifier = Modifier.weight(1.22f)
                 )
                 MenuBentoTile(
-                    title = "HOW TO PLAY",
-                    subtitle = "Quick Guide",
-                    accent = Color(0xFF22C55EL),
+                    title = "▶ VIDEO GUIDE",
+                    subtitle = "How to Play Reel",
+                    accent = Color(0xFF4ADE80L),
                     onClick = onHowToPlay,
                     modifier = Modifier.weight(1.05f)
                 )
                 MenuBentoTile(
                     title = "SETTINGS",
                     subtitle = "Audio & Difficulty",
-                    accent = Color(0xFFA855F7L),
+                    accent = Color(0xFF38BDF8L),
                     onClick = onSettings,
                     modifier = Modifier.weight(1.0f)
                 )
@@ -593,7 +656,7 @@ fun MenuUI(
             // Authentic Vector Brand Icon Dock (Spotify, Apple Music, YouTube, Instagram, TikTok)
             Text(
                 text = "STREAM & FOLLOW NO MORE ILLUSIONS",
-                color = Color(0xFFA5B4FCL).copy(alpha = 0.78f),
+                color = Color(0xFFEAB308L).copy(alpha = 0.82f),
                 fontSize = 9.sp,
                 fontWeight = FontWeight.Black,
                 letterSpacing = 1.4.sp
@@ -620,16 +683,17 @@ private fun MenuBentoTile(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val tileShape = CutCornerShape(topStart = 8.dp, bottomEnd = 8.dp)
     Box(
         modifier = modifier
             .height(58.dp)
-            .clip(RoundedCornerShape(13.dp))
+            .clip(tileShape)
             .background(
                 Brush.verticalGradient(
-                    listOf(Color(0xFF0A111EL), Color(0xFF04070DL))
+                    listOf(Color(0xFF0D111CL), Color(0xFF06080EL))
                 )
             )
-            .border(1.2.dp, accent.copy(alpha = 0.55f), RoundedCornerShape(13.dp))
+            .border(1.3.dp, accent.copy(alpha = 0.72f), tileShape)
             .clickable { onClick() }
             .padding(horizontal = 8.dp, vertical = 8.dp),
         contentAlignment = Alignment.Center
@@ -637,7 +701,7 @@ private fun MenuBentoTile(
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 text = title,
-                color = Color.White,
+                color = Color(0xFFFAF8F5L),
                 fontSize = 10.5.sp,
                 fontWeight = FontWeight.Black,
                 letterSpacing = 0.6.sp,
@@ -690,40 +754,64 @@ fun HowToPlayUI(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xF5020408L))
-            .padding(24.dp),
+            .background(Color(0xF504060CL))
+            .statusBarsPadding()
+            .padding(horizontal = 20.dp, vertical = 18.dp),
         contentAlignment = Alignment.Center
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(vertical = 12.dp)
         ) {
             Text(
-                text = "HOW TO PLAY",
-                color = Color(0xFF4ADE80L),
-                fontSize = 26.sp,
+                text = "HOW TO PLAY • VIDEO GUIDE",
+                color = Color(0xFFEAB308L),
+                fontSize = 22.sp,
                 fontWeight = FontWeight.Black,
-                letterSpacing = 2.sp
+                letterSpacing = 1.8.sp
             )
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "Simple controls • Rhythm-driven action",
-                color = Color(0xFF94A3B8L),
-                fontSize = 12.sp,
+                text = "Band Hero Rhythm Highway • Labeled Pickups • High-Score Chases",
+                color = Color(0xFFCBD5E1L),
+                fontSize = 11.sp,
                 fontWeight = FontWeight.SemiBold
             )
-            Spacer(modifier = Modifier.height(18.dp))
-            InstructionItem("1. DRAG ANYWHERE TO MOVE", "Slide your finger anywhere on screen to smoothly steer your core. Your finger never blocks your view.")
-            InstructionItem("2. CATCH CYAN & GOLD ORBS", "Follow the glowing stardust trail and collect smooth Beat Orbs when their outer ring closes in on the beat.")
-            InstructionItem("3. DODGE RED SPIKED ENEMIES", "Watch the screen edges for red warning ripples before spiked enemies lunge across the arena.")
-            InstructionItem("4. HOLD FOCUS TO SLOW TIME", "Hold the ⚡ FOCUS button in the bottom-right corner whenever the screen gets crowded.")
-            InstructionItem("5. UNLOCK SONGS & SKINS", "Earn ♪ Music Notes as you play to unlock new songs, hero skins, and stage themes in Album & Shop.")
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Live 12-Second Animated Gameplay Mini-Video Reel
+            MiniGameplayVideoReel(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(195.dp)
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+            InstructionItem(
+                "1. CATCH NOTES ON THE BEAT STRIKE LINE",
+                "Notes scroll down the 4-lane perspective highway. Catch them right as they cross the glowing lower Beat Strike Line for ★ PERFECT ON-BEAT (+200) and Fret Flames!"
+            )
+            InstructionItem(
+                "2. HOLD & SLIDE SUSTAIN RIBBONS",
+                "When a golden HOLD & SLIDE ♪ ribbon scrolls down the highway, steer onto the note head and follow the glowing ribbon tail for rapid combo points!"
+            )
+            InstructionItem(
+                "3. GRAB 💥 BOMB TO VAPORIZE ALL ENEMIES",
+                "Every item is clearly labeled! Grabbing 💥 BOMB triggers a shockwave that instantly destroys every red enemy on screen (+150 pts each)."
+            )
+            InstructionItem(
+                "4. GRAB 🛡️ SHIELD & CHASE ∞ ENDLESS HIGH SCORES",
+                "🛡️ SHIELD blocks 1 hazard hit. Play ∞ ENDLESS LOOP mode on the main menu to loop songs at escalating speeds for massive high-score records!"
+            )
+            Spacer(modifier = Modifier.height(16.dp))
             ArcadePillButton(
-                text = "BACK TO MENU",
+                text = "BACK TO STUDIO MENU",
                 pillBitmap = btnPillCyan,
                 onClick = onBack,
-                modifier = Modifier.width(240.dp).height(48.dp)
+                modifier = Modifier.width(240.dp).height(46.dp)
             )
         }
     }

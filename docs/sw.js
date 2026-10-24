@@ -1,4 +1,4 @@
-const CACHE_NAME = "nmi-v13-specials";
+const CACHE_NAME = "nmi-v14-highway";
 const ASSETS = [
   "./",
   "./index.html",
