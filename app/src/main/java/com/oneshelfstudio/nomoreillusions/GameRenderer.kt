@@ -313,11 +313,41 @@ fun DrawScope.drawOrbitalPhenomenonAndSatellites(
 
 fun DrawScope.drawParticles(particles: List<GameObject>) {
     particles.forEach { pt ->
-        drawCircle(
-            color = pt.color.copy(alpha = pt.life.coerceIn(0f, 1f)),
-            radius = pt.radius * pt.life.coerceIn(0.2f, 1f),
-            center = Offset(pt.x, pt.y)
-        )
+        val alpha = pt.life.coerceIn(0f, 1f)
+        if (pt.orbitRadius > 50f) {
+            // Melodic Starfall Petal: luminous cascading stardust ribbon + soft aurora bloom + white star core
+            val r = pt.radius * (0.65f + 0.35f * alpha)
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(pt.color.copy(alpha = alpha * 0.72f), Color.Transparent),
+                    center = Offset(pt.x, pt.y),
+                    radius = r * 3.2f
+                ),
+                radius = r * 3.2f,
+                center = Offset(pt.x, pt.y),
+                blendMode = BlendMode.Screen
+            )
+            drawLine(
+                brush = Brush.verticalGradient(
+                    colors = listOf(Color.Transparent, pt.color.copy(alpha = alpha * 0.85f), Color.White.copy(alpha = alpha))
+                ),
+                start = Offset(pt.x - sin(pt.phase) * 6f, pt.y - r * 4.2f),
+                end = Offset(pt.x, pt.y),
+                strokeWidth = r * 0.85f,
+                cap = StrokeCap.Round
+            )
+            drawCircle(
+                color = Color.White.copy(alpha = alpha),
+                radius = r * 0.55f,
+                center = Offset(pt.x, pt.y)
+            )
+        } else {
+            drawCircle(
+                color = pt.color.copy(alpha = alpha),
+                radius = pt.radius * pt.life.coerceIn(0.2f, 1f),
+                center = Offset(pt.x, pt.y)
+            )
+        }
     }
 }
 
@@ -418,14 +448,14 @@ fun DrawScope.drawEnemySprite(
 
     val dangerRimColor = when {
         isGoldenOverdrive -> Color(0xFFF59E0BL)
-        e.type == EnemyType.SEEKER -> Color(0xFFFF1E42L)
-        e.type == EnemyType.PULSE -> Color(0xFFF43F5EL)
-        else -> Color(0xFFFB7185L)
+        e.type == EnemyType.SEEKER -> Color(0xFFF97316L) // Amber-Orange Hunter
+        e.type == EnemyType.PULSE -> Color(0xFFFF1E42L)  // Crimson Spiked Mine
+        else -> Color(0xFFA855F7L)                       // Electric Violet Vortex Jelly
     }
     val secondaryTrimColor = when (e.type) {
-        EnemyType.SEEKER -> Color(0xFFFFB703L)
-        EnemyType.PULSE -> Color(0xFFE879F9L)
-        else -> Color(0xFFC084FCL)
+        EnemyType.SEEKER -> Color(0xFFFACC15L)
+        EnemyType.PULSE -> Color(0xFFFB7185L)
+        else -> Color(0xFFE879F9L)
     }
     val visualRad = e.radius * (1.48f + 0.18f * beatKick + 0.12f * bassEnergy)
 
@@ -464,12 +494,12 @@ fun DrawScope.drawEnemySprite(
         EnemyType.LASER_SWEEPER -> pulsarMandala
     }
 
-    // 1. High-Contrast Crimson Danger Halo behind every enemy (ZERO wiggling tail!)
+    // 1. High-Contrast Archetype Danger Halo behind every enemy
     drawCircle(
         brush = Brush.radialGradient(
             colors = listOf(
                 dangerRimColor.copy(alpha = safeAlpha * (0.58f + 0.25f * beatKick)),
-                Color(0xFF881337L).copy(alpha = safeAlpha * 0.30f),
+                dangerRimColor.copy(alpha = safeAlpha * 0.22f),
                 Color.Transparent
             ),
             center = Offset(e.x, e.y),
@@ -480,80 +510,112 @@ fun DrawScope.drawEnemySprite(
         blendMode = BlendMode.Screen
     )
 
-    // 2. Smooth Curved Energy Crescents & Orbital Threat Rings by Archetype (Zero sharp straight polygon wireframes!)
+    // 2. Uniquely Identifiable Silhouettes by Enemy Archetype:
     when (e.type) {
         EnemyType.SEEKER -> {
-            // Smooth Swept Crescent Interceptor Arcs locked onto flight vector
+            // ARCHETYPE A: AMBER SWEPT-WING DELTA INTERCEPTOR (Homing Hunter with Twin Rear Thrusters)
             val aimDeg = (e.angle * 180f / PI.toFloat())
-            val arcR = visualRad * 1.18f
+            val arcR = visualRad * 1.22f
+            // Twin rear plasma thruster plumes opposite flight vector
+            for (thrusterOffset in listOf(-0.42f, 0.42f)) {
+                val rearAng = e.angle + PI.toFloat() + thrusterOffset
+                val tx = e.x + cos(rearAng) * (visualRad * 1.28f)
+                val ty = e.y + sin(rearAng) * (visualRad * 1.28f)
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(Color.White, Color(0xFFFACC15L), Color(0xFFF97316L), Color.Transparent),
+                        center = Offset(tx, ty),
+                        radius = 8.5f + beatKick * 3.5f
+                    ),
+                    radius = 8.5f + beatKick * 3.5f,
+                    center = Offset(tx, ty)
+                )
+            }
             drawCircle(
-                color = Color(0xFF1E050DL).copy(alpha = safeAlpha * 0.92f),
-                radius = visualRad * 0.95f,
+                color = Color(0xFF1F0A04L).copy(alpha = safeAlpha * 0.92f),
+                radius = visualRad * 0.92f,
                 center = Offset(e.x, e.y)
             )
+            // Swept forward delta-wing crescent
             drawArc(
                 color = dangerRimColor.copy(alpha = safeAlpha),
-                startAngle = aimDeg - 74f,
-                sweepAngle = 148f,
+                startAngle = aimDeg - 82f,
+                sweepAngle = 164f,
                 useCenter = false,
                 topLeft = Offset(e.x - arcR, e.y - arcR),
                 size = Size(arcR * 2f, arcR * 2f),
-                style = Stroke(width = 3.6f + beatKick, cap = StrokeCap.Round)
+                style = Stroke(width = 4.2f + beatKick, cap = StrokeCap.Round)
             )
-            for (side in listOf(-2.15f, 2.15f)) {
-                val wx = e.x + cos(e.angle + side) * (visualRad * 1.18f)
-                val wy = e.y + sin(e.angle + side) * (visualRad * 1.18f)
-                drawCircle(color = secondaryTrimColor.copy(alpha = safeAlpha), radius = 4.2f, center = Offset(wx, wy))
-            }
+            // Nose cone target beacon
+            val noseX = e.x + cos(e.angle) * (visualRad * 1.24f)
+            val noseY = e.y + sin(e.angle) * (visualRad * 1.24f)
+            drawCircle(color = Color.White.copy(alpha = safeAlpha), radius = 4.5f, center = Offset(noseX, noseY))
         }
         EnemyType.PULSE -> {
-            // Smooth Spinning Multi-Crescent Plasma Vortex
+            // ARCHETYPE B: CRIMSON 8-SPIKED ORDNANCE MINE (Rotating Starburst Hazard)
             drawCircle(
-                color = Color(0xFF1F040EL).copy(alpha = safeAlpha * 0.92f),
+                color = Color(0xFF22040BL).copy(alpha = safeAlpha * 0.94f),
                 radius = visualRad * 0.98f,
                 center = Offset(e.x, e.y)
             )
-            for (blade in 0 until 4) {
-                val startDeg = ((time * -210f) + blade * 90f) % 360f
-                val bRad = visualRad * (1.12f + 0.14f * beatKick)
-                drawArc(
-                    color = dangerRimColor.copy(alpha = safeAlpha),
-                    startAngle = startDeg,
-                    sweepAngle = 54f,
-                    useCenter = false,
-                    topLeft = Offset(e.x - bRad, e.y - bRad),
-                    size = Size(bRad * 2f, bRad * 2f),
-                    style = Stroke(width = 3.2f, cap = StrokeCap.Round)
+            for (spike in 0 until 8) {
+                val sAng = time * 2.2f + spike * (PI.toFloat() / 4f)
+                val tipR = visualRad * (if (spike % 2 == 0) 1.38f + beatKick * 0.14f else 1.16f)
+                val sx = e.x + cos(sAng) * tipR
+                val sy = e.y + sin(sAng) * tipR
+                drawCircle(
+                    color = (if (spike % 2 == 0) dangerRimColor else secondaryTrimColor).copy(alpha = safeAlpha),
+                    radius = if (spike % 2 == 0) 4.6f else 3.2f,
+                    center = Offset(sx, sy)
+                )
+                drawCircle(
+                    color = Color.White.copy(alpha = safeAlpha * 0.85f),
+                    radius = 1.8f,
+                    center = Offset(sx, sy)
                 )
             }
+            drawCircle(
+                color = dangerRimColor.copy(alpha = safeAlpha),
+                radius = visualRad * 1.04f,
+                center = Offset(e.x, e.y),
+                style = Stroke(width = 3.2f)
+            )
         }
         else -> {
-            // Smooth Counter-Rotating Eclipse Rings + 3 Orbiting Hazard Pearls
+            // ARCHETYPE C: ELECTRIC VIOLET VORTEX JELLY (Sine-Wave Weaver with Undulating Tendrils)
             drawCircle(
-                color = Color(0xFF16041EL).copy(alpha = safeAlpha * 0.88f),
+                color = Color(0xFF150424L).copy(alpha = safeAlpha * 0.90f),
                 radius = visualRad * 0.95f,
                 center = Offset(e.x, e.y)
             )
+            // 4 undulating bioluminescent tendrils trailing behind
+            for (tIdx in 0 until 4) {
+                val baseAng = e.angle + PI.toFloat() + (tIdx - 1.5f) * 0.36f + sin(time * 5.2f + tIdx) * 0.18f
+                for (dot in 1..3) {
+                    val dist = visualRad * (0.85f + dot * 0.26f)
+                    val tx = e.x + cos(baseAng) * dist
+                    val ty = e.y + sin(baseAng) * dist
+                    drawCircle(
+                        color = secondaryTrimColor.copy(alpha = safeAlpha * (1f - dot * 0.22f)),
+                        radius = (4.8f - dot * 0.9f).coerceAtLeast(1.8f),
+                        center = Offset(tx, ty)
+                    )
+                }
+            }
             for (ring in 0..1) {
-                val rRad = visualRad * (if (ring == 0) 1.08f else 0.82f)
-                val startDeg = ((if (ring == 0) 1f else -1f) * time * 110f) % 360f
+                val rRad = visualRad * (if (ring == 0) 1.10f else 0.80f)
+                val startDeg = ((if (ring == 0) 1f else -1f) * time * 120f) % 360f
                 for (seg in 0..1) {
                     drawArc(
                         color = (if (ring == 0) dangerRimColor else secondaryTrimColor).copy(alpha = safeAlpha * 0.95f),
                         startAngle = startDeg + seg * 180f,
-                        sweepAngle = 108f,
+                        sweepAngle = 112f,
                         useCenter = false,
                         topLeft = Offset(e.x - rRad, e.y - rRad),
                         size = Size(rRad * 2f, rRad * 2f),
-                        style = Stroke(width = 2.6f, cap = StrokeCap.Round)
+                        style = Stroke(width = 2.8f, cap = StrokeCap.Round)
                     )
                 }
-            }
-            for (n in 0..2) {
-                val na = time * 3.2f + n * (2f * PI.toFloat() / 3f)
-                val nx = e.x + cos(na) * (visualRad * 1.36f)
-                val ny = e.y + sin(na) * (visualRad * 1.36f)
-                drawCircle(color = secondaryTrimColor.copy(alpha = safeAlpha), radius = 4.0f, center = Offset(nx, ny))
             }
         }
     }
@@ -625,65 +687,96 @@ fun DrawScope.drawPlayerSprite(
         else -> Color(0xFF4ADE80L)
     }
 
-    // 1. Volumetric Hero Aura + Crisp Equalizer Ring (unmistakably identifies the Player!)
+    // 0. Twin Plasma Thruster Plumes underneath the Hero Ship
+    for (thrusterX in listOf(-p.radius * 0.55f, p.radius * 0.55f)) {
+        val plumeLen = p.radius * (1.55f + 0.45f * beatKick + 0.18f * sin(time * 22f))
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(Color.White.copy(alpha = 0.85f * spriteAlpha), heroPrimaryCol.copy(alpha = 0.55f * spriteAlpha), Color.Transparent),
+                center = Offset(center.x + thrusterX, center.y + plumeLen * 0.72f),
+                radius = p.radius * 0.75f
+            ),
+            radius = p.radius * 0.75f,
+            center = Offset(center.x + thrusterX, center.y + plumeLen * 0.72f),
+            blendMode = BlendMode.Screen
+        )
+    }
+
+    // 1. Volumetric Hero Aura + Crisp Equalizer Ring
     drawCircle(
         brush = Brush.radialGradient(
             colors = listOf(
-                heroPrimaryCol.copy(alpha = 0.48f * spriteAlpha),
-                Color(0xFF6366F1L).copy(alpha = 0.22f * spriteAlpha),
+                heroPrimaryCol.copy(alpha = 0.52f * spriteAlpha),
+                Color(0xFF6366F1L).copy(alpha = 0.24f * spriteAlpha),
                 Color.Transparent
             ),
             center = center,
-            radius = p.radius * 2.8f
+            radius = p.radius * 3.0f
         ),
-        radius = p.radius * 2.8f,
+        radius = p.radius * 3.0f,
         center = center,
         blendMode = BlendMode.Screen
     )
 
     drawCircle(
-        color = heroPrimaryCol.copy(alpha = (0.55f + beatKick * 0.30f) * spriteAlpha),
-        radius = p.radius * (2.25f + 0.25f * beatKick),
+        color = heroPrimaryCol.copy(alpha = (0.62f + beatKick * 0.30f) * spriteAlpha),
+        radius = p.radius * (2.30f + 0.25f * beatKick),
         center = center,
-        style = Stroke(width = 2.4f + beatKick)
+        style = Stroke(width = 2.6f + beatKick)
     )
 
-    // Smooth Rotating Harmonic Crescent Waves + Orbiting Gold Pearls around the Hero (Replaces 12 straight stick lines!)
-    val haloArcR = p.radius * (1.72f + 0.18f * beatKick)
-    for (arcIdx in 0 until 3) {
-        val startDeg = ((time * 95f) + arcIdx * 120f) % 360f
+    // 1B. Ornate 8-Petal Sacred-Geometry Harmonic Lotus Ring (Blooms on every beat!)
+    val lotusR = p.radius * (1.88f + 0.22f * beatKick)
+    for (petal in 0 until 8) {
+        val pAng = time * 1.25f + petal * (PI.toFloat() / 4f)
+        val px = center.x + cos(pAng) * lotusR
+        val py = center.y + sin(pAng) * lotusR
+        val petalCol = if (petal % 2 == 0) Color(0xFFFACC15L) else heroPrimaryCol
+        drawCircle(
+            color = petalCol.copy(alpha = 0.45f * spriteAlpha),
+            radius = 6.2f + beatKick * 2.2f,
+            center = Offset(px, py)
+        )
+        drawCircle(
+            color = Color.White.copy(alpha = 0.90f * spriteAlpha),
+            radius = 2.4f,
+            center = Offset(px, py)
+        )
+    }
+
+    // Counter-Rotating Filigree Crescent Waves
+    val haloArcR = p.radius * (1.68f + 0.16f * beatKick)
+    for (arcIdx in 0 until 4) {
+        val startDeg = ((time * -105f) + arcIdx * 90f) % 360f
         drawArc(
-            color = (if (arcIdx % 2 == 0) Color(0xFFFACC15L) else heroPrimaryCol).copy(alpha = 0.82f * spriteAlpha),
+            color = (if (arcIdx % 2 == 0) Color(0xFFFACC15L) else heroPrimaryCol).copy(alpha = 0.86f * spriteAlpha),
             startAngle = startDeg,
-            sweepAngle = 68f + beatKick * 18f,
+            sweepAngle = 56f + beatKick * 16f,
             useCenter = false,
             topLeft = Offset(center.x - haloArcR, center.y - haloArcR),
             size = Size(haloArcR * 2f, haloArcR * 2f),
             style = Stroke(width = 2.8f, cap = StrokeCap.Round)
         )
     }
-    for (orbIdx in 0 until 6) {
-        val ang = (orbIdx / 6f) * 6.283185f - time * 1.6f
-        val orbR = p.radius * (1.92f + (if (orbIdx % 2 == 0) 0.22f * beatKick else 0.08f))
-        drawCircle(
-            color = (if (orbIdx % 2 == 0) Color(0xFFFACC15L) else heroPrimaryCol).copy(alpha = 0.88f * spriteAlpha),
-            radius = if (orbIdx % 2 == 0) 3.2f else 2.2f,
-            center = Offset(center.x + cos(ang) * orbR, center.y + sin(ang) * orbR)
-        )
-    }
 
-    // 2. Solid Obsidian-and-Gold Vinyl Turntable Platter Base (gives the Hero a rock-solid silhouette on Android!)
+    // 2. Solid Obsidian-and-Gold Vinyl Turntable Platter Base
     val platterR = p.radius * (1.48f + 0.10f * beatKick)
     drawCircle(
-        color = Color(0xFF040812L).copy(alpha = 0.94f * spriteAlpha),
+        color = Color(0xFF040812L).copy(alpha = 0.95f * spriteAlpha),
         radius = platterR,
         center = center
     )
     drawCircle(
-        color = heroPrimaryCol.copy(alpha = 0.92f * spriteAlpha),
+        color = heroPrimaryCol.copy(alpha = 0.94f * spriteAlpha),
         radius = platterR,
         center = center,
-        style = Stroke(width = 2.5f)
+        style = Stroke(width = 2.6f)
+    )
+    drawCircle(
+        color = Color(0xFFFACC15L).copy(alpha = 0.72f * spriteAlpha),
+        radius = platterR * 0.76f,
+        center = center,
+        style = Stroke(width = 1.6f)
     )
 
     if (invulnTime > 0f) {

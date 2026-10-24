@@ -158,77 +158,156 @@ function drawEnemyTelegraphs(ctx, telegraphs, time, beatPulse) {
 }
 
 function drawEnemySprite(ctx, e, enemyBitmaps, time, beatPulse) {
-  // Smooth Curved Energy Crescents & Orbital Threat Rings (Zero jagged polygon wireframes!)
+  // 3 Uniquely Identifiable Enemy Archetypes (Distinct Silhouette & Color per Type!)
   const speed = Math.max(1, Math.hypot(e.vx, e.vy));
   const dirX = e.vx / speed;
   const dirY = e.vy / speed;
   const heading = Math.atan2(dirY, dirX);
   const r = e.radius;
 
-  // Shared crimson danger halo
-  const halo = ctx.createRadialGradient(e.x, e.y, 2, e.x, e.y, r * 2.1);
-  halo.addColorStop(0, "rgba(255,30,66,0.48)");
-  halo.addColorStop(0.55, "rgba(136,19,55,0.22)");
+  let primaryCol, secondaryCol, coreCol;
+  if (e.type === "SEEKER") {
+    // 1. SEEKER: Amber-Orange Swept-Wing Delta Interceptor
+    primaryCol = [249, 115, 22];
+    secondaryCol = [250, 204, 21];
+    coreCol = "#2B0C04";
+  } else if (e.type === "PULSAR") {
+    // 2. PULSAR: Crimson 8-Spiked Ordnance Mine
+    primaryCol = [255, 30, 66];
+    secondaryCol = [251, 113, 133];
+    coreCol = "#22040D";
+  } else {
+    // 3. WANDERER: Electric Violet Bioluminescent Vortex Jelly
+    primaryCol = [168, 85, 247];
+    secondaryCol = [232, 121, 249];
+    coreCol = "#18052B";
+  }
+
+  // Archetype-specific danger halo
+  const halo = ctx.createRadialGradient(e.x, e.y, 2, e.x, e.y, r * 2.25);
+  halo.addColorStop(0, rgba(primaryCol, 0.52));
+  halo.addColorStop(0.55, rgba(secondaryCol, 0.20));
   halo.addColorStop(1, "rgba(0,0,0,0)");
   ctx.beginPath();
-  ctx.arc(e.x, e.y, r * 2.1, 0, Math.PI * 2);
+  ctx.arc(e.x, e.y, r * 2.25, 0, Math.PI * 2);
   ctx.fillStyle = halo;
   ctx.fill();
 
-  // Dark spherical plasma core body
-  ctx.beginPath();
-  ctx.arc(e.x, e.y, r * 0.94, 0, Math.PI * 2);
-  ctx.fillStyle = "#19040C";
-  ctx.fill();
-
-  if (e.type === "PULSAR") {
-    for (let b = 0; b < 4; b++) {
-      const startA = -time * 3.8 + b * (Math.PI / 2);
+  if (e.type === "SEEKER") {
+    // Twin rear plasma thruster plumes
+    for (const side of [-0.35, 0.35]) {
+      const rx = e.x + Math.cos(heading + Math.PI + side) * r * 0.85;
+      const ry = e.y + Math.sin(heading + Math.PI + side) * r * 0.85;
+      const tx = e.x + Math.cos(heading + Math.PI + side * 0.5) * r * (1.75 + beatPulse * 0.45);
+      const ty = e.y + Math.sin(heading + Math.PI + side * 0.5) * r * (1.75 + beatPulse * 0.45);
       ctx.beginPath();
-      ctx.arc(e.x, e.y, r * (1.14 + 0.12 * beatPulse), startA, startA + 0.95);
-      ctx.strokeStyle = "#FB7185";
-      ctx.lineWidth = 3.0;
+      ctx.moveTo(rx, ry);
+      ctx.lineTo(tx, ty);
+      ctx.strokeStyle = rgba(secondaryCol, 0.88);
+      ctx.lineWidth = 4.2;
       ctx.lineCap = "round";
       ctx.stroke();
     }
-  } else if (e.type === "SEEKER") {
+    // Swept forward delta wings
+    const noseX = e.x + Math.cos(heading) * r * 1.45;
+    const noseY = e.y + Math.sin(heading) * r * 1.45;
+    const wingLX = e.x + Math.cos(heading + 2.38) * r * 1.30;
+    const wingLY = e.y + Math.sin(heading + 2.38) * r * 1.30;
+    const tailX = e.x + Math.cos(heading + Math.PI) * r * 0.65;
+    const tailY = e.y + Math.sin(heading + Math.PI) * r * 0.65;
+    const wingRX = e.x + Math.cos(heading - 2.38) * r * 1.30;
+    const wingRY = e.y + Math.sin(heading - 2.38) * r * 1.30;
+
     ctx.beginPath();
-    ctx.arc(e.x, e.y, r * 1.16, heading - 1.25, heading + 1.25);
-    ctx.strokeStyle = "#FF1E42";
-    ctx.lineWidth = 3.4;
-    ctx.lineCap = "round";
+    ctx.moveTo(noseX, noseY);
+    ctx.lineTo(wingLX, wingLY);
+    ctx.lineTo(tailX, tailY);
+    ctx.lineTo(wingRX, wingRY);
+    ctx.closePath();
+    ctx.fillStyle = coreCol;
+    ctx.fill();
+    ctx.strokeStyle = rgba(primaryCol, 1);
+    ctx.lineWidth = 3.0;
+    ctx.lineJoin = "round";
     ctx.stroke();
-    const blink = 0.55 + 0.45 * beatPulse;
-    for (const s of [-2.15, 2.15]) {
+
+    ctx.beginPath();
+    ctx.arc(noseX, noseY, r * 0.20, 0, Math.PI * 2);
+    ctx.fillStyle = "#FFFFFF";
+    ctx.fill();
+  } else if (e.type === "PULSAR") {
+    // 8-Spike Rotating Crimson Ordnance Mine
+    for (let sp = 0; sp < 8; sp++) {
+      const a = sp * (Math.PI / 4) - time * 2.4;
+      const tipR = r * (sp % 2 === 0 ? 1.52 + 0.18 * beatPulse : 1.24);
+      const sx = e.x + Math.cos(a) * r * 0.72;
+      const sy = e.y + Math.sin(a) * r * 0.72;
+      const tx = e.x + Math.cos(a) * tipR;
+      const ty = e.y + Math.sin(a) * tipR;
       ctx.beginPath();
-      ctx.arc(e.x + Math.cos(heading + s) * r * 1.16, e.y + Math.sin(heading + s) * r * 1.16, r * 0.16, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(251,191,36,${blink})`;
+      ctx.moveTo(sx, sy);
+      ctx.lineTo(tx, ty);
+      ctx.strokeStyle = rgba(sp % 2 === 0 ? primaryCol : secondaryCol, 1);
+      ctx.lineWidth = sp % 2 === 0 ? 4.4 : 2.8;
+      ctx.lineCap = "round";
+      ctx.stroke();
+      if (sp % 2 === 0) {
+        ctx.beginPath();
+        ctx.arc(tx, ty, r * 0.14, 0, Math.PI * 2);
+        ctx.fillStyle = "#FFFFFF";
+        ctx.fill();
+      }
+    }
+    ctx.beginPath();
+    ctx.arc(e.x, e.y, r * 0.88, 0, Math.PI * 2);
+    ctx.fillStyle = coreCol;
+    ctx.fill();
+    ctx.strokeStyle = rgba(primaryCol, 1);
+    ctx.lineWidth = 3.0;
+    ctx.stroke();
+  } else {
+    // WANDERER: Electric Violet Bioluminescent Vortex Jelly with 4 Trailing Tendrils
+    for (let t = 0; t < 4; t++) {
+      const spread = (t - 1.5) * 0.34;
+      const sway = Math.sin(time * 5.2 + t * 1.3 + (e.phase || 0)) * 0.28;
+      const baseA = heading + Math.PI + spread;
+      const midX = e.x + Math.cos(baseA + sway * 0.5) * r * 1.15;
+      const midY = e.y + Math.sin(baseA + sway * 0.5) * r * 1.15;
+      const endX = e.x + Math.cos(baseA + sway) * r * 1.85;
+      const endY = e.y + Math.sin(baseA + sway) * r * 1.85;
+      ctx.beginPath();
+      ctx.moveTo(e.x, e.y);
+      ctx.lineTo(midX, midY);
+      ctx.lineTo(endX, endY);
+      ctx.strokeStyle = rgba(secondaryCol, 0.78);
+      ctx.lineWidth = 2.8;
+      ctx.lineCap = "round";
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(endX, endY, r * 0.14, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(255,255,255,0.88)";
       ctx.fill();
     }
-  } else {
+    ctx.beginPath();
+    ctx.arc(e.x, e.y, r * 0.90, 0, Math.PI * 2);
+    ctx.fillStyle = coreCol;
+    ctx.fill();
     for (let ring = 0; ring < 2; ring++) {
-      const rRad = r * (ring === 0 ? 1.08 : 0.82);
-      const spin = (ring === 0 ? 1 : -1) * time * 1.9;
+      const rRad = r * (ring === 0 ? 1.08 : 0.76);
+      const spin = (ring === 0 ? 1 : -1) * time * 2.2;
       for (let seg = 0; seg < 2; seg++) {
         const sa = spin + seg * Math.PI;
         ctx.beginPath();
         ctx.arc(e.x, e.y, rRad, sa, sa + 1.85);
-        ctx.strokeStyle = ring === 0 ? "#FB7185" : "#C084FC";
-        ctx.lineWidth = 2.4;
+        ctx.strokeStyle = rgba(ring === 0 ? primaryCol : secondaryCol, 1);
+        ctx.lineWidth = 2.6;
         ctx.lineCap = "round";
         ctx.stroke();
       }
     }
-    for (let n = 0; n < 3; n++) {
-      const a = time * 2.6 + n * (Math.PI * 2 / 3) + (e.phase || 0);
-      ctx.beginPath();
-      ctx.arc(e.x + Math.cos(a) * r * 1.38, e.y + Math.sin(a) * r * 1.38, r * 0.16, 0, Math.PI * 2);
-      ctx.fillStyle = "#F43F5E";
-      ctx.fill();
-    }
   }
 
-  // Glowing sentient core eye locked on direction of travel
+  // Sentient Core Eye locked on direction of travel
   const eyeX = e.x + dirX * (r * 0.18);
   const eyeY = e.y + dirY * (r * 0.18);
   ctx.beginPath();
@@ -237,7 +316,7 @@ function drawEnemySprite(ctx, e, enemyBitmaps, time, beatPulse) {
   ctx.fill();
   ctx.beginPath();
   ctx.arc(eyeX + dirX * 2, eyeY + dirY * 2, r * 0.12, 0, Math.PI * 2);
-  ctx.fillStyle = "#FF1E42";
+  ctx.fillStyle = rgba(primaryCol, 1);
   ctx.fill();
 }
 
@@ -302,35 +381,65 @@ function drawPlayerSprite(
     ctx.stroke();
   }
 
-  const pScale = 1 + beatPulse * 0.12;
+  const pScale = 1 + beatPulse * 0.14;
 
-  // Soft skin halo
-  const halo = ctx.createRadialGradient(playerX, playerY, 2, playerX, playerY, R * 2.4 * pScale);
-  halo.addColorStop(0, rgba(skinCol, 0.5));
-  halo.addColorStop(1, "rgba(0,0,0,0)");
-  ctx.beginPath();
-  ctx.arc(playerX, playerY, R * 2.4 * pScale, 0, Math.PI * 2);
-  ctx.fillStyle = halo;
-  ctx.fill();
-
-  // Smooth Rotating Harmonic Crescent Waves + Orbiting Gold Pearls around the Hero (Replaces 12 straight stick lines!)
-  const haloArcR = R * (1.34 + 0.14 * beatPulse);
-  for (let arcIdx = 0; arcIdx < 3; arcIdx++) {
-    const startA = time * 1.65 + arcIdx * ((Math.PI * 2) / 3);
+  // 1. Twin Rear Plasma Thruster Plumes (pulsing downward beneath the Hero!)
+  const plumeLen = R * (1.85 + beatPulse * 0.65);
+  for (const offsetX of [-R * 0.42, R * 0.42]) {
+    const px = playerX + offsetX;
+    const pGrad = ctx.createLinearGradient(px, playerY + R * 0.5, px, playerY + plumeLen);
+    pGrad.addColorStop(0, "rgba(255,255,255,0.92)");
+    pGrad.addColorStop(0.5, rgba(skinCol, 0.72));
+    pGrad.addColorStop(1, "rgba(0,0,0,0)");
     ctx.beginPath();
-    ctx.arc(playerX, playerY, haloArcR, startA, startA + 1.18 + beatPulse * 0.25);
-    ctx.strokeStyle = rgba(arcIdx % 2 === 0 ? [250, 204, 21] : skinCol, 0.85);
-    ctx.lineWidth = 2.8;
+    ctx.moveTo(px, playerY + R * 0.55);
+    ctx.lineTo(px + Math.sin(time * 14 + offsetX) * 4, playerY + plumeLen);
+    ctx.strokeStyle = pGrad;
+    ctx.lineWidth = 6.2;
     ctx.lineCap = "round";
     ctx.stroke();
   }
-  for (let i = 0; i < 6; i++) {
-    const a = i * (Math.PI / 3) - time * 1.5;
-    const orbR = R * (1.52 + (i % 2 === 0 ? 0.18 * beatPulse : 0.06));
+
+  // 2. Soft skin halo
+  const halo = ctx.createRadialGradient(playerX, playerY, 2, playerX, playerY, R * 2.5 * pScale);
+  halo.addColorStop(0, rgba(skinCol, 0.55));
+  halo.addColorStop(0.55, "rgba(250,204,21,0.18)");
+  halo.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.beginPath();
+  ctx.arc(playerX, playerY, R * 2.5 * pScale, 0, Math.PI * 2);
+  ctx.fillStyle = halo;
+  ctx.fill();
+
+  // 3. 8-Petal Beat-Reactive Sacred-Geometry Harmonic Lotus + Counter-Rotating 24K Gold Filigree Rings
+  const lotusR = R * (1.36 + 0.18 * beatPulse);
+  for (let p = 0; p < 8; p++) {
+    const a = p * (Math.PI / 4) + time * 1.25;
+    const px = playerX + Math.cos(a) * (R * 0.84);
+    const py = playerY + Math.sin(a) * (R * 0.84);
+    const tipX = playerX + Math.cos(a) * lotusR;
+    const tipY = playerY + Math.sin(a) * lotusR;
     ctx.beginPath();
-    ctx.arc(playerX + Math.cos(a) * orbR, playerY + Math.sin(a) * orbR, i % 2 === 0 ? 3.0 : 2.2, 0, Math.PI * 2);
-    ctx.fillStyle = rgba(i % 2 === 0 ? [250, 204, 21] : skinCol, 0.92);
+    ctx.moveTo(px, py);
+    ctx.lineTo(tipX, tipY);
+    ctx.strokeStyle = rgba(p % 2 === 0 ? [250, 204, 21] : skinCol, 0.85);
+    ctx.lineWidth = p % 2 === 0 ? 3.2 : 2.2;
+    ctx.lineCap = "round";
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(tipX, tipY, p % 2 === 0 ? 3.1 : 2.1, 0, Math.PI * 2);
+    ctx.fillStyle = p % 2 === 0 ? "#FFFFFF" : "#FACC15";
     ctx.fill();
+  }
+
+  const haloArcR = R * (1.50 + 0.14 * beatPulse);
+  for (let arcIdx = 0; arcIdx < 4; arcIdx++) {
+    const startA = -time * 1.85 + arcIdx * (Math.PI / 2);
+    ctx.beginPath();
+    ctx.arc(playerX, playerY, haloArcR, startA, startA + 0.95 + beatPulse * 0.22);
+    ctx.strokeStyle = rgba(arcIdx % 2 === 0 ? [250, 204, 21] : skinCol, 0.90);
+    ctx.lineWidth = 2.8;
+    ctx.lineCap = "round";
+    ctx.stroke();
   }
 
   // Obsidian-and-Gold Vinyl Platter

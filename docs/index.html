@@ -10,14 +10,14 @@
   <title>No More Illusions — Interactive Album Experience</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="apple-touch-icon" href="assets/nmi_logo.png" />
-  <link rel="stylesheet" href="styles.css?v=14" />
+  <link rel="stylesheet" href="styles.css?v=15" />
 </head>
 <body>
   <!-- Full-Screen 60FPS Audio-Reactive Game & Nebula Canvas -->
   <canvas id="game-canvas"></canvas>
 
   <!-- ======================================================================
-       1. MENU SCREEN (1:1 Port of MenuScreen.kt)
+       1. MENU SCREEN (1:1 Port of MenuScreen.kt — Tactile Pop & Zoom Console)
        ====================================================================== -->
   <div id="screen-MENU" class="screen-overlay" style="display:flex;">
     <!-- Top Utility Bar (1:1 with MenuScreen.kt) -->
@@ -41,67 +41,44 @@
         <div class="title-3d-shadow">No Morē Illusīons</div>
         <div id="menu-title-main" class="title-3d-main">No Morē Illusīons</div>
       </div>
-      <div id="menu-sub-banner" class="menu-sub-banner">INTERACTIVE VISUAL ALBUM • BEST SCORE: <span id="menu-best-score">0</span></div>
+      <div id="menu-sub-banner" class="menu-sub-banner">BEST SCORE: <span id="menu-best-score">0</span></div>
 
-      <!-- Upfront Fan Vault Incentive Banner (1:1 with MenuScreen.kt) -->
+      <!-- Compact 1-Line Artist Vault Pill (Zero Wordy Paragraphs!) -->
       <div onclick="window.app.openScreen('CUSTOMIZER', -1)"
-           style="margin-top:6px;width:100%;max-width:430px;background:linear-gradient(90deg,rgba(31,20,56,0.92),rgba(13,25,43,0.92));border:1.3px solid rgba(250,204,21,0.75);border-radius:14px;padding:7px 12px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;">
-        <div style="text-align:left;padding-right:8px;">
-          <div style="font-size:9px;font-weight:900;color:#FACC15;letter-spacing:1.1px;">★ FAN INCENTIVE: UNLOCK ARTIST NOTES &amp; EXCLUSIVES</div>
-          <div style="font-size:10px;color:#E2E8F0;font-weight:600;">Play songs to unlock Ethan's Studio Liner Notes, Vocal Secrets &amp; Master Reels</div>
-        </div>
-        <div id="menu-exclusives-pill" style="background:rgba(250,204,21,0.18);border:1px solid #FACC15;border-radius:50px;padding:4px 9px;font-size:10px;font-weight:900;color:#FACC15;white-space:nowrap;">
-          0/6 VAULT →
-        </div>
+           style="margin-top:6px;width:100%;max-width:430px;background:#100E07;border:1.3px solid rgba(234,179,8,0.85);border-radius:8px;padding:7px 12px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;">
+        <span style="font-size:9.5px;font-weight:900;color:#EAB308;letter-spacing:0.8px;">★ ETHAN'S VAULT &amp; LINER NOTES</span>
+        <span id="menu-exclusives-pill" style="font-size:9px;font-weight:900;color:#FAF8F5;white-space:nowrap;">0/6 UNLOCKED →</span>
       </div>
     </div>
 
-    <!-- Flagship Artist Stage Console Card (1:1 Match with MenuScreen.kt) -->
+    <!-- Tactile Pop & Zoom Studio Console Card (Clean, Visual-First, Minimal Text) -->
     <div style="width:100%;max-width:430px;display:flex;flex-direction:column;align-items:center;">
       <div id="menu-console-card" class="console-card">
-        <!-- 1. Track Vinyl Selector Cards with 3-Star Mastery Badges -->
+        <!-- 1. Tactile Pop & Zoom Vinyl Track Cards -->
         <div id="menu-track-deck-row" class="track-deck-row"></div>
 
-        <!-- 2. 4-Mode Replayability Selector (1.0x NORMAL | 1.2x FAST | 0.85x CHILL | ∞ ENDLESS) -->
-        <div class="remix-header-row">
-          <span style="color:#EAB308;letter-spacing:1.2px;">STUDIO TAPE SPEED &amp; MODE</span>
-          <span id="menu-remix-subtitle" style="color:#4ADE80;font-weight:800;">1.0x Master Speed • 1.0x Score</span>
-        </div>
+        <!-- 2. Tactile Pop & Zoom Speed Switches (Zoomed Card Reveals Crisp 1-Line Spec!) -->
         <div id="menu-remix-pills" class="remix-pills-row"></div>
 
-        <!-- Explicit Mode Spec & High-Score Loop Breakdown Box -->
-        <div id="menu-mode-spec-box" style="width:100%;background:rgba(8,10,18,0.92);border:1.2px solid rgba(74,222,128,0.55);border-radius:10px;padding:7px 10px;text-align:left;">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px;">
-            <span id="menu-spec-title" style="font-size:9.5px;font-weight:900;color:#4ADE80;letter-spacing:0.8px;">NORMAL STUDIO MASTER (1.0X SPEED)</span>
-            <span id="menu-spec-badge" style="font-size:8.5px;font-weight:900;color:#050814;background:#4ADE80;padding:1.5px 6px;border-radius:4px;">1.0X SCORE</span>
-          </div>
-          <div id="menu-spec-desc" style="font-size:10px;color:#E2E8F0;line-height:1.35;">
-            Balanced 4-lane rhythm highway &amp; light hazards. Finish the track to unlock the full song &amp; Ethan's Studio Vault notes!
-          </div>
-        </div>
-
-        <!-- 3. 3-Star Mastery Checklist Banner -->
-        <div class="mastery-checklist-banner">HIGH-SCORE LOOP: ★1 Finish Song &nbsp;•&nbsp; ★2 8x Combo &nbsp;•&nbsp; ★3 Master ∞ Endless or Fast Mode</div>
-
-        <!-- 4. High-Dopamine Launch Button -->
+        <!-- 3. High-Dopamine Launch Button -->
         <div id="btn-launch-stage" class="btn-launch-stage" onclick="window.app.startStage()">
           <div id="menu-launch-main" class="btn-launch-main">▶ &nbsp;PLAY CONFIDE (NORMAL)</div>
         </div>
       </div>
 
-      <!-- 3-Tile Bento Row (1:1 with MenuScreen.kt) -->
+      <!-- 3-Tile Studio Console Navigation Row (Crisp 1-Word Titles!) -->
       <div class="bento-row">
-        <div class="bento-tile" style="border-color:rgba(250,204,21,0.75);flex:1;" onclick="window.app.openScreen('CUSTOMIZER', -1)">
-          <div class="bento-title">★ SPECIALS &amp; ALBUM</div>
-          <div class="bento-sub" style="color:#FACC15;">Artist Notes &amp; Vault</div>
+        <div class="bento-tile" style="border-color:rgba(234,179,8,0.75);flex:1.1;" onclick="window.app.openScreen('CUSTOMIZER', -1)">
+          <div class="bento-title">★ VAULT</div>
+          <div class="bento-sub" style="color:#EAB308;">Album &amp; Notes</div>
         </div>
-        <div class="bento-tile" style="border-color:rgba(34,197,94,0.55);flex:1;" onclick="window.app.openScreen('HOW_TO_PLAY')">
-          <div class="bento-title">HOW TO PLAY</div>
-          <div class="bento-sub" style="color:#22C55E;">Quick Guide</div>
+        <div class="bento-tile" style="border-color:rgba(74,222,128,0.65);flex:1;" onclick="window.app.openScreen('HOW_TO_PLAY')">
+          <div class="bento-title">▶ REEL</div>
+          <div class="bento-sub" style="color:#4ADE80;">Mini Video</div>
         </div>
-        <div class="bento-tile" style="border-color:rgba(168,85,247,0.55);flex:1;" onclick="window.app.openScreen('SETTINGS')">
-          <div class="bento-title">SETTINGS</div>
-          <div class="bento-sub" style="color:#A855F7;">Sound &amp; Info</div>
+        <div class="bento-tile" style="border-color:rgba(56,189,248,0.65);flex:1;" onclick="window.app.openScreen('SETTINGS')">
+          <div class="bento-title">⚙ OPTIONS</div>
+          <div class="bento-sub" style="color:#38BDF8;">Audio &amp; Setup</div>
         </div>
       </div>
     </div>
@@ -585,16 +562,16 @@
     </div>
   </div>
 
-  <script src="multi_band_data.js?v=14"></script>
-  <script src="music_library.js?v=14"></script>
-  <script src="background_renderer.js?v=14"></script>
-  <script src="beat_orb_renderer.js?v=14"></script>
-  <script src="game_renderer.js?v=14"></script>
-  <script src="engine.js?v=14"></script>
-  <script src="audio_synth.js?v=14"></script>
-  <script src="game_physics.js?v=14"></script>
-  <script src="ui_screens.js?v=14"></script>
-  <script src="tutorial_overlay.js?v=14"></script>
+  <script src="multi_band_data.js?v=15"></script>
+  <script src="music_library.js?v=15"></script>
+  <script src="background_renderer.js?v=15"></script>
+  <script src="beat_orb_renderer.js?v=15"></script>
+  <script src="game_renderer.js?v=15"></script>
+  <script src="engine.js?v=15"></script>
+  <script src="audio_synth.js?v=15"></script>
+  <script src="game_physics.js?v=15"></script>
+  <script src="ui_screens.js?v=15"></script>
+  <script src="tutorial_overlay.js?v=15"></script>
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {

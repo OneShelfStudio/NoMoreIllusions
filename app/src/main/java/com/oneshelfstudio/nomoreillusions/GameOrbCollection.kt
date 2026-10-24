@@ -209,6 +209,7 @@ internal fun handleSupernovaOrbPickup(
             nextMult = 4
             nextMultTime = 12f
             shockwaves.add(Shockwave(p.x, p.y, 0f, 580f, Color(0xFFFACC15L), 1.30f))
+            spawnMelodicStarfallCascade(particles, maxOf(1080f, p.x * 2f), maxOf(1920f, p.y * 2f))
             tetheredSatellites.forEach { sat ->
                 val ang = sat.orbitAngle
                 particles.add(
@@ -291,13 +292,14 @@ internal fun spawnStationaryBeatOrbsForFrame(
     isGoldenActive: Boolean,
     applyColorBlind: (Color) -> Color,
     powerUps: MutableList<GameObject>,
-    shockwaves: MutableList<Shockwave>
+    shockwaves: MutableList<Shockwave>,
+    hasActiveSustainRibbon: Boolean = false
 ): Int {
     var nextOrbCueIdx = startCueIdx
     while (
         nextOrbCueIdx < chart.size &&
         powerUps.size < 10 &&
-        (trackSec >= chart[nextOrbCueIdx].timestampSec - spawnLeadTime || (powerUps.isEmpty() && trackSec + spawnLeadTime * 1.5f >= chart[nextOrbCueIdx].timestampSec))
+        (trackSec >= chart[nextOrbCueIdx].timestampSec - spawnLeadTime || (powerUps.isEmpty() && !hasActiveSustainRibbon && trackSec + spawnLeadTime * 1.5f >= chart[nextOrbCueIdx].timestampSec))
     ) {
         val cue = chart[nextOrbCueIdx]
         nextOrbCueIdx++
@@ -308,7 +310,7 @@ internal fun spawnStationaryBeatOrbsForFrame(
             val startPt = computeHighwayPoint(clampedLane.toFloat(), 0f, screenWidth, screenHeight)
 
             // Simplify pickups strictly to:
-            // 1. Standard Beat Notes (PowerUpType.SCORE_ORB, KeyWordEffect.NONE)
+            // 1. Standard Beat Notes (PowerUpType.NONE, KeyWordEffect.NONE)
             // 2. 24K Star Notes (KeyWordEffect.CONSTELLATION_STAR)
             // 3. 💥 BOMB (PowerUpType.BLAST) - vaporizes all enemies on screen
             // 4. 🛡️ SHIELD (PowerUpType.SHIELD) - protective barrier dome
@@ -325,6 +327,11 @@ internal fun spawnStationaryBeatOrbsForFrame(
                 mappedPowerUpType == PowerUpType.BLAST || mappedPowerUpType == PowerUpType.SHIELD -> KeyWordEffect.NONE
                 cue.keyWordEffect != KeyWordEffect.NONE || cue.isGoldenCue -> KeyWordEffect.CONSTELLATION_STAR
                 else -> KeyWordEffect.NONE
+            }
+
+            // Mutually Exclusive Rule: Sustain Slide Ribbons replace regular tap beats — never spawn regular tap notes alongside a ribbon!
+            if (hasActiveSustainRibbon && mappedPowerUpType == PowerUpType.NONE && mappedKeyWord == KeyWordEffect.NONE) {
+                continue
             }
             val isSupernova = mappedKeyWord == KeyWordEffect.CONSTELLATION_STAR
             val isOrbGolden = isSupernova || isGoldenActive
@@ -404,7 +411,8 @@ internal fun stepWormholeSlideAndPortals(
     shockwaves: MutableList<Shockwave>,
     floatingTexts: MutableList<FloatingText>,
     screenWidth: Float = 1080f,
-    screenHeight: Float = 1920f
+    screenHeight: Float = 1920f,
+    particles: MutableList<GameObject>? = null
 ): WormholeSurfStepResult {
     var nextInvuln = spawnInvulnerabilityTime
     var nextCombo = rhythmCombo
@@ -440,30 +448,56 @@ internal fun stepWormholeSlideAndPortals(
             }
         }
 
-        if (minRibbonDist <= 66f) {
-            nextInvuln = maxOf(nextInvuln, 0.25f)
+        if (minRibbonDist <= 68f) {
+            nextInvuln = maxOf(nextInvuln, 0.28f)
             if (w.slideCooldownSec <= 0f) {
                 w.slideCooldownSec = 0.18f
                 nextCombo++
                 nextHits++
-                val tickPts = (60 * maxOf(scoreMultiplier, 2) * difficultyScoreMultiplier).toInt()
-                scoreDelta += tickPts
-                ptsDelta += 2
-                nextPunch = maxOf(nextPunch, 0.018f)
-                nextFlash = maxOf(nextFlash, 0.35f)
-                audioEngine.playOrbBeatHit(combo = nextCombo, isKeyWordPeg = true)
-                triggerHaptic(16L)
-                shockwaves.add(Shockwave(hitPt.x, hitPt.y, 0f, 110f, Color(0xFFFACC15L), 0.55f))
-                floatingTexts.add(
-                    FloatingText(
-                        x = hitPt.x,
-                        y = hitPt.y - 22f,
-                        text = "SLIDE ♪ +$tickPts",
-                        life = 0.65f,
-                        color = Color(0xFFFACC15L),
-                        isLarge = false
+                val isTailComplete = uTail >= 0.68f && w.angle < 50f
+                if (isTailComplete) {
+                    w.angle = 99f // Mark tail completion burst triggered
+                    val bonusPts = (240 * maxOf(scoreMultiplier, 2) * difficultyScoreMultiplier).toInt()
+                    scoreDelta += bonusPts
+                    ptsDelta += 6
+                    nextPunch = maxOf(nextPunch, 0.032f)
+                    nextFlash = maxOf(nextFlash, 0.58f)
+                    audioEngine.playOrbBeatHit(combo = nextCombo + 2, isKeyWordPeg = true)
+                    triggerHaptic(32L)
+                    shockwaves.add(Shockwave(hitPt.x, hitPt.y, 0f, 220f, Color(0xFF4ADE80L), 0.90f))
+                    if (particles != null) {
+                        spawnMelodicStarfallCascade(particles, screenWidth, screenHeight)
+                    }
+                    floatingTexts.add(
+                        FloatingText(
+                            x = hitPt.x,
+                            y = hitPt.y - 28f,
+                            text = "★ SLIDE COMPLETE! +$bonusPts",
+                            life = 0.95f,
+                            color = Color(0xFF4ADE80L),
+                            isLarge = true
+                        )
                     )
-                )
+                } else {
+                    val tickPts = (60 * maxOf(scoreMultiplier, 2) * difficultyScoreMultiplier).toInt()
+                    scoreDelta += tickPts
+                    ptsDelta += 2
+                    nextPunch = maxOf(nextPunch, 0.018f)
+                    nextFlash = maxOf(nextFlash, 0.35f)
+                    audioEngine.playOrbBeatHit(combo = nextCombo, isKeyWordPeg = true)
+                    triggerHaptic(16L)
+                    shockwaves.add(Shockwave(hitPt.x, hitPt.y, 0f, 110f, Color(0xFFFACC15L), 0.55f))
+                    floatingTexts.add(
+                        FloatingText(
+                            x = hitPt.x,
+                            y = hitPt.y - 22f,
+                            text = "SLIDE ♪ +$tickPts",
+                            life = 0.65f,
+                            color = Color(0xFFFACC15L),
+                            isLarge = false
+                        )
+                    )
+                }
             }
         }
     }

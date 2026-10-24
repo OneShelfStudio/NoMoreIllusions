@@ -86,12 +86,14 @@ enum class TrackRemixMode(
     val subtitle: String,
     val audioSpeed: Float,
     val audioPitch: Float,
-    val noteMultiplier: Float
+    val noteMultiplier: Float,
+    val scoreMultiplier: Float = 1.0f,
+    val enemyScale: Float = 1.0f
 ) {
-    ORIGINAL("ORIGINAL", "NORMAL", "Normal Speed", "1.0x", "Standard Tempo • 1x ♪ Notes", 1.0f, 1.0f, 1.0f),
-    OVERCLOCK("OVERCLOCK", "FAST", "Fast Mode", "1.2x", "Faster Music & Gameplay • 2x ♪ Notes", 1.20f, 1.12f, 2.0f),
-    SLOWED("SLOWED", "CHILL", "Chill Mode", "0.85x", "Slowed & Pitched Down • 1.5x ♪ Notes", 0.85f, 0.86f, 1.5f),
-    ENDLESS("ENDLESS", "ENDLESS", "Endless Loop", "∞ LOOP", "Non-Stop Rising Challenge • 2.5x ♪ Notes", 1.0f, 1.0f, 2.5f);
+    ORIGINAL("ORIGINAL", "NORMAL", "Normal Speed", "1.0x", "1.0x PTS • 1 RUN UNLOCK", 1.0f, 1.0f, 1.0f, 1.0f, 1.0f),
+    OVERCLOCK("OVERCLOCK", "FAST", "Fast Mode", "1.2x", "1.5x BONUS • ★3 MEDAL", 1.20f, 1.12f, 1.5f, 1.5f, 1.25f),
+    SLOWED("SLOWED", "CHILL", "Chill Mode", "0.85x", "0.5x PTS • 2 RUNS UNLOCK", 0.85f, 0.86f, 0.5f, 0.55f, 0.65f),
+    ENDLESS("ENDLESS", "ENDLESS", "Endless Loop", "∞ LOOP", "2.0x HIGH-SCORE LOOP", 1.0f, 1.0f, 2.0f, 2.0f, 1.15f);
 
     companion object {
         fun fromId(id: String?): TrackRemixMode = entries.firstOrNull { it.id == id } ?: ORIGINAL

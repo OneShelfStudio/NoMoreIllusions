@@ -121,11 +121,13 @@ fun stepAndSpawnTelegraphedEnemies(
             enemies.size + telegraphs.size + 1 < maxActiveEnemies &&
             Random.nextFloat() < 0.35f
         ) 2 else 1
-        val baseSide = Random.nextInt(4)
+        val baseSide = Random.nextInt(3)
         val warnSec = (1.02f - difficulty * 0.14f).coerceIn(0.72f, 1.05f)
+        val maxUpperSideY = (screenHeight * 0.44f).coerceAtLeast(160f)
 
         for (sIdx in 0 until spawnCount) {
-            val side = (baseSide + sIdx * 2) % 4
+            // ONLY spawn from Top Edge (0), Upper-Right (1), or Upper-Left (2) — NEVER from the bottom!
+            val side = (baseSide + sIdx) % 3
             val margin = 24f
             val (edgeX, edgeY, entryX, entryY) = when (side) {
                 0 -> {
@@ -133,15 +135,11 @@ fun stepAndSpawnTelegraphedEnemies(
                     floatArrayOf(rx, margin, rx, -28f)
                 }
                 1 -> {
-                    val ry = (Random.nextFloat() * (screenHeight - 260f)) + 140f
+                    val ry = 70f + Random.nextFloat() * (maxUpperSideY - 70f)
                     floatArrayOf(screenWidth - margin, ry, screenWidth + 28f, ry)
                 }
-                2 -> {
-                    val rx = (Random.nextFloat() * (screenWidth - 140f)) + 70f
-                    floatArrayOf(rx, screenHeight - margin, rx, screenHeight + 28f)
-                }
                 else -> {
-                    val ry = (Random.nextFloat() * (screenHeight - 260f)) + 140f
+                    val ry = 70f + Random.nextFloat() * (maxUpperSideY - 70f)
                     floatArrayOf(margin, ry, -28f, ry)
                 }
             }
@@ -339,8 +337,8 @@ internal fun computeHighwayPoint(
     screenWidth: Float,
     screenHeight: Float
 ): Offset {
-    val horizonY = screenHeight * 0.16f
-    val strikeY = screenHeight * 0.74f
+    val horizonY = screenHeight * 0.15f
+    val strikeY = screenHeight * 0.65f
     val topHalfW = screenWidth * 0.14f
     val strikeHalfW = screenWidth * 0.42f
     val clampedU = u.coerceIn(-0.05f, 1.32f)
@@ -358,9 +356,44 @@ internal fun computeHighwayScale(u: Float): Float {
 }
 
 /**
+ * Spawns a breathtaking Melodic Starfall Curtain — 32 golden & aurora stardust petals that
+ * gently sway side-to-side (`sin(phase)`) while raining down from the top of the stage on major musical hits!
+ */
+fun spawnMelodicStarfallCascade(
+    particles: MutableList<GameObject>,
+    screenWidth: Float,
+    screenHeight: Float
+) {
+    if (screenWidth <= 0f || screenHeight <= 0f) return
+    val palette = listOf(
+        Color(0xFFFACC15L), // 24K Gold
+        Color(0xFF38BDF8L), // Electric Cyan
+        Color(0xFF4ADE80L), // Bioluminescent Emerald
+        Color(0xFFF472B6L)  // Aurora Rose
+    )
+    for (i in 0 until 32) {
+        val xPos = (0.08f + (i / 31f) * 0.84f + (Random.nextFloat() - 0.5f) * 0.04f) * screenWidth
+        val yPos = -12f - Random.nextFloat() * (screenHeight * 0.28f)
+        particles.add(
+            GameObject(
+                x = xPos,
+                y = yPos,
+                radius = 4.2f + Random.nextFloat() * 3.8f,
+                color = palette[i % palette.size],
+                vx = (Random.nextFloat() - 0.5f) * 0.8f,
+                vy = 2.6f + Random.nextFloat() * 2.2f,
+                life = 1.35f + Random.nextFloat() * 0.45f,
+                phase = Random.nextFloat() * 6.28f,
+                orbitRadius = 99f // Flag for swaying Melodic Starfall Petal
+            )
+        )
+    }
+}
+
+/**
  * V6 BAND HERO / GUITAR HERO SCROLLING RHYTHM HIGHWAY NOTES (ZERO MAGNET PULL!):
- * - Notes spawn at the top horizon (`u = 0`, `y = 16%`) in 1 of 4 perspective fret lanes and scroll down
- *   toward the Glowing Beat Strike Line (`u = 1.0`, `y = 74%`), crossing the line at the exact millisecond of `targetBeatSec`!
+ * - Notes spawn at the top horizon (`u = 0`, `y = 15%`) in 1 of 4 perspective fret lanes and scroll down
+ *   toward the Glowing Beat Strike Line (`u = 1.0`, `y = 65%`), crossing the line at the exact millisecond of `targetBeatSec`!
  */
 @Suppress("UNUSED_PARAMETER")
 fun stepNebulousBeatOrbs(
@@ -385,7 +418,7 @@ fun stepNebulousBeatOrbs(
         val leadDur = (orb.targetBeatSec - orb.spawnBeatSec).coerceAtLeast(0.45f)
         val u = (trackSec - orb.spawnBeatSec) / leadDur
         val expireSec = if (orb.expireBeatSec > 0f) orb.expireBeatSec else (orb.targetBeatSec + 0.45f)
-        if (trackSec > expireSec || u > 1.24f) {
+        if (trackSec > expireSec || u > 1.22f) {
             onBeatMissed(orb)
             iter.remove()
             continue
@@ -412,7 +445,8 @@ fun stepAndSpawnWormholes(
     multiBand: MultiBandAudioState,
     beatPhase: Float,
     remixMode: TrackRemixMode = TrackRemixMode.ORIGINAL,
-    allowAnomalies: Boolean = false
+    allowAnomalies: Boolean = false,
+    powerUps: MutableList<GameObject>? = null
 ) {
     if (screenWidth <= 0f || screenHeight <= 0f) return
 
@@ -428,6 +462,11 @@ fun stepAndSpawnWormholes(
         }
     }
 
+    // Mutually Exclusive Rule: While a Sustain Slide Ribbon is active, clear regular tap beat notes so they NEVER overlap!
+    if (wormholes.isNotEmpty() && powerUps != null) {
+        powerUps.removeAll { it.powerUpType == PowerUpType.NONE && it.keyWordEffect == KeyWordEffect.NONE }
+    }
+
     if (!allowAnomalies || multiBand.bassDropOut) return
     if (wormholes.isNotEmpty()) return
 
@@ -440,6 +479,9 @@ fun stepAndSpawnWormholes(
         val startLane = Random.nextInt(4)
         val delta = if (Random.nextBoolean()) 1 else -1
         val endLane = (startLane + delta).coerceIn(0, 3).let { if (it == startLane) (startLane + 1) % 4 else it }
+
+        // Clear existing regular tap notes on the highway so the Sustain Slide Ribbon replaces beats cleanly!
+        powerUps?.removeAll { it.powerUpType == PowerUpType.NONE && it.keyWordEffect == KeyWordEffect.NONE }
 
         wormholes.add(
             SingularityWormhole(
@@ -519,9 +561,17 @@ fun updateAmbientEntities(
     val ptIter = particles.iterator()
     while (ptIter.hasNext()) {
         val pt = ptIter.next()
-        pt.x += pt.vx * currentScale
-        pt.y += pt.vy * currentScale
-        pt.life -= 0.025f * currentScale
+        if (pt.orbitRadius > 50f) {
+            // Melodic Starfall Petal: gentle horizontal harmonic sway while cascading down
+            pt.phase += 0.085f * currentScale
+            pt.x += (pt.vx + sin(pt.phase) * 2.4f) * currentScale
+            pt.y += pt.vy * currentScale
+            pt.life -= 0.014f * currentScale
+        } else {
+            pt.x += pt.vx * currentScale
+            pt.y += pt.vy * currentScale
+            pt.life -= 0.025f * currentScale
+        }
         if (pt.life <= 0f) ptIter.remove()
     }
 

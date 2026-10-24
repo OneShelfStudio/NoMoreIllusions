@@ -117,7 +117,7 @@ fun DrawScope.drawPowerUps(
         )
     }
 
-    // GLOWING BEAT STRIKE LINE at u = 1.0 (Y = 74% of screen height)
+    // GLOWING BEAT STRIKE LINE at u = 1.0 (Raised to Y = 65% of screen height for Thumb Steering!)
     val strikeGlowCol = if (isGoldStage) Color(0xFFFACC15L) else Color(0xFF38BDF8L)
     drawLine(
         color = strikeGlowCol.copy(alpha = 0.28f + beatKick * 0.24f),
@@ -168,10 +168,10 @@ fun DrawScope.drawPowerUps(
     }
 
     drawIntoCanvas { canvas ->
-        cachedSubPaint.textSize = 15.5f
-        cachedSubPaint.color = android.graphics.Color.argb(190, 250, 204, 21)
+        cachedSubPaint.textSize = 15.0f
+        cachedSubPaint.color = android.graphics.Color.argb(185, 250, 204, 21)
         canvas.nativeCanvas.drawText(
-            "★ BEAT STRIKE LINE • CATCH NOTES HERE ON TIME ★",
+            "★ BEAT STRIKE LINE • STEER THUMB BELOW ★",
             w * 0.5f,
             strikeL.y + 38f,
             cachedSubPaint

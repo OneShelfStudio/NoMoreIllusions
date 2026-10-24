@@ -5,9 +5,12 @@ import android.net.Uri
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
@@ -303,61 +306,41 @@ fun MenuUI(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Upfront Fan Incentive Studio Plate (Chamfered Analog Vinyl Sleeve Card)
-            val sleeveShape = CutCornerShape(topStart = 10.dp, bottomEnd = 10.dp)
+            // Compact 1-Line Artist Vault Pill (Zero Wordy Paragraphs!)
+            val sleeveShape = CutCornerShape(topStart = 9.dp, bottomEnd = 9.dp)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(sleeveShape)
-                    .background(
-                        Brush.horizontalGradient(
-                            listOf(Color(0xFF141108L), Color(0xFF0A0D16L))
-                        )
-                    )
-                    .border(1.4.dp, Color(0xFFEAB308L).copy(alpha = 0.85f), sleeveShape)
+                    .background(Color(0xFF100E07L))
+                    .border(1.3.dp, Color(0xFFEAB308L).copy(alpha = 0.85f), sleeveShape)
                     .clickable { onMusicDemo() }
-                    .padding(horizontal = 12.dp, vertical = 8.dp)
+                    .padding(horizontal = 12.dp, vertical = 7.dp)
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "★ ARTIST VAULT: UNLOCK ETHAN'S LINER NOTES & EXCLUSIVES",
-                            color = Color(0xFFEAB308L),
-                            fontSize = 9.5.sp,
-                            fontWeight = FontWeight.Black,
-                            letterSpacing = 0.5.sp
-                        )
-                        Text(
-                            text = "Hit High Scores & Earn ♪ Notes to unlock Ethan's Studio Letters & Remixes",
-                            color = Color(0xFFFAF8F5L).copy(alpha = 0.88f),
-                            fontSize = 8.5.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(Color(0xFFEAB308L))
-                            .padding(horizontal = 8.dp, vertical = 4.dp)
-                    ) {
-                        Text(
-                            text = "$unlockedExclusivesCount/${ARTIST_EXCLUSIVES_CATALOG.size} OPEN →",
-                            color = Color(0xFF080A0FL),
-                            fontSize = 8.5.sp,
-                            fontWeight = FontWeight.Black
-                        )
-                    }
+                    Text(
+                        text = "★ ETHAN'S VAULT & LINER NOTES",
+                        color = Color(0xFFEAB308L),
+                        fontSize = 9.5.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 0.7.sp
+                    )
+                    Text(
+                        text = "$unlockedExclusivesCount/${ARTIST_EXCLUSIVES_CATALOG.size} UNLOCKED →",
+                        color = Color(0xFFFAF8F5L),
+                        fontSize = 8.8.sp,
+                        fontWeight = FontWeight.Black
+                    )
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
-            // Custom Analog Studio Mastering Console (Chamfered Architectural Deck — Zero Generic AI Pill Boxes!)
+            // Tactile Pop & Zoom Studio Console (Clean, Visual-First, Minimal Text)
             val consoleShape = CutCornerShape(topStart = 14.dp, bottomEnd = 14.dp)
             Box(
                 modifier = Modifier
@@ -382,17 +365,9 @@ fun MenuUI(
                     .padding(12.dp)
             ) {
                 Column(modifier = Modifier.fillMaxWidth()) {
-                    // 1. Concert Setlist Vinyl Track Cards (SIDE A: CONFIDE | SIDE B: NUMBER ONE)
-                    Text(
-                        text = "SELECT STUDIO MASTER TRACK",
-                        color = Color(0xFF94A3B8L),
-                        fontSize = 8.5.sp,
-                        fontWeight = FontWeight.Black,
-                        letterSpacing = 1.2.sp
-                    )
-                    Spacer(modifier = Modifier.height(5.dp))
+                    // 1. Tactile Pop & Zoom Vinyl Track Cards (SIDE A: CONFIDE | SIDE B: NUMBER ONE)
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         for (idx in 1..MusicLibrary.TOTAL_TRACKS) {
@@ -403,24 +378,34 @@ fun MenuUI(
                             val starText = buildString {
                                 for (s in 1..3) append(if (s <= stars) "★" else "☆")
                             }
+                            val cardScale by animateFloatAsState(
+                                targetValue = if (isSel) 1.05f else 0.96f,
+                                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
+                                label = "trackScale$idx"
+                            )
                             val cardCut = CutCornerShape(topEnd = 10.dp, bottomStart = 10.dp)
                             Box(
                                 modifier = Modifier
                                     .weight(1f)
+                                    .graphicsLayer {
+                                        scaleX = cardScale
+                                        scaleY = cardScale
+                                    }
+                                    .shadow(if (isSel) 10.dp else 2.dp, cardCut, ambientColor = modeAccent)
                                     .clip(cardCut)
                                     .background(
-                                        if (isSel) Brush.horizontalGradient(listOf(Color(0xFF131D18L), Color(0xFF171308L)))
+                                        if (isSel) Brush.horizontalGradient(listOf(Color(0xFF14211BL), Color(0xFF1A1508L)))
                                         else Brush.horizontalGradient(listOf(Color(0xFF070A10L), Color(0xFF070A10L)))
                                     )
                                     .border(
-                                        width = if (isSel) 1.8.dp else 1.dp,
+                                        width = if (isSel) 2.2.dp else 1.dp,
                                         color = if (isSel) modeAccent else Color.White.copy(alpha = 0.16f),
                                         shape = cardCut
                                     )
                                     .clickable {
                                         if (isUnlocked) onSelectQuickTrack(idx) else onMusicDemo()
                                     }
-                                    .padding(vertical = 8.dp, horizontal = 10.dp)
+                                    .padding(vertical = 10.dp, horizontal = 10.dp)
                             ) {
                                 Column {
                                     Row(
@@ -432,21 +417,20 @@ fun MenuUI(
                                             text = if (isUnlocked) "SIDE 0$idx • ${(t.bpm * selectedRemixMode.audioSpeed).toInt()} BPM" else "SIDE 0$idx • LOCKED",
                                             color = if (isSel) modeAccent else Color(0xFF94A3B8L),
                                             fontSize = 8.5.sp,
-                                            fontWeight = FontWeight.Black,
-                                            letterSpacing = 0.5.sp
+                                            fontWeight = FontWeight.Black
                                         )
                                         Text(
                                             text = starText,
                                             color = Color(0xFFEAB308L),
-                                            fontSize = 10.sp,
+                                            fontSize = 10.5.sp,
                                             fontWeight = FontWeight.Black
                                         )
                                     }
-                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Spacer(modifier = Modifier.height(3.dp))
                                     Text(
                                         text = t.title.uppercase(),
                                         color = if (isUnlocked) Color(0xFFFAF8F5L) else Color.White.copy(alpha = 0.45f),
-                                        fontSize = 14.sp,
+                                        fontSize = 14.5.sp,
                                         fontWeight = FontWeight.Black,
                                         letterSpacing = 0.6.sp
                                     )
@@ -455,31 +439,12 @@ fun MenuUI(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(10.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
 
-                    // 2. Physical Studio Tape Speed Switches + Explicit Mode Spec Readout
+                    // 2. Tactile Pop & Zoom Speed Switches (Pop-Out Card Reveals Crisp 1-Line Spec!)
                     Row(
-                        horizontalArrangement = Arrangement.SpaceBetween,
+                        horizontalArrangement = Arrangement.spacedBy(7.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(
-                            text = "TAPE SPEED & HIGH-SCORE MODE",
-                            color = Color(0xFFFAF8F5L),
-                            fontSize = 9.sp,
-                            fontWeight = FontWeight.Black,
-                            letterSpacing = 1.0.sp
-                        )
-                        Text(
-                            text = "TAP MODE TO PREVIEW",
-                            color = modeAccent,
-                            fontSize = 8.5.sp,
-                            fontWeight = FontWeight.Black
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(5.dp))
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         TrackRemixMode.entries.forEach { mode ->
@@ -490,112 +455,63 @@ fun MenuUI(
                                 TrackRemixMode.SLOWED -> Color(0xFF38BDF8L)
                                 TrackRemixMode.ENDLESS -> Color(0xFFEAB308L)
                             }
-                            val switchShape = RoundedCornerShape(4.dp)
+                            val modeScale by animateFloatAsState(
+                                targetValue = if (isModeSel) 1.08f else 0.94f,
+                                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
+                                label = "modeScale_${mode.name}"
+                            )
+                            val switchShape = RoundedCornerShape(6.dp)
                             Box(
                                 modifier = Modifier
-                                    .weight(1f)
+                                    .weight(if (isModeSel) 1.25f else 0.92f)
+                                    .graphicsLayer {
+                                        scaleX = modeScale
+                                        scaleY = modeScale
+                                    }
+                                    .shadow(if (isModeSel) 8.dp else 0.dp, switchShape, ambientColor = mCol)
                                     .clip(switchShape)
-                                    .background(if (isModeSel) mCol.copy(alpha = 0.22f) else Color(0xFF06080EL))
+                                    .background(if (isModeSel) mCol.copy(alpha = 0.24f) else Color(0xFF06080EL))
                                     .border(
-                                        width = if (isModeSel) 1.8.dp else 1.dp,
-                                        color = if (isModeSel) mCol else Color.White.copy(alpha = 0.18f),
+                                        width = if (isModeSel) 2.0.dp else 1.dp,
+                                        color = if (isModeSel) mCol else Color.White.copy(alpha = 0.16f),
                                         shape = switchShape
                                     )
                                     .clickable { onSelectRemixMode(mode) }
-                                    .padding(vertical = 7.dp, horizontal = 4.dp),
+                                    .padding(vertical = 8.dp, horizontal = 4.dp),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                     Text(
-                                        text = mode.shortTag,
-                                        color = if (isModeSel) mCol else Color(0xFFFAF8F5L),
-                                        fontSize = 11.5.sp,
+                                        text = "${mode.shortTag} ${mode.displayName}",
+                                        color = if (isModeSel) mCol else Color(0xFFFAF8F5L).copy(alpha = 0.78f),
+                                        fontSize = if (isModeSel) 10.sp else 8.8.sp,
                                         fontWeight = FontWeight.Black,
                                         maxLines = 1
                                     )
-                                    Text(
-                                        text = mode.displayName,
-                                        color = Color(0xFFFAF8F5L).copy(alpha = if (isModeSel) 1f else 0.65f),
-                                        fontSize = 8.5.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        maxLines = 1
-                                    )
+                                    if (isModeSel) {
+                                        Spacer(modifier = Modifier.height(2.dp))
+                                        Text(
+                                            text = mode.subtitle,
+                                            color = Color(0xFFFAF8F5L),
+                                            fontSize = 7.4.sp,
+                                            fontWeight = FontWeight.ExtraBold,
+                                            maxLines = 1
+                                        )
+                                    }
                                 }
                             }
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(7.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
 
-                    // Explicit Mode Spec & High-Score Loop Readout Box
-                    val (modeHeadline, modeDetail, modeRewardBadge) = when (selectedRemixMode) {
-                        TrackRemixMode.ORIGINAL -> Triple(
-                            "NORMAL (1.0x STUDIO MASTER)",
-                            "Original album tempo & balanced Beat Highway. Finish the song to unlock the next track!",
-                            "1.0x SCORE • 1.0x ♪"
-                        )
-                        TrackRemixMode.OVERCLOCK -> Triple(
-                            "FAST / NIGHTCORE (1.20x OVERCLOCK)",
-                            "20% faster tempo & denser highway notes. Beat the song here to earn your ★3 Mastery Star!",
-                            "1.5x SCORE • 1.5x ♪"
-                        )
-                        TrackRemixMode.SLOWED -> Triple(
-                            "CHILL / DAYDREAM (0.85x REVERB)",
-                            "Dreamy 85% pitched-down studio mix with wider timing windows & relaxed hazard speed.",
-                            "0.9x SCORE • 1.1x ♪"
-                        )
-                        TrackRemixMode.ENDLESS -> Triple(
-                            "∞ ENDLESS HIGH-SCORE LOOP (BEST FOR RECORDS!)",
-                            "Song loops infinitely and speeds up +8% every cycle with +500 Loop Bonuses until you fall!",
-                            "2.0x ♪ + HIGH-SCORE CHASE"
-                        )
-                    }
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(5.dp))
-                            .background(Color(0xFF05070DL))
-                            .border(1.dp, modeAccent.copy(alpha = 0.55f), RoundedCornerShape(5.dp))
-                            .padding(horizontal = 10.dp, vertical = 7.dp)
-                    ) {
-                        Column {
-                            Row(
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Text(
-                                    text = modeHeadline,
-                                    color = modeAccent,
-                                    fontSize = 9.5.sp,
-                                    fontWeight = FontWeight.Black,
-                                    letterSpacing = 0.4.sp
-                                )
-                                Text(
-                                    text = modeRewardBadge,
-                                    color = Color(0xFFEAB308L),
-                                    fontSize = 8.5.sp,
-                                    fontWeight = FontWeight.Black
-                                )
-                            }
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(
-                                text = modeDetail,
-                                color = Color(0xFFCBD5E1L),
-                                fontSize = 8.8.sp,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(9.dp))
-
-                    // 4. Chamfered Studio Master Launch Button
+                    // 3. Chamfered Studio Master Launch Button
                     val launchShape = CutCornerShape(topStart = 10.dp, bottomEnd = 10.dp)
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(50.dp)
+                            .height(52.dp)
+                            .shadow(12.dp, launchShape, ambientColor = modeAccent)
                             .clip(launchShape)
                             .background(
                                 Brush.horizontalGradient(
@@ -606,14 +522,14 @@ fun MenuUI(
                                     )
                                 )
                             )
-                            .border(1.8.dp, modeAccent, launchShape)
+                            .border(2.0.dp, modeAccent, launchShape)
                             .clickable { onStart() },
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "▶  DROP INTO ${selectedTrack.title.uppercase()} (${selectedRemixMode.displayName})",
+                            text = "▶  PLAY ${selectedTrack.title.uppercase()} (${selectedRemixMode.displayName})",
                             color = Color(0xFFFAF8F5L),
-                            fontSize = 13.5.sp,
+                            fontSize = 14.sp,
                             fontWeight = FontWeight.Black,
                             letterSpacing = 1.1.sp
                         )
@@ -623,28 +539,28 @@ fun MenuUI(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // 3-Tile Studio Console Navigation Row (Always visible & scrollable!)
+            // 3-Tile Studio Console Navigation Row (Always visible, crisp 1-word titles!)
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 MenuBentoTile(
-                    title = "★ ALBUM & VAULT",
-                    subtitle = "Ethan's Notes & Skins",
+                    title = "★ VAULT",
+                    subtitle = "Album & Notes",
                     accent = Color(0xFFEAB308L),
                     onClick = onMusicDemo,
-                    modifier = Modifier.weight(1.22f)
+                    modifier = Modifier.weight(1.1f)
                 )
                 MenuBentoTile(
-                    title = "▶ VIDEO GUIDE",
-                    subtitle = "How to Play Reel",
+                    title = "▶ REEL",
+                    subtitle = "Mini Video",
                     accent = Color(0xFF4ADE80L),
                     onClick = onHowToPlay,
-                    modifier = Modifier.weight(1.05f)
+                    modifier = Modifier.weight(1.0f)
                 )
                 MenuBentoTile(
-                    title = "SETTINGS",
-                    subtitle = "Audio & Difficulty",
+                    title = "⚙ OPTIONS",
+                    subtitle = "Audio & Setup",
                     accent = Color(0xFF38BDF8L),
                     onClick = onSettings,
                     modifier = Modifier.weight(1.0f)

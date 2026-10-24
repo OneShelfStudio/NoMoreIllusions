@@ -288,32 +288,39 @@ fun GameScreen(
             if (trackRevealMusicProgress >= 0.99f && gameState == GameState.PLAYING && selectedRemixMode != TrackRemixMode.ENDLESS) {
                 val counts = parseCompletionsCsv(trackCompletionsCsv)
                 val trackIdx = (selectedTrackIndex - 1).coerceIn(0, totalTracks - 1)
-                counts[trackIdx] += 1
+                val isEasyOrChill = selectedRemixMode == TrackRemixMode.SLOWED || gameDifficulty == GameDifficulty.EASY
+                counts[trackIdx] += if (isEasyOrChill) 1 else 2
                 trackCompletionsCsv = toCompletionsCsv(counts)
 
-                // Update 3-Star Track Mastery (★1 Clear, ★2 8+ On-Beat Comets, ★3 Nightcore/Slowed Clear)
+                // Easy/Chill requires 2 completions (counts >= 2) to unlock the full Album Art & Song; Normal/Fast unlocks in 1 completion!
+                val isFullyUnlockedNow = counts[trackIdx] >= 2
+
+                // Update 3-Star Track Mastery (★1 Full Unlock, ★2 8+ On-Beat Streak, ★3 Fast Overclock Clear)
                 val masteryArr = parseCompletionsCsv(trackMasteryStarsCsv)
-                var earnedStars = maxOf(masteryArr[trackIdx], 1)
-                if (onBeatHitsThisRun >= 8) earnedStars = maxOf(earnedStars, 2)
-                if (selectedRemixMode == TrackRemixMode.OVERCLOCK || selectedRemixMode == TrackRemixMode.SLOWED) {
+                var earnedStars = masteryArr[trackIdx]
+                if (isFullyUnlockedNow) earnedStars = maxOf(earnedStars, 1)
+                if (isFullyUnlockedNow && onBeatHitsThisRun >= 8) earnedStars = maxOf(earnedStars, 2)
+                if (selectedRemixMode == TrackRemixMode.OVERCLOCK) {
                     earnedStars = 3
                 }
                 masteryArr[trackIdx] = earnedStars
                 trackMasteryStarsCsv = toCompletionsCsv(masteryArr)
 
-                if (selectedTrackIndex == unlockedTrackCount && unlockedTrackCount < totalTracks) {
+                if (isFullyUnlockedNow && selectedTrackIndex == unlockedTrackCount && unlockedTrackCount < totalTracks) {
                     unlockedTrackCount++
                 }
-                pulsePoints += (75 * selectedRemixMode.noteMultiplier).toInt()
+                pulsePoints += (75 * selectedRemixMode.noteMultiplier * (if (gameDifficulty == GameDifficulty.EASY) 0.5f else 1.0f)).toInt().coerceAtLeast(15)
 
-                prefs.edit()
+                val editor = prefs.edit()
                     .putString("track_completions", trackCompletionsCsv)
                     .putString("track_mastery_stars", trackMasteryStarsCsv)
                     .putInt("unlocked_tracks", unlockedTrackCount)
                     .putInt("pulse_points", pulsePoints)
-                    .putBoolean("art_unlocked_$selectedTrackIndex", true)
                     .putInt("best_combo", maxOf(prefs.getInt("best_combo", 0), maxComboThisRun))
-                    .apply()
+                if (isFullyUnlockedNow) {
+                    editor.putBoolean("art_unlocked_$selectedTrackIndex", true)
+                }
+                editor.apply()
 
                 audioEngine.playVictory()
                 gameState = GameState.LEVEL_COMPLETE
@@ -387,22 +394,22 @@ fun GameScreen(
     var liveTrackSec by remember { mutableFloatStateOf(0f) }
     var liveBeatPhase by remember { mutableFloatStateOf(0f) }
 
-    val difficultyScoreMultiplier = when (gameDifficulty) {
+    val difficultyScoreMultiplier = (when (gameDifficulty) {
         GameDifficulty.EASY -> 0.5f
         GameDifficulty.REGULAR -> 1.0f
         GameDifficulty.HARD -> 1.5f
-    }
+    }) * selectedRemixMode.scoreMultiplier
     val trackDifficultyBoost = 1.0f + (selectedTrackIndex - 1).coerceAtLeast(0) * 0.14f
-    val speedScale = when (gameDifficulty) {
+    val speedScale = (when (gameDifficulty) {
         GameDifficulty.EASY -> 0.68f
         GameDifficulty.REGULAR -> 0.85f
         GameDifficulty.HARD -> 1.18f
-    } * trackDifficultyBoost
-    val spawnRateScale = when (gameDifficulty) {
+    }) * trackDifficultyBoost
+    val spawnRateScale = (when (gameDifficulty) {
         GameDifficulty.EASY -> 0.50f
         GameDifficulty.REGULAR -> 0.72f
         GameDifficulty.HARD -> 1.25f
-    } * trackDifficultyBoost
+    }) * trackDifficultyBoost * selectedRemixMode.enemyScale
 
     val applyColorBlind: (Color) -> Color = { color ->
         when (colorBlindMode) {
@@ -474,7 +481,7 @@ fun GameScreen(
         audioEngine.stopTrack()
         trackRevealMusicProgress = 0f
         liveTrackSec = 0f
-        player = GameObject(screenWidth / 2f, screenHeight * 0.72f, 18f, applyColorBlind(Color(0xFF22C55EL)))
+        player = GameObject(screenWidth / 2f, screenHeight * 0.65f, 18f, applyColorBlind(Color(0xFF22C55EL)))
         targetX = player.x
         targetY = player.y
         spawnInvulnerabilityTime = 2.0f
@@ -505,7 +512,7 @@ fun GameScreen(
         shockwaves.clear()
         playerTrail.clear()
         isRevivingRun = true
-        player = GameObject(screenWidth / 2f, screenHeight * 0.72f, 18f, applyColorBlind(Color(0xFF22C55EL)))
+        player = GameObject(screenWidth / 2f, screenHeight * 0.65f, 18f, applyColorBlind(Color(0xFF22C55EL)))
         targetX = player.x
         targetY = player.y
         spawnInvulnerabilityTime = 2.6f
@@ -777,7 +784,8 @@ fun GameScreen(
                     isGoldenActive = isGoldenActive,
                     applyColorBlind = applyColorBlind,
                     powerUps = powerUps,
-                    shockwaves = shockwaves
+                    shockwaves = shockwaves,
+                    hasActiveSustainRibbon = wormholes.isNotEmpty()
                 )
 
                 // Step Scrolling Highway Beat Notes + Expiration Check (Miss resets combo only, never health!)
@@ -794,16 +802,31 @@ fun GameScreen(
                     beatPhase = liveBeatPhase,
                     magnetActive = false,
                     onBeatMissed = { missedOrb ->
-                        if (rhythmCombo > 0) {
-                            rhythmCombo = 0
+                        val prevCombo = rhythmCombo
+                        rhythmCombo = 0
+                        if (prevCombo >= 3) {
+                            // Visceral Combo-Break Shatter when losing a 3x+ streak!
+                            shakeAmount = maxOf(shakeAmount, 7f)
+                            chromaticAmount = maxOf(chromaticAmount, 2.2f)
+                            triggerHaptic(32L)
+                            shockwaves.add(
+                                Shockwave(
+                                    x = screenWidth * 0.5f,
+                                    y = screenHeight * 0.65f,
+                                    radius = 12f,
+                                    maxRadius = screenWidth * 0.48f,
+                                    color = Color(0xFFF43F5EL),
+                                    life = 0.75f
+                                )
+                            )
                             floatingTexts.add(
                                 FloatingText(
                                     x = missedOrb.x,
-                                    y = missedOrb.y - 14f,
-                                    text = "MISS • COMBO RESET",
-                                    life = 0.85f,
-                                    color = Color(0xFFFB7185L),
-                                    isLarge = false
+                                    y = screenHeight * 0.63f,
+                                    text = "💔 STREAK BROKEN! (WAS x$prevCombo)",
+                                    life = 1.05f,
+                                    color = Color(0xFFF43F5EL),
+                                    isLarge = true
                                 )
                             )
                         } else {
@@ -811,9 +834,9 @@ fun GameScreen(
                                 FloatingText(
                                     x = missedOrb.x,
                                     y = missedOrb.y - 14f,
-                                    text = "MISS",
-                                    life = 0.75f,
-                                    color = Color(0xFF94A3B8L),
+                                    text = if (prevCombo > 0) "MISS • COMBO RESET" else "MISS",
+                                    life = 0.80f,
+                                    color = Color(0xFFFB7185L),
                                     isLarge = false
                                 )
                             )
@@ -823,9 +846,9 @@ fun GameScreen(
                                 x = missedOrb.x,
                                 y = missedOrb.y,
                                 radius = missedOrb.radius * 0.8f,
-                                maxRadius = missedOrb.radius * 2.1f,
+                                maxRadius = missedOrb.radius * 2.4f,
                                 color = Color(0xFFFB7185L),
-                                life = 0.45f
+                                life = 0.50f
                             )
                         )
                     }
@@ -846,7 +869,8 @@ fun GameScreen(
                     multiBand = mb,
                     beatPhase = liveBeatPhase,
                     remixMode = selectedRemixMode,
-                    allowAnomalies = currentSecObj.allowAnomalies
+                    allowAnomalies = currentSecObj.allowAnomalies,
+                    powerUps = powerUps
                 )
 
                 // Smoothly decay juiceIntensity, cameraPunch & beatFlashIntensity
@@ -920,14 +944,14 @@ fun GameScreen(
                         val leadDur = (p.targetBeatSec - p.spawnBeatSec).coerceAtLeast(0.45f)
                         val uHit = (trackSec - p.spawnBeatSec) / leadDur
                         val isCaughtOnBeat = uHit in 0.78f..1.18f ||
-                            abs(p.y - screenHeight * 0.74f) <= 74f ||
+                            abs(p.y - screenHeight * 0.65f) <= 74f ||
                             abs(trackSec - p.targetBeatSec) <= 0.25f ||
                             isSupernovaOrb ||
                             p.powerUpType != PowerUpType.NONE
                         if (isCaughtOnBeat) {
                             onBeatHitsThisRun++
                         }
-                        val noteGain = ((if (isSupernovaOrb) 10 else if (isCaughtOnBeat) 5 else 3) * selectedRemixMode.noteMultiplier).toInt()
+                        val noteGain = ((if (isSupernovaOrb) 10 else if (isCaughtOnBeat) 5 else 3) * selectedRemixMode.noteMultiplier).toInt().coerceAtLeast(1)
                         pulsePoints += noteGain
 
                         // Whisper-quiet audio feedback so Ethan's music always leads
@@ -936,7 +960,7 @@ fun GameScreen(
                             isKeyWordPeg = isSupernovaOrb || isCaughtOnBeat
                         )
 
-                        // Guaranteed ON-BEAT visual transformation (Fret Flame + Concert Lasers + Golden Shockwave!)
+                        // Guaranteed ON-BEAT visual transformation (Fret Flame + Concert Lasers + Melodic Starfall on Streak Climaxes!)
                         if (isCaughtOnBeat) {
                             beatFlashIntensity = maxOf(beatFlashIntensity, if (isSupernovaOrb) 0.85f else 0.65f)
                             goldenOverdriveIntensity = maxOf(goldenOverdriveIntensity, if (isSupernovaOrb) 1.0f else 0.70f)
@@ -944,6 +968,9 @@ fun GameScreen(
                             scoreMultiplier = maxOf(scoreMultiplier, if (isSupernovaOrb || rhythmCombo >= 12) 4 else 2)
                             multiplierTime = maxOf(multiplierTime, 6.5f)
                             shockwaves.add(Shockwave(p.x, p.y, 0f, 310f, Color(0xFFFACC15L), 0.95f))
+                            if (rhythmCombo >= 6 && rhythmCombo % 6 == 0) {
+                                spawnMelodicStarfallCascade(particles, screenWidth, screenHeight)
+                            }
                         }
 
                         if (!isSupernovaOrb) {
@@ -951,13 +978,14 @@ fun GameScreen(
                             val mult = if (isGoldenActive) maxOf(scoreMultiplier, 4) else scoreMultiplier
                             val gainedPts = ((if (isCaughtOnBeat) 100 else 45) * mult * (1f + (rhythmCombo.coerceAtMost(12) * 0.10f)) * difficultyScoreMultiplier).toInt()
                             score += gainedPts
+                            val streakTag = if (rhythmCombo >= 4) " 🔥STREAK x$rhythmCombo" else " (x$rhythmCombo)"
                             floatingTexts.add(
                                 FloatingText(
                                     x = p.x,
                                     y = p.y - 24f,
-                                    text = if (isCaughtOnBeat) "★ PERFECT ON-BEAT! +$gainedPts (x$rhythmCombo)" else "EARLY +$gainedPts",
+                                    text = if (isCaughtOnBeat) "★ PERFECT!$streakTag +$gainedPts" else "EARLY +$gainedPts",
                                     life = 0.95f,
-                                    color = if (isCaughtOnBeat) Color(0xFF4ADE80L) else Color(0xFF38BDF8L),
+                                    color = if (isCaughtOnBeat && rhythmCombo >= 4) Color(0xFFFACC15L) else if (isCaughtOnBeat) Color(0xFF4ADE80L) else Color(0xFF38BDF8L),
                                     isLarge = isCaughtOnBeat
                                 )
                             )
@@ -1178,7 +1206,8 @@ fun GameScreen(
                     shockwaves = shockwaves,
                     floatingTexts = floatingTexts,
                     screenWidth = screenWidth,
-                    screenHeight = screenHeight
+                    screenHeight = screenHeight,
+                    particles = particles
                 )
                 activeWormholeSlide = surfRes.nextSlide
                 targetX = surfRes.targetX
@@ -1231,7 +1260,7 @@ fun GameScreen(
         screenHeight = constraints.maxHeight.toFloat()
         if (player.x == 0f) {
             player.x = screenWidth / 2f
-            player.y = screenHeight * 0.72f
+            player.y = screenHeight * 0.65f
             targetX = player.x
             targetY = player.y
         }
