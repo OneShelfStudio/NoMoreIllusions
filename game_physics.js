@@ -87,69 +87,10 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       });
     }
 
-    // Player Spring-Damper Tracking (or Musical Slide-Note Wormhole Stream Surfing!)
-    if (this.activeWormholeSlide) {
-      const slide = this.activeWormholeSlide;
-      slide.progress = Math.min(1.0, slide.progress + dt / slide.durationSec);
-      const t = slide.progress;
-      const inv = 1.0 - t;
-      this.playerX = inv * inv * slide.startX + 2 * inv * t * slide.ctrlX + t * t * slide.endX;
-      this.playerY = inv * inv * slide.startY + 2 * inv * t * slide.ctrlY + t * t * slide.endY;
-      this.targetX = this.playerX;
-      this.targetY = this.playerY;
-      this.shieldTimer = Math.max(this.shieldTimer, 0.5);
-
-      const expectedTicks = Math.min(5, Math.floor(t * 5));
-      while (slide.ticksCollected < expectedTicks) {
-        slide.ticksCollected++;
-        const tickPts = 65 * this.combo;
-        this.score += tickPts;
-        this.orbsCollectedRun++;
-        this.combo = Math.min(8, this.combo + 1);
-        if (this.combo > this.maxComboRun) this.maxComboRun = this.combo;
-        this.comboTimer = 4.5;
-        this.playSfx("orb", 0.72);
-        this.triggerHaptic([14]);
-        this.spawnBurstMotes(this.playerX, this.playerY, [34, 211, 238], 8);
-        this.floatingTexts.push({
-          x: this.playerX,
-          y: this.playerY - 18,
-          text: `SLIDE ♪ +${tickPts}`,
-          color: [34, 211, 238],
-          alpha: 1,
-          age: 0
-        });
-      }
-
-      if (slide.progress >= 1.0) {
-        const finPts = 150 * this.combo;
-        this.score += finPts;
-        this.shieldTimer = Math.max(this.shieldTimer, 1.8);
-        this.screenShake = Math.max(this.screenShake, 8);
-        this.playSfx("powerup", 0.80);
-        this.shockwaves.push({
-          x: this.playerX,
-          y: this.playerY,
-          radius: 10,
-          maxRadius: 220,
-          color: [250, 204, 21],
-          alpha: 1
-        });
-        this.floatingTexts.push({
-          x: this.playerX,
-          y: this.playerY - 26,
-          text: `SLIDE DROP! +${finPts}`,
-          color: [250, 204, 21],
-          alpha: 1,
-          age: 0
-        });
-        this.activeWormholeSlide = null;
-      }
-    } else {
-      const followFactor = 1 - Math.pow(0.0001, dt);
-      this.playerX += (this.targetX - this.playerX) * followFactor;
-      this.playerY += (this.targetY - this.playerY) * followFactor;
-    }
+    // Player Spring-Damper Tracking (100% Free Steering — Never Hijacked!)
+    const followFactor = 1 - Math.pow(0.0001, dt);
+    this.playerX += (this.targetX - this.playerX) * followFactor;
+    this.playerY += (this.targetY - this.playerY) * followFactor;
 
     // Update Player Trail
     for (let i = this.trailPoints.length - 1; i > 0; i--) {
@@ -160,13 +101,12 @@ Object.assign(NoMoreIllusionsApp.prototype, {
     this.trailPoints[0].y = this.playerY;
     if (this.trailLength < this.trailPoints.length) this.trailLength++;
 
-    // 1. Pre-Mapped Beat-Orb Chart Spawner (Stationary 1 -> 2 -> 3 -> 4 Phrase Chains with Shrinking Approach Ring!)
-    // Spawn up to 4 upcoming beat nodes ~2.5 beats ahead of their target beat so players see the sequence in advance.
+    // 1. Band Hero / Guitar Hero Scrolling Highway Note Spawner
     const chart = stage.orbChart;
-    const spawnLeadTime = beatPeriod * 2.5;
+    const spawnLeadTime = Math.max(1.75, Math.min(2.35, beatPeriod * 3.8));
     while (
       this.nextBeatCueIndex < chart.length &&
-      this.powerUps.length < 4 &&
+      this.powerUps.length < 10 &&
       (chart[this.nextBeatCueIndex].timestampSec || chart[this.nextBeatCueIndex].timeSec) <= this.trackElapsedSec + spawnLeadTime
     ) {
       const cue = chart[this.nextBeatCueIndex];
@@ -255,33 +195,38 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       });
     }
 
-    // 3. Support Power-Ups (Nova Blast, Shield, Slow-Mo, Magnet) arrive via the beat chart (1:1 with Android MusicLibrary.kt)
+    // 3. Simplified Pickups (Fret Beat Notes, ★ 4X STAR, 💥 BOMB, 🛡️ SHIELD) arrive via the beat highway chart
 
-    // 4. Musical Slide-Note Wormhole Spawner (Paired Entry -> Curved Bezier Ribbon -> Exit Stream)
+    // 4. Guitar-Hero Sustain Slide Ribbon Spawner (Scrolling Hold-and-Slide Ribbon down the Rhythm Highway)
     if (activeSec.allowAnomalies) {
       this.wormholeSpawnTimer += dt;
-      if (this.wormholeSpawnTimer >= 12.5 && this.wormholes.length === 0) {
+      if (this.wormholeSpawnTimer >= 11.5 && this.wormholes.length === 0) {
         this.wormholeSpawnTimer = 0;
-        const leftToRight = Math.random() < 0.5;
-        const ax = this.W * (leftToRight ? (0.20 + Math.random() * 0.12) : (0.68 + Math.random() * 0.12));
-        const ay = this.H * (0.28 + Math.random() * 0.16);
-        const bx = this.W * (leftToRight ? (0.68 + Math.random() * 0.12) : (0.20 + Math.random() * 0.12));
-        const by = this.H * (0.56 + Math.random() * 0.16);
-        const midX = (ax + bx) * 0.5;
-        const midY = (ay + by) * 0.5;
-        const ctrlX = Math.max(this.W * 0.18, Math.min(this.W * 0.82, midX + (leftToRight ? 1 : -1) * (this.W * 0.12)));
-        const ctrlY = Math.max(this.H * 0.22, Math.min(this.H * 0.78, midY - this.H * 0.12));
+        const startLane = Math.floor(Math.random() * 4);
+        const shift = Math.random() < 0.5 ? -1 : 1;
+        const endLane = Math.max(0, Math.min(3, startLane + shift));
+
+        const headPt = typeof this.computeHighwayPoint === "function"
+          ? this.computeHighwayPoint(startLane, 0, this.W, this.H)
+          : { x: this.W * 0.5, y: this.H * 0.16 };
+        const tailPt = typeof this.computeHighwayPoint === "function"
+          ? this.computeHighwayPoint(endLane, -0.58, this.W, this.H)
+          : { x: this.W * 0.5, y: this.H * 0.08 };
 
         this.wormholes.push({
-          ax, ay, bx, by, ctrlX, ctrlY,
+          ax: headPt.x,
+          ay: headPt.y,
+          bx: tailPt.x,
+          by: tailPt.y,
+          ctrlX: (headPt.x + tailPt.x) * 0.5,
+          ctrlY: (headPt.y + tailPt.y) * 0.5,
+          startLane,
+          endLane,
           radius: 36,
           age: 0,
-          maxLifetime: 10.5,
+          maxLifetime: 3.2,
           teleportCooldown: 0
         });
-        if (typeof this.triggerDiscoveryIfUnseen === "function") {
-          this.triggerDiscoveryIfUnseen("SLIDE_STREAM");
-        }
       }
     }
 
@@ -334,7 +279,8 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       }
     }
 
-    // 7. Update Musical Slide-Note Wormholes & Trigger Auto-Surfing Slide Stream
+    // 7. Update Scrolling Guitar-Hero Sustain Slide Ribbons (Free-Steering Hold & Slide Tracking!)
+    this.activeWormholeSlide = null;
     for (let i = this.wormholes.length - 1; i >= 0; i--) {
       const wh = this.wormholes[i];
       wh.age += dt;
@@ -343,33 +289,95 @@ Object.assign(NoMoreIllusionsApp.prototype, {
         this.wormholes.splice(i, 1);
         continue;
       }
-      if (!this.activeWormholeSlide && wh.teleportCooldown <= 0 && wh.age > 0.4 && wh.age < wh.maxLifetime - 0.5) {
-        const distA = Math.hypot(this.playerX - wh.ax, this.playerY - wh.ay);
-        const distB = Math.hypot(this.playerX - wh.bx, this.playerY - wh.by);
-        const triggerR = wh.radius + this.playerRadius * 0.85;
-        if (distA < triggerR) {
-          this.startWormholeSlide(wh, wh.ax, wh.ay, wh.bx, wh.by);
-        } else if (distB < triggerR) {
-          this.startWormholeSlide(wh, wh.bx, wh.by, wh.ax, wh.ay);
+
+      const headU = (wh.age / wh.maxLifetime) * 1.45;
+      const tailU = headU - 0.58;
+      const sLane = typeof wh.startLane === "number" ? wh.startLane : 1;
+      const eLane = typeof wh.endLane === "number" ? wh.endLane : 2;
+
+      if (typeof this.computeHighwayPoint === "function") {
+        const headPt = this.computeHighwayPoint(sLane, headU, this.W, this.H);
+        const tailPt = this.computeHighwayPoint(eLane, tailU, this.W, this.H);
+        const midPt = this.computeHighwayPoint((sLane + eLane) * 0.5, (headU + tailU) * 0.5, this.W, this.H);
+        wh.ax = headPt.x;
+        wh.ay = headPt.y;
+        wh.bx = tailPt.x;
+        wh.by = tailPt.y;
+        wh.ctrlX = midPt.x;
+        wh.ctrlY = midPt.y;
+
+        // Free-steering tracking check: sample 7 points along the scrolling sustain ribbon
+        let minDist = 9999;
+        let closestPt = headPt;
+        for (let s = 0; s <= 6; s++) {
+          const frac = s / 6.0;
+          const uSample = headU + (tailU - headU) * frac;
+          if (uSample < 0.05 || uSample > 1.25) continue;
+          const laneSample = sLane + (eLane - sLane) * frac;
+          const pt = this.computeHighwayPoint(laneSample, uSample, this.W, this.H);
+          const d = Math.hypot(this.playerX - pt.x, this.playerY - pt.y);
+          if (d < minDist) {
+            minDist = d;
+            closestPt = pt;
+          }
+        }
+
+        if (minDist <= 66 && wh.teleportCooldown <= 0) {
+          wh.teleportCooldown = 0.14;
+          this.shieldTimer = Math.max(this.shieldTimer, 0.35);
+          this.playSfx("orb", 0.58);
+          this.triggerHaptic([12]);
+          const slidePts = 65 * Math.max(1, this.combo);
+          this.score += slidePts;
+          this.comboTimer = 4.5;
+          this.spawnBurstMotes(closestPt.x, closestPt.y, [56, 189, 248], 6);
+          this.shockwaves.push({
+            x: closestPt.x,
+            y: closestPt.y,
+            radius: 6,
+            maxRadius: 68,
+            color: [56, 189, 248],
+            alpha: 1
+          });
+          this.floatingTexts.push({
+            x: this.playerX,
+            y: this.playerY - 24,
+            text: `SLIDE ♪ +${slidePts}`,
+            color: [56, 189, 248],
+            alpha: 1,
+            age: 0
+          });
         }
       }
     }
 
-    // 8. Update Stationary Sequential Beat Nodes (with Time-To-Live Expiration -> Combo Reset Only!)
+    // 8. Update Scrolling Guitar-Hero Beat Notes Down the 4-Lane Rhythm Highway
     for (let i = this.powerUps.length - 1; i >= 0; i--) {
       const pu = this.powerUps[i];
       pu.age += worldDt;
 
-      // Check Time-To-Live (TTL) expiration
-      const isExpiredByTtl = pu.expireBeatSec > 0 && this.trackElapsedSec > pu.expireBeatSec;
+      const leadTime = Math.max(0.35, (pu.targetBeatSec || 0) - (pu.spawnBeatSec || 0));
+      const u = (this.trackElapsedSec - (pu.spawnBeatSec || 0)) / leadTime;
+      const laneIdx = Math.max(0, Math.min(3, (pu.phraseBeatNum || 1) - 1));
+
+      if (typeof this.computeHighwayPoint === "function") {
+        const pt = this.computeHighwayPoint(laneIdx, u, this.W, this.H);
+        pu.x = pt.x;
+        pu.y = pt.y;
+        pu.targetX = pt.x;
+        pu.targetY = this.H * 0.74;
+      }
+
+      // Check expiration once note scrolls past the bottom of the Beat Strike Line (u > 1.24)
+      const isExpiredByTtl = u > 1.24 || (pu.expireBeatSec > 0 && this.trackElapsedSec > pu.expireBeatSec);
       if (isExpiredByTtl || pu.age >= pu.maxLifetime) {
         if (isExpiredByTtl) {
-          // Missed beatbefore TTL expired: ONLY reset combo (never damages player or ends run!)
+          // Missed beat note past the Strike Line: ONLY reset combo (never damages player or ends run!)
           if (this.combo > 1) this.combo = 1;
           this.comboTimer = 0;
           this.shockwaves.push({
             x: pu.x,
-            y: pu.y,
+            y: Math.min(this.H * 0.84, pu.y),
             radius: 8,
             maxRadius: 68,
             color: [251, 113, 133],
@@ -377,7 +385,7 @@ Object.assign(NoMoreIllusionsApp.prototype, {
           });
           this.floatingTexts.push({
             x: pu.x,
-            y: pu.y - 12,
+            y: Math.min(this.H * 0.82, pu.y - 12),
             text: "MISS • COMBO RESET",
             color: [251, 113, 133],
             alpha: 1,
@@ -388,33 +396,14 @@ Object.assign(NoMoreIllusionsApp.prototype, {
         continue;
       }
 
-      // Stationary Beat Node: stays anchored at (targetX, targetY) with a tiny 2.4px musical hover
-      if (typeof pu.targetX === "number" && typeof pu.targetY === "number") {
-        const hover = 2.4;
-        pu.x = pu.targetX + Math.cos(this.time * 3.0 + (pu.phase || 0)) * hover;
-        pu.y = pu.targetY + Math.sin(this.time * 3.6 + (pu.phase || 0)) * hover;
-      }
-
       const dx = this.playerX - pu.x;
       const dy = this.playerY - pu.y;
       const dist = Math.max(1, Math.hypot(dx, dy));
 
-      // Pull toward hero when Magnet power-up or Tractor Reach is active
-      if (this.magnetTimer > 0 || pu.keyWordEffect === "TRACTOR_REACH") {
-        const magnetRange = 290;
-        if (dist < magnetRange) {
-          const pullStrength = (1 - dist / magnetRange) * 580;
-          pu.x += (dx / dist) * pullStrength * dt;
-          pu.y += (dy / dist) * pullStrength * dt;
-          pu.targetX = pu.x;
-          pu.targetY = pu.y;
-        }
-      }
-
-      // Generous Collection Check for responsive sequential note hits
-      const collectRadius = this.playerRadius + (pu.type === "SCORE_ORB" ? pu.radius * 1.38 : pu.radius * 1.22);
+      // Generous Collection Check for responsive highway note hits (NO MAGNET PULL!)
+      const collectRadius = this.playerRadius + (pu.type === "SCORE_ORB" ? pu.radius * 1.42 : pu.radius * 1.32);
       if (dist <= collectRadius) {
-        this.collectPowerUp(pu);
+        this.collectPowerUp(pu, u);
         this.powerUps.splice(i, 1);
       }
     }
@@ -579,31 +568,58 @@ Object.assign(NoMoreIllusionsApp.prototype, {
   },
 
   spawnChartedOrb(cue, beatPeriod = 0.48) {
-    const isSupernova = cue.isGoldenCue || (cue.keyWordEffect && cue.keyWordEffect !== "NONE");
-    const targetX = (cue.normX || 0.5) * this.W;
-    const targetY = (cue.normY || 0.5) * this.H;
+    const rawSupernova = cue.isGoldenCue || (cue.keyWordEffect && cue.keyWordEffect !== "NONE");
+    const rawLaneIdx = Math.floor(((cue.normX || 0.5) - 0.14) / 0.18 + 0.5);
+    const laneIdx = Math.max(0, Math.min(3, rawLaneIdx));
+    const phraseBeatNum = laneIdx + 1;
 
-    // Stationary Beat Node: spawns directly at its choreographed screen coordinate (targetX, targetY)
-    // with an Osu!-style shrinking approach ring and a Time-To-Live (TTL) expiration window!
-    const cueType = (!isSupernova && cue.powerUpType && cue.powerUpType !== "SCORE_ORB") ? cue.powerUpType : "SCORE_ORB";
-    const targetBeatSec = cue.timestampSec || this.trackElapsedSec;
+    // Radical Pickup Simplification:
+    // ONLY 4 unmistakable highway items exist:
+    // 1. Standard Fret Beat Note ("SCORE_ORB" + "NONE")
+    // 2. ★ 4X STAR Note ("SCORE_ORB" + "CONSTELLATION_STAR")
+    // 3. 💥 BOMB ("BLAST" - vaporizes all enemies on screen)
+    // 4. 🛡️ SHIELD ("SHIELD" - blocks 1 hit)
+    let cueType = "SCORE_ORB";
+    let keyWordEffect = "NONE";
+    let isSupernova = false;
+
+    const rawType = cue.powerUpType || "SCORE_ORB";
+    const rawEffect = cue.keyWordEffect || "NONE";
+
+    if (rawType === "BLAST" || rawType === "OVERDRIVE" || rawEffect === "MAGNETAR_WAR") {
+      cueType = "BLAST";
+    } else if (rawType === "SHIELD" || rawType === "SLOW_MO" || rawEffect === "ECLIPSE_DARK") {
+      cueType = "SHIELD";
+    } else if (rawSupernova) {
+      cueType = "SCORE_ORB";
+      keyWordEffect = "CONSTELLATION_STAR";
+      isSupernova = true;
+    }
+
+    const startPt = typeof this.computeHighwayPoint === "function"
+      ? this.computeHighwayPoint(laneIdx, 0, this.W, this.H)
+      : { x: (0.14 + laneIdx * 0.24) * this.W, y: this.H * 0.16 };
+    const receptorPt = typeof this.computeHighwayPoint === "function"
+      ? this.computeHighwayPoint(laneIdx, 1.0, this.W, this.H)
+      : { x: (0.14 + laneIdx * 0.24) * this.W, y: this.H * 0.74 };
+
+    const targetBeatSec = cue.timestampSec || (this.trackElapsedSec + 1.9);
     const ttlGraceSec = Math.max(0.45, beatPeriod * 0.92);
     const expireBeatSec = targetBeatSec + ttlGraceSec;
     const seqIdx = cue.sequenceIndex || (this.powerUps.length + 1);
-    const phraseBeatNum = ((seqIdx - 1) % 4) + 1;
 
     this.powerUps.push({
-      x: targetX,
-      y: targetY,
-      targetX,
-      targetY,
+      x: startPt.x,
+      y: startPt.y,
+      targetX: receptorPt.x,
+      targetY: receptorPt.y,
       vx: 0,
       vy: 0,
       speed: 0,
       angle: 0,
-      radius: isSupernova ? 28 : 23,
+      radius: (isSupernova || cueType !== "SCORE_ORB") ? 28 : 23,
       type: cueType,
-      keyWordEffect: cue.keyWordEffect || (cue.isGoldenCue ? "CONSTELLATION_STAR" : "NONE"),
+      keyWordEffect,
       isSupernova,
       sequenceIndex: seqIdx,
       phraseBeatNum,
@@ -611,19 +627,11 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       spawnBeatSec: this.trackElapsedSec,
       expireBeatSec,
       age: 0,
-      maxLifetime: Math.max(2.2, (expireBeatSec - this.trackElapsedSec) + 0.35),
+      maxLifetime: Math.max(2.6, (expireBeatSec - this.trackElapsedSec) + 0.45),
       phase: Math.random() * 6.28,
       waveFreq: 2.4 + Math.random() * 1.2,
       wavePhase: Math.random() * 6.28
     });
-
-    if (typeof this.triggerDiscoveryIfUnseen === "function") {
-      if (isSupernova || cueType !== "SCORE_ORB") {
-        this.triggerDiscoveryIfUnseen("SUPERNOVA_ORB");
-      } else if (this.powerUps.length >= 2) {
-        this.triggerDiscoveryIfUnseen("BEAT_CHAIN");
-      }
-    }
   },
 
   spawnTravelingCollectible(type, laneRatio, speed) {
@@ -661,7 +669,7 @@ Object.assign(NoMoreIllusionsApp.prototype, {
     });
   },
 
-  collectPowerUp(pu) {
+  collectPowerUp(pu, uHit = 1.0) {
     if (pu.type === "SCORE_ORB") {
       this.playSfx("orb", 0.72);
       this.triggerHaptic([18]);
@@ -674,97 +682,66 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       }
       this.comboTimer = 4.5;
 
-      // Timing Accuracy Check: compare current track time against the beat's targetBeatSec!
+      // Timing Accuracy Check: compare highway position against the Glowing Beat Strike Line (Y = 74% / u = 1.0)!
       const beatDiff = Math.abs(this.trackElapsedSec - (pu.targetBeatSec || this.trackElapsedSec));
-      const isPerfect = beatDiff <= 0.22 || this.beatPulse > 0.45;
-      const basePts = isPerfect ? 100 : 50;
+      const strikeY = this.H * 0.74;
+      const isAtStrikeLine = (uHit >= 0.78 && uHit <= 1.18) || Math.abs(pu.y - strikeY) <= 74 || beatDiff <= 0.24;
+      const basePts = isAtStrikeLine ? 120 : 60;
       const pts = basePts * this.combo * (this.constellationRushTimer > 0 ? 2 : 1);
       this.score += pts;
 
-      this.spawnBurstMotes(pu.x, pu.y, isPerfect ? [74, 222, 128] : [250, 204, 21], 14);
+      this.spawnBurstMotes(pu.x, pu.y, isAtStrikeLine ? [74, 222, 128] : [250, 204, 21], 16);
       this.shockwaves.push({
         x: pu.x,
-        y: pu.y,
-        radius: 8,
-        maxRadius: isPerfect ? 145 : 95,
-        color: isPerfect ? [74, 222, 128] : [250, 204, 21],
+        y: isAtStrikeLine ? strikeY : pu.y,
+        radius: 10,
+        maxRadius: isAtStrikeLine ? 165 : 95,
+        color: isAtStrikeLine ? [74, 222, 128] : [250, 204, 21],
         alpha: 1
       });
       this.floatingTexts.push({
         x: pu.x,
-        y: pu.y - 16,
-        text: isPerfect ? `PERFECT! +${pts} (x${this.combo})` : `GOOD! +${pts}`,
-        color: isPerfect ? [74, 222, 128] : [250, 204, 21],
+        y: pu.y - 20,
+        text: isAtStrikeLine ? `★ PERFECT ON-BEAT! +${pts} (x${this.combo})` : `EARLY +${pts}`,
+        color: isAtStrikeLine ? [74, 222, 128] : [250, 204, 21],
         alpha: 1,
         age: 0
       });
 
-      // Supernova keyword effects (1:1 with Android GameScreen.kt)
+      // ★ 4X STAR Overdrive Note (1:1 with Android GameOrbCollection.kt)
       const eff = pu.keyWordEffect || "NONE";
       if (pu.isSupernova || eff !== "NONE") {
         this.screenShake = Math.max(this.screenShake, 9);
-        if (eff === "CONSTELLATION_STAR") {
-          this.overdriveTimer = Math.max(this.overdriveTimer, 8.0);
-          this.constellationRushTimer = Math.max(this.constellationRushTimer, 12.0);
-          this.showToast("★", "24K OVERDRIVE STAR!", "8s ENEMY VAPORIZE + 2x RUSH", "#FACC15", 2.8);
-        } else if (eff === "MAGNETAR_WAR") {
-          let n = 0;
-          for (let k = this.enemies.length - 1; k >= 0; k--) {
-            const en = this.enemies[k];
-            if (Math.hypot(en.x - this.playerX, en.y - this.playerY) < 420) {
-              this.spawnBurstMotes(en.x, en.y, [253, 224, 71], 8);
-              this.enemies.splice(k, 1);
-              n++;
-            }
-          }
-          this.showToast("💥", "MAGNETAR SHOCKWAVE!", `${n} ENEMIES VAPORIZED`, "#FB7185", 2.6);
-        } else if (eff === "ECLIPSE_DARK") {
-          this.shieldTimer = Math.max(this.shieldTimer, 8.5);
-          this.showToast("🛡️", "SOLAR ECLIPSE SHIELD!", "8.5s INVINCIBILITY BARRIER", "#FDE047", 2.5);
-        } else if (eff === "TRACTOR_REACH") {
-          this.magnetTimer = Math.max(this.magnetTimer, 6.0);
-          this.showToast("🧲", "TRACTOR REACH!", "PULLING ORBS TOWARD YOU", "#22D3EE", 2.5);
-        } else if (eff === "PRISM_SHATTER") {
-          this.showToast("💎", "PRISM SHATTER!", "BONUS RESONANCE POINTS", "#E879F9", 2.5);
-        } else if (eff === "BINARY_HEART") {
-          this.constellationRushTimer = Math.max(this.constellationRushTimer, 12.0);
-          this.showToast("💚", "HARMONIC PULSE!", "2x SCORE RUSH • 12s", "#4ADE80", 2.5);
-        }
+        this.overdriveTimer = Math.max(this.overdriveTimer, 8.0);
+        this.constellationRushTimer = Math.max(this.constellationRushTimer, 10.0);
+        this.showToast("★", "STAR POWER OVERDRIVE!", "4X SCORE MULTIPLIER • RAM RED HAZARDS!", "#FACC15", 2.8);
       }
     } else {
       this.playSfx("powerup", 0.8);
       this.triggerHaptic([30]);
       let col = [56, 189, 248];
       if (pu.type === "BLAST" || pu.type === "OVERDRIVE") {
-        col = [249, 115, 22];
+        col = [239, 68, 68];
         this.overdriveTimer = Math.max(this.overdriveTimer, 5.5);
-        this.screenShake = Math.max(this.screenShake, 14);
+        this.screenShake = Math.max(this.screenShake, 16);
         let vaporized = 0;
         for (let k = 0; k < this.enemies.length; k++) {
           const en = this.enemies[k];
           vaporized++;
-          this.score += 100 * this.combo;
-          this.spawnBurstMotes(en.x, en.y, k % 2 === 0 ? [250, 204, 21] : [249, 115, 22], 10);
-          this.shockwaves.push({ x: en.x, y: en.y, radius: 6, maxRadius: 130, color: [250, 204, 21], alpha: 1 });
+          this.score += 150 * Math.max(1, this.combo);
+          this.spawnBurstMotes(en.x, en.y, k % 2 === 0 ? [250, 204, 21] : [239, 68, 68], 12);
+          this.shockwaves.push({ x: en.x, y: en.y, radius: 8, maxRadius: 150, color: [250, 204, 21], alpha: 1 });
         }
         this.enemies = [];
         this.telegraphs = [];
-        this.shockwaves.push({ x: pu.x, y: pu.y, radius: 10, maxRadius: 520, color: col, alpha: 1 });
-        this.showToast("💥", "NOVA BLAST!",
-          vaporized > 0 ? `${vaporized} ENEMIES VAPORIZED + 5.5s OVERDRIVE!` : "5.5s OVERDRIVE • RAM ENEMIES TO VAPORIZE!",
-          "#F97316", 2.6);
-      } else if (pu.type === "SHIELD") {
-        this.shieldTimer = Math.max(this.shieldTimer, 7.0);
+        this.shockwaves.push({ x: pu.x, y: pu.y, radius: 12, maxRadius: 560, color: col, alpha: 1 });
+        this.showToast("💥", "BOMB DETONATED!",
+          vaporized > 0 ? `${vaporized} ENEMIES DESTROYED! (+${vaporized * 150} PTS)` : "ALL HAZARDS CLEARED + 5.5s OVERDRIVE!",
+          "#EF4444", 2.6);
+      } else {
+        this.shieldTimer = Math.max(this.shieldTimer, 8.0);
         col = [56, 189, 248];
-        this.showToast("🛡️", "AEGIS SHIELD!", "ABSORBS NEXT COLLISION • 7.0s ACTIVE", "#38BDF8", 2.4);
-      } else if (pu.type === "SLOW_MO") {
-        this.slowMoTimer = Math.max(this.slowMoTimer, 5.5);
-        col = [168, 85, 247];
-        this.showToast("⏳", "CHRONO SHIFT!", "ENEMIES SLOWED 50% • 5.5s ACTIVE", "#A855F7", 2.4);
-      } else if (pu.type === "MAGNET") {
-        this.magnetTimer = Math.max(this.magnetTimer, 7.0);
-        col = [16, 185, 129];
-        this.showToast("🧲", "ORB MAGNET!", "PULLING NEARBY ORBS • 7.0s ACTIVE", "#10B981", 2.4);
+        this.showToast("🛡️", "SHIELD ACTIVE!", "BLOCKS NEXT ENEMY HIT • 8.0s BARRIER", "#38BDF8", 2.4);
       }
       this.spawnBurstMotes(pu.x, pu.y, col, 16);
       this.shockwaves.push({
@@ -878,9 +855,6 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       timer: 0.80, // Crisp warning before launch
       maxTimer: 0.80
     });
-    if (typeof this.triggerDiscoveryIfUnseen === "function") {
-      this.triggerDiscoveryIfUnseen("HAZARD_SHIELD");
-    }
   },
 
   spawnEnemy() {
