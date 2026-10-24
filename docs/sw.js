@@ -1,4 +1,4 @@
-const CACHE_NAME = "nmi-v10-h5-ads";
+const CACHE_NAME = "nmi-v11-rhythm-first";
 const ASSETS = [
   "./",
   "./index.html",

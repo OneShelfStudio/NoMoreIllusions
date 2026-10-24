@@ -111,18 +111,18 @@ fun stepAndSpawnTelegraphedEnemies(
     val isBeatOnset = beatPhase in 0f..0.32f
     if (!isBeatOnset) return
 
-    val rampFactor = (levelPlayTime / 14f).coerceIn(0.60f, 1.0f)
-    val energyScale = (0.65f + multiBand.bass * 0.55f + multiBand.rms * 0.40f).coerceIn(0.55f, 1.45f)
-    val sectionUrgency = if (sectionMaxEnemies >= 7) 1.35f else if (sectionMaxEnemies >= 5) 1.10f else 0.78f
-    val effectiveSpawnChance = (0.095f + difficulty * 0.085f) * spawnRateScale * rampFactor * energyScale * sectionUrgency
+    val rampFactor = (levelPlayTime / 18f).coerceIn(0.55f, 1.0f)
+    val energyScale = (0.58f + multiBand.bass * 0.45f + multiBand.rms * 0.32f).coerceIn(0.50f, 1.25f)
+    val sectionUrgency = if (sectionMaxEnemies >= 4) 1.15f else if (sectionMaxEnemies >= 2) 0.88f else 0.62f
+    val effectiveSpawnChance = (0.062f + difficulty * 0.055f) * spawnRateScale * rampFactor * energyScale * sectionUrgency
 
     if (Random.nextFloat() < effectiveSpawnChance) {
-        val spawnCount = if ((sectionMaxEnemies >= 7 || multiBand.bass > 0.68f) &&
+        val spawnCount = if (sectionMaxEnemies >= 4 &&
             enemies.size + telegraphs.size + 1 < maxActiveEnemies &&
-            Random.nextFloat() < 0.48f
+            Random.nextFloat() < 0.35f
         ) 2 else 1
         val baseSide = Random.nextInt(4)
-        val warnSec = (0.86f - difficulty * 0.16f).coerceIn(0.56f, 0.86f)
+        val warnSec = (1.02f - difficulty * 0.14f).coerceIn(0.72f, 1.05f)
 
         for (sIdx in 0 until spawnCount) {
             val side = (baseSide + sIdx * 2) % 4
@@ -201,7 +201,8 @@ fun stepEnemyKinematicsAndFlocking(
     beatPhase: Float = 0f,
     activeTargetOrb: GameObject? = null,
     activePhenomenon: ActivePhenomenon? = null,
-    multiBand: MultiBandAudioState = MultiBandAudioState()
+    multiBand: MultiBandAudioState = MultiBandAudioState(),
+    allBeatOrbs: List<GameObject> = emptyList()
 ) {
     val beatKick = if (beatPhase in 0f..0.22f) 1.0f else 0.0f
 
@@ -300,13 +301,14 @@ fun stepEnemyKinematicsAndFlocking(
         e.y += sepY * 12f * currentScale
     }
 
-    // Keep an 82px buffer around the active target orb so enemies don't sit directly on top of collectibles
-    if (activeTargetOrb != null) {
-        val odx = e.x - activeTargetOrb.x
-        val ody = e.y - activeTargetOrb.y
+    // Keep a generous 135px safe buffer around active stationary beat nodes so enemies NEVER camp on top of notes!
+    val orbsToGuard = if (allBeatOrbs.isNotEmpty()) allBeatOrbs else listOfNotNull(activeTargetOrb)
+    for (orb in orbsToGuard) {
+        val odx = e.x - orb.x
+        val ody = e.y - orb.y
         val oDist = hypot(odx, ody)
-        if (oDist in 1f..82f) {
-            val push = ((82f - oDist) / 82f) * 3.0f * currentScale
+        if (oDist in 1f..135f) {
+            val push = ((135f - oDist) / 135f) * 4.8f * currentScale
             e.x += (odx / oDist) * push
             e.y += (ody / oDist) * push
         }
@@ -349,64 +351,39 @@ fun stepNebulousBeatOrbs(
     activePhenomenon: ActivePhenomenon? = null,
     currentScale: Float = 1f,
     beatPhase: Float = 0f,
-    magnetActive: Boolean = false
+    magnetActive: Boolean = false,
+    onBeatMissed: (GameObject) -> Unit = {}
 ) {
     if (screenWidth <= 0f || screenHeight <= 0f) return
     val iter = powerUps.iterator()
-    val beatKick = if (beatPhase in 0f..0.22f) 1.18f else 0.96f
 
     while (iter.hasNext()) {
         val orb = iter.next()
-        // Remove once it has lived past its travel window or exited the arena after passing its target beat
-        if (trackSec - orb.targetBeatSec > 4.2f) {
+        val expireSec = if (orb.expireBeatSec > 0f) orb.expireBeatSec else (orb.targetBeatSec + 0.55f)
+        if (trackSec > expireSec) {
+            onBeatMissed(orb)
             iter.remove()
             continue
         }
 
-        val perpAngle = orb.angle + (PI.toFloat() / 2f)
-        val wave = sin(gameTime * 2.8f + orb.phase) * 0.65f
-        val moveSpd = orb.speed * beatKick * currentScale
-
-        orb.x += (cos(orb.angle) * moveSpd + cos(perpAngle) * wave)
-        orb.y += (sin(orb.angle) * moveSpd + sin(perpAngle) * wave)
-
-        // When ORB MAGNET power-up is active, gently pull nearby orbs within 280px toward the player
+        // When ORB MAGNET power-up is active, gently pull nearby orbs within 300px toward the player
         if (magnetActive) {
-            val dx = player.x - orb.x
-            val dy = player.y - orb.y
+            val dx = player.x - orb.anchorX
+            val dy = player.y - orb.anchorY
             val dist = hypot(dx, dy)
-            if (dist in 8f..280f) {
-                val pull = ((280f - dist) / 280f) * 4.6f * currentScale
-                orb.x += (dx / dist) * pull
-                orb.y += (dy / dist) * pull
+            if (dist in 6f..300f) {
+                val pull = ((300f - dist) / 300f) * 6.5f * currentScale
+                orb.anchorX += (dx / dist) * pull
+                orb.anchorY += (dy / dist) * pull
             }
         }
 
-        // Gentle boundary reflection so traveling orbs stay inside the reachable arena during their beat window
-        val marginX = 56f
-        val marginYTop = 148f
-        val marginYBottom = screenHeight - 96f
-        if (orb.x < marginX && cos(orb.angle) < 0f) {
-            orb.angle = PI.toFloat() - orb.angle
-            orb.x = marginX
-        } else if (orb.x > screenWidth - marginX && cos(orb.angle) > 0f) {
-            orb.angle = PI.toFloat() - orb.angle
-            orb.x = screenWidth - marginX
-        }
-        if (orb.y < marginYTop && sin(orb.angle) < 0f) {
-            orb.angle = -orb.angle
-            orb.y = marginYTop
-        } else if (orb.y > marginYBottom && sin(orb.angle) > 0f) {
-            orb.angle = -orb.angle
-            orb.y = marginYBottom
-        }
+        // Stationary anchored coordinate with subtle 2.4px musical breathing hover
+        orb.x = orb.anchorX + cos(gameTime * 2.8f + orb.phase) * 2.4f
+        orb.y = orb.anchorY + sin(gameTime * 2.8f + orb.phase) * 2.4f
     }
 }
 
-/**
- * V5 FADING SINGULARITY WORMHOLES & HARMONIC PHASE BARRIERS:
- * - Spawns occasional swirling wormholes or rotating laser phase barriers ONLY during high-energy Chorus Drops & Breakdowns (`allowAnomalies = true`).
- */
 @Suppress("UNUSED_PARAMETER")
 fun stepAndSpawnWormholes(
     wormholes: MutableList<SingularityWormhole>,
@@ -427,20 +404,8 @@ fun stepAndSpawnWormholes(
     while (wIter.hasNext()) {
         val w = wIter.next()
         w.ageSec += 0.016f * currentScale
-        if (w.kind == AnomalyKind.PHASE_BARRIER) {
-            w.angle += 0.012f * currentScale
-        } else if (w.isHazardActive) {
-            // Active Singularity Wormhole curves nearby enemy trajectories around its event horizon!
-            for (e in enemies) {
-                val dx = w.x - e.x
-                val dy = w.y - e.y
-                val d = hypot(dx, dy)
-                if (d in 18f..195f) {
-                    val tangentAngle = atan2(dy, dx) + (PI.toFloat() / 2.6f)
-                    val diff = normalizeAngle(tangentAngle - e.angle)
-                    e.angle += diff.coerceIn(-0.032f, 0.032f) * currentScale
-                }
-            }
+        if (w.slideCooldownSec > 0f) {
+            w.slideCooldownSec = (w.slideCooldownSec - 0.016f * currentScale).coerceAtLeast(0f)
         }
         if (w.ageSec >= w.totalDuration) {
             wIter.remove()
@@ -448,37 +413,44 @@ fun stepAndSpawnWormholes(
     }
 
     if (!allowAnomalies || multiBand.bassDropOut) return
-    val maxAnomalies = if (remixMode == TrackRemixMode.SLOWED || remixMode == TrackRemixMode.ENDLESS) 2 else 1
-    if (wormholes.size >= maxAnomalies) return
+    if (wormholes.isNotEmpty()) return
 
-    val isBeatOnset = beatPhase in 0f..0.20f
+    val isBeatOnset = beatPhase in 0f..0.22f
     if (!isBeatOnset) return
 
-    val swellTrigger = multiBand.rms > 0.52f || multiBand.swellDelta > 0.08f
-    val spawnChance = if (swellTrigger) 0.065f else 0.022f
+    val swellTrigger = multiBand.rms > 0.45f || multiBand.swellDelta > 0.06f
+    val spawnChance = if (swellTrigger) 0.14f else 0.055f
     if (Random.nextFloat() < spawnChance) {
-        // Pick a safe coordinate at least 165px away from the player
-        var wx = screenWidth * 0.5f
-        var wy = screenHeight * 0.45f
-        for (attempt in 0 until 8) {
-            val candX = 95f + Random.nextFloat() * (screenWidth - 190f).coerceAtLeast(80f)
-            val candY = 185f + Random.nextFloat() * (screenHeight - 330f).coerceAtLeast(100f)
-            if (hypot(candX - player.x, candY - player.y) > 165f) {
-                wx = candX
-                wy = candY
-                break
-            }
+        val marginX = 88f
+        val topHalf = player.y > screenHeight * 0.52f
+        val startX = (marginX + Random.nextFloat() * (screenWidth - marginX * 2f).coerceAtLeast(80f))
+        val startY = if (topHalf) {
+            (screenHeight * 0.56f + Random.nextFloat() * (screenHeight * 0.22f)).coerceIn(200f, screenHeight - 130f)
+        } else {
+            (screenHeight * 0.26f + Random.nextFloat() * (screenHeight * 0.20f)).coerceIn(180f, screenHeight - 130f)
         }
-        val isBarrier = Random.nextFloat() < 0.38f
+        val endX = (screenWidth - startX).coerceIn(marginX, screenWidth - marginX)
+        val endY = if (topHalf) {
+            (screenHeight * 0.25f + Random.nextFloat() * (screenHeight * 0.18f)).coerceIn(180f, screenHeight - 140f)
+        } else {
+            (screenHeight * 0.60f + Random.nextFloat() * (screenHeight * 0.20f)).coerceIn(200f, screenHeight - 130f)
+        }
+        val midX = (startX + endX) * 0.5f + (if (startX < endX) 65f else -65f)
+        val midY = (startY + endY) * 0.5f - 45f
+
         wormholes.add(
             SingularityWormhole(
-                x = wx,
-                y = wy,
-                radius = if (isBarrier) 22f else 48f,
-                kind = if (isBarrier) AnomalyKind.PHASE_BARRIER else AnomalyKind.WORMHOLE_VORTEX,
-                angle = Random.nextFloat() * PI.toFloat(),
-                length = 128f,
-                color = if (isBarrier) Color(0xFFF43F5EL) else Color(0xFFA855F7L)
+                x = startX,
+                y = startY,
+                radius = 40f,
+                kind = AnomalyKind.WORMHOLE_VORTEX,
+                angle = 0f,
+                length = hypot(endX - startX, endY - startY),
+                color = Color(0xFF38BDF8L),
+                exitX = endX,
+                exitY = endY,
+                ctrlX = midX,
+                ctrlY = midY
             )
         )
     }

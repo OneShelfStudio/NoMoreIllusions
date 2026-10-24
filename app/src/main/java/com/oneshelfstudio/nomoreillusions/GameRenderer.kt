@@ -370,19 +370,51 @@ fun DrawScope.drawPowerUps(
         }
     }
 
-    // 3. Render each Beat Orb (Regular Flow Orb vs. 2x Larger Multi-Ringed Supernova Beat-Drop Orb)
+    // 2. Sequential Rhythm Constellation Path (connects upcoming stationary beats 1 -> 2 -> 3 -> 4 in order!)
+    if (sorted.size >= 2) {
+        for (cIdx in 0 until sorted.size - 1) {
+            val pA = sorted[cIdx]
+            val pB = sorted[cIdx + 1]
+            val linkAlpha = (0.48f - cIdx * 0.12f).coerceIn(0.16f, 0.50f)
+            drawLine(
+                color = Color(0xFF38BDF8L).copy(alpha = linkAlpha * 0.55f),
+                start = Offset(pA.x, pA.y),
+                end = Offset(pB.x, pB.y),
+                strokeWidth = 2.0f,
+                cap = StrokeCap.Round
+            )
+            // Flowing beat-pulse pearls gliding from pA -> pB
+            for (step in 1..3) {
+                val mt = ((step / 4f) + time * 0.85f) % 1f
+                val mx = pA.x + (pB.x - pA.x) * mt
+                val my = pA.y + (pB.y - pA.y) * mt - sin(mt * PI.toFloat()) * 12f
+                drawCircle(
+                    color = Color(0xFFFACC15L).copy(alpha = linkAlpha * 0.85f),
+                    radius = if (cIdx == 0) 3.0f else 2.2f,
+                    center = Offset(mx, my)
+                )
+            }
+        }
+    }
+
+    // 3. Render each Stationary Beat Node with Shrinking TTL Approach Ring & Phrase Badge (1 -> 2 -> 3 -> 4)
     sorted.forEachIndexed { idx, p ->
         val center = Offset(p.x, p.y)
         val isSupernova = p.keyWordEffect != KeyWordEffect.NONE
         val isPrimary = idx == 0
 
-        // Materialization pop-in scale when spawning on the beat
+        // Materialization pop-in scale when spawning ahead of the beat
         val spawnAge = (trackSec - p.spawnBeatSec).coerceAtLeast(0f)
-        val popInScale = (spawnAge / 0.22f).coerceIn(0.35f, 1.0f)
+        val popInScale = (spawnAge / 0.22f).coerceIn(0.45f, 1.0f)
 
-        // Strong quarter-note beat pulse + sub-bass swell
-        val beatPulseScale = 1.0f + (if (isSupernova) 0.38f else 0.28f) * beatKick + multiBand.bass * 0.14f
-        val coreRad = p.radius * popInScale * beatPulseScale * (if (isPrimary) 1.05f else 0.86f)
+        // Expire fade-out when approaching TTL deadline
+        val expireSec = if (p.expireBeatSec > 0f) p.expireBeatSec else (p.targetBeatSec + 0.55f)
+        val ttlRemaining = (expireSec - trackSec).coerceAtLeast(0f)
+        val ttlAlpha = (ttlRemaining / 0.28f).coerceIn(0.15f, 1.0f)
+
+        // Quarter-note beat pulse + sub-bass swell
+        val beatPulseScale = 1.0f + (if (isSupernova) 0.32f else 0.22f) * beatKick + multiBand.bass * 0.12f
+        val coreRad = p.radius * popInScale * beatPulseScale * (if (isPrimary) 1.08f else 0.90f)
 
         val effectColor = when {
             p.keyWordEffect != KeyWordEffect.NONE -> when (p.keyWordEffect) {
@@ -401,19 +433,36 @@ fun DrawScope.drawPowerUps(
             else -> Color(0xFF06B6D4L)
         }
 
-        // Converging Beat Timing Ring (contracts onto the orb core on every quarter-note beat — ZERO wiggling tail!)
-        val beatCycle = (1f - beatPhase).coerceIn(0f, 1f)
-        val isOnBeatWindow = beatPhase <= 0.36f || beatPhase >= 0.78f
-        val ringRadius = coreRad * (1.02f + beatCycle * (if (isSupernova) 1.75f else 1.35f))
+        // Osu!-Style Shrinking Time-To-Live (TTL) Approach Ring:
+        // Contracts smoothly from 2.45x radius down to 1.02x radius right as trackSec hits p.targetBeatSec!
+        val leadWindow = (p.targetBeatSec - p.spawnBeatSec).coerceAtLeast(0.45f)
+        val timeToBeat = p.targetBeatSec - trackSec
+        val approachRatio = (timeToBeat / leadWindow).coerceIn(0f, 1f)
+        val isOnBeatWindow = abs(timeToBeat) <= 0.24f
+        val isLateGrace = timeToBeat < -0.24f
+        val ringRadius = coreRad * (1.03f + approachRatio * (if (isSupernova) 1.65f else 1.42f))
+        val ringCol = when {
+            isOnBeatWindow -> Color(0xFF4ADE80L) // Blazing Emerald-Gold when on-beat!
+            isLateGrace -> Color(0xFFFB7185L)    // Coral warning when TTL is about to expire
+            else -> effectColor
+        }
 
         drawCircle(
-            color = (if (isOnBeatWindow) Color(0xFFFACC15L) else effectColor).copy(
-                alpha = if (isOnBeatWindow) 0.95f else (if (isSupernova) 0.85f else 0.58f)
+            color = ringCol.copy(
+                alpha = (if (isOnBeatWindow) 0.98f else (if (isSupernova) 0.85f else 0.68f)) * ttlAlpha
             ),
             radius = ringRadius,
             center = center,
-            style = Stroke(width = if (isOnBeatWindow) 3.8f + beatKick * 1.8f else 2.2f)
+            style = Stroke(width = if (isOnBeatWindow) 4.2f + beatKick * 1.8f else 2.5f)
         )
+        if (isOnBeatWindow) {
+            drawCircle(
+                color = Color(0xFFFACC15L).copy(alpha = 0.72f * ttlAlpha),
+                radius = coreRad * 1.18f,
+                center = center,
+                style = Stroke(width = 2.0f)
+            )
+        }
 
         if (isSupernova) {
             // =========================================================================
@@ -597,27 +646,18 @@ fun DrawScope.drawPowerUps(
                     )
                 }
                 else -> {
-                    // ♪ Crisp Beamed Musical Note Emblem inside the Gem!
-                    val headR = coreRad * 0.16f
-                    val headX = p.x - coreRad * 0.08f
-                    val headY = p.y + coreRad * 0.18f
-                    drawCircle(color = Color.White, radius = headR, center = Offset(headX, headY))
-                    val stemTopY = p.y - coreRad * 0.34f
-                    val stemX = headX + headR * 0.75f
-                    drawLine(
-                        color = Color.White,
-                        start = Offset(stemX, headY),
-                        end = Offset(stemX, stemTopY),
-                        strokeWidth = 2.5f,
-                        cap = StrokeCap.Round
-                    )
-                    drawLine(
-                        color = Color(0xFFFACC15L),
-                        start = Offset(stemX, stemTopY),
-                        end = Offset(stemX + coreRad * 0.26f, stemTopY + coreRad * 0.14f),
-                        strokeWidth = 2.8f,
-                        cap = StrokeCap.Round
-                    )
+                    // ♪ Phrase Sequence Number (1, 2, 3, 4) inside the Faceted Gem so players see the exact rhythm chain!
+                    val phraseNum = ((p.sequenceIndex - 1).coerceAtLeast(0) % 4) + 1
+                    drawIntoCanvas { canvas ->
+                        cachedSubPaint.textSize = coreRad * 0.92f
+                        cachedSubPaint.color = android.graphics.Color.WHITE
+                        canvas.nativeCanvas.drawText(
+                            phraseNum.toString(),
+                            p.x,
+                            p.y + coreRad * 0.32f,
+                            cachedSubPaint
+                        )
+                    }
                 }
             }
         }
@@ -696,10 +736,9 @@ fun DrawScope.drawEnemyTelegraphs(
 }
 
 /**
- * V5 FADING SINGULARITY WORMHOLES & HARMONIC PHASE BARRIERS:
- * - During the 1.45s fade-in warning (`w.isWarningPhase`), renders a pulsing holographic target reticle.
- * - During active phase (`w.isHazardActive`), renders a swirling 5-arm Kerr Singularity Vortex with an obsidian
- *   event horizon OR a Twin-Node Neon Laser Phase Barrier.
+ * V6 MUSICAL SLIDE-NOTE WORMHOLE STREAMS:
+ * - Renders Entry Portal A (`w.x, w.y`), Exit Portal B (`w.exitX, w.exitY`), and a glowing curved Bezier
+ *   Musical Light-Ribbon lined with 5 pulsing Rhythm Pearls so players can surf the musical slide on the beat!
  */
 fun DrawScope.drawWormholes(
     wormholes: List<SingularityWormhole>,
@@ -712,108 +751,114 @@ fun DrawScope.drawWormholes(
     wormholes.forEach { w ->
         val a = w.alphaProgress
         if (a <= 0.02f) return@forEach
-        val center = Offset(w.x, w.y)
 
-        if (w.kind == AnomalyKind.PHASE_BARRIER) {
-            val halfLen = w.length * 0.5f
-            val cosA = cos(w.angle)
-            val sinA = sin(w.angle)
-            val p1 = Offset(w.x - cosA * halfLen, w.y - sinA * halfLen)
-            val p2 = Offset(w.x + cosA * halfLen, w.y + sinA * halfLen)
+        val ax = w.x
+        val ay = w.y
+        val bx = if (w.exitX > 0f) w.exitX else (w.x + 180f)
+        val by = if (w.exitY > 0f) w.exitY else (w.y - 140f)
+        val cx = if (w.ctrlX > 0f) w.ctrlX else ((ax + bx) * 0.5f + 55f)
+        val cy = if (w.ctrlY > 0f) w.ctrlY else ((ay + by) * 0.5f - 45f)
 
-            if (w.isWarningPhase) {
-                drawLine(
-                    color = w.color.copy(alpha = a * 0.45f),
-                    start = p1,
-                    end = p2,
-                    strokeWidth = 4f,
-                    cap = StrokeCap.Round
-                )
-                drawCircle(color = w.color.copy(alpha = a * 0.6f), radius = 14f, center = p1, style = Stroke(width = 2f))
-                drawCircle(color = w.color.copy(alpha = a * 0.6f), radius = 14f, center = p2, style = Stroke(width = 2f))
-            } else {
-                // Active Neon Laser Phase Barrier + Anchor Pylons
-                drawLine(
-                    color = w.color.copy(alpha = a * (0.42f + 0.25f * beatKick)),
-                    start = p1,
-                    end = p2,
-                    strokeWidth = 22f + beatKick * 8f,
-                    cap = StrokeCap.Round
-                )
-                drawLine(
-                    color = Color.White.copy(alpha = a * 0.92f),
-                    start = p1,
-                    end = p2,
-                    strokeWidth = 5.5f,
-                    cap = StrokeCap.Round
-                )
-                for (node in listOf(p1, p2)) {
-                    drawCircle(color = w.color.copy(alpha = a * 0.85f), radius = 16f + beatKick * 4f, center = node)
-                    drawCircle(color = Color.White.copy(alpha = a), radius = 7f, center = node)
-                }
-            }
-        } else {
-            // Singularity Wormhole Vortex
-            val r = w.radius * (0.85f + 0.15f * a + 0.12f * beatKick)
-            if (w.isWarningPhase) {
-                // Shimmering fade-in warning rings (non-lethal while materializing)
-                drawCircle(
-                    color = w.color.copy(alpha = a * 0.55f),
-                    radius = r * (1.35f - 0.35f * a),
-                    center = center,
-                    style = Stroke(width = 2.4f)
-                )
-                drawCircle(
-                    color = Color(0xFF38BDF8L).copy(alpha = a * 0.38f),
-                    radius = r * 0.65f,
-                    center = center,
-                    style = Stroke(width = 1.6f)
-                )
-            } else {
-                // Active Swirling Kerr Accretion Disk + Obsidian Event Horizon
-                drawCircle(
-                    brush = Brush.radialGradient(
-                        colors = listOf(
-                            Color(0xFF020108L),
-                            w.color.copy(alpha = a * 0.78f),
-                            Color(0xFF38BDF8L).copy(alpha = a * 0.42f),
-                            Color.Transparent
-                        ),
-                        center = center,
-                        radius = r * 2.1f
+        // 1. Curved Bezier Musical Light-Ribbon connecting Entry Portal A -> Exit Portal B
+        val ribbonPath = Path().apply {
+            moveTo(ax, ay)
+            quadraticTo(cx, cy, bx, by)
+        }
+        drawPath(
+            path = ribbonPath,
+            color = Color(0xFF38BDF8L).copy(alpha = a * (0.28f + 0.18f * beatKick)),
+            style = Stroke(width = 22f + beatKick * 6f, cap = StrokeCap.Round)
+        )
+        drawPath(
+            path = ribbonPath,
+            color = Color(0xFFE879F9L).copy(alpha = a * 0.55f),
+            style = Stroke(width = 8f, cap = StrokeCap.Round)
+        )
+        drawPath(
+            path = ribbonPath,
+            color = Color.White.copy(alpha = a * 0.85f),
+            style = Stroke(width = 2.6f, cap = StrokeCap.Round)
+        )
+
+        // 2. 5 Pulsing Mini Rhythm Pearls + Flowing Wave Particles along the Slide Stream
+        for (i in 1..5) {
+            val t = i / 6f
+            val inv = 1f - t
+            val px = inv * inv * ax + 2f * inv * t * cx + t * t * bx
+            val py = inv * inv * ay + 2f * inv * t * cy + t * t * by
+            val pearlR = 6.5f + 2.5f * beatKick
+            drawCircle(
+                color = Color(0xFFFACC15L).copy(alpha = a * 0.88f),
+                radius = pearlR,
+                center = Offset(px, py)
+            )
+            drawCircle(
+                color = Color.White.copy(alpha = a * 0.96f),
+                radius = pearlR * 0.48f,
+                center = Offset(px, py)
+            )
+        }
+        for (m in 0 until 4) {
+            val mt = ((time * 1.15f + m * 0.25f) % 1f)
+            val inv = 1f - mt
+            val mx = inv * inv * ax + 2f * inv * mt * cx + mt * mt * bx
+            val my = inv * inv * ay + 2f * inv * mt * cy + mt * mt * by
+            drawCircle(
+                color = Color(0xFF38BDF8L).copy(alpha = a * sin(mt * PI.toFloat()).coerceIn(0f, 1f) * 0.85f),
+                radius = 5.2f,
+                center = Offset(mx, my)
+            )
+        }
+
+        // 3. Render Entry Portal A (Cyan/Gold "SLIDE") & Exit Portal B (Magenta/Gold "EXIT")
+        val portals = listOf(
+            Triple(Offset(ax, ay), Color(0xFF38BDF8L), "SLIDE ♪"),
+            Triple(Offset(bx, by), Color(0xFFE879F9L), "EXIT ★")
+        )
+        portals.forEachIndexed { pIdx, (pCenter, pCol, label) ->
+            val r = w.radius * (0.88f + 0.14f * beatKick)
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(
+                        Color(0xFF040210L).copy(alpha = a * 0.94f),
+                        pCol.copy(alpha = a * 0.68f),
+                        Color(0xFFFACC15L).copy(alpha = a * 0.35f),
+                        Color.Transparent
                     ),
-                    radius = r * 2.1f,
-                    center = center
+                    center = pCenter,
+                    radius = r * 1.95f
+                ),
+                radius = r * 1.95f,
+                center = pCenter
+            )
+            for (ring in 0..2) {
+                val rr = r * (0.55f + ring * 0.30f)
+                val startDeg = ((time * (180f - ring * 50f) * (if (ring % 2 == 0) 1f else -1f)) % 360f)
+                drawArc(
+                    color = (if (ring % 2 == 0) pCol else Color(0xFFFACC15L)).copy(alpha = a * (0.88f - ring * 0.18f)),
+                    startAngle = startDeg,
+                    sweepAngle = 120f,
+                    useCenter = false,
+                    topLeft = Offset(pCenter.x - rr, pCenter.y - rr),
+                    size = Size(rr * 2f, rr * 2f),
+                    style = Stroke(width = 3.5f - ring * 0.6f, cap = StrokeCap.Round)
                 )
-                val armCount = 5
-                for (arm in 0 until armCount) {
-                    val baseAng = (arm.toFloat() / armCount) * 6.283185f - time * 3.2f
-                    for (s in 1..8) {
-                        val t = s / 8f
-                        val sr = r * (0.42f + t * 1.15f)
-                        val sa = baseAng + t * 1.9f
-                        val sx = w.x + cos(sa) * sr
-                        val sy = w.y + sin(sa) * sr
-                        val col = if (s % 2 == 0) Color(0xFFE879F9L) else Color(0xFF38BDF8L)
-                        drawCircle(
-                            color = col.copy(alpha = a * (1f - t * 0.7f)),
-                            radius = (1f - t * 0.5f) * 4.5f,
-                            center = Offset(sx, sy)
-                        )
-                    }
-                }
-                // Deep Obsidian Singularity Core + Photon Ring
-                drawCircle(
-                    color = Color(0xFF020206L).copy(alpha = a * 0.96f),
-                    radius = r * 0.52f,
-                    center = center
+            }
+            drawCircle(
+                color = Color.White.copy(alpha = a * 0.92f),
+                radius = r * 0.36f,
+                center = pCenter,
+                style = Stroke(width = 2.2f)
+            )
+            drawIntoCanvas { canvas ->
+                cachedSubPaint.textSize = 18f
+                cachedSubPaint.color = android.graphics.Color.argb(
+                    (a * 240).toInt().coerceIn(0, 255),
+                    if (pIdx == 0) 250 else 255,
+                    if (pIdx == 0) 204 else 255,
+                    if (pIdx == 0) 21 else 255
                 )
-                drawCircle(
-                    color = Color.White.copy(alpha = a * (0.75f + 0.25f * beatKick)),
-                    radius = r * 0.55f,
-                    center = center,
-                    style = Stroke(width = 2.4f + beatKick * 1.5f)
-                )
+                canvas.nativeCanvas.drawText(label, pCenter.x, pCenter.y - r * 1.15f, cachedSubPaint)
             }
         }
     }
@@ -1176,50 +1221,50 @@ fun DrawScope.drawPlayerSprite(
 }
 
 /**
- * Simple Beauty Center-Top Callout Renderer (used only for subtle song section headers if needed).
+ * Renders both World-Space Rhythm Judgments (`PERFECT!`, `GOOD!`, `MISS`, `SLIDE!`) right above each
+ * beat node AND Center-Top Song Section Callout Pills when `isLarge` is set.
  */
 fun DrawScope.drawFloatingTexts(floatingTexts: List<FloatingText>) {
-    val active = floatingTexts.lastOrNull() ?: return
-    val alpha = (active.life.coerceIn(0f, 1f) * 255).toInt()
-    if (alpha <= 5) return
-
-    val cx = size.width * 0.5f
-    val cy = size.height * 0.205f
-    val lifeEase = active.life.coerceIn(0f, 1f)
-
-    val pillW = (active.text.length * (if (active.isLarge) 13.5f else 11f) + 48f).coerceIn(160f, size.width * 0.86f)
-    val pillH = if (active.subtitle.isNotEmpty()) 54f else 38f
-    drawRoundRect(
-        color = Color(0xCC03070EL).copy(alpha = (lifeEase * 0.74f).coerceIn(0f, 0.74f)),
-        topLeft = Offset(cx - pillW / 2f, cy - 26f),
-        size = Size(pillW, pillH),
-        cornerRadius = CornerRadius(50f, 50f)
-    )
-    drawRoundRect(
-        color = active.color.copy(alpha = (lifeEase * 0.62f).coerceIn(0f, 0.62f)),
-        topLeft = Offset(cx - pillW / 2f, cy - 26f),
-        size = Size(pillW, pillH),
-        cornerRadius = CornerRadius(50f, 50f),
-        style = Stroke(width = 1.6f)
-    )
+    if (floatingTexts.isEmpty()) return
 
     drawIntoCanvas { canvas ->
-        cachedBannerPaint.textSize = if (active.isLarge) 34f else 26f
-        cachedBannerPaint.color = android.graphics.Color.argb((alpha * 0.70f).toInt(), 79, 70, 229)
-        canvas.nativeCanvas.drawText(active.text, cx + 2.5f, cy + 2.5f, cachedBannerPaint)
+        floatingTexts.forEach { ft ->
+            val lifeEase = ft.life.coerceIn(0f, 1f)
+            val alpha = (lifeEase * 255).toInt()
+            if (alpha <= 5) return@forEach
 
-        cachedBannerPaint.color = android.graphics.Color.argb(
-            alpha,
-            (active.color.red * 255).toInt(),
-            (active.color.green * 255).toInt(),
-            (active.color.blue * 255).toInt()
-        )
-        canvas.nativeCanvas.drawText(active.text, cx, cy, cachedBannerPaint)
+            if (ft.isLarge && ft.subtitle.isNotEmpty()) {
+                val cx = size.width * 0.5f
+                val cy = size.height * 0.205f
+                cachedBannerPaint.textSize = 32f
+                cachedBannerPaint.color = android.graphics.Color.argb((alpha * 0.70f).toInt(), 79, 70, 229)
+                canvas.nativeCanvas.drawText(ft.text, cx + 2.5f, cy + 2.5f, cachedBannerPaint)
 
-        if (active.subtitle.isNotEmpty()) {
-            cachedSubPaint.textSize = 19f
-            cachedSubPaint.color = android.graphics.Color.argb((alpha * 0.88f).toInt(), 226, 232, 240)
-            canvas.nativeCanvas.drawText(active.subtitle, cx, cy + 20f, cachedSubPaint)
+                cachedBannerPaint.color = android.graphics.Color.argb(
+                    alpha,
+                    (ft.color.red * 255).toInt(),
+                    (ft.color.green * 255).toInt(),
+                    (ft.color.blue * 255).toInt()
+                )
+                canvas.nativeCanvas.drawText(ft.text, cx, cy, cachedBannerPaint)
+
+                cachedSubPaint.textSize = 19f
+                cachedSubPaint.color = android.graphics.Color.argb((alpha * 0.88f).toInt(), 226, 232, 240)
+                canvas.nativeCanvas.drawText(ft.subtitle, cx, cy + 20f, cachedSubPaint)
+            } else {
+                val riseY = ft.y - (1f - lifeEase) * 36f
+                cachedSubPaint.textSize = if (ft.isLarge) 28f else 22f
+                cachedSubPaint.color = android.graphics.Color.argb((alpha * 0.82f).toInt(), 4, 8, 18)
+                canvas.nativeCanvas.drawText(ft.text, ft.x + 2f, riseY + 2f, cachedSubPaint)
+
+                cachedSubPaint.color = android.graphics.Color.argb(
+                    alpha,
+                    (ft.color.red * 255).toInt(),
+                    (ft.color.green * 255).toInt(),
+                    (ft.color.blue * 255).toInt()
+                )
+                canvas.nativeCanvas.drawText(ft.text, ft.x, riseY, cachedSubPaint)
+            }
         }
     }
 }

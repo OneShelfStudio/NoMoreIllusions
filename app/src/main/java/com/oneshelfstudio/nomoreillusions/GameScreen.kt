@@ -337,6 +337,7 @@ fun GameScreen(
     val motes = remember { mutableStateListOf<GameObject>() }
 
     var activePhenomenon by remember { mutableStateOf<ActivePhenomenon?>(null) }
+    var activeWormholeSlide by remember { mutableStateOf<WormholeSlideState?>(null) }
     var constellationCounter by remember { mutableIntStateOf(0) }
     var liveMultiBand by remember { mutableStateOf(MultiBandAudioState()) }
     var liveAudioEnergy by remember { mutableFloatStateOf(0.42f) }
@@ -387,16 +388,16 @@ fun GameScreen(
         GameDifficulty.REGULAR -> 1.0f
         GameDifficulty.HARD -> 1.5f
     }
-    val trackDifficultyBoost = 1.0f + (selectedTrackIndex - 1).coerceAtLeast(0) * 0.20f
+    val trackDifficultyBoost = 1.0f + (selectedTrackIndex - 1).coerceAtLeast(0) * 0.14f
     val speedScale = when (gameDifficulty) {
-        GameDifficulty.EASY -> 0.78f
-        GameDifficulty.REGULAR -> 1.08f
-        GameDifficulty.HARD -> 1.38f
+        GameDifficulty.EASY -> 0.68f
+        GameDifficulty.REGULAR -> 0.85f
+        GameDifficulty.HARD -> 1.18f
     } * trackDifficultyBoost
     val spawnRateScale = when (gameDifficulty) {
-        GameDifficulty.EASY -> 0.78f
-        GameDifficulty.REGULAR -> 1.15f
-        GameDifficulty.HARD -> 1.48f
+        GameDifficulty.EASY -> 0.50f
+        GameDifficulty.REGULAR -> 0.72f
+        GameDifficulty.HARD -> 1.25f
     } * trackDifficultyBoost
 
     val applyColorBlind: (Color) -> Color = { color ->
@@ -450,6 +451,7 @@ fun GameScreen(
         juiceIntensity = 0f
         nextOrbCueIdx = 0
         activePhenomenon = null
+        activeWormholeSlide = null
         liveMultiBand = MultiBandAudioState()
         liveAudioEnergy = 0.42f
         liveSwellDelta = 0f
@@ -481,6 +483,7 @@ fun GameScreen(
         cameraPunch = 0f
         beatFlashIntensity = 0f
         activePhenomenon = null
+        activeWormholeSlide = null
         activePowerUpToast = PowerUpBannerToast(
             icon = "🛡️",
             title = "REVIVED!",
@@ -745,31 +748,24 @@ fun GameScreen(
                 val targetGoldIntensity = if (isGoldenActive) 1.0f else (mb.high - 0.70f).coerceAtLeast(0f) * 2.0f
                 goldenOverdriveIntensity += (targetGoldIntensity.coerceIn(0f, 1f) - goldenOverdriveIntensity) * 0.12f
 
-                // 3. TRAVELING PERIMETER-TO-PERIMETER HARMONIC COMET SPAWNING (Zero random mid-screen pops!)
+                // 3. STATIONARY ANCHORED SEQUENTIAL BEAT NODE SPAWNING + TTL APPROACH RINGS (Osu! / Guitar Hero Flow!)
                 val beatDurationSec = 60f / activeTrack.bpm.coerceAtLeast(60f)
-                val spawnLeadTime = beatDurationSec * 2.0f
+                val spawnLeadTime = beatDurationSec * 2.5f
+                val ttlGraceSec = beatDurationSec * 0.92f
                 val chart = activeTrack.orbChart
                 if (selectedRemixMode == TrackRemixMode.ENDLESS && nextOrbCueIdx >= chart.size && trackSec < 5f) {
                     nextOrbCueIdx = 0
                 }
                 while (
                     nextOrbCueIdx < chart.size &&
-                    powerUps.size < 2 &&
-                    (trackSec >= chart[nextOrbCueIdx].timestampSec - spawnLeadTime || (powerUps.isEmpty() && trackSec + spawnLeadTime * 1.8f >= chart[nextOrbCueIdx].timestampSec))
+                    powerUps.size < 4 &&
+                    (trackSec >= chart[nextOrbCueIdx].timestampSec - spawnLeadTime || (powerUps.isEmpty() && trackSec + spawnLeadTime * 1.5f >= chart[nextOrbCueIdx].timestampSec))
                 ) {
                     val cue = chart[nextOrbCueIdx]
                     nextOrbCueIdx++
-                    if (trackSec <= cue.timestampSec + 1.4f && screenWidth > 0f && screenHeight > 0f) {
+                    if (trackSec <= cue.timestampSec + ttlGraceSec && screenWidth > 0f && screenHeight > 0f) {
                         val destX = (cue.normX * screenWidth).coerceIn(72f, screenWidth - 72f)
-                        val destY = (cue.normY * screenHeight).coerceIn(165f, screenHeight - 115f)
-                        val side = cue.sequenceIndex % 4
-                        val (spawnX, spawnY) = when (side) {
-                            0 -> destX to 148f
-                            1 -> (screenWidth - 56f) to destY
-                            2 -> destX to (screenHeight - 98f)
-                            else -> 56f to destY
-                        }
-                        val travelAngle = atan2(destY - spawnY, destX - spawnX) + (if (cue.sequenceIndex % 2 == 0) 0.18f else -0.18f)
+                        val destY = (cue.normY * screenHeight).coerceIn(168f, screenHeight - 115f)
                         val isSupernova = cue.keyWordEffect != KeyWordEffect.NONE
                         val isOrbGolden = cue.isGoldenCue || cue.keyWordEffect == KeyWordEffect.CONSTELLATION_STAR
                         val pColor = when (cue.keyWordEffect) {
@@ -789,28 +785,30 @@ fun GameScreen(
                         }
                         shockwaves.add(
                             Shockwave(
-                                x = spawnX,
-                                y = spawnY,
+                                x = destX,
+                                y = destY,
                                 radius = 0f,
-                                maxRadius = if (isSupernova) 135f else 75f,
+                                maxRadius = if (isSupernova) 115f else 62f,
                                 color = pColor,
-                                life = 0.72f
+                                life = 0.55f
                             )
                         )
                         powerUps.add(
                             GameObject(
-                                x = spawnX,
-                                y = spawnY,
-                                radius = if (isSupernova) 38f else 22f,
+                                x = destX,
+                                y = destY,
+                                radius = if (isSupernova) 36f else 23f,
                                 color = applyColorBlind(pColor),
-                                angle = travelAngle,
-                                speed = (if (isSupernova) 2.05f else 2.35f) * selectedRemixMode.audioSpeed.coerceIn(0.85f, 1.25f),
+                                angle = 0f,
+                                speed = 0f,
                                 powerUpType = cue.powerUpType,
                                 phase = cue.sequenceIndex * 0.7f,
                                 anchorX = destX,
                                 anchorY = destY,
                                 spawnBeatSec = trackSec,
                                 targetBeatSec = cue.timestampSec,
+                                expireBeatSec = cue.timestampSec + ttlGraceSec,
+                                phraseBeatNum = ((cue.sequenceIndex - 1) % 4) + 1,
                                 sequenceIndex = cue.sequenceIndex,
                                 isGoldenOrb = isOrbGolden,
                                 keyWordEffect = cue.keyWordEffect
@@ -819,7 +817,7 @@ fun GameScreen(
                     }
                 }
 
-                // Step Traveling Beat & Supernova Orbs + Tethered Satellites + Fading Wormholes
+                // Step Stationary Beat Nodes + TTL Expiration Check (Miss resets combo only, never health!)
                 stepNebulousBeatOrbs(
                     powerUps = powerUps,
                     player = player,
@@ -831,7 +829,43 @@ fun GameScreen(
                     activePhenomenon = activePhenomenon,
                     currentScale = currentScale,
                     beatPhase = liveBeatPhase,
-                    magnetActive = magnetTime > 0f || activePhenomenon?.effect == KeyWordEffect.TRACTOR_REACH
+                    magnetActive = magnetTime > 0f || activePhenomenon?.effect == KeyWordEffect.TRACTOR_REACH,
+                    onBeatMissed = { missedOrb ->
+                        if (rhythmCombo > 0) {
+                            rhythmCombo = 0
+                            floatingTexts.add(
+                                FloatingText(
+                                    x = missedOrb.x,
+                                    y = missedOrb.y - 14f,
+                                    text = "MISS • COMBO RESET",
+                                    life = 0.85f,
+                                    color = Color(0xFFFB7185L),
+                                    isLarge = false
+                                )
+                            )
+                        } else {
+                            floatingTexts.add(
+                                FloatingText(
+                                    x = missedOrb.x,
+                                    y = missedOrb.y - 14f,
+                                    text = "MISS",
+                                    life = 0.75f,
+                                    color = Color(0xFF94A3B8L),
+                                    isLarge = false
+                                )
+                            )
+                        }
+                        shockwaves.add(
+                            Shockwave(
+                                x = missedOrb.x,
+                                y = missedOrb.y,
+                                radius = missedOrb.radius * 0.8f,
+                                maxRadius = missedOrb.radius * 2.1f,
+                                color = Color(0xFFFB7185L),
+                                life = 0.45f
+                            )
+                        )
+                    }
                 )
                 stepTetheredSatellites(
                     satellites = tetheredSatellites,
@@ -915,11 +949,12 @@ fun GameScreen(
                 while (pIter.hasNext()) {
                     val p = pIter.next()
                     val dist = hypot(p.x - player.x, p.y - player.y)
-                    val catchRadius = p.radius + player.radius + (if (isGoldenActive) 18f else 12f)
+                    val catchRadius = p.radius + player.radius + (if (isGoldenActive) 20f else 15f)
                     if (dist < catchRadius) {
                         rhythmCombo++
                         val isSupernovaOrb = p.keyWordEffect != KeyWordEffect.NONE
-                        val isCaughtOnBeat = (liveBeatPhase <= 0.42f || liveBeatPhase >= 0.74f) || isSupernovaOrb
+                        val beatDelta = abs(trackSec - p.targetBeatSec)
+                        val isCaughtOnBeat = (beatDelta <= beatDurationSec * 0.42f) || (liveBeatPhase <= 0.38f || liveBeatPhase >= 0.76f) || isSupernovaOrb
                         if (isCaughtOnBeat) {
                             onBeatHitsThisRun++
                         }
@@ -945,7 +980,18 @@ fun GameScreen(
                         if (!isSupernovaOrb) {
                             triggerHaptic(if (isCaughtOnBeat) 28L else 14L)
                             val mult = if (isGoldenActive) maxOf(scoreMultiplier, 4) else scoreMultiplier
-                            score += ((if (isCaughtOnBeat) 60 else 30) * mult * difficultyScoreMultiplier).toInt()
+                            val gainedPts = ((if (isCaughtOnBeat) 80 else 45) * mult * (1f + (rhythmCombo.coerceAtMost(12) * 0.10f)) * difficultyScoreMultiplier).toInt()
+                            score += gainedPts
+                            floatingTexts.add(
+                                FloatingText(
+                                    x = p.x,
+                                    y = p.y - 18f,
+                                    text = if (isCaughtOnBeat) "PERFECT! +$gainedPts (x$rhythmCombo)" else "GOOD! +$gainedPts",
+                                    life = 0.90f,
+                                    color = if (isCaughtOnBeat) Color(0xFF4ADE80L) else Color(0xFFFACC15L),
+                                    isLarge = false
+                                )
+                            )
 
                             // Trigger Power-Up Specific Effects & Candy-Catcher-Style Top-Center Pickup Toast!
                             when (p.powerUpType) {
@@ -1187,7 +1233,8 @@ fun GameScreen(
                         beatPhase = liveBeatPhase,
                         activeTargetOrb = nextTargetOrb,
                         activePhenomenon = activePhenomenon,
-                        multiBand = mb
+                        multiBand = mb,
+                        allBeatOrbs = powerUps
                     )
 
                     val hitDist = if (e.type == EnemyType.LASER_SWEEPER) {
@@ -1300,49 +1347,113 @@ fun GameScreen(
                     }
                 }
 
-                // 6b. Active Singularity Wormhole & Phase Barrier Collision / Warp Check
-                val wCheckIter = wormholes.iterator()
-                while (wCheckIter.hasNext()) {
-                    val w = wCheckIter.next()
-                    if (!w.isHazardActive || isAdminMode || spawnInvulnerabilityTime > 0f) continue
-                    val wDist = if (w.kind == AnomalyKind.PHASE_BARRIER) {
-                        val halfLen = w.length * 0.5f
-                        val cosA = cos(w.angle)
-                        val sinA = sin(w.angle)
-                        val relX = player.x - w.x
-                        val relY = player.y - w.y
-                        val proj = (relX * cosA + relY * sinA).coerceIn(-halfLen, halfLen)
-                        val cx = w.x + cosA * proj
-                        val cy = w.y + sinA * proj
-                        hypot(player.x - cx, player.y - cy)
-                    } else {
-                        hypot(player.x - w.x, player.y - w.y)
+                // 6b. Musical Slide-Note Wormhole Surf (Entry Portal A -> Bezier Light Stream -> Exit Portal B!)
+                val curSlide = activeWormholeSlide
+                if (curSlide != null) {
+                    val nextProg = curSlide.progress + (0.016f * currentScale) / curSlide.durationSec.coerceAtLeast(0.45f)
+                    val clampedT = nextProg.coerceIn(0f, 1f)
+                    val inv = 1f - clampedT
+                    val sx = inv * inv * curSlide.startX + 2f * inv * clampedT * curSlide.ctrlX + clampedT * clampedT * curSlide.endX
+                    val sy = inv * inv * curSlide.startY + 2f * inv * clampedT * curSlide.ctrlY + clampedT * clampedT * curSlide.endY
+                    player.x = sx
+                    player.y = sy
+                    targetX = sx
+                    targetY = sy
+                    spawnInvulnerabilityTime = maxOf(spawnInvulnerabilityTime, 0.45f)
+
+                    val tickIdx = (clampedT * 5f).toInt()
+                    if (tickIdx > curSlide.lastTickIndex && tickIdx <= 5) {
+                        curSlide.lastTickIndex = tickIdx
+                        rhythmCombo++
+                        onBeatHitsThisRun++
+                        val tickPts = (55 * maxOf(scoreMultiplier, 2) * difficultyScoreMultiplier).toInt()
+                        score += tickPts
+                        pulsePoints += 2
+                        audioEngine.playOrbBeatHit(combo = rhythmCombo, isKeyWordPeg = tickIdx == 5)
+                        triggerHaptic(18L)
+                        shockwaves.add(Shockwave(sx, sy, 0f, 115f, Color(0xFF38BDF8L), 0.65f))
+                        floatingTexts.add(
+                            FloatingText(
+                                x = sx,
+                                y = sy - 18f,
+                                text = "SLIDE ♪ +$tickPts",
+                                life = 0.72f,
+                                color = Color(0xFFFACC15L),
+                                isLarge = false
+                            )
+                        )
                     }
-                    val lethalRad = if (w.kind == AnomalyKind.PHASE_BARRIER) 14f else (w.radius * 0.55f)
-                    if (wDist < lethalRad + player.radius) {
-                        if (shieldTime > 0f || starPowerTime > 0f) {
-                            shieldTime = 0f
-                            starPowerTime = 0f
-                            spawnInvulnerabilityTime = 1.15f
-                            audioEngine.playHit()
-                            triggerHaptic(50L)
-                            shakeAmount = 10f
-                            shockwaves.add(Shockwave(w.x, w.y, 0f, 240f, w.color, 0.9f))
-                            wCheckIter.remove()
-                        } else {
-                            pulsePoints += ((score / 70).coerceIn(5, 45) * difficultyScoreMultiplier).toInt().coerceAtLeast(5)
-                            gameOverCounter++
-                            gameState = GameState.GAME_OVER
-                            shockwaves.add(Shockwave(player.x, player.y, 0f, 500f, Color(0xFFEC4899L), 1f))
-                            audioEngine.playDeath()
-                            triggerHaptic(120L)
-                            shakeAmount = 28f
-                            chromaticAmount = 4.5f
-                            if (score > highScore) {
-                                highScore = score
-                                prefs.edit().putInt("high_score", highScore).apply()
-                                voiceOverManager.playVoiceOver("vo_new_record")
-                            }
+                    if (nextProg >= 1f) {
+                        val dropPts = (180 * maxOf(scoreMultiplier, 2) * difficultyScoreMultiplier).toInt()
+                        score += dropPts
+                        cameraPunch = 0.036f
+                        beatFlashIntensity = 0.65f
+                        shockwaves.add(Shockwave(sx, sy, 0f, 260f, Color(0xFFFACC15L), 0.95f))
+                        floatingTexts.add(
+                            FloatingText(
+                                x = sx,
+                                y = sy - 24f,
+                                text = "SLIDE DROP! +$dropPts",
+                                life = 0.95f,
+                                color = Color(0xFF4ADE80L),
+                                isLarge = false
+                            )
+                        )
+                        activeWormholeSlide = null
+                    } else {
+                        curSlide.progress = nextProg
+                    }
+                } else {
+                    for (w in wormholes) {
+                        if (w.slideCooldownSec > 0f || w.alphaProgress < 0.35f) continue
+                        val bx = if (w.exitX > 0f) w.exitX else (w.x + 180f)
+                        val by = if (w.exitY > 0f) w.exitY else (w.y - 140f)
+                        val cx = if (w.ctrlX > 0f) w.ctrlX else ((w.x + bx) * 0.5f + 55f)
+                        val cy = if (w.ctrlY > 0f) w.ctrlY else ((w.y + by) * 0.5f - 45f)
+                        val distA = hypot(player.x - w.x, player.y - w.y)
+                        val distB = hypot(player.x - bx, player.y - by)
+                        if (distA < w.radius + player.radius * 0.85f) {
+                            w.slideCooldownSec = 2.4f
+                            spawnInvulnerabilityTime = maxOf(spawnInvulnerabilityTime, 1.35f)
+                            activeWormholeSlide = WormholeSlideState(
+                                startX = w.x,
+                                startY = w.y,
+                                ctrlX = cx,
+                                ctrlY = cy,
+                                endX = bx,
+                                endY = by,
+                                durationSec = (beatDurationSec * 1.85f).coerceIn(0.75f, 1.15f)
+                            )
+                            activePowerUpToast = PowerUpBannerToast(
+                                icon = "🌀",
+                                title = "WORMHOLE SLIDE STREAM!",
+                                subtitle = "SURFING THE BEAT RIBBON • INVINCIBLE!",
+                                accentColor = Color(0xFF38BDF8L),
+                                timer = 1.8f,
+                                maxTimer = 1.8f
+                            )
+                            break
+                        } else if (distB < w.radius + player.radius * 0.85f) {
+                            w.slideCooldownSec = 2.4f
+                            spawnInvulnerabilityTime = maxOf(spawnInvulnerabilityTime, 1.35f)
+                            activeWormholeSlide = WormholeSlideState(
+                                startX = bx,
+                                startY = by,
+                                ctrlX = cx,
+                                ctrlY = cy,
+                                endX = w.x,
+                                endY = w.y,
+                                durationSec = (beatDurationSec * 1.85f).coerceIn(0.75f, 1.15f)
+                            )
+                            activePowerUpToast = PowerUpBannerToast(
+                                icon = "🌀",
+                                title = "WORMHOLE SLIDE STREAM!",
+                                subtitle = "SURFING THE BEAT RIBBON • INVINCIBLE!",
+                                accentColor = Color(0xFFE879F9L),
+                                timer = 1.8f,
+                                maxTimer = 1.8f
+                            )
+                            break
                         }
                     }
                 }

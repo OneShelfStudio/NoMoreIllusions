@@ -101,21 +101,27 @@ enum class TrackRemixMode(
 enum class AnomalyKind { WORMHOLE_VORTEX, PHASE_BARRIER }
 
 /**
- * Fading-in Singularity Wormhole or Rhythmic Phase Barrier that materializes on musical swells,
- * warps enemy trajectories, and creates dynamic spatial obstacles to weave around.
+ * Musical Slide-Note Wormhole Stream (Entry Portal A -> Curved Light-Ribbon -> Exit Portal B).
+ * Touching Portal A on the beat locks the player onto the glowing musical stream, surfing across
+ * a chain of harmonic rhythm pearls to Portal B in sync with the music!
  */
 data class SingularityWormhole(
     var x: Float,
     var y: Float,
-    val radius: Float = 52f,
+    val radius: Float = 42f,
     val kind: AnomalyKind = AnomalyKind.WORMHOLE_VORTEX,
     var angle: Float = 0f,
     val length: Float = 135f,
     var ageSec: Float = 0f,
-    val fadeInSec: Float = 1.45f,
-    val activeSec: Float = 4.6f,
-    val fadeOutSec: Float = 1.15f,
-    val color: Color = Color(0xFFA855F7L)
+    val fadeInSec: Float = 0.60f,
+    val activeSec: Float = 9.0f,
+    val fadeOutSec: Float = 0.80f,
+    val color: Color = Color(0xFFA855F7L),
+    var exitX: Float = 0f,
+    var exitY: Float = 0f,
+    var ctrlX: Float = 0f,
+    var ctrlY: Float = 0f,
+    var slideCooldownSec: Float = 0f
 ) {
     val totalDuration: Float get() = fadeInSec + activeSec + fadeOutSec
     val isHazardActive: Boolean get() = ageSec in fadeInSec..(fadeInSec + activeSec)
@@ -127,6 +133,21 @@ data class SingularityWormhole(
             else -> (1f - (ageSec - fadeInSec - activeSec) / fadeOutSec).coerceIn(0f, 1f)
         }
 }
+
+/**
+ * Active state when the player is surfing along a Musical Wormhole Slide Ribbon.
+ */
+data class WormholeSlideState(
+    val startX: Float,
+    val startY: Float,
+    val ctrlX: Float,
+    val ctrlY: Float,
+    val endX: Float,
+    val endY: Float,
+    var progress: Float = 0f,
+    val durationSec: Float = 0.90f,
+    var lastTickIndex: Int = 0
+)
 
 data class GameObject(
     var x: Float,
@@ -147,6 +168,8 @@ data class GameObject(
     var anchorY: Float = 0f,
     var spawnBeatSec: Float = 0f,
     var targetBeatSec: Float = 0f,
+    var expireBeatSec: Float = 0f,
+    var phraseBeatNum: Int = 1,
     var lyricCallout: String = "",
     var sequenceIndex: Int = 0,
     var isGoldenOrb: Boolean = false,
