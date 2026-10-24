@@ -52,17 +52,14 @@ function drawOrbitalPhenomenonAndSatellites(ctx, orbitalPhenomenon, satellites, 
       ctx.fillStyle = grad;
       ctx.fill();
 
-      const rayCount = 8;
-      for (let rIdx = 0; rIdx < rayCount; rIdx++) {
-        const angle = (rIdx * (360 / rayCount) + time * 42) * Math.PI / 180;
-        const rayLen = op.radius * (1.8 + 0.45 * Math.sin(time * 5 + rIdx) + vocalEnvelope * 0.5);
+      const orbCount = 8;
+      for (let rIdx = 0; rIdx < orbCount; rIdx++) {
+        const angle = (rIdx * (360 / orbCount) + time * 42) * Math.PI / 180;
+        const orbDist = op.radius * (1.45 + 0.35 * Math.sin(time * 5 + rIdx) + vocalEnvelope * 0.35);
         ctx.beginPath();
-        ctx.moveTo(op.x, op.y);
-        ctx.lineTo(op.x + Math.cos(angle) * rayLen, op.y + Math.sin(angle) * rayLen);
-        ctx.strokeStyle = rgba([253, 224, 71], 0.55);
-        ctx.lineWidth = 3.5;
-        ctx.lineCap = "round";
-        ctx.stroke();
+        ctx.arc(op.x + Math.cos(angle) * orbDist, op.y + Math.sin(angle) * orbDist, rIdx % 2 === 0 ? 4.2 : 2.8, 0, Math.PI * 2);
+        ctx.fillStyle = rgba([253, 224, 71], 0.82);
+        ctx.fill();
       }
       ctx.beginPath();
       ctx.arc(op.x, op.y, op.radius * 0.68, 0, Math.PI * 2);
@@ -141,19 +138,17 @@ function drawEnemyTelegraphs(ctx, telegraphs, time, beatPulse) {
     ctx.fillStyle = bloomGrad;
     ctx.fill();
 
-    // 3. High-Contrast Crimson Warning Diamond (◆) on screen perimeter
-    const dSize = 14 + urgencyPulse * 4;
-    ctx.save();
-    ctx.translate(tg.edgeX, tg.edgeY);
-    ctx.rotate(Math.PI / 4);
-    ctx.fillStyle = rgba(warnCol, 0.95);
-    ctx.fillRect(-dSize / 2, -dSize / 2, dSize, dSize);
+    // 3. Smooth Crimson/Amber Radial Warning Beacon Orb on screen perimeter (No sharp square/diamond lines!)
+    const bSize = 11 + urgencyPulse * 4;
+    ctx.beginPath();
+    ctx.arc(tg.edgeX, tg.edgeY, bSize * 0.85, 0, Math.PI * 2);
+    ctx.fillStyle = rgba(warnCol, 0.92);
+    ctx.fill();
     ctx.strokeStyle = "#FFFFFF";
     ctx.lineWidth = 1.8;
-    ctx.strokeRect(-dSize / 2, -dSize / 2, dSize, dSize);
-    ctx.restore();
+    ctx.stroke();
 
-    // 4. Countdown ring contracting onto the diamond
+    // 4. Countdown ring contracting onto the beacon
     ctx.beginPath();
     ctx.arc(tg.edgeX, tg.edgeY, (1 - progress) * 26 + 11, 0, Math.PI * 2);
     ctx.strokeStyle = rgba([255, 183, 3], 0.88);
@@ -163,7 +158,7 @@ function drawEnemyTelegraphs(ctx, telegraphs, time, beatPulse) {
 }
 
 function drawEnemySprite(ctx, e, enemyBitmaps, time, beatPulse) {
-  // 1:1 with Android GameRenderer.kt — ZERO tails. Crisp geometric hazards only.
+  // Smooth Curved Energy Crescents & Orbital Threat Rings (Zero jagged polygon wireframes!)
   const speed = Math.max(1, Math.hypot(e.vx, e.vy));
   const dirX = e.vx / speed;
   const dirY = e.vy / speed;
@@ -171,110 +166,67 @@ function drawEnemySprite(ctx, e, enemyBitmaps, time, beatPulse) {
   const r = e.radius;
 
   // Shared crimson danger halo
-  const halo = ctx.createRadialGradient(e.x, e.y, 2, e.x, e.y, r * 2.0);
-  halo.addColorStop(0, "rgba(255,30,66,0.42)");
+  const halo = ctx.createRadialGradient(e.x, e.y, 2, e.x, e.y, r * 2.1);
+  halo.addColorStop(0, "rgba(255,30,66,0.48)");
+  halo.addColorStop(0.55, "rgba(136,19,55,0.22)");
   halo.addColorStop(1, "rgba(0,0,0,0)");
   ctx.beginPath();
-  ctx.arc(e.x, e.y, r * 2.0, 0, Math.PI * 2);
+  ctx.arc(e.x, e.y, r * 2.1, 0, Math.PI * 2);
   ctx.fillStyle = halo;
   ctx.fill();
 
-  ctx.save();
-  ctx.translate(e.x, e.y);
+  // Dark spherical plasma core body
+  ctx.beginPath();
+  ctx.arc(e.x, e.y, r * 0.94, 0, Math.PI * 2);
+  ctx.fillStyle = "#19040C";
+  ctx.fill();
 
   if (e.type === "PULSAR") {
-    // CRIMSON SAWBLADE: 8-point spinning cybernetic buzzsaw
-    ctx.rotate(time * 4.2 + (e.phase || 0));
-    const teeth = 8;
-    ctx.beginPath();
-    for (let i = 0; i < teeth * 2; i++) {
-      const a = i * (Math.PI / teeth);
-      const rr = i % 2 === 0 ? r * (1.32 + beatPulse * 0.12) : r * 0.86;
-      const a2 = a + (i % 2 === 0 ? 0.12 : 0);
-      if (i === 0) ctx.moveTo(Math.cos(a2) * rr, Math.sin(a2) * rr);
-      else ctx.lineTo(Math.cos(a2) * rr, Math.sin(a2) * rr);
-    }
-    ctx.closePath();
-    ctx.fillStyle = "#7F1D1D";
-    ctx.fill();
-    ctx.strokeStyle = "#FB7185";
-    ctx.lineWidth = 2.2;
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.arc(0, 0, r * 0.62, 0, Math.PI * 2);
-    ctx.fillStyle = "#1A0508";
-    ctx.fill();
-    ctx.strokeStyle = "#F43F5E";
-    ctx.lineWidth = 1.6;
-    ctx.stroke();
     for (let b = 0; b < 4; b++) {
-      const a = b * (Math.PI / 2);
+      const startA = -time * 3.8 + b * (Math.PI / 2);
       ctx.beginPath();
-      ctx.arc(Math.cos(a) * r * 0.38, Math.sin(a) * r * 0.38, r * 0.09, 0, Math.PI * 2);
-      ctx.fillStyle = "#FDA4AF";
-      ctx.fill();
+      ctx.arc(e.x, e.y, r * (1.14 + 0.12 * beatPulse), startA, startA + 0.95);
+      ctx.strokeStyle = "#FB7185";
+      ctx.lineWidth = 3.0;
+      ctx.lineCap = "round";
+      ctx.stroke();
     }
   } else if (e.type === "SEEKER") {
-    // DELTA INTERCEPTOR: angular twin-wing stealth fighter with amber wingtip beacons
-    ctx.rotate(heading);
     ctx.beginPath();
-    ctx.moveTo(r * 1.45, 0);
-    ctx.lineTo(-r * 0.85, r * 1.15);
-    ctx.lineTo(-r * 0.45, 0);
-    ctx.lineTo(-r * 0.85, -r * 1.15);
-    ctx.closePath();
-    ctx.fillStyle = "#3F0A12";
-    ctx.fill();
+    ctx.arc(e.x, e.y, r * 1.16, heading - 1.25, heading + 1.25);
     ctx.strokeStyle = "#FF1E42";
-    ctx.lineWidth = 2.2;
+    ctx.lineWidth = 3.4;
+    ctx.lineCap = "round";
     ctx.stroke();
-    // Center spine
-    ctx.beginPath();
-    ctx.moveTo(r * 1.2, 0);
-    ctx.lineTo(-r * 0.35, 0);
-    ctx.strokeStyle = "rgba(254,205,211,0.85)";
-    ctx.lineWidth = 1.4;
-    ctx.stroke();
-    // Cockpit
-    ctx.beginPath();
-    ctx.ellipse(r * 0.35, 0, r * 0.32, r * 0.18, 0, 0, Math.PI * 2);
-    ctx.fillStyle = "#FF1E42";
-    ctx.fill();
-    // Amber wingtip beacons (blink on beat)
     const blink = 0.55 + 0.45 * beatPulse;
-    for (const s of [-1, 1]) {
+    for (const s of [-2.15, 2.15]) {
       ctx.beginPath();
-      ctx.arc(-r * 0.8, s * r * 1.08, r * 0.14, 0, Math.PI * 2);
+      ctx.arc(e.x + Math.cos(heading + s) * r * 1.16, e.y + Math.sin(heading + s) * r * 1.16, r * 0.16, 0, Math.PI * 2);
       ctx.fillStyle = `rgba(251,191,36,${blink})`;
       ctx.fill();
     }
   } else {
-    // VOID OCTAHEDRON: counter-rotating double-square prism + 3 orbiting hazard nodes
-    for (let layer = 0; layer < 2; layer++) {
-      ctx.save();
-      ctx.rotate((layer === 0 ? 1 : -1) * time * 1.6 + layer * Math.PI / 4);
-      const s = r * (layer === 0 ? 1.05 : 0.82);
-      ctx.beginPath();
-      ctx.rect(-s, -s, s * 2, s * 2);
-      ctx.fillStyle = layer === 0 ? "rgba(76,5,25,0.92)" : "rgba(136,19,55,0.85)";
-      ctx.fill();
-      ctx.strokeStyle = layer === 0 ? "#FB7185" : "#FDA4AF";
-      ctx.lineWidth = 1.8;
-      ctx.stroke();
-      ctx.restore();
+    for (let ring = 0; ring < 2; ring++) {
+      const rRad = r * (ring === 0 ? 1.08 : 0.82);
+      const spin = (ring === 0 ? 1 : -1) * time * 1.9;
+      for (let seg = 0; seg < 2; seg++) {
+        const sa = spin + seg * Math.PI;
+        ctx.beginPath();
+        ctx.arc(e.x, e.y, rRad, sa, sa + 1.85);
+        ctx.strokeStyle = ring === 0 ? "#FB7185" : "#C084FC";
+        ctx.lineWidth = 2.4;
+        ctx.lineCap = "round";
+        ctx.stroke();
+      }
     }
     for (let n = 0; n < 3; n++) {
-      const a = time * 2.4 + n * (Math.PI * 2 / 3) + (e.phase || 0);
+      const a = time * 2.6 + n * (Math.PI * 2 / 3) + (e.phase || 0);
       ctx.beginPath();
-      ctx.arc(Math.cos(a) * r * 1.55, Math.sin(a) * r * 1.55, r * 0.17, 0, Math.PI * 2);
+      ctx.arc(e.x + Math.cos(a) * r * 1.38, e.y + Math.sin(a) * r * 1.38, r * 0.16, 0, Math.PI * 2);
       ctx.fillStyle = "#F43F5E";
       ctx.fill();
-      ctx.strokeStyle = "#FFFFFF";
-      ctx.lineWidth = 1;
-      ctx.stroke();
     }
   }
-  ctx.restore();
 
   // Glowing sentient core eye locked on direction of travel
   const eyeX = e.x + dirX * (r * 0.18);
@@ -361,19 +313,24 @@ function drawPlayerSprite(
   ctx.fillStyle = halo;
   ctx.fill();
 
-  // 12-Bar Radial Turntable Equalizer Crown
-  for (let i = 0; i < 12; i++) {
-    const a = i * (Math.PI / 6) + time * 0.8;
-    const wave = 0.35 + 0.65 * Math.abs(Math.sin(time * 6 + i * 0.9)) * (0.6 + beatPulse * 0.4);
-    const r0 = R * 1.12;
-    const r1 = r0 + R * (0.18 + wave * 0.42);
+  // Smooth Rotating Harmonic Crescent Waves + Orbiting Gold Pearls around the Hero (Replaces 12 straight stick lines!)
+  const haloArcR = R * (1.34 + 0.14 * beatPulse);
+  for (let arcIdx = 0; arcIdx < 3; arcIdx++) {
+    const startA = time * 1.65 + arcIdx * ((Math.PI * 2) / 3);
     ctx.beginPath();
-    ctx.moveTo(playerX + Math.cos(a) * r0, playerY + Math.sin(a) * r0);
-    ctx.lineTo(playerX + Math.cos(a) * r1, playerY + Math.sin(a) * r1);
-    ctx.strokeStyle = rgba(i % 2 === 0 ? skinCol : [250, 204, 21], 0.92);
-    ctx.lineWidth = 3;
+    ctx.arc(playerX, playerY, haloArcR, startA, startA + 1.18 + beatPulse * 0.25);
+    ctx.strokeStyle = rgba(arcIdx % 2 === 0 ? [250, 204, 21] : skinCol, 0.85);
+    ctx.lineWidth = 2.8;
     ctx.lineCap = "round";
     ctx.stroke();
+  }
+  for (let i = 0; i < 6; i++) {
+    const a = i * (Math.PI / 3) - time * 1.5;
+    const orbR = R * (1.52 + (i % 2 === 0 ? 0.18 * beatPulse : 0.06));
+    ctx.beginPath();
+    ctx.arc(playerX + Math.cos(a) * orbR, playerY + Math.sin(a) * orbR, i % 2 === 0 ? 3.0 : 2.2, 0, Math.PI * 2);
+    ctx.fillStyle = rgba(i % 2 === 0 ? [250, 204, 21] : skinCol, 0.92);
+    ctx.fill();
   }
 
   // Obsidian-and-Gold Vinyl Platter
@@ -457,52 +414,44 @@ function drawTrackRevealCanvas(ctx, logoImg, progress, beatPulse, isConstellatio
   ctx.clearRect(0, 0, w, h);
 
   const clampedProgress = Math.max(0, Math.min(1, progress));
-  const totalTiles = 16;
-  const unlockedTiles = Math.round(clampedProgress * totalTiles);
+  const cx = w * 0.5;
+  const cy = h * 0.5;
+  const maxR = Math.hypot(cx, cy);
+  const irisR = Math.max(2, maxR * clampedProgress);
 
-  // 1. Dimmed locked silhouette underneath
+  // 1. Dimmed locked silhouette underneath + soft concentric vinyl rings (Zero boxy grid lines!)
+  ctx.fillStyle = "rgba(6, 8, 18, 0.92)";
+  ctx.fillRect(0, 0, w, h);
   if (logoImg && logoImg.complete && logoImg.naturalWidth > 0) {
     ctx.save();
     ctx.globalAlpha = 0.22;
     ctx.drawImage(logoImg, 0, 0, w, h);
     ctx.restore();
   }
+  for (let g = 1; g <= 3; g++) {
+    ctx.beginPath();
+    ctx.arc(cx, cy, Math.min(w, h) * 0.15 * g, 0, Math.PI * 2);
+    ctx.strokeStyle = "rgba(56, 189, 248, 0.14)";
+    ctx.lineWidth = 1.0;
+    ctx.stroke();
+  }
 
-  const gridCols = 4;
-  const gridRows = 4;
-  const cellW = w / gridCols;
-  const cellH = h / gridRows;
-  const revealOrder = [5, 6, 9, 10, 1, 2, 4, 7, 8, 11, 13, 14, 0, 3, 12, 15];
+  // 2. Smooth Radial Iris Reveal expanding from center
+  if (clampedProgress > 0.01 && logoImg && logoImg.complete && logoImg.naturalWidth > 0) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx, cy, irisR, 0, Math.PI * 2);
+    ctx.clip();
+    ctx.globalAlpha = 0.98;
+    ctx.drawImage(logoImg, 0, 0, w, h);
+    ctx.restore();
 
-  // 2. Illuminated unlocked tiles + locked glass tiles
-  for (let idx = 0; idx < totalTiles; idx++) {
-    const tileIndex = revealOrder[idx];
-    const r = Math.floor(tileIndex / gridCols);
-    const c = tileIndex % gridCols;
-    const left = c * cellW;
-    const top = r * cellH;
-
-    if (idx < unlockedTiles) {
-      if (logoImg && logoImg.complete && logoImg.naturalWidth > 0) {
-        ctx.save();
-        ctx.beginPath();
-        ctx.rect(left, top, cellW + 0.5, cellH + 0.5);
-        ctx.clip();
-        ctx.globalAlpha = 0.96;
-        ctx.drawImage(logoImg, 0, 0, w, h);
-        ctx.restore();
-      }
-      if (idx === unlockedTiles - 1 && clampedProgress < 1) {
-        ctx.strokeStyle = rgba([250, 204, 21], 0.55 + beatPulse * 0.35);
-        ctx.lineWidth = 1.5;
-        ctx.strokeRect(left, top, cellW, cellH);
-      }
-    } else {
-      ctx.fillStyle = "rgba(8, 6, 18, 0.72)";
-      ctx.fillRect(left, top, cellW, cellH);
-      ctx.strokeStyle = "rgba(56, 189, 248, 0.16)";
-      ctx.lineWidth = 0.8;
-      ctx.strokeRect(left, top, cellW, cellH);
+    if (clampedProgress < 0.99) {
+      ctx.beginPath();
+      ctx.arc(cx, cy, irisR, 0, Math.PI * 2);
+      ctx.strokeStyle = rgba([74, 222, 128], 0.78 + beatPulse * 0.2);
+      ctx.lineWidth = 2.0;
+      ctx.stroke();
     }
   }
 
@@ -513,7 +462,6 @@ function drawTrackRevealCanvas(ctx, logoImg, progress, beatPulse, isConstellatio
   roundRectPath(ctx, 1, 1, w - 2, h - 2, 12);
   ctx.stroke();
 }
-
 
 // ============================================================================
 // 7. MENU TURNTABLE & CUSTOMIZER PREVIEW RENDERERS
@@ -529,26 +477,22 @@ function drawMenuTurntable(ctx, logoImg, time, isGoldMode) {
   const vinylRadius = outerRadius * 0.80;
   const pulse = 0.5 + 0.5 * Math.sin(time * 2.5 * Math.PI * 2);
 
-  // 1. 36-Bar Radial Equalizer Spectrum Crown
-  const barCount = 36;
-  for (let i = 0; i < barCount; i++) {
-    const angleRad = (i * (360 / barCount) + time * 18) * Math.PI / 180;
-    const wave = 0.25 + 0.75 * Math.abs(Math.sin(time * 5.2 + i * 0.45));
-    const barLen = outerRadius * (0.06 + 0.14 * wave * (0.65 + pulse * 0.35));
-    const startR = vinylRadius * 1.04;
-    const endR = startR + barLen;
-
-    const barCol = isGoldMode
-      ? (i % 2 === 0 ? [250, 204, 21] : [253, 224, 71])
-      : i % 3 === 0 ? [56, 189, 248] : i % 3 === 1 ? [168, 85, 247] : [250, 204, 21];
-
-    ctx.beginPath();
-    ctx.moveTo(cx + Math.cos(angleRad) * startR, cy + Math.sin(angleRad) * startR);
-    ctx.lineTo(cx + Math.cos(angleRad) * endR, cy + Math.sin(angleRad) * endR);
-    ctx.strokeStyle = rgba(barCol, 0.75);
-    ctx.lineWidth = 3.2;
-    ctx.lineCap = "round";
-    ctx.stroke();
+  // 1. Smooth Concentric Harmonic Wave Rings & Orbiting Aurora Crescents (Replaces 36 straight stick lines!)
+  for (let rIdx = 0; rIdx < 3; rIdx++) {
+    const waveR = vinylRadius * (1.05 + rIdx * 0.075 + pulse * 0.025);
+    const baseSpin = time * (rIdx % 2 === 0 ? 0.85 : -0.65) + rIdx * 1.1;
+    const ringCol = isGoldMode
+      ? [250, 204, 21]
+      : (rIdx === 0 ? [56, 189, 248] : rIdx === 1 ? [168, 85, 247] : [250, 204, 21]);
+    for (let seg = 0; seg < 3; seg++) {
+      const sa = baseSpin + seg * ((Math.PI * 2) / 3);
+      ctx.beginPath();
+      ctx.arc(cx, cy, waveR, sa, sa + 1.35);
+      ctx.strokeStyle = rgba(ringCol, 0.68 - rIdx * 0.16);
+      ctx.lineWidth = 3.0 - rIdx * 0.6;
+      ctx.lineCap = "round";
+      ctx.stroke();
+    }
   }
 
   // 2. Vinyl Disc Base & Concentric Micro-Grooves

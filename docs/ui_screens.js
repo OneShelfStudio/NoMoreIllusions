@@ -264,18 +264,19 @@ Object.assign(NoMoreIllusionsApp.prototype, {
   },
 
   closeLinerNotes() {
-    this.playSfx("click");
-    this.openScreen("CUSTOMIZER");
+    this.playSfx("whoosh_modal", 0.78);
+    this.openScreen("CUSTOMIZER", -1);
   },
 
-  openScreen(stateName) {
+  openScreen(stateName, customTab = -1) {
     this.unlockAudioOnFirstGesture();
-    this.playSfx("click");
+    this.playSfx("whoosh_modal", 0.80);
     if (this.gameState === "DEMO_PLAYER" && stateName !== "DEMO_PLAYER") {
       this.demoAudio.pause();
     }
     this.gameState = stateName;
     if (stateName === "CUSTOMIZER") {
+      this.customizerTab = typeof customTab === "number" ? customTab : -1;
       setTimeout(() => this.resize(), 20);
     }
     if (stateName === "DEMO_PLAYER") {
@@ -304,6 +305,11 @@ Object.assign(NoMoreIllusionsApp.prototype, {
     const allGold = OFFICIAL_TRACKS.every((t) => (this.prefs.trackMasteryMedals[t.id] || 0) >= 3);
     const ptsEl = document.getElementById("menu-points-val");
     if (ptsEl) ptsEl.textContent = String(this.prefs.points);
+
+    const exclPill = document.getElementById("menu-exclusives-pill");
+    if (exclPill && typeof this.getUnlockedExclusivesCount === "function") {
+      exclPill.textContent = `${this.getUnlockedExclusivesCount()}/${ARTIST_EXCLUSIVES_CATALOG.length} VAULT →`;
+    }
 
     const lobby = LOBBY_TRACKS[this.prefs.lobbyThemeIndex % LOBBY_TRACKS.length];
     const activeRemix = this.getRemixMode();
@@ -423,17 +429,38 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       vipBadge.textContent = this.prefs.vipUnlocked ? "• ★ VIP UNLOCKED" : "";
     }
 
-    // Track Completed Screen
+    // Track Completed Screen (Showstopping Premiere Celebration)
     if (this.gameState === "TRACK_COMPLETED") {
       const tcTitle = document.getElementById("tc-track-title");
       if (tcTitle) tcTitle.textContent = `"${activeStage.title.toUpperCase()}" MASTERED!`;
       const tcMedal = document.getElementById("tc-medal-badge");
       if (tcMedal) {
-        const label = this.earnedMedalTier === 3 ? "🥇 GOLD RECORD MASTER" : this.earnedMedalTier === 2 ? "🥈 SILVER STUDIO CUT" : "🥉 BRONZE STAGE CLEAR";
-        tcMedal.textContent = `${label} • MAX COMBO x${this.maxComboRun}`;
+        const grade = this.maxComboRun >= 8 ? "S+ MASTER" : (this.maxComboRun >= 5 ? "S RANK" : "A RANK");
+        const label = this.earnedMedalTier === 3 ? "★★★ 24K GOLD VINYL MASTER" : this.earnedMedalTier === 2 ? "★★☆ PLATINUM RHYTHM CUT" : "★☆☆ STUDIO STAGE CLEAR";
+        tcMedal.textContent = `${label} • ${grade}`;
       }
       const tcScore = document.getElementById("tc-score-val");
       if (tcScore) tcScore.textContent = String(this.score);
+      const tcCombo = document.getElementById("tc-combo-val");
+      if (tcCombo) tcCombo.textContent = `${this.maxComboRun}x`;
+      const tcEarned = document.getElementById("tc-earned-val");
+      if (tcEarned) {
+        const totalEarned = Math.max(50, Math.floor(this.score / 8)) + 500;
+        tcEarned.textContent = `+♪ ${totalEarned}`;
+      }
+      if (typeof this.getPrimarySpotlightExclusive === "function") {
+        const excl = this.getPrimarySpotlightExclusive(this.selectedStageIndex);
+        if (excl) {
+          const bEl = document.getElementById("tc-excl-badge");
+          const tEl = document.getElementById("tc-excl-title");
+          const bodyEl = document.getElementById("tc-excl-body");
+          const qEl = document.getElementById("tc-excl-quote");
+          if (bEl) bEl.textContent = `★ ARTIST EXCLUSIVE UNLOCKED • ${excl.categoryBadge}`;
+          if (tEl) tEl.textContent = excl.title;
+          if (bodyEl) bodyEl.textContent = excl.unlockedBody;
+          if (qEl) qEl.textContent = excl.unlockedQuote;
+        }
+      }
     }
 
     if (this.gameState === "CUSTOMIZER") {
@@ -464,8 +491,9 @@ Object.assign(NoMoreIllusionsApp.prototype, {
   // STUDIO CUSTOMIZER & ALBUM VAULT
   // ==========================================================================
   setCustomizerTab(tabIdx) {
-    this.playSfx("click");
+    this.playSfx("whoosh_modal", 0.72);
     this.customizerTab = tabIdx;
+    if (tabIdx >= 0) setTimeout(() => this.resize(), 20);
     this.syncCustomizerUI();
   },
 
@@ -494,6 +522,25 @@ Object.assign(NoMoreIllusionsApp.prototype, {
     const ptsEl = document.getElementById("cust-points-val");
     if (ptsEl) ptsEl.textContent = `♪ ${this.prefs.points}`;
 
+    // Tabs (-1 = ★ SPECIALS, 0 = CORES, 1 = TRAILS, 2 = THEMES)
+    for (const i of [-1, 0, 1, 2]) {
+      const tBtn = document.getElementById(`cust-tab-${i}`);
+      if (tBtn) tBtn.className = `cust-tab ${this.customizerTab === i ? "active" : ""}`;
+    }
+
+    const specialsWrap = document.getElementById("cust-specials-wrap");
+    const cosmeticsWrap = document.getElementById("cust-cosmetics-wrap");
+    if (this.customizerTab === -1) {
+      if (specialsWrap) specialsWrap.style.display = "block";
+      if (cosmeticsWrap) cosmeticsWrap.style.display = "none";
+      if (typeof this.renderArtistSpecialsVault === "function") {
+        this.renderArtistSpecialsVault();
+      }
+    } else {
+      if (specialsWrap) specialsWrap.style.display = "none";
+      if (cosmeticsWrap) cosmeticsWrap.style.display = "block";
+    }
+
     // Unlocked Track Vault Cards
     const vaultListEl = document.getElementById("cust-vault-tracks");
     if (vaultListEl) {
@@ -514,12 +561,6 @@ Object.assign(NoMoreIllusionsApp.prototype, {
           </div>
         `;
       }).join("");
-    }
-
-    // Tabs
-    for (let i = 0; i < 3; i++) {
-      const tBtn = document.getElementById(`cust-tab-${i}`);
-      if (tBtn) tBtn.className = `cust-tab ${this.customizerTab === i ? "active" : ""}`;
     }
 
     const itemsByTab = [

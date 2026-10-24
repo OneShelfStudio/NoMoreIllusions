@@ -21,7 +21,9 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.imageResource
 import androidx.compose.ui.text.font.FontWeight
@@ -75,72 +77,66 @@ fun TrackRevealOverlay(
                 .fillMaxSize()
                 .clip(RoundedCornerShape(10.dp))
         ) {
-            val revealHeight = size.height * p
-            val top = size.height - revealHeight
+            val cx = size.width * 0.5f
+            val cy = size.height * 0.5f
+            val maxR = kotlin.math.hypot(cx, cy)
+            val irisR = (maxR * p).coerceAtLeast(2f)
 
-            // Draw unrevealed optical-illusion matrix backdrop
-            drawRect(color = Color(0xFF040912L))
-            val gridStep = size.width / 6f
-            for (i in 0..6) {
-                drawLine(
-                    color = Color(0xFF22C55EL).copy(alpha = 0.14f),
-                    start = Offset(i * gridStep, 0f),
-                    end = Offset(i * gridStep, size.height),
-                    strokeWidth = 1f
-                )
-                drawLine(
-                    color = Color(0xFF6366F1L).copy(alpha = 0.14f),
-                    start = Offset(0f, i * gridStep),
-                    end = Offset(size.width, i * gridStep),
-                    strokeWidth = 1f
+            // Dimmed silhouette base + soft concentric vinyl grooves (Zero grid lines!)
+            drawRect(color = Color(0xFF040812L))
+            drawImage(
+                image = img,
+                dstSize = IntSize(size.width.toInt(), size.height.toInt()),
+                alpha = 0.22f
+            )
+            for (g in 1..3) {
+                drawCircle(
+                    color = Color(0xFF38BDF8L).copy(alpha = 0.12f),
+                    radius = (size.minDimension * 0.16f * g),
+                    center = Offset(cx, cy),
+                    style = Stroke(width = 1.2f)
                 )
             }
 
-            // Draw revealed portion of the artwork
-            if (revealHeight > 0f) {
-                clipRect(
-                    left = 0f,
-                    top = top,
-                    right = size.width,
-                    bottom = size.height
-                ) {
+            // Smooth Radial Iris Reveal expanding outward from the center
+            if (p > 0.01f) {
+                val irisPath = Path().apply {
+                    addOval(
+                        androidx.compose.ui.geometry.Rect(
+                            left = cx - irisR,
+                            top = cy - irisR,
+                            right = cx + irisR,
+                            bottom = cy + irisR
+                        )
+                    )
+                }
+                clipPath(irisPath) {
                     drawImage(
                         image = img,
                         dstSize = IntSize(size.width.toInt(), size.height.toInt())
                     )
-
-                    // Shimmer band
-                    val bandWidth = size.width * 0.4f
+                    val bandWidth = size.width * 0.45f
                     val x = (size.width * shimmerX.value) - (bandWidth / 2f)
-                    val brush = Brush.linearGradient(
-                        colors = listOf(
-                            Color.White.copy(alpha = 0.0f),
-                            Color.White.copy(alpha = 0.18f),
-                            Color.White.copy(alpha = 0.0f)
-                        ),
-                        start = Offset(x, top),
-                        end = Offset(x + bandWidth, size.height)
-                    )
                     drawRect(
-                        brush = brush,
-                        topLeft = Offset(0f, top),
-                        size = Size(size.width, revealHeight)
+                        brush = Brush.linearGradient(
+                            colors = listOf(
+                                Color.White.copy(alpha = 0.0f),
+                                Color.White.copy(alpha = 0.18f),
+                                Color.White.copy(alpha = 0.0f)
+                            ),
+                            start = Offset(x, 0f),
+                            end = Offset(x + bandWidth, size.height)
+                        ),
+                        topLeft = Offset.Zero,
+                        size = size
                     )
                 }
-
-                // Glowing Forest Green Laser Scanline at the reveal boundary
-                if (top > 1f && top < size.height - 1f) {
-                    drawLine(
-                        color = Color(0xFF22C55EL),
-                        start = Offset(0f, top),
-                        end = Offset(size.width, top),
-                        strokeWidth = 3f
-                    )
-                    drawLine(
-                        color = Color.White,
-                        start = Offset(0f, top),
-                        end = Offset(size.width, top),
-                        strokeWidth = 1.2f
+                if (p < 0.99f) {
+                    drawCircle(
+                        color = Color(0xFF4ADE80L).copy(alpha = 0.85f),
+                        radius = irisR,
+                        center = Offset(cx, cy),
+                        style = Stroke(width = 2.4f)
                     )
                 }
             }

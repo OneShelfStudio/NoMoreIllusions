@@ -66,7 +66,9 @@ class NoMoreIllusionsApp {
     // Screen State Machine
     this.gameState = "MENU"; // MENU, PLAYING, PAUSED, GAME_OVER, TRACK_COMPLETED, HOW_TO_PLAY, SETTINGS, DEMO_PLAYER, CUSTOMIZER
     this.selectedStageIndex = 0;
-    this.customizerTab = 0; // 0: SKINS, 1: TRAILS, 2: THEMES
+    this.customizerTab = -1; // -1: SPECIALS, 0: SKINS, 1: TRAILS, 2: THEMES
+    this.activeDiscovery = null;
+    this._discoveryPausedTrack = false;
 
     // Demo Player State
     this.demoTrackIndex = 0;
@@ -141,6 +143,11 @@ class NoMoreIllusionsApp {
     this.initStars();
     this.bindEvents();
     this.syncUI();
+    setTimeout(() => {
+      if (this.gameState === "MENU" && typeof this.triggerDiscoveryIfUnseen === "function") {
+        this.triggerDiscoveryIfUnseen("FAN_WELCOME");
+      }
+    }, 450);
     requestAnimationFrame((ts) => this.loop(ts));
   }
 
@@ -524,7 +531,7 @@ class NoMoreIllusionsApp {
 
   pauseGame() {
     if (this.gameState !== "PLAYING") return;
-    this.playSfx("click");
+    this.playSfx("whoosh_modal", 0.80);
     this.trackAudio.pause();
     this.gameState = "PAUSED";
     this.syncUI();
@@ -532,7 +539,7 @@ class NoMoreIllusionsApp {
 
   resumeGame() {
     if (this.gameState !== "PAUSED") return;
-    this.playSfx("click");
+    this.playSfx("whoosh_modal", 0.78);
     if (!this.prefs.musicMuted) this.trackAudio.play().catch(() => {});
     this.gameState = "PLAYING";
     this.syncUI();
@@ -631,7 +638,8 @@ class NoMoreIllusionsApp {
     if (this.gameState !== "PLAYING") return;
     const stage = OFFICIAL_TRACKS[this.selectedStageIndex];
     this.trackAudio.pause();
-    this.playSfx("levelup", 0.85);
+    this.playSfx("whoosh_victory", 0.88);
+    this.playSfx("levelup", 0.82);
 
     const completionBonus = 500;
     const totalEarned = Math.max(50, Math.floor(this.score / 8)) + completionBonus;
@@ -664,6 +672,7 @@ class NoMoreIllusionsApp {
   triggerGameOver() {
     const stage = OFFICIAL_TRACKS[this.selectedStageIndex];
     this.trackAudio.pause();
+    this.playSfx("whoosh_gameover", 0.82);
     this.playSfx("gameover", 0.8);
 
     const progress = Math.max(0, Math.min(1, this.trackElapsedSec / Math.max(1, this.activeTrackDurationSec)));
@@ -700,7 +709,11 @@ class NoMoreIllusionsApp {
       }
     }
 
-    if (this.gameState === "PLAYING") {
+    if (this.activeDiscovery && typeof this.drawDiscoverySpotlightCanvas === "function") {
+      this.drawDiscoverySpotlightCanvas();
+    }
+
+    if (this.gameState === "PLAYING" && !this.activeDiscovery) {
       this.stepPhysics(dt);
     } else {
       // Idle gentle beat pulse for menu & background

@@ -27,19 +27,43 @@ function drawMotes(ctx, motes) {
 function drawPlayerTrail(ctx, trailPoints, trailLength, selectedTrailId) {
   if (trailLength <= 1) return;
   const [trailStart, trailEnd] = getTrailPalette(selectedTrailId);
+  // Smooth continuous quadratic Bezier silk ribbon + soft bokeh glow (Zero segmented stick lines!)
+  ctx.save();
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
   for (let i = 0; i < trailLength - 1; i++) {
-    const p1 = trailPoints[i];
-    const p2 = trailPoints[i + 1];
+    const p0 = trailPoints[i];
+    const p1 = trailPoints[i + 1];
+    const pNext = trailPoints[Math.min(trailLength - 1, i + 2)];
+    const mid1X = (p0.x + p1.x) * 0.5;
+    const mid1Y = (p0.y + p1.y) * 0.5;
+    const mid2X = (p1.x + pNext.x) * 0.5;
+    const mid2Y = (p1.y + pNext.y) * 0.5;
     const prog = i / trailLength;
     const tCol = lerpColor(trailStart, trailEnd, prog);
+    const alpha = Math.pow(1 - prog, 1.35) * 0.44;
+    const r = (1 - prog) * 10 + 1.5;
+
     ctx.beginPath();
-    ctx.moveTo(p1.x, p1.y);
-    ctx.lineTo(p2.x, p2.y);
-    ctx.strokeStyle = rgba(tCol, (1 - prog) * 0.48);
-    ctx.lineWidth = (1 - prog) * 18;
-    ctx.lineCap = "round";
+    if (i === 0) {
+      ctx.moveTo(p0.x, p0.y);
+      ctx.quadraticCurveTo(p1.x, p1.y, mid2X, mid2Y);
+    } else {
+      ctx.moveTo(mid1X, mid1Y);
+      ctx.quadraticCurveTo(p1.x, p1.y, mid2X, mid2Y);
+    }
+    ctx.strokeStyle = rgba(tCol, alpha);
+    ctx.lineWidth = r * 1.85;
     ctx.stroke();
+
+    if (i % 3 === 0) {
+      ctx.beginPath();
+      ctx.arc(p1.x, p1.y, r * 0.65, 0, Math.PI * 2);
+      ctx.fillStyle = rgba([255, 255, 255], alpha * 0.72);
+      ctx.fill();
+    }
   }
+  ctx.restore();
 }
 
 function drawShockwaves(ctx, shockwaves) {
@@ -230,27 +254,45 @@ function drawPowerUps(ctx, powerUps, playerX, playerY, time, trackSec, beatPulse
       }
     }
 
-    // 2. Sequential Constellation Path connecting 1 -> 2 -> 3 -> 4 so player sees the linear musical sequence!
+    // 2. Sequential Silk Stream connecting 1 -> 2 -> 3 -> 4 via smooth curved quadratic Bezier arcs!
     if (sorted.length >= 2) {
       for (let cIdx = 0; cIdx < sorted.length - 1; cIdx++) {
         const curOrb = sorted[cIdx];
         const nextOrb = sorted[cIdx + 1];
+        const dx = nextOrb.x - curOrb.x;
+        const dy = nextOrb.y - curOrb.y;
+        const dist = Math.max(1, Math.hypot(dx, dy));
+        const perpX = -dy / dist;
+        const perpY = dx / dist;
+        const bend = Math.sin(time * 1.6 + cIdx * 1.4) * Math.min(42, Math.max(14, dist * 0.18));
+        const ctrlX = (curOrb.x + nextOrb.x) * 0.5 + perpX * bend;
+        const ctrlY = (curOrb.y + nextOrb.y) * 0.5 + perpY * bend;
         const linkAlpha = cIdx === 0 ? 0.52 : (cIdx === 1 ? 0.34 : 0.20);
+
         ctx.beginPath();
         ctx.moveTo(curOrb.x, curOrb.y);
-        ctx.lineTo(nextOrb.x, nextOrb.y);
+        ctx.quadraticCurveTo(ctrlX, ctrlY, nextOrb.x, nextOrb.y);
+        ctx.strokeStyle = rgba([56, 189, 248], linkAlpha * 0.36);
+        ctx.lineWidth = cIdx === 0 ? 8.0 : 5.5;
+        ctx.lineCap = "round";
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(curOrb.x, curOrb.y);
+        ctx.quadraticCurveTo(ctrlX, ctrlY, nextOrb.x, nextOrb.y);
         ctx.strokeStyle = rgba([56, 189, 248], linkAlpha);
-        ctx.lineWidth = cIdx === 0 ? 2.6 : 1.6;
+        ctx.lineWidth = cIdx === 0 ? 2.4 : 1.6;
         ctx.lineCap = "round";
         ctx.stroke();
 
         for (let m = 1; m <= 3; m++) {
           const mt = ((m / 4) + time * 0.9) % 1;
-          const mx = curOrb.x + (nextOrb.x - curOrb.x) * mt;
-          const my = curOrb.y + (nextOrb.y - curOrb.y) * mt;
+          const inv = 1 - mt;
+          const mx = inv * inv * curOrb.x + 2 * inv * mt * ctrlX + mt * mt * nextOrb.x;
+          const my = inv * inv * curOrb.y + 2 * inv * mt * ctrlY + mt * mt * nextOrb.y;
           ctx.beginPath();
-          ctx.arc(mx, my, cIdx === 0 ? 2.8 : 2.0, 0, Math.PI * 2);
-          ctx.fillStyle = rgba([250, 204, 21], linkAlpha * 1.25);
+          ctx.arc(mx, my, cIdx === 0 ? 3.2 : 2.2, 0, Math.PI * 2);
+          ctx.fillStyle = rgba([250, 204, 21], Math.min(1, linkAlpha * 1.35));
           ctx.fill();
         }
       }
@@ -330,19 +372,16 @@ function drawPowerUps(ctx, powerUps, playerX, playerY, time, trackSec, beatPulse
       ctx.fillStyle = haloGrad;
       ctx.fill();
 
-      // 8 Pulsing Solar Flare Spikes
-      const spikeCount = 8;
-      for (let sIdx = 0; sIdx < spikeCount; sIdx++) {
-        const ang = (sIdx * (Math.PI / 4)) + time * 0.7;
-        const isMajor = sIdx % 2 === 0;
-        const spikeLen = coreRad * (isMajor ? (2.1 + 0.55 * beatPulse) : (1.45 + 0.28 * beatPulse));
+      // 6 Orbiting Solar Stardust Pearls (Replaces 8 straight spike lines!)
+      for (let sIdx = 0; sIdx < 6; sIdx++) {
+        const ang = (sIdx * (Math.PI / 3)) + time * 1.4;
+        const orbitR = coreRad * (1.36 + 0.18 * beatPulse);
+        const ox = pu.x + Math.cos(ang) * orbitR;
+        const oy = pu.y + Math.sin(ang) * orbitR;
         ctx.beginPath();
-        ctx.moveTo(pu.x - Math.cos(ang) * spikeLen, pu.y - Math.sin(ang) * spikeLen);
-        ctx.lineTo(pu.x + Math.cos(ang) * spikeLen, pu.y + Math.sin(ang) * spikeLen);
-        ctx.strokeStyle = rgba(isMajor ? [255, 254, 235] : effectCol, 0.88 * puAlpha);
-        ctx.lineWidth = isMajor ? 3.0 : 1.8;
-        ctx.lineCap = "round";
-        ctx.stroke();
+        ctx.arc(ox, oy, sIdx % 2 === 0 ? 3.5 : 2.5, 0, Math.PI * 2);
+        ctx.fillStyle = rgba(sIdx % 2 === 0 ? [255, 254, 235] : effectCol, 0.92 * puAlpha);
+        ctx.fill();
       }
 
       // Counter-Rotating Curved Celestial Halo Arcs (No boxy squares!)
@@ -382,60 +421,48 @@ function drawPowerUps(ctx, powerUps, playerX, playerY, time, trackSec, beatPulse
 }
 
 function drawHexGem(ctx, x, y, r, col, kind, t, alpha, phraseBeatNum = 1) {
-  // Soft outer glow
-  const glow = ctx.createRadialGradient(x, y, 2, x, y, r * 1.9);
-  glow.addColorStop(0, rgba(col, 0.42 * alpha));
+  // Smooth Spherical Glass / Plasma Orb (Zero straight polygon edges!)
+  const glow = ctx.createRadialGradient(x, y, 2, x, y, r * 1.95);
+  glow.addColorStop(0, rgba(col, 0.48 * alpha));
+  glow.addColorStop(0.55, rgba(col, 0.16 * alpha));
   glow.addColorStop(1, "rgba(0,0,0,0)");
   ctx.beginPath();
-  ctx.arc(x, y, r * 1.9, 0, Math.PI * 2);
+  ctx.arc(x, y, r * 1.95, 0, Math.PI * 2);
   ctx.fillStyle = glow;
   ctx.fill();
 
-  const rot = t * 0.6;
-  const verts = [];
-  for (let v = 0; v < 6; v++) {
-    const a = rot + v * (Math.PI / 3);
-    verts.push([x + Math.cos(a) * r, y + Math.sin(a) * r]);
-  }
-  // Facets: alternate light/dark triangles toward center for a cut-gem look
-  for (let v = 0; v < 6; v++) {
-    const p1 = verts[v];
-    const p2 = verts[(v + 1) % 6];
-    ctx.beginPath();
-    ctx.moveTo(x, y);
-    ctx.lineTo(p1[0], p1[1]);
-    ctx.lineTo(p2[0], p2[1]);
-    ctx.closePath();
-    const shade = v % 2 === 0 ? 1.0 : 0.62;
-    ctx.fillStyle = rgba([Math.round(col[0] * shade), Math.round(col[1] * shade), Math.round(col[2] * shade)], 0.92 * alpha);
-    ctx.fill();
-  }
-  // Rim
+  // Volumetric off-center spherical shading
+  const sphereGrad = ctx.createRadialGradient(x - r * 0.28, y - r * 0.28, r * 0.08, x, y, r);
+  sphereGrad.addColorStop(0, rgba([Math.min(255, col[0] + 65), Math.min(255, col[1] + 65), Math.min(255, col[2] + 65)], 0.52 * alpha));
+  sphereGrad.addColorStop(0.55, rgba([10, 18, 36], 0.92 * alpha));
+  sphereGrad.addColorStop(1, rgba([5, 9, 20], 0.96 * alpha));
   ctx.beginPath();
-  verts.forEach((p, i) => (i === 0 ? ctx.moveTo(p[0], p[1]) : ctx.lineTo(p[0], p[1])));
-  ctx.closePath();
-  ctx.strokeStyle = rgba([255, 255, 255], 0.9 * alpha);
-  ctx.lineWidth = 2;
-  ctx.stroke();
-  // Inner table (dark core plate for emblem contrast)
-  ctx.beginPath();
-  for (let v = 0; v < 6; v++) {
-    const a = rot + v * (Math.PI / 3);
-    const px = x + Math.cos(a) * r * 0.58;
-    const py = y + Math.sin(a) * r * 0.58;
-    if (v === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
-  }
-  ctx.closePath();
-  ctx.fillStyle = rgba([8, 10, 22], 0.78 * alpha);
+  ctx.arc(x, y, r * 0.96, 0, Math.PI * 2);
+  ctx.fillStyle = sphereGrad;
   ctx.fill();
-  ctx.strokeStyle = rgba(col, 0.95 * alpha);
+
+  // Smooth luminous outer ring
+  ctx.beginPath();
+  ctx.arc(x, y, r * 0.96, 0, Math.PI * 2);
+  ctx.strokeStyle = rgba(col, 0.94 * alpha);
+  ctx.lineWidth = 2.4;
+  ctx.stroke();
+
+  // Soft curved upper-left glass specular crescent
+  ctx.beginPath();
+  ctx.arc(x, y, r * 0.74, Math.PI * 1.12, Math.PI * 1.54);
+  ctx.strokeStyle = rgba([255, 255, 255], 0.72 * alpha);
+  ctx.lineWidth = 2.2;
+  ctx.lineCap = "round";
+  ctx.stroke();
+
+  // Inner harmonic ring
+  ctx.beginPath();
+  ctx.arc(x, y, r * 0.58, 0, Math.PI * 2);
+  ctx.strokeStyle = rgba(col, 0.42 * alpha);
   ctx.lineWidth = 1.2;
   ctx.stroke();
-  // Specular glint
-  ctx.beginPath();
-  ctx.arc(x - r * 0.38, y - r * 0.42, r * 0.12, 0, Math.PI * 2);
-  ctx.fillStyle = rgba([255, 255, 255], 0.85 * alpha);
-  ctx.fill();
+
   // Etched emblem: phrase sequence number (1, 2, 3, 4) for SCORE_ORB, or power-up icon
   const isScoreGem = kind === "SCORE_ORB";
   const emblem = kind === "BLAST" || kind === "OVERDRIVE" ? "💥"

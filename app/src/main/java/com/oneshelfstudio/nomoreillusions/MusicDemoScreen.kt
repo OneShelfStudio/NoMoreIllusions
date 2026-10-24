@@ -69,7 +69,9 @@ fun MusicDemoScreen(
     val tracks = album.tracks
     val totalTracks = MusicLibrary.TOTAL_TRACKS
 
-    var activeTab by remember { mutableIntStateOf(0) } // 0 = Album, 1 = Shop & Customizer
+    val prefs = remember { context.getSharedPreferences("pulse_prefs", android.content.Context.MODE_PRIVATE) }
+    val savedHighScore = remember { prefs.getInt("high_score", 0) }
+    var activeTab by remember { mutableIntStateOf(0) } // 0 = Artist Specials Vault, 1 = Album Deck, 2 = Customizer
     var selectedTrackIndexLocal by remember(selectedTrackIndexState) {
         mutableIntStateOf(selectedTrackIndexState.coerceIn(1, totalTracks))
     }
@@ -222,7 +224,7 @@ fun MusicDemoScreen(
             .padding(horizontal = 14.dp, vertical = 10.dp)
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            // Top Bar: Pill Switcher (ALBUM | SHOP & VAULT) + Music Notes Pill + Close Button
+            // Top Bar: 3-Tab Pill Switcher (★ SPECIALS | ALBUM | CUSTOMIZE) + Music Notes Pill + Close Button
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth()
@@ -233,13 +235,40 @@ fun MusicDemoScreen(
                         .height(40.dp)
                         .clip(RoundedCornerShape(50))
                         .background(Color(0xFF060C18L))
-                        .border(1.dp, Color(0xFF6366F1L).copy(alpha = 0.38f), RoundedCornerShape(50))
+                        .border(1.dp, Color(0xFFFACC15L).copy(alpha = 0.45f), RoundedCornerShape(50))
                         .padding(3.dp)
                 ) {
-                    val albumSelected = activeTab == 0
+                    val specialsSelected = activeTab == 0
                     Box(
                         modifier = Modifier
-                            .weight(1f)
+                            .weight(1.15f)
+                            .fillMaxHeight()
+                            .clip(RoundedCornerShape(50))
+                            .background(
+                                if (specialsSelected) {
+                                    Brush.verticalGradient(listOf(Color(0xFFFACC15L), Color(0xFFD97706L)))
+                                } else {
+                                    Brush.verticalGradient(listOf(Color.Transparent, Color.Transparent))
+                                }
+                            )
+                            .clickable { activeTab = 0 },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "★ SPECIALS",
+                            color = if (specialsSelected) Color(0xFF020617L) else Color(0xFFFACC15L),
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Black,
+                            letterSpacing = 0.5.sp,
+                            maxLines = 1,
+                            softWrap = false
+                        )
+                    }
+
+                    val albumSelected = activeTab == 1
+                    Box(
+                        modifier = Modifier
+                            .weight(0.95f)
                             .fillMaxHeight()
                             .clip(RoundedCornerShape(50))
                             .background(
@@ -249,24 +278,24 @@ fun MusicDemoScreen(
                                     Brush.verticalGradient(listOf(Color.Transparent, Color.Transparent))
                                 }
                             )
-                            .clickable { activeTab = 0 },
+                            .clickable { activeTab = 1 },
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = "ALBUM",
                             color = if (albumSelected) Color.White else Color.White.copy(alpha = 0.65f),
-                            fontSize = 11.sp,
+                            fontSize = 10.sp,
                             fontWeight = FontWeight.Black,
-                            letterSpacing = 0.8.sp,
+                            letterSpacing = 0.6.sp,
                             maxLines = 1,
                             softWrap = false
                         )
                     }
 
-                    val custSelected = activeTab == 1
+                    val custSelected = activeTab == 2
                     Box(
                         modifier = Modifier
-                            .weight(1.15f)
+                            .weight(1.05f)
                             .fillMaxHeight()
                             .clip(RoundedCornerShape(50))
                             .background(
@@ -276,15 +305,15 @@ fun MusicDemoScreen(
                                     Brush.verticalGradient(listOf(Color.Transparent, Color.Transparent))
                                 }
                             )
-                            .clickable { activeTab = 1 },
+                            .clickable { activeTab = 2 },
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "SHOP & VAULT",
+                            text = "CUSTOMIZE",
                             color = if (custSelected) Color.White else Color.White.copy(alpha = 0.65f),
-                            fontSize = 11.sp,
+                            fontSize = 10.sp,
                             fontWeight = FontWeight.Black,
-                            letterSpacing = 0.6.sp,
+                            letterSpacing = 0.5.sp,
                             maxLines = 1,
                             softWrap = false
                         )
@@ -328,8 +357,21 @@ fun MusicDemoScreen(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // Tab 1: Locked Fan Shop, Customizer & Artist Vault
-            if (activeTab == 1) {
+            // Tab 0: Collector's Vault & Artist Specials (Ethan's Liner Notes, Vocal Secrets, Master Reels, Storyboards)
+            if (activeTab == 0) {
+                ArtistExclusivesSpecialsHub(
+                    prefs = prefs,
+                    highScore = savedHighScore,
+                    pulsePoints = localPoints,
+                    isVipUnlocked = isVipUnlocked,
+                    onPlayTrack = { trackIdx ->
+                        stopPlayback()
+                        onPlayGame(trackIdx)
+                    },
+                    onActivateVipPasscode = onActivateVipPasscode,
+                    modifier = Modifier.fillMaxSize()
+                )
+            } else if (activeTab == 2) {
                 StudioCustomizerSuite(
                     customBgTheme = customBgTheme,
                     customHeroSkin = customHeroSkin,

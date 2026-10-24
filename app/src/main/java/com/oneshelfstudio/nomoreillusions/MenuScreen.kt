@@ -72,6 +72,11 @@ fun MenuUI(
     onSettings: () -> Unit
 ) {
     val context = LocalContext.current
+    val prefs = remember { context.getSharedPreferences("pulse_prefs", android.content.Context.MODE_PRIVATE) }
+    val unlockedExclusivesCount = remember(highScore, pulsePoints, isVipUnlocked) {
+        if (isVipUnlocked) ARTIST_EXCLUSIVES_CATALOG.size
+        else countUnlockedExclusives(prefs, highScore, pulsePoints)
+    }
     val nmiLogo = ImageBitmap.imageResource(id = R.drawable.nmi_logo)
     val socialLinks = remember { MusicLibrary.officialSocialLinks }
     val selectedTrack = remember(selectedTrackIndex) { MusicLibrary.getTrack(selectedTrackIndex) }
@@ -206,21 +211,22 @@ fun MenuUI(
                     val cx = center.x
                     val cy = center.y
                     val spinSpeed = selectedRemixMode.audioSpeed
-                    // 1. Outer 36-Bar Radial Audio Spectrum Ring
-                    val barCount = 36
-                    for (i in 0 until barCount) {
-                        val ang = (i.toFloat() / barCount) * 6.283185f + menuTime * 0.32f * spinSpeed
-                        val wave = 0.30f + 0.70f * kotlin.math.abs(sin(menuTime * 4.2f * spinSpeed + i * 0.45f))
-                        val rInner = 58f
-                        val rOuter = rInner + 8f + wave * 18f
-                        val col = if (i % 2 == 0) modeAccent else Color(0xFF818CF8L)
-                        drawLine(
-                            color = col.copy(alpha = 0.48f + wave * 0.45f),
-                            start = Offset(cx + cos(ang) * rInner, cy + sin(ang) * rInner),
-                            end = Offset(cx + cos(ang) * rOuter, cy + sin(ang) * rOuter),
-                            strokeWidth = 3.0f,
-                            cap = StrokeCap.Round
-                        )
+                    // 1. Smooth Concentric Harmonic Wave Rings & Aurora Crescents (Zero straight stick lines!)
+                    for (rIdx in 0..2) {
+                        val waveR = 59f + rIdx * 5.5f
+                        val startDeg = ((menuTime * (if (rIdx % 2 == 0) 42f else -36f) * spinSpeed) + rIdx * 60f) % 360f
+                        val ringCol = if (rIdx % 2 == 0) modeAccent else Color(0xFF818CF8L)
+                        for (seg in 0..2) {
+                            drawArc(
+                                color = ringCol.copy(alpha = 0.68f - rIdx * 0.16f),
+                                startAngle = startDeg + seg * 120f,
+                                sweepAngle = 74f,
+                                useCenter = false,
+                                topLeft = Offset(cx - waveR, cy - waveR),
+                                size = androidx.compose.ui.geometry.Size(waveR * 2f, waveR * 2f),
+                                style = Stroke(width = 3.0f - rIdx * 0.5f, cap = StrokeCap.Round)
+                            )
+                        }
                     }
 
                     // 2. Obsidian Vinyl Platter + Spinning Iridescent Grooves
@@ -245,15 +251,17 @@ fun MenuUI(
                         style = Stroke(width = 2.2f)
                     )
 
-                    // 3. Holographic Laser Stylus / Tone-Arm reading the vinyl grooves
-                    val armPivot = Offset(cx + 58f, cy - 48f)
+                    // 3. Smooth S-Curved Holographic Stylus / Tone-Arm
+                    val armPivot = Offset(cx + 56f, cy - 46f)
                     val stylusTip = Offset(cx + 28f, cy + 12f)
-                    drawLine(
+                    val armPath = androidx.compose.ui.graphics.Path().apply {
+                        moveTo(armPivot.x, armPivot.y)
+                        quadraticTo(cx + 54f, cy - 10f, stylusTip.x, stylusTip.y)
+                    }
+                    drawPath(
+                        path = armPath,
                         color = Color(0xFFE2E8F0L).copy(alpha = 0.78f),
-                        start = armPivot,
-                        end = stylusTip,
-                        strokeWidth = 2.6f,
-                        cap = StrokeCap.Round
+                        style = Stroke(width = 2.6f, cap = StrokeCap.Round)
                     )
                     drawCircle(color = modeAccent, radius = 4.5f, center = armPivot)
                     drawCircle(color = Color.White, radius = 3.2f, center = stylusTip)
@@ -295,7 +303,61 @@ fun MenuUI(
                 letterSpacing = 1.4.sp
             )
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(6.dp))
+
+            // Upfront Fan Incentive Banner: Makes it 100% clear what exclusive artist rewards fans unlock!
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(
+                        Brush.horizontalGradient(
+                            listOf(Color(0xFF132242L), Color(0xFF0A1428L))
+                        )
+                    )
+                    .border(1.2.dp, Color(0xFFFACC15L).copy(alpha = 0.78f), RoundedCornerShape(12.dp))
+                    .clickable { onMusicDemo() }
+                    .padding(horizontal = 12.dp, vertical = 7.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "★ FAN VAULT: UNLOCK ETHAN'S NOTES & STUDIO EXCLUSIVES",
+                            color = Color(0xFFFACC15L),
+                            fontSize = 9.5.sp,
+                            fontWeight = FontWeight.Black,
+                            letterSpacing = 0.4.sp
+                        )
+                        Text(
+                            text = "Personal Liner Notes • Slowed/Nightcore Reels • Backstage Storyboards",
+                            color = Color.White.copy(alpha = 0.85f),
+                            fontSize = 8.5.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Box(
+                        modifier = Modifier
+                            .clip(CircleShape)
+                            .background(Color(0xFFFACC15L).copy(alpha = 0.20f))
+                            .border(1.dp, Color(0xFFFACC15L), CircleShape)
+                            .padding(horizontal = 8.dp, vertical = 3.dp)
+                    ) {
+                        Text(
+                            text = "$unlockedExclusivesCount/${ARTIST_EXCLUSIVES_CATALOG.size} OPEN →",
+                            color = Color(0xFFFACC15L),
+                            fontSize = 8.5.sp,
+                            fontWeight = FontWeight.Black
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
 
             // Flagship Artist Stage Console (Track Deck + 4 Remix Modes + 3-Star Mastery)
             Box(
@@ -504,11 +566,11 @@ fun MenuUI(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 MenuBentoTile(
-                    title = "ALBUM & SHOP",
-                    subtitle = "Songs & Skins",
+                    title = "★ SPECIALS & ALBUM",
+                    subtitle = "Artist Notes & Vault",
                     accent = Color(0xFFFACC15L),
                     onClick = onMusicDemo,
-                    modifier = Modifier.weight(1.15f)
+                    modifier = Modifier.weight(1.22f)
                 )
                 MenuBentoTile(
                     title = "HOW TO PLAY",

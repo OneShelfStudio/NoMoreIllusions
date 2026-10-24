@@ -64,27 +64,45 @@ fun DrawScope.drawPowerUps(
         }
     }
 
-    // 2. Sequential Rhythm Constellation Path (connects upcoming stationary beats 1 -> 2 -> 3 -> 4 in order!)
+    // 2. Sequential Rhythm Silk Stream (smooth curved quadratic Bezier ribbon + drifting pearls connecting 1 -> 2 -> 3 -> 4!)
     if (sorted.size >= 2) {
         for (cIdx in 0 until sorted.size - 1) {
             val pA = sorted[cIdx]
             val pB = sorted[cIdx + 1]
+            val dx = pB.x - pA.x
+            val dy = pB.y - pA.y
+            val dist = hypot(dx, dy).coerceAtLeast(1f)
+            val perpX = -dy / dist
+            val perpY = dx / dist
+            val bend = sin(time * 1.6f + cIdx * 1.4f) * (dist * 0.18f).coerceIn(14f, 44f)
+            val ctrlX = (pA.x + pB.x) * 0.5f + perpX * bend
+            val ctrlY = (pA.y + pB.y) * 0.5f + perpY * bend
             val linkAlpha = (0.48f - cIdx * 0.12f).coerceIn(0.16f, 0.50f)
-            drawLine(
-                color = Color(0xFF38BDF8L).copy(alpha = linkAlpha * 0.55f),
-                start = Offset(pA.x, pA.y),
-                end = Offset(pB.x, pB.y),
-                strokeWidth = 2.0f,
-                cap = StrokeCap.Round
+
+            val streamPath = Path().apply {
+                moveTo(pA.x, pA.y)
+                quadraticTo(ctrlX, ctrlY, pB.x, pB.y)
+            }
+            drawPath(
+                path = streamPath,
+                color = Color(0xFF38BDF8L).copy(alpha = linkAlpha * 0.28f),
+                style = Stroke(width = 8.5f, cap = StrokeCap.Round)
             )
-            // Flowing beat-pulse pearls gliding from pA -> pB
+            drawPath(
+                path = streamPath,
+                color = Color(0xFF38BDF8L).copy(alpha = linkAlpha * 0.65f),
+                style = Stroke(width = 2.2f, cap = StrokeCap.Round)
+            )
+
+            // Flowing beat-pulse pearls gliding along the curved quadratic Bezier stream from pA -> pB
             for (step in 1..3) {
                 val mt = ((step / 4f) + time * 0.85f) % 1f
-                val mx = pA.x + (pB.x - pA.x) * mt
-                val my = pA.y + (pB.y - pA.y) * mt - sin(mt * PI.toFloat()) * 12f
+                val inv = 1f - mt
+                val mx = inv * inv * pA.x + 2f * inv * mt * ctrlX + mt * mt * pB.x
+                val my = inv * inv * pA.y + 2f * inv * mt * ctrlY + mt * mt * pB.y
                 drawCircle(
-                    color = Color(0xFFFACC15L).copy(alpha = linkAlpha * 0.85f),
-                    radius = if (cIdx == 0) 3.0f else 2.2f,
+                    color = Color(0xFFFACC15L).copy(alpha = linkAlpha * 0.90f),
+                    radius = if (cIdx == 0) 3.4f else 2.4f,
                     center = Offset(mx, my)
                 )
             }
@@ -185,49 +203,38 @@ fun DrawScope.drawPowerUps(
                 blendMode = BlendMode.Screen
             )
 
-            val spikeCount = 8
-            for (sIdx in 0 until spikeCount) {
-                val ang = (sIdx * PI.toFloat() / 4f) + time * 0.65f
-                val isMajorSpike = sIdx % 2 == 0
-                val spikeLen = coreRad * (if (isMajorSpike) (2.15f + 0.55f * beatKick) else (1.45f + 0.30f * beatKick))
-                drawLine(
-                    color = if (isMajorSpike) Color(0xFFFFFBEBL) else effectColor,
-                    start = Offset(p.x - cos(ang) * spikeLen, p.y - sin(ang) * spikeLen),
-                    end = Offset(p.x + cos(ang) * spikeLen, p.y + sin(ang) * spikeLen),
-                    strokeWidth = if (isMajorSpike) 3.0f else 1.8f,
-                    cap = StrokeCap.Round
-                )
+            // Smooth Counter-Rotating Celestial Crescent Halo Arcs & Orbiting Gold Pearls (Zero straight spikes or boxy squares!)
+            for (h in 0..1) {
+                val hRad = coreRad * (if (h == 0) 1.05f else 0.76f)
+                val hCol = if (h == 0) Color(0xFFFACC15L) else effectColor
+                val startDeg = ((time * (if (h == 0) 130f else -155f)) % 360f)
+                for (a in 0..1) {
+                    drawArc(
+                        color = hCol.copy(alpha = 0.92f * ttlAlpha),
+                        startAngle = startDeg + a * 180f,
+                        sweepAngle = 112f,
+                        useCenter = false,
+                        topLeft = Offset(p.x - hRad, p.y - hRad),
+                        size = Size(hRad * 2f, hRad * 2f),
+                        style = Stroke(width = if (h == 0) 3.0f else 2.4f, cap = StrokeCap.Round)
+                    )
+                }
             }
-
-            withTransform({
-                rotate(degrees = time * 115f, pivot = center)
-            }) {
-                val g1 = coreRad * 0.92f
-                drawRoundRect(
-                    color = Color(0xFFFACC15L).copy(alpha = 0.92f),
-                    topLeft = Offset(p.x - g1, p.y - g1),
-                    size = Size(g1 * 2f, g1 * 2f),
-                    cornerRadius = CornerRadius(g1 * 0.22f, g1 * 0.22f),
-                    style = Stroke(width = 2.6f)
-                )
-            }
-
-            withTransform({
-                rotate(degrees = -time * 140f + 45f, pivot = center)
-            }) {
-                val g2 = coreRad * 0.68f
-                drawRoundRect(
-                    color = effectColor.copy(alpha = 0.95f),
-                    topLeft = Offset(p.x - g2, p.y - g2),
-                    size = Size(g2 * 2f, g2 * 2f),
-                    cornerRadius = CornerRadius(g2 * 0.18f, g2 * 0.18f),
-                    style = Stroke(width = 2.4f)
+            for (orbIdx in 0 until 6) {
+                val ang = (orbIdx * PI.toFloat() / 3f) + time * 1.4f
+                val orbitR = coreRad * (1.36f + 0.18f * beatKick)
+                val ox = p.x + cos(ang) * orbitR
+                val oy = p.y + sin(ang) * orbitR
+                drawCircle(
+                    color = (if (orbIdx % 2 == 0) Color(0xFFFFFBEBL) else effectColor).copy(alpha = 0.88f * ttlAlpha),
+                    radius = if (orbIdx % 2 == 0) 3.4f else 2.4f,
+                    center = Offset(ox, oy)
                 )
             }
 
             drawCircle(
                 color = Color(0xFFFACC15L),
-                radius = coreRad * 0.46f,
+                radius = coreRad * 0.48f,
                 center = center
             )
             drawCircle(
@@ -237,13 +244,13 @@ fun DrawScope.drawPowerUps(
             )
         } else {
             // =========================================================================
-            // FACETED HEXAGONAL MUSICAL GEM & POWER-UP MEDALLION (ZERO TAILS!)
+            // SMOOTH SPHERICAL LUMINOUS GLASS / PLASMA ORB (ZERO STRAIGHT POLYGON LINES!)
             // =========================================================================
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
-                        effectColor.copy(alpha = 0.52f),
-                        effectColor.copy(alpha = 0.18f),
+                        effectColor.copy(alpha = 0.56f * ttlAlpha),
+                        effectColor.copy(alpha = 0.20f * ttlAlpha),
                         Color.Transparent
                     ),
                     center = center,
@@ -254,80 +261,86 @@ fun DrawScope.drawPowerUps(
                 blendMode = BlendMode.Screen
             )
 
-            // 6-sided Faceted Gemstone Bezel rotating smoothly
-            val hexPath = Path().apply {
-                val hexRad = coreRad * 0.96f
-                for (v in 0 until 6) {
-                    val a = time * 0.85f + v * (PI.toFloat() / 3f)
-                    val vx = p.x + cos(a) * hexRad
-                    val vy = p.y + sin(a) * hexRad
-                    if (v == 0) moveTo(vx, vy) else lineTo(vx, vy)
-                }
-                close()
-            }
-            drawPath(
-                path = hexPath,
-                color = Color(0xFF060B18L).copy(alpha = 0.92f)
+            // Smooth Spherical Glass Body with Volumetric Off-Center Radial Shading
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(
+                        effectColor.copy(alpha = 0.42f * ttlAlpha),
+                        Color(0xFF0A1428L).copy(alpha = 0.94f * ttlAlpha),
+                        Color(0xFF040812L).copy(alpha = 0.96f * ttlAlpha)
+                    ),
+                    center = Offset(p.x - coreRad * 0.25f, p.y - coreRad * 0.25f),
+                    radius = coreRad * 1.15f
+                ),
+                radius = coreRad * 0.96f,
+                center = center
             )
-            drawPath(
-                path = hexPath,
-                color = if (isOnBeatWindow) Color(0xFFFACC15L) else effectColor,
+            drawCircle(
+                color = (if (isOnBeatWindow) Color(0xFFFACC15L) else effectColor).copy(alpha = 0.94f * ttlAlpha),
+                radius = coreRad * 0.96f,
+                center = center,
                 style = Stroke(width = 2.6f)
             )
 
-            // Inner Facet Ring
+            // Soft Curved Upper-Left Specular Glass Crescent Highlight
+            val specRad = coreRad * 0.74f
+            drawArc(
+                color = Color.White.copy(alpha = 0.68f * ttlAlpha),
+                startAngle = 200f,
+                sweepAngle = 72f,
+                useCenter = false,
+                topLeft = Offset(p.x - specRad, p.y - specRad),
+                size = Size(specRad * 2f, specRad * 2f),
+                style = Stroke(width = 2.2f, cap = StrokeCap.Round)
+            )
+
+            // Inner Luminous Ring
             drawCircle(
-                color = effectColor.copy(alpha = 0.45f),
-                radius = coreRad * 0.64f,
+                color = effectColor.copy(alpha = 0.42f * ttlAlpha),
+                radius = coreRad * 0.60f,
                 center = center,
                 style = Stroke(width = 1.4f)
             )
 
-            // Distinct Etched Core Emblem (Nova Starburst, Shield Crest, Hourglass, Magnet, or Musical Note ♪)
+            // Smooth Curved Core Emblem (Nova Rings, Shield Halo, Chrono Rings, Magnet Arc, or Phrase Number 1..4)
             when (p.powerUpType) {
                 PowerUpType.BLAST -> {
-                    // 💥 8-Point Nova Starburst Emblem (Enemy Destroyer!)
-                    for (ray in 0 until 8) {
-                        val a = ray * (PI.toFloat() / 4f) + time * 1.8f
-                        val len = coreRad * (if (ray % 2 == 0) 0.58f else 0.36f)
-                        drawLine(
-                            color = if (ray % 2 == 0) Color(0xFFFDE047L) else Color.White,
-                            start = Offset(p.x - cos(a) * len, p.y - sin(a) * len),
-                            end = Offset(p.x + cos(a) * len, p.y + sin(a) * len),
-                            strokeWidth = 2.6f,
-                            cap = StrokeCap.Round
-                        )
-                    }
-                    drawCircle(color = Color.White, radius = coreRad * 0.22f, center = center)
+                    drawCircle(
+                        color = Color(0xFFFDE047L).copy(alpha = 0.85f * ttlAlpha),
+                        radius = coreRad * 0.44f,
+                        center = center,
+                        style = Stroke(width = 2.2f)
+                    )
+                    drawCircle(color = Color.White, radius = coreRad * 0.24f, center = center)
                 }
                 PowerUpType.SHIELD -> {
-                    // 🛡️ Crisp Shield Diamond Emblem
-                    val sh = coreRad * 0.46f
-                    val shieldPath = Path().apply {
-                        moveTo(p.x, p.y - sh)
-                        lineTo(p.x + sh * 0.85f, p.y - sh * 0.35f)
-                        lineTo(p.x + sh * 0.65f, p.y + sh * 0.45f)
-                        lineTo(p.x, p.y + sh)
-                        lineTo(p.x - sh * 0.65f, p.y + sh * 0.45f)
-                        lineTo(p.x - sh * 0.85f, p.y - sh * 0.35f)
-                        close()
-                    }
-                    drawPath(path = shieldPath, color = Color.White, style = Stroke(width = 2.4f))
+                    val sh = coreRad * 0.42f
+                    drawCircle(
+                        color = Color.White.copy(alpha = 0.92f * ttlAlpha),
+                        radius = sh,
+                        center = center,
+                        style = Stroke(width = 2.4f)
+                    )
+                    drawCircle(
+                        color = Color(0xFF38BDF8L).copy(alpha = 0.65f * ttlAlpha),
+                        radius = sh * 0.55f,
+                        center = center
+                    )
                 }
                 PowerUpType.SLOW_MO -> {
-                    // ⏳ Twin-Triangle Hourglass Emblem
-                    val hg = coreRad * 0.42f
-                    val hgPath = Path().apply {
-                        moveTo(p.x - hg * 0.75f, p.y - hg)
-                        lineTo(p.x + hg * 0.75f, p.y - hg)
-                        lineTo(p.x - hg * 0.75f, p.y + hg)
-                        lineTo(p.x + hg * 0.75f, p.y + hg)
-                        close()
-                    }
-                    drawPath(path = hgPath, color = Color.White, style = Stroke(width = 2.2f))
+                    val hg = coreRad * 0.38f
+                    drawArc(
+                        color = Color.White,
+                        startAngle = (time * 90f) % 360f,
+                        sweepAngle = 240f,
+                        useCenter = false,
+                        topLeft = Offset(p.x - hg, p.y - hg),
+                        size = Size(hg * 2f, hg * 2f),
+                        style = Stroke(width = 2.4f, cap = StrokeCap.Round)
+                    )
+                    drawCircle(color = Color.White, radius = coreRad * 0.14f, center = center)
                 }
                 PowerUpType.MAGNET -> {
-                    // 🧲 U-Shaped Magnet Attractor Arc
                     val mr = coreRad * 0.38f
                     drawArc(
                         color = Color.White,
@@ -340,7 +353,6 @@ fun DrawScope.drawPowerUps(
                     )
                 }
                 else -> {
-                    // ♪ Phrase Sequence Number (1, 2, 3, 4) inside the Faceted Gem so players see the exact rhythm chain!
                     val phraseNum = ((p.sequenceIndex - 1).coerceAtLeast(0) % 4) + 1
                     drawIntoCanvas { canvas ->
                         cachedSubPaint.textSize = coreRad * 0.92f

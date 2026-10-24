@@ -31,28 +31,22 @@ private val sharedEnemyChevron = Path()
 fun DrawScope.drawMotes(motes: List<GameObject>, isGoldenOverdrive: Boolean = false) {
     motes.forEachIndexed { idx, m ->
         val c = if (isGoldenOverdrive) Color(0xFFFACC15L) else m.color
+        if (idx % 4 == 0) {
+            drawCircle(
+                color = c.copy(alpha = if (isGoldenOverdrive) 0.18f else 0.12f),
+                radius = m.radius * 2.4f,
+                center = Offset(m.x, m.y)
+            )
+        }
         drawCircle(
-            color = c.copy(alpha = if (isGoldenOverdrive) 0.42f else 0.26f),
+            color = c.copy(alpha = if (isGoldenOverdrive) 0.45f else 0.28f),
             radius = m.radius,
             center = Offset(m.x, m.y)
         )
-        if (idx % 5 == 0) {
-            val ray = m.radius * 2.4f
-            drawLine(
-                color = Color.White.copy(alpha = 0.45f),
-                start = Offset(m.x - ray, m.y),
-                end = Offset(m.x + ray, m.y),
-                strokeWidth = 1.0f
-            )
-            drawLine(
-                color = Color.White.copy(alpha = 0.45f),
-                start = Offset(m.x, m.y - ray),
-                end = Offset(m.x, m.y + ray),
-                strokeWidth = 1.0f
-            )
-        }
     }
 }
+
+private val sharedTrailPath = Path()
 
 fun DrawScope.drawPlayerTrail(
     trail: List<Offset>,
@@ -69,13 +63,33 @@ fun DrawScope.drawPlayerTrail(
     }
     for (i in 0 until trail.size - 1) {
         val progress = i.toFloat() / trail.size
-        drawLine(
-            color = baseColor.copy(alpha = progress * 0.44f),
-            start = trail[i],
-            end = trail[i + 1],
-            strokeWidth = progress * 18f,
-            cap = StrokeCap.Round
+        val p0 = trail[i]
+        val p1 = trail[i + 1]
+        val pNext = trail[(i + 2).coerceAtMost(trail.lastIndex)]
+        val mid1 = Offset((p0.x + p1.x) * 0.5f, (p0.y + p1.y) * 0.5f)
+        val mid2 = Offset((p1.x + pNext.x) * 0.5f, (p1.y + pNext.y) * 0.5f)
+        val segPath = sharedTrailPath.apply {
+            reset()
+            if (i == 0) {
+                moveTo(p0.x, p0.y)
+                quadraticTo(p1.x, p1.y, mid2.x, mid2.y)
+            } else {
+                moveTo(mid1.x, mid1.y)
+                quadraticTo(p1.x, p1.y, mid2.x, mid2.y)
+            }
+        }
+        drawPath(
+            path = segPath,
+            color = baseColor.copy(alpha = progress * 0.42f),
+            style = Stroke(width = (progress * 18f).coerceAtLeast(1.5f), cap = StrokeCap.Round, join = StrokeJoin.Round)
         )
+        if (i % 3 == 0) {
+            drawCircle(
+                color = Color.White.copy(alpha = progress * 0.36f),
+                radius = (progress * 4.5f).coerceAtLeast(1.2f),
+                center = p1
+            )
+        }
     }
 }
 
@@ -148,20 +162,17 @@ fun DrawScope.drawOrbitalPhenomenonAndSatellites(
                 style = Stroke(width = 1.5f)
             )
             powerUps.forEachIndexed { idx, orb ->
-                drawLine(
-                    color = Color(0xFF38BDF8L).copy(alpha = lifeAlpha * 0.55f),
-                    start = Offset(orb.x, orb.y),
-                    end = Offset(cx, cy),
-                    strokeWidth = 1.8f
-                )
-                val synT = ((time * 1.8f + idx * 0.23f) % 1f)
-                val sx = orb.x + (cx - orb.x) * synT
-                val sy = orb.y + (cy - orb.y) * synT
-                drawCircle(
-                    color = Color.White.copy(alpha = 0.95f),
-                    radius = 3.2f,
-                    center = Offset(sx, sy)
-                )
+                for (step in 0..2) {
+                    val synT = ((time * 1.6f + idx * 0.23f + step * 0.33f) % 1f)
+                    val curve = sin(synT * PI.toFloat()) * 16f
+                    val sx = orb.x + (cx - orb.x) * synT
+                    val sy = orb.y + (cy - orb.y) * synT - curve
+                    drawCircle(
+                        color = Color(0xFF38BDF8L).copy(alpha = lifeAlpha * 0.78f),
+                        radius = 3.4f,
+                        center = Offset(sx, sy)
+                    )
+                }
             }
         }
 
@@ -232,24 +243,29 @@ fun DrawScope.drawOrbitalPhenomenonAndSatellites(
         }
 
         KeyWordEffect.CONSTELLATION_STAR -> {
-            val outerR = 74f
-            for (i in 0 until 8) {
-                val a = time * 0.9f + (i * PI.toFloat() / 4f)
-                val len = if (i % 2 == 0) outerR else outerR * 0.60f
-                drawLine(
-                    color = Color(0xFFFDE047L).copy(alpha = lifeAlpha * 0.78f),
-                    start = Offset(cx, cy),
-                    end = Offset(cx + cos(a) * len, cy + sin(a) * len),
-                    strokeWidth = if (i % 2 == 0) 3.2f else 1.8f,
-                    cap = StrokeCap.Round
+            val outerR = 68f
+            for (i in 0 until 6) {
+                val a = time * 1.4f + (i * PI.toFloat() / 3f)
+                val px = cx + cos(a) * outerR
+                val py = cy + sin(a) * outerR
+                drawCircle(
+                    color = Color(0xFFFDE047L).copy(alpha = lifeAlpha * 0.85f),
+                    radius = if (i % 2 == 0) 4.2f else 2.8f,
+                    center = Offset(px, py)
                 )
             }
-            drawCircle(
-                color = Color(0xFFFACC15L).copy(alpha = lifeAlpha * 0.45f),
-                radius = 52f,
-                center = Offset(cx, cy),
-                style = Stroke(width = 2.4f)
-            )
+            for (arcIdx in 0..2) {
+                val startDeg = ((time * 95f) + arcIdx * 120f) % 360f
+                drawArc(
+                    color = Color(0xFFFACC15L).copy(alpha = lifeAlpha * 0.58f),
+                    startAngle = startDeg,
+                    sweepAngle = 78f,
+                    useCenter = false,
+                    topLeft = Offset(cx - 52f, cy - 52f),
+                    size = Size(104f, 104f),
+                    style = Stroke(width = 2.6f, cap = StrokeCap.Round)
+                )
+            }
         }
 
         KeyWordEffect.BINARY_HEART -> {
@@ -259,11 +275,11 @@ fun DrawScope.drawOrbitalPhenomenonAndSatellites(
             val p1 = Offset(cx + cos(a1) * sep, cy + sin(a1) * sep)
             val p2 = Offset(cx + cos(a2) * sep, cy + sin(a2) * sep)
 
-            drawLine(
-                color = Color(0xFFF43F5EL).copy(alpha = lifeAlpha * 0.65f),
-                start = p1,
-                end = p2,
-                strokeWidth = 2.0f
+            drawCircle(
+                color = Color(0xFFF43F5EL).copy(alpha = lifeAlpha * 0.35f),
+                radius = sep,
+                center = Offset(cx, cy),
+                style = Stroke(width = 2.0f)
             )
             drawCircle(color = Color(0xFFF43F5EL).copy(alpha = lifeAlpha * 0.42f), radius = 16f, center = p1)
             drawCircle(color = Color.White.copy(alpha = lifeAlpha), radius = 5.5f, center = p1)
@@ -355,28 +371,26 @@ fun DrawScope.drawEnemyTelegraphs(
             style = Stroke(width = 2.4f)
         )
 
-        // 3. High-Contrast Crimson/Amber Warning Diamond Beacon (◆)
-        val dSize = 14f + beatKick * 4f
-        val diamond = sharedTelegraphDiamond.apply {
-            reset()
-            moveTo(tg.edgeX, tg.edgeY - dSize)
-            lineTo(tg.edgeX + dSize, tg.edgeY)
-            lineTo(tg.edgeX, tg.edgeY + dSize)
-            lineTo(tg.edgeX - dSize, tg.edgeY)
-            close()
-        }
-        drawPath(
-            path = diamond,
-            color = warnCol.copy(alpha = 0.90f)
+        // 3. Smooth Crimson/Amber Radial Warning Beacon Orb on the perimeter (Zero sharp polygon lines!)
+        val bSize = 13f + beatKick * 4f
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(Color.White, coreCol, warnCol.copy(alpha = 0.88f), Color.Transparent),
+                center = Offset(tg.edgeX, tg.edgeY),
+                radius = bSize * 1.65f
+            ),
+            radius = bSize * 1.65f,
+            center = Offset(tg.edgeX, tg.edgeY)
         )
-        drawPath(
-            path = diamond,
+        drawCircle(
             color = coreCol,
-            style = Stroke(width = 2.2f)
+            radius = bSize * 0.72f,
+            center = Offset(tg.edgeX, tg.edgeY),
+            style = Stroke(width = 2.0f)
         )
         drawCircle(
             color = Color.White,
-            radius = 3.5f,
+            radius = 3.8f,
             center = Offset(tg.edgeX, tg.edgeY)
         )
     }
@@ -466,90 +480,79 @@ fun DrawScope.drawEnemySprite(
         blendMode = BlendMode.Screen
     )
 
-    // 2. Crisp Geometric Threat Chassis by Archetype (Sawblade, Delta Wing, or Void Octahedron)
+    // 2. Smooth Curved Energy Crescents & Orbital Threat Rings by Archetype (Zero sharp straight polygon wireframes!)
     when (e.type) {
         EnemyType.SEEKER -> {
-            // "DELTA INTERCEPTOR": Angular Twin-Blade Stealth Fighter Chassis locked onto flight vector
-            val fighterPath = Path().apply {
-                val noseX = e.x + cos(e.angle) * (visualRad * 1.65f)
-                val noseY = e.y + sin(e.angle) * (visualRad * 1.65f)
-                val leftWingX = e.x + cos(e.angle + 2.38f) * (visualRad * 1.48f)
-                val leftWingY = e.y + sin(e.angle + 2.38f) * (visualRad * 1.48f)
-                val notchX = e.x - cos(e.angle) * (visualRad * 0.65f)
-                val notchY = e.y - sin(e.angle) * (visualRad * 0.65f)
-                val rightWingX = e.x + cos(e.angle - 2.38f) * (visualRad * 1.48f)
-                val rightWingY = e.y + sin(e.angle - 2.38f) * (visualRad * 1.48f)
-                moveTo(noseX, noseY)
-                lineTo(leftWingX, leftWingY)
-                lineTo(notchX, notchY)
-                lineTo(rightWingX, rightWingY)
-                close()
-            }
-            drawPath(
-                path = fighterPath,
-                color = Color(0xFF1E050DL).copy(alpha = safeAlpha * 0.92f)
+            // Smooth Swept Crescent Interceptor Arcs locked onto flight vector
+            val aimDeg = (e.angle * 180f / PI.toFloat())
+            val arcR = visualRad * 1.18f
+            drawCircle(
+                color = Color(0xFF1E050DL).copy(alpha = safeAlpha * 0.92f),
+                radius = visualRad * 0.95f,
+                center = Offset(e.x, e.y)
             )
-            drawPath(
-                path = fighterPath,
+            drawArc(
                 color = dangerRimColor.copy(alpha = safeAlpha),
-                style = Stroke(width = 2.8f + beatKick)
+                startAngle = aimDeg - 74f,
+                sweepAngle = 148f,
+                useCenter = false,
+                topLeft = Offset(e.x - arcR, e.y - arcR),
+                size = Size(arcR * 2f, arcR * 2f),
+                style = Stroke(width = 3.6f + beatKick, cap = StrokeCap.Round)
             )
-            // Twin amber wingtip beacons
-            for (side in listOf(-2.38f, 2.38f)) {
-                val wx = e.x + cos(e.angle + side) * (visualRad * 1.48f)
-                val wy = e.y + sin(e.angle + side) * (visualRad * 1.48f)
+            for (side in listOf(-2.15f, 2.15f)) {
+                val wx = e.x + cos(e.angle + side) * (visualRad * 1.18f)
+                val wy = e.y + sin(e.angle + side) * (visualRad * 1.18f)
                 drawCircle(color = secondaryTrimColor.copy(alpha = safeAlpha), radius = 4.2f, center = Offset(wx, wy))
             }
         }
         EnemyType.PULSE -> {
-            // "CRIMSON SAWBLADE": 8-Point Spinning Cybernetic Buzzsaw Polygon
-            val sawPath = Path().apply {
-                val pts = 16
-                for (i in 0 until pts) {
-                    val a = (i.toFloat() / pts) * 6.283185f - time * 3.8f
-                    val r = if (i % 2 == 0) visualRad * (1.45f + 0.18f * beatKick) else visualRad * 0.86f
-                    val px = e.x + cos(a) * r
-                    val py = e.y + sin(a) * r
-                    if (i == 0) moveTo(px, py) else lineTo(px, py)
-                }
-                close()
+            // Smooth Spinning Multi-Crescent Plasma Vortex
+            drawCircle(
+                color = Color(0xFF1F040EL).copy(alpha = safeAlpha * 0.92f),
+                radius = visualRad * 0.98f,
+                center = Offset(e.x, e.y)
+            )
+            for (blade in 0 until 4) {
+                val startDeg = ((time * -210f) + blade * 90f) % 360f
+                val bRad = visualRad * (1.12f + 0.14f * beatKick)
+                drawArc(
+                    color = dangerRimColor.copy(alpha = safeAlpha),
+                    startAngle = startDeg,
+                    sweepAngle = 54f,
+                    useCenter = false,
+                    topLeft = Offset(e.x - bRad, e.y - bRad),
+                    size = Size(bRad * 2f, bRad * 2f),
+                    style = Stroke(width = 3.2f, cap = StrokeCap.Round)
+                )
             }
-            drawPath(
-                path = sawPath,
-                color = Color(0xFF1F040EL).copy(alpha = safeAlpha * 0.92f)
-            )
-            drawPath(
-                path = sawPath,
-                color = dangerRimColor.copy(alpha = safeAlpha),
-                style = Stroke(width = 2.6f)
-            )
         }
         else -> {
-            // "VOID OCTAHEDRON": Counter-Rotating Double-Diamond Crystalline Prism + 3 Orbiting Hazard Nodes
-            for (sq in 0..1) {
-                withTransform({
-                    rotate(degrees = (if (sq == 0) 1f else -1f) * time * 72f + sq * 45f, pivot = Offset(e.x, e.y))
-                }) {
-                    val boxR = visualRad * 0.96f
-                    drawRoundRect(
-                        color = Color(0xFF16041EL).copy(alpha = safeAlpha * 0.85f),
-                        topLeft = Offset(e.x - boxR, e.y - boxR),
-                        size = Size(boxR * 2f, boxR * 2f),
-                        cornerRadius = CornerRadius(boxR * 0.16f, boxR * 0.16f)
-                    )
-                    drawRoundRect(
-                        color = (if (sq == 0) dangerRimColor else secondaryTrimColor).copy(alpha = safeAlpha * 0.95f),
-                        topLeft = Offset(e.x - boxR, e.y - boxR),
-                        size = Size(boxR * 2f, boxR * 2f),
-                        cornerRadius = CornerRadius(boxR * 0.16f, boxR * 0.16f),
-                        style = Stroke(width = 2.4f)
+            // Smooth Counter-Rotating Eclipse Rings + 3 Orbiting Hazard Pearls
+            drawCircle(
+                color = Color(0xFF16041EL).copy(alpha = safeAlpha * 0.88f),
+                radius = visualRad * 0.95f,
+                center = Offset(e.x, e.y)
+            )
+            for (ring in 0..1) {
+                val rRad = visualRad * (if (ring == 0) 1.08f else 0.82f)
+                val startDeg = ((if (ring == 0) 1f else -1f) * time * 110f) % 360f
+                for (seg in 0..1) {
+                    drawArc(
+                        color = (if (ring == 0) dangerRimColor else secondaryTrimColor).copy(alpha = safeAlpha * 0.95f),
+                        startAngle = startDeg + seg * 180f,
+                        sweepAngle = 108f,
+                        useCenter = false,
+                        topLeft = Offset(e.x - rRad, e.y - rRad),
+                        size = Size(rRad * 2f, rRad * 2f),
+                        style = Stroke(width = 2.6f, cap = StrokeCap.Round)
                     )
                 }
             }
             for (n in 0..2) {
                 val na = time * 3.2f + n * (2f * PI.toFloat() / 3f)
-                val nx = e.x + cos(na) * (visualRad * 1.42f)
-                val ny = e.y + sin(na) * (visualRad * 1.42f)
+                val nx = e.x + cos(na) * (visualRad * 1.36f)
+                val ny = e.y + sin(na) * (visualRad * 1.36f)
                 drawCircle(color = secondaryTrimColor.copy(alpha = safeAlpha), radius = 4.0f, center = Offset(nx, ny))
             }
         }
@@ -645,17 +648,27 @@ fun DrawScope.drawPlayerSprite(
         style = Stroke(width = 2.4f + beatKick)
     )
 
-    // 12-Bar Radial Turntable Equalizer Crown around the Hero
-    for (bar in 0 until 12) {
-        val ang = (bar / 12f) * 6.283185f + time * 1.4f
-        val rIn = p.radius * 1.55f
-        val rOut = p.radius * (1.88f + (if (bar % 2 == 0) 0.35f * beatKick else 0.15f))
-        drawLine(
-            color = (if (bar % 2 == 0) Color(0xFFFACC15L) else heroPrimaryCol).copy(alpha = 0.85f * spriteAlpha),
-            start = Offset(center.x + cos(ang) * rIn, center.y + sin(ang) * rIn),
-            end = Offset(center.x + cos(ang) * rOut, center.y + sin(ang) * rOut),
-            strokeWidth = 2.6f,
-            cap = StrokeCap.Round
+    // Smooth Rotating Harmonic Crescent Waves + Orbiting Gold Pearls around the Hero (Replaces 12 straight stick lines!)
+    val haloArcR = p.radius * (1.72f + 0.18f * beatKick)
+    for (arcIdx in 0 until 3) {
+        val startDeg = ((time * 95f) + arcIdx * 120f) % 360f
+        drawArc(
+            color = (if (arcIdx % 2 == 0) Color(0xFFFACC15L) else heroPrimaryCol).copy(alpha = 0.82f * spriteAlpha),
+            startAngle = startDeg,
+            sweepAngle = 68f + beatKick * 18f,
+            useCenter = false,
+            topLeft = Offset(center.x - haloArcR, center.y - haloArcR),
+            size = Size(haloArcR * 2f, haloArcR * 2f),
+            style = Stroke(width = 2.8f, cap = StrokeCap.Round)
+        )
+    }
+    for (orbIdx in 0 until 6) {
+        val ang = (orbIdx / 6f) * 6.283185f - time * 1.6f
+        val orbR = p.radius * (1.92f + (if (orbIdx % 2 == 0) 0.22f * beatKick else 0.08f))
+        drawCircle(
+            color = (if (orbIdx % 2 == 0) Color(0xFFFACC15L) else heroPrimaryCol).copy(alpha = 0.88f * spriteAlpha),
+            radius = if (orbIdx % 2 == 0) 3.2f else 2.2f,
+            center = Offset(center.x + cos(ang) * orbR, center.y + sin(ang) * orbR)
         )
     }
 

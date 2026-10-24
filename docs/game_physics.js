@@ -279,6 +279,9 @@ Object.assign(NoMoreIllusionsApp.prototype, {
           maxLifetime: 10.5,
           teleportCooldown: 0
         });
+        if (typeof this.triggerDiscoveryIfUnseen === "function") {
+          this.triggerDiscoveryIfUnseen("SLIDE_STREAM");
+        }
       }
     }
 
@@ -613,6 +616,14 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       waveFreq: 2.4 + Math.random() * 1.2,
       wavePhase: Math.random() * 6.28
     });
+
+    if (typeof this.triggerDiscoveryIfUnseen === "function") {
+      if (isSupernova || cueType !== "SCORE_ORB") {
+        this.triggerDiscoveryIfUnseen("SUPERNOVA_ORB");
+      } else if (this.powerUps.length >= 2) {
+        this.triggerDiscoveryIfUnseen("BEAT_CHAIN");
+      }
+    }
   },
 
   spawnTravelingCollectible(type, laneRatio, speed) {
@@ -867,6 +878,9 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       timer: 0.80, // Crisp warning before launch
       maxTimer: 0.80
     });
+    if (typeof this.triggerDiscoveryIfUnseen === "function") {
+      this.triggerDiscoveryIfUnseen("HAZARD_SHIELD");
+    }
   },
 
   spawnEnemy() {

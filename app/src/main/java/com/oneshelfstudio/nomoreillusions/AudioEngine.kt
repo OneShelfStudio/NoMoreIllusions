@@ -121,19 +121,69 @@ class AudioEngine(private val context: Context) {
         }
     }
 
-    fun playVictory() {
+    private val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
+
+    /**
+     * Signature "Whoosh -> Musical Chime/Beep" transition sound for menus, first-time discovery cards,
+     * level completion, and game-over transitions.
+     */
+    fun playWhooshChime(kind: String = "MODAL") {
         if (!isSoundEnabled) return
-        if (victorySound != 0) {
-            soundPool.play(victorySound, 0.95f, 0.95f, 1, 0, 1f)
-        } else if (levelUpSound != 0) {
-            soundPool.play(levelUpSound, 1f, 1f, 1, 0, 1f)
+        when (kind) {
+            "VICTORY" -> {
+                if (nearMissSound != 0) soundPool.play(nearMissSound, 0.34f, 0.34f, 1, 0, 1.12f)
+                val notes = listOf(1.0f, 1.259f, 1.498f, 2.0f)
+                notes.forEachIndexed { idx, rate ->
+                    mainHandler.postDelayed({
+                        if (isSoundEnabled && focusSound != 0) {
+                            soundPool.play(focusSound, 0.42f, 0.42f, 1, 0, rate)
+                        }
+                        if (isSoundEnabled && idx == notes.lastIndex && powerUpSound != 0) {
+                            soundPool.play(powerUpSound, 0.48f, 0.48f, 1, 0, rate)
+                        }
+                    }, 70L + idx * 85L)
+                }
+                if (victorySound != 0) {
+                    mainHandler.postDelayed({
+                        if (isSoundEnabled) soundPool.play(victorySound, 0.78f, 0.78f, 1, 0, 1f)
+                    }, 160L)
+                }
+            }
+            "GAME_OVER" -> {
+                if (nearMissSound != 0) soundPool.play(nearMissSound, 0.30f, 0.30f, 1, 0, 0.78f)
+                mainHandler.postDelayed({
+                    if (isSoundEnabled && focusSound != 0) soundPool.play(focusSound, 0.38f, 0.38f, 1, 0, 1.122f)
+                }, 75L)
+                mainHandler.postDelayed({
+                    if (isSoundEnabled && focusSound != 0) soundPool.play(focusSound, 0.34f, 0.34f, 1, 0, 0.84f)
+                }, 185L)
+            }
+            else -> {
+                // "MODAL" / "TUTORIAL" / "MENU": Soft air whoosh into a bright E5 -> B5 musical fifth beep
+                if (nearMissSound != 0) soundPool.play(nearMissSound, 0.26f, 0.26f, 1, 0, 0.98f)
+                mainHandler.postDelayed({
+                    if (isSoundEnabled && focusSound != 0) soundPool.play(focusSound, 0.36f, 0.36f, 1, 0, 1.259f)
+                }, 65L)
+                mainHandler.postDelayed({
+                    if (isSoundEnabled && powerUpSound != 0) soundPool.play(powerUpSound, 0.32f, 0.32f, 1, 0, 1.681f)
+                }, 145L)
+            }
         }
+    }
+
+    fun playVictory() {
+        playWhooshChime("VICTORY")
     }
 
     fun playMenuNote() {
         if (!isSoundEnabled || focusSound == 0) return
+        if (nearMissSound != 0) soundPool.play(nearMissSound, 0.18f, 0.18f, 0, 0, 1.05f)
         val pitch = pentatonicScale[menuNoteIndex % pentatonicScale.size]
-        soundPool.play(focusSound, 0.45f, 0.45f, 0, 0, pitch)
+        mainHandler.postDelayed({
+            if (isSoundEnabled && focusSound != 0) {
+                soundPool.play(focusSound, 0.40f, 0.40f, 0, 0, pitch)
+            }
+        }, 50L)
         menuNoteIndex++
     }
 

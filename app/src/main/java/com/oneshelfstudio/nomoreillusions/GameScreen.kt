@@ -260,6 +260,12 @@ fun GameScreen(
 
     var trackRevealMusicProgress by remember { mutableFloatStateOf(0f) }
     var onBeatHitsThisRun by remember { mutableIntStateOf(0) }
+    var maxComboThisRun by remember { mutableIntStateOf(1) }
+    var activeDiscovery by remember {
+        mutableStateOf<FirstTimeDiscovery?>(
+            if (!hasSeenDiscovery(prefs, FirstTimeDiscovery.FAN_WELCOME)) FirstTimeDiscovery.FAN_WELCOME else null
+        )
+    }
 
     LaunchedEffect(gameState, selectedTrackIndex) {
         if (gameState == GameState.COUNTDOWN) {
@@ -309,6 +315,8 @@ fun GameScreen(
                     .putString("track_mastery_stars", trackMasteryStarsCsv)
                     .putInt("unlocked_tracks", unlockedTrackCount)
                     .putInt("pulse_points", pulsePoints)
+                    .putBoolean("art_unlocked_$selectedTrackIndex", true)
+                    .putInt("best_combo", maxOf(prefs.getInt("best_combo", 0), maxComboThisRun))
                     .apply()
 
                 audioEngine.playVictory()
@@ -428,6 +436,7 @@ fun GameScreen(
         selectedTrackIndex = trackIdx.coerceIn(1, totalTracks)
         score = 0
         rhythmCombo = 0
+        maxComboThisRun = 1
         onBeatHitsThisRun = 0
         level = 1
         focusPower = 1f
@@ -546,6 +555,11 @@ fun GameScreen(
                     liveSwellDelta = 0f
                     liveMultiBand = MultiBandAudioState(rms = liveAudioEnergy, bass = 0.38f, vocal = 0.45f, high = 0.30f)
                     updateMenuMotes(motes, screenWidth, screenHeight, liveBeatPhase)
+                    return@withFrameNanos
+                }
+
+                // Pause physics while a First-Time Contextual Discovery Card is open
+                if (activeDiscovery != null) {
                     return@withFrameNanos
                 }
 
@@ -897,6 +911,24 @@ fun GameScreen(
                     sectionSpeedMult = currentSecObj.enemySpeedMult
                 )
 
+                // First-Time Contextual Discovery Check: Pauses gameplay the VERY FIRST TIME a new mechanic appears!
+                if (activeDiscovery == null && levelPlayTime > 0.65f) {
+                    val triggerDiscovery: FirstTimeDiscovery? = when {
+                        powerUps.isNotEmpty() && !hasSeenDiscovery(prefs, FirstTimeDiscovery.BEAT_CHAIN) -> FirstTimeDiscovery.BEAT_CHAIN
+                        powerUps.any { it.keyWordEffect != KeyWordEffect.NONE } && !hasSeenDiscovery(prefs, FirstTimeDiscovery.SUPERNOVA_ORB) -> FirstTimeDiscovery.SUPERNOVA_ORB
+                        wormholes.isNotEmpty() && !hasSeenDiscovery(prefs, FirstTimeDiscovery.SLIDE_STREAM) -> FirstTimeDiscovery.SLIDE_STREAM
+                        (enemyTelegraphs.isNotEmpty() || enemies.isNotEmpty()) && !hasSeenDiscovery(prefs, FirstTimeDiscovery.HAZARD_SHIELD) -> FirstTimeDiscovery.HAZARD_SHIELD
+                        else -> null
+                    }
+                    if (triggerDiscovery != null) {
+                        markDiscoverySeen(prefs, triggerDiscovery)
+                        activeDiscovery = triggerDiscovery
+                        audioEngine.pauseTrack()
+                        audioEngine.playWhooshChime("MODAL")
+                        return@withFrameNanos
+                    }
+                }
+
                 // 5. Differentiated Beat Orb Collection + Unmistakable ON-BEAT HARMONIC SPECTACLE!
                 val pIter = powerUps.iterator()
                 while (pIter.hasNext()) {
@@ -905,6 +937,7 @@ fun GameScreen(
                     val catchRadius = p.radius + player.radius + (if (isGoldenActive) 20f else 15f)
                     if (dist < catchRadius) {
                         rhythmCombo++
+                        if (rhythmCombo > maxComboThisRun) maxComboThisRun = rhythmCombo
                         val isSupernovaOrb = p.keyWordEffect != KeyWordEffect.NONE
                         val beatDelta = abs(trackSec - p.targetBeatSec)
                         val isCaughtOnBeat = (beatDelta <= beatDurationSec * 0.42f) || (liveBeatPhase <= 0.38f || liveBeatPhase >= 0.76f) || isSupernovaOrb
@@ -1120,6 +1153,7 @@ fun GameScreen(
                                 gameState = GameState.GAME_OVER
                                 shockwaves.add(Shockwave(player.x, player.y, 0f, 500f, Color(0xFFEC4899L), 1f))
                                 audioEngine.playDeath()
+                                audioEngine.playWhooshChime("GAME_OVER")
                                 triggerHaptic(120L)
                                 shakeAmount = 28f
                                 chromaticAmount = 4.5f
@@ -1491,6 +1525,10 @@ fun GameScreen(
 
             GameState.LEVEL_COMPLETE -> LevelCompleteUI(
                 trackIndex = selectedTrackIndex,
+                score = score,
+                maxCombo = maxComboThisRun,
+                notesEarned = (75 * selectedRemixMode.noteMultiplier).toInt() + onBeatHitsThisRun * 5,
+                unlockedVaultCount = if (isVipUnlocked) ARTIST_EXCLUSIVES_CATALOG.size else countUnlockedExclusives(prefs, highScore, pulsePoints),
                 uiDialogPanel = uiDialogPanel,
                 btnPillGreen = btnPillGreen,
                 btnPillGold = btnPillGold,
@@ -1504,10 +1542,16 @@ fun GameScreen(
                         }
                     }
                 },
+                onOpenArtistVault = {
+                    audioEngine.playWhooshChime("MODAL")
+                    adManager.showInterstitialIfReady(context as Activity) {
+                        gameState = GameState.MUSIC_DEMO
+                    }
+                },
                 onBackToAlbum = {
                     audioEngine.playMenuNote()
                     adManager.showInterstitialIfReady(context as Activity) {
-                        gameState = GameState.MUSIC_DEMO
+                        gameState = GameState.MENU
                     }
                 }
             )
@@ -1581,6 +1625,24 @@ fun GameScreen(
                 btnIconClose = btnIconClose
             )
             else -> {}
+        }
+
+        // First-Time Contextual Discovery Overlay (Fan Welcome on First Launch + Auto-Pause In-Game Tutorials)
+        val curDiscovery = activeDiscovery
+        if (curDiscovery != null) {
+            FirstTimeDiscoveryModal(
+                discovery = curDiscovery,
+                onDismiss = {
+                    markDiscoverySeen(prefs, curDiscovery)
+                    audioEngine.playWhooshChime("MODAL")
+                    val resumeGame = (gameState == GameState.PLAYING)
+                    activeDiscovery = null
+                    if (resumeGame) {
+                        spawnInvulnerabilityTime = maxOf(spawnInvulnerabilityTime, 1.8f)
+                        audioEngine.resumeTrack()
+                    }
+                }
+            )
         }
     }
 }

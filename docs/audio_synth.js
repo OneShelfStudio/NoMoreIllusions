@@ -115,6 +115,10 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       this.synthWarmClick(volume);
       return;
     }
+    if (name === "whoosh_modal" || name === "whoosh_victory" || name === "whoosh_gameover") {
+      this.synthWhooshChime(name, volume);
+      return;
+    }
     if (name === "orb") {
       this.synthHarmonicOrbChime(volume);
       return;
@@ -153,17 +157,116 @@ Object.assign(NoMoreIllusionsApp.prototype, {
     if (!this.audioCtx || this.prefs.sfxMuted) return;
     try {
       if (this.audioCtx.state === "suspended") this.audioCtx.resume();
+      const now = this.audioCtx.currentTime;
+      // Soft air whoosh (95ms filtered noise sweep) -> crisp musical beep
+      this._playAirWhoosh(now, 0.095, 320, 1180, vol * 0.22);
+      const scale = [523.25, 587.33, 659.25, 783.99, 880.00, 1046.50];
+      this._uiBeepIdx = ((this._uiBeepIdx || 0) + 1) % scale.length;
+      const freq = scale[this._uiBeepIdx];
       const osc = this.audioCtx.createOscillator();
       const gain = this.audioCtx.createGain();
       osc.type = "sine";
-      osc.frequency.setValueAtTime(880, this.audioCtx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(320, this.audioCtx.currentTime + 0.045);
-      gain.gain.setValueAtTime(vol * 0.45, this.audioCtx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, this.audioCtx.currentTime + 0.045);
+      osc.frequency.setValueAtTime(freq, now + 0.035);
+      osc.frequency.exponentialRampToValueAtTime(freq * 1.25, now + 0.145);
+      gain.gain.setValueAtTime(vol * 0.36, now + 0.035);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.165);
       osc.connect(gain);
       gain.connect(this.audioCtx.destination);
-      osc.start();
-      osc.stop(this.audioCtx.currentTime + 0.05);
+      osc.start(now + 0.035);
+      osc.stop(now + 0.17);
+    } catch (e) {}
+  },
+
+  _playAirWhoosh(startTime, durationSec, startFreq, endFreq, peakGain) {
+    if (!this.audioCtx) return;
+    const sampleRate = this.audioCtx.sampleRate;
+    const frameCount = Math.max(1, Math.floor(sampleRate * durationSec));
+    const buffer = this.audioCtx.createBuffer(1, frameCount, sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < frameCount; i++) {
+      const env = Math.sin((i / frameCount) * Math.PI);
+      data[i] = (Math.random() * 2 - 1) * env;
+    }
+    const noise = this.audioCtx.createBufferSource();
+    noise.buffer = buffer;
+    const filter = this.audioCtx.createBiquadFilter();
+    filter.type = "bandpass";
+    filter.Q.setValueAtTime(2.6, startTime);
+    filter.frequency.setValueAtTime(startFreq, startTime);
+    filter.frequency.exponentialRampToValueAtTime(endFreq, startTime + durationSec);
+    const gain = this.audioCtx.createGain();
+    gain.gain.setValueAtTime(peakGain, startTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, startTime + durationSec);
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.audioCtx.destination);
+    noise.start(startTime);
+    noise.stop(startTime + durationSec + 0.01);
+  },
+
+  synthWhooshChime(kind = "whoosh_modal", vol = 0.65) {
+    if (!this.audioCtx || this.prefs.sfxMuted) return;
+    try {
+      if (this.audioCtx.state === "suspended") this.audioCtx.resume();
+      const now = this.audioCtx.currentTime;
+      if (kind === "whoosh_victory") {
+        // Lush upward stereo whoosh + soaring C5 -> E5 -> G5 -> B5 -> C6 major 9th crystal arpeggio
+        this._playAirWhoosh(now, 0.24, 240, 1850, vol * 0.38);
+        const notes = [523.25, 659.25, 783.99, 987.77, 1046.50];
+        notes.forEach((f, idx) => {
+          const t0 = now + 0.08 + idx * 0.068;
+          const osc = this.audioCtx.createOscillator();
+          const osc2 = this.audioCtx.createOscillator();
+          const g = this.audioCtx.createGain();
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(f, t0);
+          osc2.type = "triangle";
+          osc2.frequency.setValueAtTime(f * 2, t0);
+          g.gain.setValueAtTime(vol * 0.28, t0);
+          g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.55);
+          osc.connect(g);
+          osc2.connect(g);
+          g.connect(this.audioCtx.destination);
+          osc.start(t0);
+          osc2.start(t0);
+          osc.stop(t0 + 0.58);
+          osc2.stop(t0 + 0.58);
+        });
+      } else if (kind === "whoosh_gameover") {
+        // Warm downward air whoosh + E5 -> B4 -> A4 gentle resolution beep
+        this._playAirWhoosh(now, 0.22, 1350, 260, vol * 0.34);
+        const notes = [659.25, 493.88, 440.00];
+        notes.forEach((f, idx) => {
+          const t0 = now + 0.07 + idx * 0.085;
+          const osc = this.audioCtx.createOscillator();
+          const g = this.audioCtx.createGain();
+          osc.type = "triangle";
+          osc.frequency.setValueAtTime(f, t0);
+          g.gain.setValueAtTime(vol * 0.26, t0);
+          g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.38);
+          osc.connect(g);
+          g.connect(this.audioCtx.destination);
+          osc.start(t0);
+          osc.stop(t0 + 0.40);
+        });
+      } else {
+        // "whoosh_modal": Velvety 150ms upward whoosh -> E5 -> B5 crystal fifth beep
+        this._playAirWhoosh(now, 0.15, 280, 1480, vol * 0.32);
+        const notes = [659.25, 987.77];
+        notes.forEach((f, idx) => {
+          const t0 = now + 0.065 + idx * 0.068;
+          const osc = this.audioCtx.createOscillator();
+          const g = this.audioCtx.createGain();
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(f, t0);
+          g.gain.setValueAtTime(vol * 0.30, t0);
+          g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.28);
+          osc.connect(g);
+          g.connect(this.audioCtx.destination);
+          osc.start(t0);
+          osc.stop(t0 + 0.30);
+        });
+      }
     } catch (e) {}
   },
 
