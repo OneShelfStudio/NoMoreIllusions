@@ -1,9 +1,17 @@
-const CACHE_NAME = "nmi-v11-rhythm-first";
+const CACHE_NAME = "nmi-v12-modular";
 const ASSETS = [
   "./",
   "./index.html",
+  "./styles.css",
   "./multi_band_data.js",
+  "./music_library.js",
+  "./background_renderer.js",
+  "./beat_orb_renderer.js",
+  "./game_renderer.js",
   "./engine.js",
+  "./audio_synth.js",
+  "./game_physics.js",
+  "./ui_screens.js",
   "./manifest.json",
   "./assets/nmi_logo.png",
   "./assets/mandala_hero_cyber.png",
