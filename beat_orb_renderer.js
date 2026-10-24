@@ -16,10 +16,35 @@ function drawMotes(ctx, motes) {
   for (let i = 0; i < motes.length; i++) {
     const m = motes[i];
     if (m.alpha > 0.01) {
-      ctx.beginPath();
-      ctx.arc(m.x, m.y, m.radius, 0, Math.PI * 2);
-      ctx.fillStyle = rgba(m.color, Math.max(0, Math.min(1, m.alpha)) * 0.7);
-      ctx.fill();
+      if (m.isStarfall) {
+        // Melodic Starfall Petal: vertical aurora tail + swaying diamond core
+        const a = Math.max(0, Math.min(1, m.alpha));
+        const grad = ctx.createLinearGradient(m.x, m.y - m.radius * 4.2, m.x, m.y);
+        grad.addColorStop(0, "rgba(255,255,255,0)");
+        grad.addColorStop(1, rgba(m.color, a * 0.72));
+        ctx.beginPath();
+        ctx.moveTo(m.x, m.y - m.radius * 4.2);
+        ctx.lineTo(m.x, m.y);
+        ctx.strokeStyle = grad;
+        ctx.lineWidth = m.radius * 1.1;
+        ctx.lineCap = "round";
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(m.x, m.y, m.radius * 1.4, 0, Math.PI * 2);
+        ctx.fillStyle = rgba(m.color, a * 0.9);
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(m.x, m.y, m.radius * 0.65, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255,255,255,${a})`;
+        ctx.fill();
+      } else {
+        ctx.beginPath();
+        ctx.arc(m.x, m.y, m.radius, 0, Math.PI * 2);
+        ctx.fillStyle = rgba(m.color, Math.max(0, Math.min(1, m.alpha)) * 0.7);
+        ctx.fill();
+      }
     }
   }
 }
@@ -88,8 +113,9 @@ function drawShockwaves(ctx, shockwaves) {
 }
 
 function computeHighwayPoint(laneFloat, u, w, h) {
-  const horizonY = h * 0.16;
-  const strikeY = h * 0.74;
+  const horizonY = h * 0.15;
+  // Raised Beat Strike Line to 65% of screen height so the bottom 35% is an open Thumb Steering Zone!
+  const strikeY = h * 0.65;
   const topHalfW = w * 0.14;
   const strikeHalfW = w * 0.42;
   const clampedU = Math.max(-0.05, Math.min(1.32, u));

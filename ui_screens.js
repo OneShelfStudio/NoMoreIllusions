@@ -308,7 +308,7 @@ Object.assign(NoMoreIllusionsApp.prototype, {
 
     const exclPill = document.getElementById("menu-exclusives-pill");
     if (exclPill && typeof this.getUnlockedExclusivesCount === "function") {
-      exclPill.textContent = `${this.getUnlockedExclusivesCount()}/${ARTIST_EXCLUSIVES_CATALOG.length} VAULT →`;
+      exclPill.textContent = `${this.getUnlockedExclusivesCount()}/${ARTIST_EXCLUSIVES_CATALOG.length} UNLOCKED →`;
     }
 
     const lobby = LOBBY_TRACKS[this.prefs.lobbyThemeIndex % LOBBY_TRACKS.length];
@@ -326,22 +326,23 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       subBanner.style.color = allGold ? "#FACC15" : "#4ADE80";
       subBanner.innerHTML = allGold
         ? `★ 100% ALBUM MASTERY • BEST: <span id="menu-best-score">${this.prefs.highScore}</span>`
-        : `INTERACTIVE VISUAL ALBUM • BEST SCORE: <span id="menu-best-score">${this.prefs.highScore}</span>`;
+        : `BEST SCORE: <span id="menu-best-score">${this.prefs.highScore}</span>`;
     }
 
     const activeStage = OFFICIAL_TRACKS[this.selectedStageIndex] || OFFICIAL_TRACKS[0];
 
-    // 1. Track Vinyl Selector Cards (#menu-track-deck-row) — 1:1 with Android MenuScreen.kt
+    // 1. Tactile Pop & Zoom Vinyl Track Cards (#menu-track-deck-row)
     const trackDeckRow = document.getElementById("menu-track-deck-row");
     if (trackDeckRow) {
       trackDeckRow.innerHTML = OFFICIAL_TRACKS.map((track, idx) => {
         const isSelected = idx === this.selectedStageIndex;
         const stars = this.prefs.trackMasteryMedals[track.id] || 0;
         const starsStr = [1, 2, 3].map(s => `<span style="color:${s <= stars ? "#FACC15" : "#334155"};">★</span>`).join("");
+        const effBpm = Math.round(track.bpm * (activeRemix.speed || 1.0));
         return `
           <div class="track-card ${isSelected ? "selected" : ""}" onclick="window.app.selectStage(${idx})">
             <div class="track-card-header">
-              <span class="track-card-bpm">SONG 0${idx + 1} • ${track.bpm} BPM</span>
+              <span class="track-card-bpm">SIDE 0${idx + 1} • ${effBpm} BPM</span>
               <span class="track-card-stars">${starsStr}</span>
             </div>
             <div class="track-card-title">${track.title.toUpperCase()}</div>
@@ -350,54 +351,20 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       }).join("");
     }
 
-    // 2. 4-Mode Replayability Selector (#menu-remix-pills & #menu-remix-subtitle) — 1:1 with Android MenuScreen.kt
-    const remixSubEl = document.getElementById("menu-remix-subtitle");
-    if (remixSubEl) {
-      remixSubEl.textContent = activeRemix.subtitle;
-      remixSubEl.style.color = activeRemix.color;
-    }
-
+    // 2. Tactile Pop & Zoom Speed Switches (#menu-remix-pills) — Zoomed Pill Reveals Crisp 1-Line Spec!
     const remixPillsEl = document.getElementById("menu-remix-pills");
     if (remixPillsEl) {
       remixPillsEl.innerHTML = TRACK_REMIX_MODES.map((mode) => {
         const isSelected = mode.id === activeRemix.id;
         return `
           <div class="remix-pill ${isSelected ? "selected" : ""}"
-               style="border-color:${isSelected ? mode.color : "rgba(255,255,255,0.14)"};background:${isSelected ? "rgba(255,255,255,0.10)" : "#07090E"};"
+               style="border-color:${isSelected ? mode.color : "rgba(255,255,255,0.16)"};background:${isSelected ? `${mode.color}28` : "#07090E"};"
                onclick="window.app.setRemixMode('${mode.id}')">
-            <div class="remix-pill-tag" style="color:${isSelected ? mode.color : "#94A3B8"};">${mode.shortTag}</div>
-            <div class="remix-pill-id" style="color:${isSelected ? "#FAF8F5" : "#64748B"};">${mode.displayName}</div>
+            <div class="remix-pill-tag" style="color:${isSelected ? mode.color : "#CBD5E1"};">${mode.shortTag} ${mode.displayName}</div>
+            ${isSelected ? `<div class="remix-pill-id" style="color:#FAF8F5;">${mode.subtitle}</div>` : ""}
           </div>
         `;
       }).join("");
-    }
-
-    // 2B. Explicit Mode Spec & High-Score Loop Breakdown Box (#menu-mode-spec-box)
-    const specBox = document.getElementById("menu-mode-spec-box");
-    const specTitle = document.getElementById("menu-spec-title");
-    const specBadge = document.getElementById("menu-spec-badge");
-    const specDesc = document.getElementById("menu-spec-desc");
-    if (specBox && specTitle && specBadge && specDesc) {
-      specBox.style.borderColor = activeRemix.color;
-      specTitle.style.color = activeRemix.color;
-      specBadge.style.background = activeRemix.color;
-      if (activeRemix.id === "NIGHTCORE") {
-        specTitle.textContent = "FAST OVERDRIVE TAPE (1.20X SPEED)";
-        specBadge.textContent = "1.5X SCORE & NOTES";
-        specDesc.textContent = "20% faster song tempo & denser beat highway. Awards +50% bonus score & ♪ Notes — complete once to earn ★3 Mastery!";
-      } else if (activeRemix.id === "CHILLWAVE") {
-        specTitle.textContent = "CHILL REVERB TAPE (0.85X SPEED)";
-        specBadge.textContent = "1.2X SCORE & NOTES";
-        specDesc.textContent = "Dreamy slowed-down tempo with wider timing windows on the Beat Strike Line. Great for learning the rhythm chart!";
-      } else if (activeRemix.id === "ENDLESS_LOOP") {
-        specTitle.textContent = "∞ ENDLESS HIGH-SCORE LOOP (ESCALATING)";
-        specBadge.textContent = "2.0X+ HIGH-SCORE MODE";
-        specDesc.textContent = "THE ULTIMATE HIGH-SCORE CHASE: Song loops seamlessly on completion (+8% speed & massive multiplier boost every loop until you fall)!";
-      } else {
-        specTitle.textContent = "NORMAL STUDIO MASTER (1.0X SPEED)";
-        specBadge.textContent = "1.0X SCORE";
-        specDesc.textContent = "Original studio master tempo & balanced 4-lane rhythm highway. Finish the track to unlock the full song & Ethan's Studio Vault!";
-      }
     }
 
     // 3. Console Card Border & Launch Button (#menu-launch-main & #btn-launch-stage)
@@ -473,7 +440,7 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       if (tcCombo) tcCombo.textContent = `${this.maxComboRun}x`;
       const tcEarned = document.getElementById("tc-earned-val");
       if (tcEarned) {
-        const totalEarned = Math.max(50, Math.floor(this.score / 8)) + 500;
+        const totalEarned = this.lastRunEarnedNotes || (Math.max(50, Math.floor(this.score / 8)) + 500);
         tcEarned.textContent = `+♪ ${totalEarned}`;
       }
       if (typeof this.getPrimarySpotlightExclusive === "function") {

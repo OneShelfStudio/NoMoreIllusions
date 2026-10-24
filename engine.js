@@ -304,13 +304,13 @@ class NoMoreIllusionsApp {
       window.addEventListener("pointercancel", endScratch);
     }
 
-    // Pointer / Touch Controls on Game Canvas
+    // Pointer / Touch Controls on Game Canvas (Thumb-friendly bottom steering zone!)
     const updatePointer = (clientX, clientY) => {
       this.unlockAudioOnFirstGesture();
       if (this.gameState === "PLAYING") {
         this.targetX = Math.max(this.playerRadius, Math.min(this.W - this.playerRadius, clientX));
-        // Slight vertical offset on touch so finger doesn't cover core
-        const offsetY = clientY - 36;
+        // Ergonomic thumb-below vertical offset: keep your finger near the bottom while the Hero glides along the 65% Strike Line!
+        const offsetY = clientY > this.H * 0.48 ? clientY - 58 : clientY - 36;
         this.targetY = Math.max(this.playerRadius, Math.min(this.H - this.playerRadius, offsetY));
       }
     };
@@ -642,24 +642,33 @@ class NoMoreIllusionsApp {
     this.playSfx("whoosh_victory", 0.88);
     this.playSfx("levelup", 0.82);
 
-    const completionBonus = 500;
-    const totalEarned = Math.max(50, Math.floor(this.score / 8)) + completionBonus;
+    const mode = this.getRemixMode();
+    const isEasyOrChill = mode.id === "SLOWED" || this.prefs.difficulty === "EASY";
+    const noteScale = (mode.noteMult || 1.0) * (this.prefs.difficulty === "EASY" ? 0.55 : (this.prefs.difficulty === "HARD" ? 1.35 : 1.0));
+    const completionBonus = isEasyOrChill ? 250 : Math.round(500 * (mode.noteMult || 1.0));
+    const totalEarned = Math.max(30, Math.round((this.score / 8) * noteScale)) + completionBonus;
+    this.lastRunEarnedNotes = totalEarned;
     this.prefs.points += totalEarned;
     if (this.score > this.prefs.highScore) this.prefs.highScore = this.score;
 
-    this.prefs.trackBestProgress[stage.id] = 1.0;
+    // Anti-Easy-Farming Album Unlock Rule:
+    // Chill (0.85x) or Easy difficulty requires 2 full completions (+50% per run) to unlock the Album Art & Vault!
+    // Normal (1.0x) and Fast (1.2x) unlock in 1 completion (+100%).
+    const prevProg = this.prefs.trackBestProgress[stage.id] || 0;
+    const newProg = Math.min(1.0, prevProg + (isEasyOrChill ? 0.50 : 1.0));
+    this.prefs.trackBestProgress[stage.id] = newProg;
+
     const wasUnlocked = this.prefs.unlockedTracks.includes(stage.id);
-    if (!wasUnlocked) {
+    if (!wasUnlocked && newProg >= 0.99) {
       this.prefs.unlockedTracks.push(stage.id);
       this.newlyUnlockedTrack = stage;
     } else {
       this.newlyUnlockedTrack = null;
     }
 
-    const mode = this.getRemixMode();
     let stars = 1; // ★1: Clear song
-    if (this.maxComboRun >= 8) stars = 2; // ★2: 8x Beat streak
-    if (mode.id === "OVERCLOCK" || mode.id === "SLOWED") stars = 3; // ★3: Beat Nightcore/Slowed
+    if (this.maxComboRun >= 8 && !isEasyOrChill) stars = 2; // ★2: 8x Beat streak on Normal/Fast
+    if (mode.id === "OVERCLOCK") stars = 3; // ★3: Beat Fast (1.2x) Overclock
     this.earnedMedalTier = stars;
     if (stars > (this.prefs.trackMasteryMedals[stage.id] || 0)) {
       this.prefs.trackMasteryMedals[stage.id] = stars;

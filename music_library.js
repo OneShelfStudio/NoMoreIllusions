@@ -313,10 +313,10 @@ const OFFICIAL_TRACKS = [
 
 
 const TRACK_REMIX_MODES = [
-  { id: "ORIGINAL", displayName: "NORMAL", title: "Normal Speed", shortTag: "1.0x", subtitle: "Regular song speed • Balanced challenge", speed: 1.0, pitch: 1.0, bonusText: "1.0x Score", color: "#4ADE80" },
-  { id: "OVERCLOCK", displayName: "FAST", title: "Fast Remix (1.2x)", shortTag: "1.2x", subtitle: "Faster song & pitch • Intense speed • 2x Notes", speed: 1.20, pitch: 1.12, bonusText: "2.0x ♪ Notes", color: "#F43F5E" },
-  { id: "SLOWED", displayName: "CHILL", title: "Slowed & Reverb (0.85x)", shortTag: "0.85x", subtitle: "Deep slowed vocals • Smooth flow • 1.5x Notes", speed: 0.85, pitch: 0.86, bonusText: "1.5x ♪ Notes", color: "#38BDF8" },
-  { id: "ENDLESS", displayName: "ENDLESS", title: "Endless Survival", shortTag: "∞ LOOP", subtitle: "Non-stop looping song • Rising speed • 2.5x Notes", speed: 1.0, pitch: 1.0, isEndless: true, bonusText: "2.5x ♪ Notes", color: "#FACC15" }
+  { id: "ORIGINAL", displayName: "NORMAL", title: "Normal Speed", shortTag: "1.0x", subtitle: "1.0x PTS • 1 RUN UNLOCK", speed: 1.0, pitch: 1.0, scoreMult: 1.0, noteMult: 1.0, enemyMult: 1.0, bonusText: "1.0x PTS • 1 RUN UNLOCK", color: "#4ADE80" },
+  { id: "OVERCLOCK", displayName: "FAST", title: "Fast Remix (1.2x)", shortTag: "1.2x", subtitle: "1.5x BONUS • ★3 MEDAL", speed: 1.20, pitch: 1.12, scoreMult: 1.5, noteMult: 1.5, enemyMult: 1.25, bonusText: "1.5x BONUS • ★3 MEDAL", color: "#F43F5E" },
+  { id: "SLOWED", displayName: "CHILL", title: "Slowed & Reverb (0.85x)", shortTag: "0.85x", subtitle: "0.5x PTS • 2 RUNS UNLOCK", speed: 0.85, pitch: 0.86, scoreMult: 0.55, noteMult: 0.50, enemyMult: 0.65, bonusText: "0.5x PTS • 2 RUNS UNLOCK", color: "#38BDF8" },
+  { id: "ENDLESS", displayName: "ENDLESS", title: "Endless Survival", shortTag: "∞ LOOP", subtitle: "2.0x HIGH-SCORE LOOP", speed: 1.0, pitch: 1.0, scoreMult: 2.0, noteMult: 2.0, enemyMult: 1.15, isEndless: true, bonusText: "2.0x HIGH-SCORE LOOP", color: "#FACC15" }
 ];
 
 const LOBBY_TRACKS = [

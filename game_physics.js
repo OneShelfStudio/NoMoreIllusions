@@ -62,8 +62,10 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       if (this.comboTimer <= 0) this.combo = 1;
     }
 
-    // Score & Level Progression
-    const mult = this.combo * (this.constellationRushTimer > 0 ? 2 : 1);
+    // Score & Level Progression (Scaled by Mode Difficulty Multiplier!)
+    const mode = this.getRemixMode();
+    const diffMult = (mode.scoreMult || 1.0) * (this.prefs.difficulty === "EASY" ? 0.55 : (this.prefs.difficulty === "HARD" ? 1.35 : 1.0));
+    const mult = this.combo * (this.constellationRushTimer > 0 ? 2 : 1) * diffMult;
     this.score += Math.max(1, Math.round(dt * 18 * mult));
     const newLevel = Math.min(12, 1 + Math.floor(this.survivalSeconds / 15));
     if (newLevel > this.level) {
@@ -197,7 +199,11 @@ Object.assign(NoMoreIllusionsApp.prototype, {
 
     // 3. Simplified Pickups (Fret Beat Notes, ★ 4X STAR, 💥 BOMB, 🛡️ SHIELD) arrive via the beat highway chart
 
-    // 4. Guitar-Hero Sustain Slide Ribbon Spawner (Scrolling Hold-and-Slide Ribbon down the Rhythm Highway)
+    // 4. Guitar-Hero Sustain Slide Ribbon Spawner (REPLACES regular tap notes while active!)
+    if (this.wormholes.length > 0) {
+      // Mutually Exclusive Rule: remove regular tap beat notes so sustain ribbons replace beats instead of running alongside them!
+      this.powerUps = this.powerUps.filter((p) => p.type !== "SCORE_ORB" || p.isSupernova || (p.keyWordEffect && p.keyWordEffect !== "NONE"));
+    }
     if (activeSec.allowAnomalies) {
       this.wormholeSpawnTimer += dt;
       if (this.wormholeSpawnTimer >= 11.5 && this.wormholes.length === 0) {
@@ -208,10 +214,13 @@ Object.assign(NoMoreIllusionsApp.prototype, {
 
         const headPt = typeof this.computeHighwayPoint === "function"
           ? this.computeHighwayPoint(startLane, 0, this.W, this.H)
-          : { x: this.W * 0.5, y: this.H * 0.16 };
+          : { x: this.W * 0.5, y: this.H * 0.15 };
         const tailPt = typeof this.computeHighwayPoint === "function"
           ? this.computeHighwayPoint(endLane, -0.58, this.W, this.H)
           : { x: this.W * 0.5, y: this.H * 0.08 };
+
+        // Clear regular tap beat notes so the Sustain Ribbon takes center stage!
+        this.powerUps = this.powerUps.filter((p) => p.type !== "SCORE_ORB" || p.isSupernova || (p.keyWordEffect && p.keyWordEffect !== "NONE"));
 
         this.wormholes.push({
           ax: headPt.x,
@@ -225,7 +234,8 @@ Object.assign(NoMoreIllusionsApp.prototype, {
           radius: 36,
           age: 0,
           maxLifetime: 3.2,
-          teleportCooldown: 0
+          teleportCooldown: 0,
+          tailCompleted: false
         });
       }
     }
@@ -234,7 +244,7 @@ Object.assign(NoMoreIllusionsApp.prototype, {
     this.orbitalPhenomenon = null;
     this.satellites = [];
 
-    // 6. 1:1 Telegraphed Enemy Spawner (Tamed in Normal mode so rhythm stays primary!)
+    // 6. 1:1 Telegraphed Enemy Spawner (Scaled by Difficulty & Mode enemyMult!)
     const sectionMax = activeSec.maxEnemies ?? 2;
     if (sectionMax <= 0 || this.multiBandState.bassDropOut) {
       this.telegraphs = [];
@@ -265,17 +275,17 @@ Object.assign(NoMoreIllusionsApp.prototype, {
         }
       }
 
-      const mode = this.getRemixMode();
-      const maxEnemies = Math.min(6, Math.max(1, Math.round(sectionMax * (mode.speed >= 1.15 ? 1.25 : 1.0))));
+      const enemyScale = (mode.enemyMult || 1.0) * (this.prefs.difficulty === "EASY" ? 0.65 : (this.prefs.difficulty === "HARD" ? 1.30 : 1.0));
+      const maxEnemies = Math.min(6, Math.max(1, Math.round(sectionMax * enemyScale)));
       const sectionUrgency = sectionMax >= 3 ? 0.92 : 0.65;
-      this.spawnTimer += worldDt * sectionUrgency * (mode.speed || 1.0);
+      this.spawnTimer += worldDt * sectionUrgency * enemyScale;
       const spawnCooldown = Math.max(1.25, 2.10 - (sectionMax * 0.18));
       const canSpawn = (this.enemies.length + this.telegraphs.length < maxEnemies) &&
                        (this.beatPulse > 0.42 || this.spawnTimer >= 1.85);
 
       if (canSpawn && this.spawnTimer >= spawnCooldown) {
         this.spawnTimer = 0;
-        this.initiateEnemyTelegraph(activeSec.enemySpeedMult || 0.80);
+        this.initiateEnemyTelegraph((activeSec.enemySpeedMult || 0.80) * Math.max(0.75, Math.min(1.25, enemyScale)));
       }
     }
 
@@ -322,12 +332,12 @@ Object.assign(NoMoreIllusionsApp.prototype, {
           }
         }
 
-        if (minDist <= 66 && wh.teleportCooldown <= 0) {
+        if (minDist <= 68 && wh.teleportCooldown <= 0) {
           wh.teleportCooldown = 0.14;
           this.shieldTimer = Math.max(this.shieldTimer, 0.35);
           this.playSfx("orb", 0.58);
           this.triggerHaptic([12]);
-          const slidePts = 65 * Math.max(1, this.combo);
+          const slidePts = Math.round(65 * Math.max(1, this.combo) * diffMult);
           this.score += slidePts;
           this.comboTimer = 4.5;
           this.spawnBurstMotes(closestPt.x, closestPt.y, [56, 189, 248], 6);
@@ -347,6 +357,32 @@ Object.assign(NoMoreIllusionsApp.prototype, {
             alpha: 1,
             age: 0
           });
+
+          // Tail Release Burst: finishing the sustain ribbon triggers Melodic Starfall Cascade!
+          if (tailU >= 0.68 && !wh.tailCompleted) {
+            wh.tailCompleted = true;
+            const bonusPts = Math.round(240 * Math.max(1, this.combo) * diffMult);
+            this.score += bonusPts;
+            this.combo = Math.min(8, this.combo + 1);
+            if (this.combo > this.maxComboRun) this.maxComboRun = this.combo;
+            this.spawnMelodicStarfallCascade();
+            this.shockwaves.push({
+              x: tailPt.x,
+              y: tailPt.y,
+              radius: 10,
+              maxRadius: 195,
+              color: [250, 204, 21],
+              alpha: 1
+            });
+            this.floatingTexts.push({
+              x: tailPt.x,
+              y: tailPt.y - 34,
+              text: `★ SLIDE COMPLETE! +${bonusPts}`,
+              color: [250, 204, 21],
+              alpha: 1,
+              age: 0
+            });
+          }
         }
       }
     }
@@ -365,7 +401,7 @@ Object.assign(NoMoreIllusionsApp.prototype, {
         pu.x = pt.x;
         pu.y = pt.y;
         pu.targetX = pt.x;
-        pu.targetY = this.H * 0.74;
+        pu.targetY = this.H * 0.65;
       }
 
       // Check expiration once note scrolls past the bottom of the Beat Strike Line (u > 1.24)
@@ -373,20 +409,26 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       if (isExpiredByTtl || pu.age >= pu.maxLifetime) {
         if (isExpiredByTtl) {
           // Missed beat note past the Strike Line: ONLY reset combo (never damages player or ends run!)
+          const prevCombo = this.combo;
           if (this.combo > 1) this.combo = 1;
           this.comboTimer = 0;
+          const hadStreak = prevCombo >= 3;
+          if (hadStreak) {
+            this.screenShake = Math.max(this.screenShake, 8);
+            this.triggerHaptic([35]);
+          }
           this.shockwaves.push({
             x: pu.x,
-            y: Math.min(this.H * 0.84, pu.y),
+            y: Math.min(this.H * 0.72, pu.y),
             radius: 8,
-            maxRadius: 68,
+            maxRadius: hadStreak ? 145 : 68,
             color: [251, 113, 133],
             alpha: 1
           });
           this.floatingTexts.push({
             x: pu.x,
-            y: Math.min(this.H * 0.82, pu.y - 12),
-            text: "MISS • COMBO RESET",
+            y: Math.min(this.H * 0.70, pu.y - 12),
+            text: hadStreak ? `💔 STREAK BROKEN! (WAS x${prevCombo})` : "MISS • COMBO RESET",
             color: [251, 113, 133],
             alpha: 1,
             age: 0
@@ -541,12 +583,19 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       }
     }
 
-    // 11. Update Particles, Shockwaves & Floating Texts
+    // 11. Update Particles (with Swaying Melodic Starfall Petals!), Shockwaves & Floating Texts
     for (let i = this.motes.length - 1; i >= 0; i--) {
       const m = this.motes[i];
-      m.x += m.vx * dt;
-      m.y += m.vy * dt;
-      m.alpha -= dt * 1.4;
+      if (m.isStarfall) {
+        m.swayPhase = (m.swayPhase || 0) + dt * 2.8;
+        m.x += (m.vx + Math.sin(m.swayPhase) * 65) * dt;
+        m.y += m.vy * dt;
+        m.alpha -= dt * 0.42;
+      } else {
+        m.x += m.vx * dt;
+        m.y += m.vy * dt;
+        m.alpha -= dt * 1.4;
+      }
       if (m.alpha <= 0) this.motes.splice(i, 1);
     }
 
@@ -596,12 +645,17 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       isSupernova = true;
     }
 
+    // Mutually Exclusive Rule: while a Sustain Slide Ribbon is active on the highway, skip regular tap notes!
+    if (this.wormholes && this.wormholes.length > 0 && cueType === "SCORE_ORB" && !isSupernova) {
+      return;
+    }
+
     const startPt = typeof this.computeHighwayPoint === "function"
       ? this.computeHighwayPoint(laneIdx, 0, this.W, this.H)
-      : { x: (0.14 + laneIdx * 0.24) * this.W, y: this.H * 0.16 };
+      : { x: (0.14 + laneIdx * 0.24) * this.W, y: this.H * 0.15 };
     const receptorPt = typeof this.computeHighwayPoint === "function"
       ? this.computeHighwayPoint(laneIdx, 1.0, this.W, this.H)
-      : { x: (0.14 + laneIdx * 0.24) * this.W, y: this.H * 0.74 };
+      : { x: (0.14 + laneIdx * 0.24) * this.W, y: this.H * 0.65 };
 
     const targetBeatSec = cue.timestampSec || (this.trackElapsedSec + 1.9);
     const ttlGraceSec = Math.max(0.45, beatPeriod * 0.92);
@@ -682,13 +736,20 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       }
       this.comboTimer = 4.5;
 
-      // Timing Accuracy Check: compare highway position against the Glowing Beat Strike Line (Y = 74% / u = 1.0)!
+      // Timing Accuracy Check: compare highway position against the Raised Glowing Beat Strike Line (Y = 65% / u = 1.0)!
       const beatDiff = Math.abs(this.trackElapsedSec - (pu.targetBeatSec || this.trackElapsedSec));
-      const strikeY = this.H * 0.74;
+      const strikeY = this.H * 0.65;
       const isAtStrikeLine = (uHit >= 0.78 && uHit <= 1.18) || Math.abs(pu.y - strikeY) <= 74 || beatDiff <= 0.24;
+      const mode = this.getRemixMode();
+      const diffMult = (mode.scoreMult || 1.0) * (this.prefs.difficulty === "EASY" ? 0.55 : (this.prefs.difficulty === "HARD" ? 1.35 : 1.0));
       const basePts = isAtStrikeLine ? 120 : 60;
-      const pts = basePts * this.combo * (this.constellationRushTimer > 0 ? 2 : 1);
+      const pts = Math.max(10, Math.round(basePts * this.combo * (this.constellationRushTimer > 0 ? 2 : 1) * diffMult));
       this.score += pts;
+
+      // Trigger swaying Melodic Starfall Cascade on 6x+ Perfect streak milestones!
+      if (isAtStrikeLine && this.combo >= 6 && this.orbsCollectedRun % 6 === 0) {
+        this.spawnMelodicStarfallCascade();
+      }
 
       this.spawnBurstMotes(pu.x, pu.y, isAtStrikeLine ? [74, 222, 128] : [250, 204, 21], 16);
       this.shockwaves.push({
@@ -699,10 +760,11 @@ Object.assign(NoMoreIllusionsApp.prototype, {
         color: isAtStrikeLine ? [74, 222, 128] : [250, 204, 21],
         alpha: 1
       });
+      const streakBadge = this.combo >= 4 ? `🔥STREAK x${this.combo}` : `x${this.combo}`;
       this.floatingTexts.push({
         x: pu.x,
         y: pu.y - 20,
-        text: isAtStrikeLine ? `★ PERFECT ON-BEAT! +${pts} (x${this.combo})` : `EARLY +${pts}`,
+        text: isAtStrikeLine ? `★ PERFECT ON-BEAT! +${pts} (${streakBadge})` : `EARLY +${pts} (${streakBadge})`,
         color: isAtStrikeLine ? [74, 222, 128] : [250, 204, 21],
         alpha: 1,
         age: 0
@@ -714,6 +776,7 @@ Object.assign(NoMoreIllusionsApp.prototype, {
         this.screenShake = Math.max(this.screenShake, 9);
         this.overdriveTimer = Math.max(this.overdriveTimer, 8.0);
         this.constellationRushTimer = Math.max(this.constellationRushTimer, 10.0);
+        this.spawnMelodicStarfallCascade();
         this.showToast("★", "STAR POWER OVERDRIVE!", "4X SCORE MULTIPLIER • RAM RED HAZARDS!", "#FACC15", 2.8);
       }
     } else {
@@ -829,12 +892,20 @@ Object.assign(NoMoreIllusionsApp.prototype, {
   },
 
   initiateEnemyTelegraph(sectionSpeedMult = 1.0) {
-    const edge = Math.floor(Math.random() * 4);
+    // THUMB-FRIENDLY SPAWN RULE: Enemies ONLY spawn from Top Edge or Upper-Left / Upper-Right Sides (Y <= 44% H),
+    // NEVER from the bottom edge where the player's finger/thumb rests!
+    const edge = Math.floor(Math.random() * 3); // 0 = Top, 1 = Upper-Left, 2 = Upper-Right
     let edgeX, edgeY;
-    if (edge === 0) { edgeX = 36 + Math.random() * (this.W - 72); edgeY = 24; }
-    else if (edge === 1) { edgeX = 36 + Math.random() * (this.W - 72); edgeY = this.H - 24; }
-    else if (edge === 2) { edgeX = 24; edgeY = 80 + Math.random() * (this.H - 160); }
-    else { edgeX = this.W - 24; edgeY = 80 + Math.random() * (this.H - 160); }
+    if (edge === 0) {
+      edgeX = 36 + Math.random() * (this.W - 72);
+      edgeY = 24;
+    } else if (edge === 1) {
+      edgeX = 24;
+      edgeY = 50 + Math.random() * (this.H * 0.39);
+    } else {
+      edgeX = this.W - 24;
+      edgeY = 50 + Math.random() * (this.H * 0.39);
+    }
 
     const mode = this.getRemixMode();
     const isTrackTwo = this.selectedStageIndex >= 1;
@@ -858,12 +929,12 @@ Object.assign(NoMoreIllusionsApp.prototype, {
   },
 
   spawnEnemy() {
-    const edge = Math.floor(Math.random() * 4);
+    // Only spawn from Top or Upper Sides (never from bottom)
+    const edge = Math.floor(Math.random() * 3);
     let x, y;
     if (edge === 0) { x = Math.random() * this.W; y = -45; }
-    else if (edge === 1) { x = Math.random() * this.W; y = this.H + 45; }
-    else if (edge === 2) { x = -45; y = Math.random() * this.H; }
-    else { x = this.W + 45; y = Math.random() * this.H; }
+    else if (edge === 1) { x = -45; y = Math.random() * (this.H * 0.44); }
+    else { x = this.W + 45; y = Math.random() * (this.H * 0.44); }
 
     const roll = Math.random();
     const type = roll < 0.36 ? "PULSAR" : roll < 0.68 ? "SEEKER" : "WANDERER";
@@ -878,6 +949,29 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       type,
       phase: Math.random() * 6.28
     });
+  },
+
+  spawnMelodicStarfallCascade() {
+    const palette = [
+      [250, 204, 21], // 24K Gold
+      [56, 189, 248], // Celestial Cyan
+      [74, 222, 128], // Aurora Mint
+      [244, 114, 182] // Rose Starlight
+    ];
+    for (let i = 0; i < 32; i++) {
+      const col = palette[i % palette.length];
+      this.motes.push({
+        x: this.W * (0.06 + 0.88 * (i / 31.0)),
+        y: -15 - Math.random() * (this.H * 0.25),
+        vx: (Math.random() - 0.5) * 32,
+        vy: 125 + Math.random() * 115,
+        radius: 3.4 + Math.random() * 2.8,
+        color: col,
+        alpha: 1.0,
+        isStarfall: true,
+        swayPhase: Math.random() * Math.PI * 2
+      });
+    }
   },
 
   spawnBurstMotes(x, y, color, count = 12) {
