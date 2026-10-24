@@ -1,4 +1,4 @@
-const CACHE_NAME = "nmi-v12-modular";
+const CACHE_NAME = "nmi-v13-specials";
 const ASSETS = [
   "./",
   "./index.html",
@@ -12,6 +12,7 @@ const ASSETS = [
   "./audio_synth.js",
   "./game_physics.js",
   "./ui_screens.js",
+  "./tutorial_overlay.js",
   "./manifest.json",
   "./assets/nmi_logo.png",
   "./assets/mandala_hero_cyber.png",
