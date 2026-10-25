@@ -146,131 +146,143 @@ function drawWormholes(ctx, wormholes, time, beatPulse = 0) {
   const h = window.innerHeight || ctx.canvas.height;
   for (let i = 0; i < wormholes.length; i++) {
     const wh = wormholes[i];
-    // Slower, highly readable travel speed (3.6s down the highway vs 2.2s)
-    const uHead = wh.age / 3.6;
-    const uTail = Math.max(0, uHead - 0.52);
-    if (uHead <= 0.02 || uTail >= 1.24) continue;
+    if (wh.age >= wh.maxLifetime) continue;
 
-    const startLane = Math.max(0, Math.min(3, typeof wh.startLane === "number" ? wh.startLane : 1));
-    const endLane = Math.max(0, Math.min(3, typeof wh.endLane === "number" ? wh.endLane : 2));
-    const steps = 16;
-    let headPt = { x: w * 0.5, y: h * 0.5 };
-    let tailPt = { x: w * 0.5, y: h * 0.2 };
+    const travelU = Math.min(1.0, wh.age / 1.8);
+    if (travelU <= 0.02) continue;
+
+    const startLane = Math.max(0, Math.min(3, typeof wh.startLane === "number" ? wh.startLane : 0));
+    const endLane = Math.max(0, Math.min(3, typeof wh.endLane === "number" ? wh.endLane : 3));
+    const leftPt = computeHighwayPoint(startLane, travelU, w, h);
+    const rightPt = computeHighwayPoint(endLane, travelU, w, h);
+    const scale = computeHighwayScale(travelU);
+    const holdProgress = Math.max(0, Math.min(1, wh.holdProgress || 0));
+    const isHolding = holdProgress > 0.02;
 
     ctx.save();
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
 
-    const buildPath = () => {
-      ctx.beginPath();
-      for (let sIdx = 0; sIdx <= steps; sIdx++) {
-        const s = sIdx / steps;
-        const uSample = Math.max(0, Math.min(1.24, uTail + (uHead - uTail) * s));
-        const laneAtS = startLane + (endLane - startLane) * (0.5 - 0.5 * Math.cos(s * Math.PI));
-        const pt = computeHighwayPoint(laneAtS, uSample, w, h);
-        if (sIdx === 0) {
-          tailPt = pt;
-          ctx.moveTo(pt.x, pt.y);
-        } else {
-          ctx.lineTo(pt.x, pt.y);
-        }
-        if (sIdx === steps) headPt = pt;
+    // 1. "Ooh / Aaah" Vocal Aurora Borealis Curtains across the upper stage while holding!
+    if (isHolding) {
+      const auroraAlpha = Math.max(0.18, Math.min(0.68, holdProgress * 0.65));
+      for (let band = 0; band < 5; band++) {
+        const bx = w * (0.15 + band * 0.175 + Math.sin(time * 2.2 + band) * 0.04);
+        const bw = w * 0.13;
+        const bh = h * (0.38 + holdProgress * 0.24);
+        const bCol = band % 2 === 0 ? [56, 189, 248] : (band % 3 === 0 ? [250, 204, 21] : [236, 72, 153]);
+        const aGrad = ctx.createLinearGradient(0, 0, 0, bh);
+        aGrad.addColorStop(0, rgba(bCol, auroraAlpha));
+        aGrad.addColorStop(0.6, rgba([168, 85, 247], auroraAlpha * 0.45));
+        aGrad.addColorStop(1, "rgba(0,0,0,0)");
+        ctx.fillStyle = aGrad;
+        ctx.fillRect(bx - bw * 0.5, 0, bw, bh);
       }
-    };
+    }
 
-    // 1. Wide Outer Magenta-Rose Neon Halo
-    buildPath();
-    ctx.strokeStyle = rgba([236, 72, 153], 0.42 + beatPulse * 0.25);
-    ctx.lineWidth = 42 + beatPulse * 10;
-    ctx.stroke();
-
-    // 2. Warm 24K Gold Ribbon Body
-    buildPath();
-    ctx.strokeStyle = rgba([250, 204, 21], 0.78 + beatPulse * 0.16);
-    ctx.lineWidth = 24 + beatPulse * 6;
-    ctx.stroke();
-
-    // 3. Electric Cyan Core Track
-    buildPath();
-    ctx.strokeStyle = rgba([56, 189, 248], 0.94);
-    ctx.lineWidth = 12;
-    ctx.stroke();
-
-    // 4. White-Hot Spine
-    buildPath();
-    ctx.strokeStyle = "#FFFFFF";
-    ctx.lineWidth = 4.2;
-    ctx.stroke();
-
-    // 5. Animated Directional Guide Pearls flowing from Head (s=1.0) toward Tail (s=0.0)
-    // Shows players unmistakably WHICH way to swipe as the ribbon scrolls!
-    const numChasers = 6;
-    for (let cIdx = 0; cIdx < numChasers; cIdx++) {
-      const flowS = 1.0 - (((cIdx / numChasers) + time * 1.45) % 1.0);
-      const uChaser = Math.max(0, Math.min(1.24, uTail + (uHead - uTail) * flowS));
-      const laneChaser = startLane + (endLane - startLane) * (0.5 - 0.5 * Math.cos(flowS * Math.PI));
-      const chaserPt = computeHighwayPoint(laneChaser, uChaser, w, h);
-      const chaserScale = computeHighwayScale(uChaser);
-      const pearlR = (8.5 + beatPulse * 3.0) * chaserScale;
-
+    // 2. Electric / Liquid Plasma Bridge connecting the Left & Right Sustain Pegs
+    const segments = 18;
+    for (let strand = 0; strand < 3; strand++) {
       ctx.beginPath();
-      ctx.arc(chaserPt.x, chaserPt.y, pearlR * 1.65, 0, Math.PI * 2);
-      ctx.fillStyle = rgba([250, 204, 21], 0.75);
+      const freq = strand === 0 ? 3.0 : (strand === 1 ? 5.0 : 7.0);
+      const amp = (strand === 0 ? 14 : (strand === 1 ? 22 : 10)) * scale * (isHolding ? 1.55 : 0.85);
+      const speed = strand === 0 ? 8.5 : (strand === 1 ? -11.2 : 14.8);
+      for (let s = 0; s <= segments; s++) {
+        const frac = s / segments;
+        const bx = leftPt.x + (rightPt.x - leftPt.x) * frac;
+        const by = leftPt.y + (rightPt.y - leftPt.y) * frac;
+        const env = Math.sin(frac * Math.PI);
+        const waveY = Math.sin(frac * Math.PI * freq + time * speed + strand * 2.1) * amp * env;
+        if (s === 0) ctx.moveTo(bx, by + waveY);
+        else ctx.lineTo(bx, by + waveY);
+      }
+      const strandCol = strand === 0 ? [236, 72, 153] : (strand === 1 ? [56, 189, 248] : [255, 255, 255]);
+      const strandW = (strand === 0 ? 22 : (strand === 1 ? 12 : 4.5)) * scale * (1 + holdProgress * 0.35);
+      ctx.strokeStyle = rgba(strandCol, strand === 2 ? 0.96 : (0.55 + holdProgress * 0.35));
+      ctx.lineWidth = strandW;
+      ctx.stroke();
+    }
+
+    // 3. Flowing Plasma Energy Pearls racing back and forth between the two Sustain Pegs
+    const numPearls = 6;
+    for (let pIdx = 0; pIdx < numPearls; pIdx++) {
+      const f = ((pIdx / numPearls) + time * (isHolding ? 2.2 : 1.1)) % 1.0;
+      const px = leftPt.x + (rightPt.x - leftPt.x) * f;
+      const py = leftPt.y + (rightPt.y - leftPt.y) * f + Math.sin(f * Math.PI * 4 + time * 10) * 10 * scale * Math.sin(f * Math.PI);
+      const pr = (7.5 + beatPulse * 3 + holdProgress * 4) * scale;
+      ctx.beginPath();
+      ctx.arc(px, py, pr * 1.7, 0, Math.PI * 2);
+      ctx.fillStyle = rgba([56, 189, 248], 0.72);
       ctx.fill();
-
       ctx.beginPath();
-      ctx.arc(chaserPt.x, chaserPt.y, pearlR * 0.85, 0, Math.PI * 2);
+      ctx.arc(px, py, pr * 0.85, 0, Math.PI * 2);
       ctx.fillStyle = "#FFFFFF";
       ctx.fill();
     }
 
-    // 6. Tail Target Ring ("FINISH ★")
-    const tailScale = computeHighwayScale(uTail);
-    const tailR = 20 * tailScale * (1 + beatPulse * 0.18);
-    ctx.beginPath();
-    ctx.arc(tailPt.x, tailPt.y, tailR, 0, Math.PI * 2);
-    ctx.strokeStyle = rgba([74, 222, 128], 0.92);
-    ctx.lineWidth = 3.6;
-    ctx.stroke();
+    // 4. Render Both Paired 3D Sustain Hold Pegs (Left Anchor & Right Anchor)
+    const anchors = [
+      { pt: leftPt, col: [56, 189, 248] },
+      { pt: rightPt, col: [250, 204, 21] }
+    ];
+    const pegR = 32 * scale * (1 + beatPulse * 0.18 + holdProgress * 0.22);
 
-    ctx.beginPath();
-    ctx.arc(tailPt.x, tailPt.y, tailR * 0.48, 0, Math.PI * 2);
-    ctx.fillStyle = "#FFFFFF";
-    ctx.fill();
+    for (let aIdx = 0; aIdx < anchors.length; aIdx++) {
+      const anchor = anchors[aIdx];
+      const pt = anchor.pt;
+      const col = anchor.col;
 
-    // 7. 3D Volumetric Head Sphere + Clear Action Callout
-    const headScale = computeHighwayScale(uHead);
-    const headR = 32 * headScale * (1 + beatPulse * 0.22);
-    const headGlow = ctx.createRadialGradient(headPt.x, headPt.y, 2, headPt.x, headPt.y, headR * 1.85);
-    headGlow.addColorStop(0, "#FFFFFF");
-    headGlow.addColorStop(0.45, rgba([250, 204, 21], 0.92));
-    headGlow.addColorStop(0.8, rgba([236, 72, 153], 0.65));
-    headGlow.addColorStop(1, "rgba(0,0,0,0)");
-    ctx.beginPath();
-    ctx.arc(headPt.x, headPt.y, headR * 1.85, 0, Math.PI * 2);
-    ctx.fillStyle = headGlow;
-    ctx.fill();
+      // Special Effect on Held Pegs: Spinning Liquid-Plasma Vortex Rings
+      const vortexRings = isHolding ? 3 : 1;
+      for (let v = 0; v < vortexRings; v++) {
+        const vr = pegR * (1.35 + v * 0.34 + 0.12 * Math.sin(time * 9 + v));
+        const spinA = ((time * (v % 2 === 0 ? 220 : -260) + v * 90) % 360) * Math.PI / 180;
+        ctx.beginPath();
+        ctx.arc(pt.x, pt.y, vr, spinA, spinA + (isHolding ? 230 : 160) * Math.PI / 180);
+        ctx.strokeStyle = rgba(v % 2 === 0 ? col : [236, 72, 153], isHolding ? 0.88 - v * 0.2 : 0.55);
+        ctx.lineWidth = (isHolding ? 5.0 : 3.0) * scale;
+        ctx.stroke();
+      }
 
-    const headSphere = ctx.createRadialGradient(
-      headPt.x - headR * 0.32, headPt.y - headR * 0.32, headR * 0.08,
-      headPt.x, headPt.y, headR
-    );
-    headSphere.addColorStop(0, "#FFFFFF");
-    headSphere.addColorStop(0.45, "#FACC15");
-    headSphere.addColorStop(0.82, "#EC4899");
-    headSphere.addColorStop(1, "#4C0519");
-    ctx.beginPath();
-    ctx.arc(headPt.x, headPt.y, headR, 0, Math.PI * 2);
-    ctx.fillStyle = headSphere;
-    ctx.fill();
-    ctx.strokeStyle = "#FFFFFF";
-    ctx.lineWidth = 3.2;
-    ctx.stroke();
+      // Radial Hold Progress Gauge (0% -> 100% ring around each peg)
+      if (holdProgress > 0.01) {
+        ctx.beginPath();
+        ctx.arc(pt.x, pt.y, pegR * 1.55, -Math.PI / 2, -Math.PI / 2 + holdProgress * Math.PI * 2);
+        ctx.strokeStyle = "#4ADE80";
+        ctx.lineWidth = 6.5 * scale;
+        ctx.stroke();
+      }
 
-    ctx.font = `900 ${Math.max(12, Math.round(15 * headScale))}px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
+      // 3D Volumetric Sustain Sphere
+      const sphereGrad = ctx.createRadialGradient(
+        pt.x - pegR * 0.32, pt.y - pegR * 0.32, pegR * 0.08,
+        pt.x, pt.y, pegR
+      );
+      sphereGrad.addColorStop(0, "#FFFFFF");
+      sphereGrad.addColorStop(0.45, rgba(col, 1));
+      sphereGrad.addColorStop(0.85, "#EC4899");
+      sphereGrad.addColorStop(1, "#0F172A");
+      ctx.beginPath();
+      ctx.arc(pt.x, pt.y, pegR, 0, Math.PI * 2);
+      ctx.fillStyle = sphereGrad;
+      ctx.fill();
+      ctx.strokeStyle = "#FFFFFF";
+      ctx.lineWidth = 3.2 * scale;
+      ctx.stroke();
+    }
+
+    // 5. Clear Center Callout & Live Hold Percentage
+    const midX = (leftPt.x + rightPt.x) * 0.5;
+    const midY = Math.min(leftPt.y, rightPt.y) - pegR * 1.45;
+    const pctInt = Math.round(holdProgress * 100);
+    const labelText = isHolding
+      ? `⚡ SUSTAIN CHARGING: ${pctInt}% ⚡`
+      : "⚡ HOLD 2 FINGERS ON VOCAL CHORD ⚡";
+
+    ctx.font = `900 ${Math.max(12, Math.round(14 * scale))}px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
     ctx.textAlign = "center";
-    ctx.fillStyle = "#FEF08A";
-    ctx.fillText("SLIDE & FOLLOW ♪ »", headPt.x, headPt.y - headR * 1.38);
+    ctx.fillStyle = isHolding ? "#4ADE80" : "#FEF08A";
+    ctx.fillText(labelText, midX, midY);
     ctx.restore();
   }
 }

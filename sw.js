@@ -1,4 +1,4 @@
-const CACHE_NAME = "nmi-v17-3dorbs";
+const CACHE_NAME = "nmi-v18-dualtether";
 const ASSETS = [
   "./",
   "./index.html",
