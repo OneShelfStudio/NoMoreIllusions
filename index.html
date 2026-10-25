@@ -10,7 +10,7 @@
   <title>No More Illusions — Interactive Album Experience</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="apple-touch-icon" href="assets/nmi_logo.png" />
-  <link rel="stylesheet" href="styles.css?v=16" />
+  <link rel="stylesheet" href="styles.css?v=17" />
 </head>
 <body>
   <!-- Full-Screen 60FPS Audio-Reactive Game & Nebula Canvas -->
@@ -58,7 +58,7 @@
 
         <!-- 3. High-Dopamine Launch Button -->
         <div id="btn-launch-stage" class="btn-launch-stage" onclick="window.app.startStage()">
-          <div id="menu-launch-main" class="btn-launch-main">▶ &nbsp;PLAY CONFIDE (NORMAL)</div>
+          <div id="menu-launch-main" class="btn-launch-main">▶ &nbsp;PLAY TRACK 1 (NORMAL)</div>
         </div>
       </div>
 
@@ -203,43 +203,52 @@
        ====================================================================== -->
   <div id="screen-TRACK_COMPLETED" class="screen-overlay modal-backdrop">
     <div class="glass-modal-card" style="text-align:center;border-color:#FACC15;max-width:415px;max-height:92vh;overflow-y:auto;">
-      <div style="display:inline-block;background:rgba(250,204,21,0.16);border:1.2px solid #FACC15;border-radius:50px;padding:4px 12px;font-size:9.5px;font-weight:900;color:#FACC15;letter-spacing:1.4px;margin:0 auto 6px;">
-        ★ STAGE CLEAR &amp; ALBUM VAULT UNLOCKED ★
+      <div style="display:inline-block;background:rgba(74,222,128,0.16);border:1.4px solid #4ADE80;border-radius:50px;padding:5px 14px;font-size:10px;font-weight:900;color:#4ADE80;letter-spacing:1.2px;margin:0 auto 6px;">
+        ★ CONGRATS! YOU WON! ★
       </div>
 
-      <!-- Spinning 24K Gold Vinyl & Cover Art Centerpiece -->
-      <div style="position:relative;width:104px;height:104px;margin:2px auto 6px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:radial-gradient(circle,#1E1B4B 20%,#050712 85%);border:2.2px solid #FACC15;box-shadow:0 0 26px rgba(250,204,21,0.38);">
-        <img src="assets/nmi_logo.png" alt="Unlocked Artwork" style="width:62px;height:62px;border-radius:50%;border:1.8px solid #38BDF8;" />
+      <!-- HUGE Unveiled Album Cover & Spinning 24K Gold Vinyl Halo Centerpiece -->
+      <div style="position:relative;width:192px;height:192px;margin:2px auto 8px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:radial-gradient(circle,#1E1B4B 20%,#050712 85%);border:3.2px solid #FACC15;box-shadow:0 0 38px rgba(250,204,21,0.52);animation:spinSlow 14s linear infinite;">
+        <img src="assets/nmi_logo.png" alt="Unlocked Artwork" style="width:150px;height:150px;border-radius:50%;border:2.6px solid #FFFFFF;object-fit:cover;" />
       </div>
 
-      <div id="tc-track-title" class="modal-title" style="color:#F8FAFC;font-size:21px;">"CONFIDE" MASTERED!</div>
-      <div id="tc-medal-badge" style="font-size:11.5px;font-weight:900;color:#FACC15;letter-spacing:1.2px;">★★★ 24K GOLD VINYL MASTER • S+ RANK</div>
+      <div style="font-size:12px;font-weight:900;color:#4ADE80;letter-spacing:0.8px;">
+        🎵 UNLOCKED SONG NOW ADDED TO YOUR ALBUM!
+      </div>
+      <div id="tc-track-title" class="modal-title" style="color:#F8FAFC;font-size:19px;margin-top:2px;">TRACK 1: "CONFIDE"</div>
+      <div id="tc-medal-badge" style="display:none;"></div>
 
-      <!-- 3-Stat Mastery Grid -->
-      <div style="display:flex;gap:8px;margin:8px 0;">
-        <div style="flex:1;background:rgba(6,10,22,0.92);border:1px solid rgba(56,189,248,0.45);border-radius:12px;padding:7px 4px;">
-          <div style="font-size:8px;font-weight:900;color:#94A3B8;">FINAL SCORE</div>
-          <div id="tc-score-val" style="font-size:15px;font-weight:900;color:#38BDF8;">0</div>
+      <!-- Compact 1-Line Score & Notes Pill -->
+      <div style="background:rgba(6,10,22,0.94);border:1px solid rgba(255,255,255,0.14);border-radius:50px;padding:7px 14px;display:flex;align-items:center;justify-content:space-around;margin:8px 0;">
+        <span style="font-size:11px;font-weight:900;color:#38BDF8;">SCORE: <span id="tc-score-val">0</span></span>
+        <span style="font-size:11px;font-weight:900;color:#4ADE80;">STREAK: <span id="tc-combo-val">8x</span></span>
+        <span id="tc-earned-val" style="font-size:11px;font-weight:900;color:#FACC15;">+♪ 650</span>
+      </div>
+
+      <!-- Interactive Spinning Star / Music Note Emblem for Newly Unlocked Vault Secret! -->
+      <div id="tc-star-btn" onclick="window.app.toggleVictoryExclusivePopup(true)"
+           style="background:rgba(20,16,6,0.96);border:1.8px solid #FACC15;border-radius:16px;padding:9px 12px;display:flex;align-items:center;gap:12px;text-align:left;margin-bottom:8px;cursor:pointer;box-shadow:0 0 22px rgba(250,204,21,0.28);">
+        <div style="width:46px;height:46px;border-radius:50%;background:radial-gradient(circle,#FEF08A 10%,#EAB308 55%,#713F12 100%);border:2px solid #FFFFFF;display:flex;align-items:center;justify-content:center;font-size:21px;font-weight:900;color:#090602;flex-shrink:0;animation:spinSlow 5s linear infinite;">
+          ★♪
         </div>
-        <div style="flex:1;background:rgba(6,10,22,0.92);border:1px solid rgba(74,222,128,0.45);border-radius:12px;padding:7px 4px;">
-          <div style="font-size:8px;font-weight:900;color:#94A3B8;">BEST COMBO</div>
-          <div id="tc-combo-val" style="font-size:15px;font-weight:900;color:#4ADE80;">8x</div>
-        </div>
-        <div style="flex:1;background:rgba(6,10,22,0.92);border:1px solid rgba(250,204,21,0.45);border-radius:12px;padding:7px 4px;">
-          <div style="font-size:8px;font-weight:900;color:#94A3B8;">NOTES EARNED</div>
-          <div id="tc-earned-val" style="font-size:15px;font-weight:900;color:#FACC15;">+♪ 650</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:9.5px;font-weight:900;color:#FACC15;letter-spacing:0.6px;">✨ NEW VAULT SECRET UNLOCKED!</div>
+          <div style="font-size:11.5px;font-weight:900;color:#FAF8F5;margin-top:2px;">Tap Spinning Star to Reveal Prize →</div>
         </div>
       </div>
 
-      <!-- Newly Unlocked Artist Exclusive Spotlight Card -->
-      <div style="background:rgba(13,18,34,0.96);border:1.4px solid #38BDF8;border-radius:16px;padding:10px 12px;text-align:left;margin-bottom:8px;">
-        <div id="tc-excl-badge" style="font-size:8.5px;font-weight:900;color:#FACC15;letter-spacing:1.1px;">★ ARTIST EXCLUSIVE UNLOCKED IN VAULT</div>
-        <div id="tc-excl-title" style="font-size:12.5px;font-weight:900;color:#F8FAFC;margin:2px 0 4px;">Ethan's Studio Note: The Making of 'Confide'</div>
-        <div id="tc-excl-body" style="font-size:10.5px;color:#E2E8F0;line-height:1.45;"></div>
-        <div id="tc-excl-quote" style="font-size:9.5px;font-weight:800;font-style:italic;color:#38BDF8;margin-top:4px;"></div>
+      <!-- Pop-up Modal when the player taps the Spinning Star Emblem -->
+      <div id="tc-excl-popup" style="display:none;background:rgba(8,12,26,0.98);border:2px solid #FACC15;border-radius:16px;padding:12px 14px;text-align:left;margin-bottom:10px;box-shadow:0 0 30px rgba(250,204,21,0.35);">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div id="tc-excl-badge" style="font-size:9px;font-weight:900;color:#FACC15;letter-spacing:1.0px;">★ VAULT EXCLUSIVE UNLOCKED</div>
+          <span onclick="window.app.toggleVictoryExclusivePopup(false)" style="font-size:10px;font-weight:900;color:#38BDF8;cursor:pointer;padding:2px 6px;">✕ CLOSE</span>
+        </div>
+        <div id="tc-excl-title" style="font-size:13.5px;font-weight:900;color:#F8FAFC;margin:4px 0 6px;">Ethan's Studio Note: The Making of 'Confide'</div>
+        <div id="tc-excl-body" style="font-size:11px;color:#E2E8F0;line-height:1.48;"></div>
+        <div id="tc-excl-quote" style="font-size:10px;font-weight:800;font-style:italic;color:#38BDF8;margin-top:6px;"></div>
       </div>
 
-      <button class="btn-action-gold" onclick="window.app.openScreen('CUSTOMIZER', -1)">★  OPEN ARTIST VAULT &amp; SPECIALS</button>
+      <button class="btn-action-gold" onclick="window.app.openScreen('CUSTOMIZER', -1)">★  OPEN ALBUM &amp; VAULT</button>
       <div style="display:flex;gap:8px;">
         <button class="btn-action-primary" style="flex:1;" onclick="window.app.startStage()">↻  PLAY AGAIN</button>
         <button class="btn-action-secondary" style="flex:1;" onclick="window.app.openScreen('MENU')">⌂  MAIN MENU</button>
@@ -555,16 +564,16 @@
     </div>
   </div>
 
-  <script src="multi_band_data.js?v=16"></script>
-  <script src="music_library.js?v=16"></script>
-  <script src="background_renderer.js?v=16"></script>
-  <script src="beat_orb_renderer.js?v=16"></script>
-  <script src="game_renderer.js?v=16"></script>
-  <script src="engine.js?v=16"></script>
-  <script src="audio_synth.js?v=16"></script>
-  <script src="game_physics.js?v=16"></script>
-  <script src="ui_screens.js?v=16"></script>
-  <script src="tutorial_overlay.js?v=16"></script>
+  <script src="multi_band_data.js?v=17"></script>
+  <script src="music_library.js?v=17"></script>
+  <script src="background_renderer.js?v=17"></script>
+  <script src="beat_orb_renderer.js?v=17"></script>
+  <script src="game_renderer.js?v=17"></script>
+  <script src="engine.js?v=17"></script>
+  <script src="audio_synth.js?v=17"></script>
+  <script src="game_physics.js?v=17"></script>
+  <script src="ui_screens.js?v=17"></script>
+  <script src="tutorial_overlay.js?v=17"></script>
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {

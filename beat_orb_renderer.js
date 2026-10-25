@@ -146,14 +146,16 @@ function drawWormholes(ctx, wormholes, time, beatPulse = 0) {
   const h = window.innerHeight || ctx.canvas.height;
   for (let i = 0; i < wormholes.length; i++) {
     const wh = wormholes[i];
-    const uHead = wh.age / 2.2;
-    const uTail = Math.max(0, uHead - 0.44);
-    if (uHead <= 0.02 || uTail >= 1.22) continue;
+    // Slower, highly readable travel speed (3.6s down the highway vs 2.2s)
+    const uHead = wh.age / 3.6;
+    const uTail = Math.max(0, uHead - 0.52);
+    if (uHead <= 0.02 || uTail >= 1.24) continue;
 
     const startLane = Math.max(0, Math.min(3, typeof wh.startLane === "number" ? wh.startLane : 1));
     const endLane = Math.max(0, Math.min(3, typeof wh.endLane === "number" ? wh.endLane : 2));
-    const steps = 14;
+    const steps = 16;
     let headPt = { x: w * 0.5, y: h * 0.5 };
+    let tailPt = { x: w * 0.5, y: h * 0.2 };
 
     ctx.save();
     ctx.lineCap = "round";
@@ -166,43 +168,109 @@ function drawWormholes(ctx, wormholes, time, beatPulse = 0) {
         const uSample = Math.max(0, Math.min(1.24, uTail + (uHead - uTail) * s));
         const laneAtS = startLane + (endLane - startLane) * (0.5 - 0.5 * Math.cos(s * Math.PI));
         const pt = computeHighwayPoint(laneAtS, uSample, w, h);
-        if (sIdx === 0) ctx.moveTo(pt.x, pt.y);
-        else ctx.lineTo(pt.x, pt.y);
+        if (sIdx === 0) {
+          tailPt = pt;
+          ctx.moveTo(pt.x, pt.y);
+        } else {
+          ctx.lineTo(pt.x, pt.y);
+        }
         if (sIdx === steps) headPt = pt;
       }
     };
 
+    // 1. Wide Outer Magenta-Rose Neon Halo
     buildPath();
-    ctx.strokeStyle = rgba([250, 204, 21], 0.36 + beatPulse * 0.2);
-    ctx.lineWidth = 26 + beatPulse * 6;
+    ctx.strokeStyle = rgba([236, 72, 153], 0.42 + beatPulse * 0.25);
+    ctx.lineWidth = 42 + beatPulse * 10;
     ctx.stroke();
 
+    // 2. Warm 24K Gold Ribbon Body
     buildPath();
-    ctx.strokeStyle = rgba([56, 189, 248], 0.75);
-    ctx.lineWidth = 11;
+    ctx.strokeStyle = rgba([250, 204, 21], 0.78 + beatPulse * 0.16);
+    ctx.lineWidth = 24 + beatPulse * 6;
     ctx.stroke();
 
+    // 3. Electric Cyan Core Track
     buildPath();
-    ctx.strokeStyle = rgba([255, 255, 255], 0.94);
-    ctx.lineWidth = 3.2;
+    ctx.strokeStyle = rgba([56, 189, 248], 0.94);
+    ctx.lineWidth = 12;
     ctx.stroke();
 
-    const headScale = computeHighwayScale(uHead);
-    const headR = 24 * headScale * (1 + beatPulse * 0.14);
+    // 4. White-Hot Spine
+    buildPath();
+    ctx.strokeStyle = "#FFFFFF";
+    ctx.lineWidth = 4.2;
+    ctx.stroke();
+
+    // 5. Animated Directional Guide Pearls flowing from Head (s=1.0) toward Tail (s=0.0)
+    // Shows players unmistakably WHICH way to swipe as the ribbon scrolls!
+    const numChasers = 6;
+    for (let cIdx = 0; cIdx < numChasers; cIdx++) {
+      const flowS = 1.0 - (((cIdx / numChasers) + time * 1.45) % 1.0);
+      const uChaser = Math.max(0, Math.min(1.24, uTail + (uHead - uTail) * flowS));
+      const laneChaser = startLane + (endLane - startLane) * (0.5 - 0.5 * Math.cos(flowS * Math.PI));
+      const chaserPt = computeHighwayPoint(laneChaser, uChaser, w, h);
+      const chaserScale = computeHighwayScale(uChaser);
+      const pearlR = (8.5 + beatPulse * 3.0) * chaserScale;
+
+      ctx.beginPath();
+      ctx.arc(chaserPt.x, chaserPt.y, pearlR * 1.65, 0, Math.PI * 2);
+      ctx.fillStyle = rgba([250, 204, 21], 0.75);
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.arc(chaserPt.x, chaserPt.y, pearlR * 0.85, 0, Math.PI * 2);
+      ctx.fillStyle = "#FFFFFF";
+      ctx.fill();
+    }
+
+    // 6. Tail Target Ring ("FINISH ★")
+    const tailScale = computeHighwayScale(uTail);
+    const tailR = 20 * tailScale * (1 + beatPulse * 0.18);
     ctx.beginPath();
-    ctx.arc(headPt.x, headPt.y, headR, 0, Math.PI * 2);
-    ctx.fillStyle = rgba([250, 204, 21], 0.95);
-    ctx.fill();
+    ctx.arc(tailPt.x, tailPt.y, tailR, 0, Math.PI * 2);
+    ctx.strokeStyle = rgba([74, 222, 128], 0.92);
+    ctx.lineWidth = 3.6;
+    ctx.stroke();
 
     ctx.beginPath();
-    ctx.arc(headPt.x, headPt.y, headR * 0.5, 0, Math.PI * 2);
+    ctx.arc(tailPt.x, tailPt.y, tailR * 0.48, 0, Math.PI * 2);
     ctx.fillStyle = "#FFFFFF";
     ctx.fill();
 
-    ctx.font = `900 ${Math.max(11, Math.round(14 * headScale))}px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
+    // 7. 3D Volumetric Head Sphere + Clear Action Callout
+    const headScale = computeHighwayScale(uHead);
+    const headR = 32 * headScale * (1 + beatPulse * 0.22);
+    const headGlow = ctx.createRadialGradient(headPt.x, headPt.y, 2, headPt.x, headPt.y, headR * 1.85);
+    headGlow.addColorStop(0, "#FFFFFF");
+    headGlow.addColorStop(0.45, rgba([250, 204, 21], 0.92));
+    headGlow.addColorStop(0.8, rgba([236, 72, 153], 0.65));
+    headGlow.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.beginPath();
+    ctx.arc(headPt.x, headPt.y, headR * 1.85, 0, Math.PI * 2);
+    ctx.fillStyle = headGlow;
+    ctx.fill();
+
+    const headSphere = ctx.createRadialGradient(
+      headPt.x - headR * 0.32, headPt.y - headR * 0.32, headR * 0.08,
+      headPt.x, headPt.y, headR
+    );
+    headSphere.addColorStop(0, "#FFFFFF");
+    headSphere.addColorStop(0.45, "#FACC15");
+    headSphere.addColorStop(0.82, "#EC4899");
+    headSphere.addColorStop(1, "#4C0519");
+    ctx.beginPath();
+    ctx.arc(headPt.x, headPt.y, headR, 0, Math.PI * 2);
+    ctx.fillStyle = headSphere;
+    ctx.fill();
+    ctx.strokeStyle = "#FFFFFF";
+    ctx.lineWidth = 3.2;
+    ctx.stroke();
+
+    ctx.font = `900 ${Math.max(12, Math.round(15 * headScale))}px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
     ctx.textAlign = "center";
     ctx.fillStyle = "#FEF08A";
-    ctx.fillText("HOLD & SLIDE ♪", headPt.x, headPt.y - headR * 1.35);
+    ctx.fillText("SLIDE & FOLLOW ♪ »", headPt.x, headPt.y - headR * 1.38);
     ctx.restore();
   }
 }
@@ -360,154 +428,238 @@ function drawPowerUps(ctx, powerUps, playerX, playerY, time, trackSec, beatPulse
       : HIGHWAY_LANE_COLORS[laneIdx];
 
     const isOnStrikeLine = u >= 0.86 && u <= 1.14;
-    const beatPulseScale = 1.0 + (isOnStrikeLine ? 0.26 : 0.12) * beatPulse;
-    const coreRad = (pu.radius || 24) * perspScale * beatPulseScale;
+    const beatPulseScale = 1.0 + (isOnStrikeLine ? 0.30 : 0.16) * beatPulse;
+    const coreRad = (pu.radius || 32) * perspScale * beatPulseScale;
+
+    // 3D Vertical Beat-Bounce: orbs physically lift off the highway deck on every beat!
+    const bounceOffsetY = -beatPulse * 11 * perspScale;
+    const cx = pu.x;
+    const cy = pu.y + bounceOffsetY;
 
     ctx.save();
+    // 1. 3D Perspective Ground Drop-Shadow Ellipse on the Highway Deck beneath the floating 3D sphere
+    ctx.beginPath();
+    ctx.ellipse(
+      pu.x,
+      pu.y + coreRad * 0.65,
+      coreRad * (0.92 - beatPulse * 0.14),
+      coreRad * 0.34,
+      0,
+      0,
+      Math.PI * 2
+    );
+    ctx.fillStyle = `rgba(0, 0, 0, ${(0.52 * puAlpha).toFixed(3)})`;
+    ctx.fill();
+
     // Vertical Fret Flame Column when crossing the Beat Strike Line!
     if (isOnStrikeLine) {
       ctx.beginPath();
-      ctx.arc(pu.x, pu.y, coreRad * 1.42, 0, Math.PI * 2);
-      ctx.strokeStyle = rgba([250, 204, 21], 0.88 * puAlpha);
-      ctx.lineWidth = 3.2;
+      ctx.arc(cx, cy, coreRad * 1.48, 0, Math.PI * 2);
+      ctx.strokeStyle = rgba([250, 204, 21], 0.90 * puAlpha);
+      ctx.lineWidth = 3.6;
       ctx.stroke();
 
-      const flameGrad = ctx.createLinearGradient(pu.x, pu.y - coreRad * 2.8, pu.x, pu.y);
+      const flameGrad = ctx.createLinearGradient(cx, cy - coreRad * 2.8, cx, cy);
       flameGrad.addColorStop(0, "rgba(0,0,0,0)");
-      flameGrad.addColorStop(0.55, rgba(effectCol, 0.65 * puAlpha));
-      flameGrad.addColorStop(1, rgba([255, 255, 255], 0.92 * puAlpha));
+      flameGrad.addColorStop(0.55, rgba(effectCol, 0.68 * puAlpha));
+      flameGrad.addColorStop(1, rgba([255, 255, 255], 0.94 * puAlpha));
       ctx.beginPath();
-      ctx.moveTo(pu.x, pu.y - coreRad * 2.8);
-      ctx.lineTo(pu.x, pu.y);
+      ctx.moveTo(cx, cy - coreRad * 2.8);
+      ctx.lineTo(cx, cy);
       ctx.strokeStyle = flameGrad;
-      ctx.lineWidth = coreRad * 0.82;
+      ctx.lineWidth = coreRad * 0.84;
       ctx.lineCap = "round";
       ctx.stroke();
     }
 
     if (isBomb) {
-      // 💥 BOMB PICKUP (LABELED ENEMY-DESTROYER ORDNANCE)
-      const glow = ctx.createRadialGradient(pu.x, pu.y, 2, pu.x, pu.y, coreRad * 2.2);
-      glow.addColorStop(0, rgba([250, 204, 21], 0.85 * puAlpha));
-      glow.addColorStop(0.5, rgba([249, 115, 22], 0.52 * puAlpha));
+      // 💥 3D VOLUMETRIC BOMB SPHERE (LABELED ENEMY-DESTROYER ORDNANCE)
+      const glow = ctx.createRadialGradient(cx, cy, 2, cx, cy, coreRad * 2.25);
+      glow.addColorStop(0, rgba([250, 204, 21], 0.88 * puAlpha));
+      glow.addColorStop(0.5, rgba([249, 115, 22], 0.54 * puAlpha));
       glow.addColorStop(1, "rgba(0,0,0,0)");
       ctx.beginPath();
-      ctx.arc(pu.x, pu.y, coreRad * 2.2, 0, Math.PI * 2);
+      ctx.arc(cx, cy, coreRad * 2.25, 0, Math.PI * 2);
       ctx.fillStyle = glow;
       ctx.fill();
 
       for (let nub = 0; nub < 8; nub++) {
         const ang = nub * (Math.PI / 4) + time * 1.8;
         ctx.beginPath();
-        ctx.moveTo(pu.x + Math.cos(ang) * (coreRad * 0.85), pu.y + Math.sin(ang) * (coreRad * 0.85));
-        ctx.lineTo(pu.x + Math.cos(ang) * (coreRad * 1.28), pu.y + Math.sin(ang) * (coreRad * 1.28));
-        ctx.strokeStyle = rgba([250, 204, 21], 0.95 * puAlpha);
-        ctx.lineWidth = Math.max(2.5, 4.0 * perspScale);
+        ctx.moveTo(cx + Math.cos(ang) * (coreRad * 0.85), cy + Math.sin(ang) * (coreRad * 0.85));
+        ctx.lineTo(cx + Math.cos(ang) * (coreRad * 1.32), cy + Math.sin(ang) * (coreRad * 1.32));
+        ctx.strokeStyle = rgba([250, 204, 21], 0.96 * puAlpha);
+        ctx.lineWidth = Math.max(2.8, 4.4 * perspScale);
         ctx.lineCap = "round";
         ctx.stroke();
       }
 
+      const bombSphere = ctx.createRadialGradient(
+        cx - coreRad * 0.34, cy - coreRad * 0.36, coreRad * 0.08,
+        cx, cy, coreRad * 1.08
+      );
+      bombSphere.addColorStop(0, rgba([255, 255, 255], 0.98 * puAlpha));
+      bombSphere.addColorStop(0.28, rgba([250, 204, 21], 0.96 * puAlpha));
+      bombSphere.addColorStop(0.65, rgba([234, 88, 12], 0.96 * puAlpha));
+      bombSphere.addColorStop(1, rgba([30, 8, 8], 0.98 * puAlpha));
       ctx.beginPath();
-      ctx.arc(pu.x, pu.y, coreRad, 0, Math.PI * 2);
-      ctx.fillStyle = rgba([24, 8, 8], 0.96 * puAlpha);
-      ctx.fill();
-      ctx.strokeStyle = rgba([249, 115, 22], 0.98 * puAlpha);
-      ctx.lineWidth = 3.2;
-      ctx.stroke();
-
-      ctx.beginPath();
-      ctx.arc(pu.x, pu.y, coreRad * 0.45, 0, Math.PI * 2);
-      ctx.fillStyle = rgba([250, 204, 21], 0.95 * puAlpha);
-      ctx.fill();
-
-      ctx.font = `900 ${Math.max(11, Math.round(14 * perspScale))}px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
-      ctx.textAlign = "center";
-      ctx.fillStyle = "#FFFFFF";
-      ctx.fillText("💥 BOMB", pu.x, pu.y - coreRad * 1.42);
-    } else if (isShield) {
-      // 🛡️ SHIELD PICKUP (LABELED PROTECTIVE DOME)
-      const glow = ctx.createRadialGradient(pu.x, pu.y, 2, pu.x, pu.y, coreRad * 2.1);
-      glow.addColorStop(0, rgba([56, 189, 248], 0.72 * puAlpha));
-      glow.addColorStop(1, "rgba(0,0,0,0)");
-      ctx.beginPath();
-      ctx.arc(pu.x, pu.y, coreRad * 2.1, 0, Math.PI * 2);
-      ctx.fillStyle = glow;
-      ctx.fill();
-
-      ctx.beginPath();
-      ctx.arc(pu.x, pu.y, coreRad, 0, Math.PI * 2);
-      ctx.fillStyle = rgba([6, 21, 40], 0.95 * puAlpha);
-      ctx.fill();
-      ctx.strokeStyle = rgba([56, 189, 248], 0.98 * puAlpha);
-      ctx.lineWidth = 3.2;
-      ctx.stroke();
-
-      ctx.beginPath();
-      ctx.arc(pu.x, pu.y, coreRad * 0.62, 0, Math.PI * 2);
-      ctx.strokeStyle = rgba([255, 255, 255], 0.92 * puAlpha);
-      ctx.lineWidth = 2.2;
-      ctx.stroke();
-
-      ctx.font = `900 ${Math.max(11, Math.round(14 * perspScale))}px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
-      ctx.textAlign = "center";
-      ctx.fillStyle = "#BAE6FD";
-      ctx.fillText("🛡️ SHIELD", pu.x, pu.y - coreRad * 1.34);
-    } else if (isSupernova) {
-      // ★ 4X STAR POWER NOTE
-      const glow = ctx.createRadialGradient(pu.x, pu.y, 2, pu.x, pu.y, coreRad * 2.2);
-      glow.addColorStop(0, rgba([255, 255, 255], 0.96 * puAlpha));
-      glow.addColorStop(0.45, rgba([250, 204, 21], 0.80 * puAlpha));
-      glow.addColorStop(1, "rgba(0,0,0,0)");
-      ctx.beginPath();
-      ctx.arc(pu.x, pu.y, coreRad * 2.2, 0, Math.PI * 2);
-      ctx.fillStyle = glow;
-      ctx.fill();
-
-      ctx.beginPath();
-      ctx.arc(pu.x, pu.y, coreRad, 0, Math.PI * 2);
-      ctx.fillStyle = rgba([28, 20, 4], 0.95 * puAlpha);
+      ctx.arc(cx, cy, coreRad, 0, Math.PI * 2);
+      ctx.fillStyle = bombSphere;
       ctx.fill();
       ctx.strokeStyle = rgba([250, 204, 21], 0.98 * puAlpha);
-      ctx.lineWidth = 3.4;
+      ctx.lineWidth = 3.2;
       ctx.stroke();
 
-      ctx.beginPath();
-      ctx.arc(pu.x, pu.y, coreRad * 0.45, 0, Math.PI * 2);
-      ctx.fillStyle = "#FFFFFF";
-      ctx.fill();
-
-      ctx.font = `900 ${Math.max(11, Math.round(13.5 * perspScale))}px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
+      ctx.font = `900 ${Math.max(12, Math.round(15 * perspScale))}px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
       ctx.textAlign = "center";
-      ctx.fillStyle = "#FEF08A";
-      ctx.fillText("★ 4X STAR", pu.x, pu.y - coreRad * 1.32);
-    } else {
-      // GUITAR-HERO / BAND-HERO FRET GEM BEAT NOTE
-      const glow = ctx.createRadialGradient(pu.x, pu.y, 2, pu.x, pu.y, coreRad * 1.85);
-      glow.addColorStop(0, rgba(effectCol, 0.65 * puAlpha));
-      glow.addColorStop(0.55, rgba(effectCol, 0.22 * puAlpha));
+      ctx.fillStyle = "#FFFFFF";
+      ctx.fillText("💥 BOMB", cx, cy - coreRad * 1.42);
+    } else if (isShield) {
+      // 🛡️ 3D VOLUMETRIC SHIELD SPHERE (LABELED PROTECTIVE DOME)
+      const glow = ctx.createRadialGradient(cx, cy, 2, cx, cy, coreRad * 2.15);
+      glow.addColorStop(0, rgba([56, 189, 248], 0.76 * puAlpha));
       glow.addColorStop(1, "rgba(0,0,0,0)");
       ctx.beginPath();
-      ctx.arc(pu.x, pu.y, coreRad * 1.85, 0, Math.PI * 2);
+      ctx.arc(cx, cy, coreRad * 2.15, 0, Math.PI * 2);
       ctx.fillStyle = glow;
       ctx.fill();
 
+      const shieldSphere = ctx.createRadialGradient(
+        cx - coreRad * 0.34, cy - coreRad * 0.36, coreRad * 0.08,
+        cx, cy, coreRad * 1.08
+      );
+      shieldSphere.addColorStop(0, rgba([255, 255, 255], 0.98 * puAlpha));
+      shieldSphere.addColorStop(0.35, rgba([125, 211, 252], 0.95 * puAlpha));
+      shieldSphere.addColorStop(0.75, rgba([2, 132, 199], 0.94 * puAlpha));
+      shieldSphere.addColorStop(1, rgba([6, 21, 40], 0.98 * puAlpha));
       ctx.beginPath();
-      ctx.arc(pu.x, pu.y, coreRad, 0, Math.PI * 2);
-      ctx.fillStyle = rgba([9, 15, 32], 0.95 * puAlpha);
+      ctx.arc(cx, cy, coreRad, 0, Math.PI * 2);
+      ctx.fillStyle = shieldSphere;
       ctx.fill();
-      ctx.strokeStyle = isOnStrikeLine ? "#FFFFFF" : rgba(effectCol, 0.98 * puAlpha);
-      ctx.lineWidth = isOnStrikeLine ? 3.6 : 2.6;
+      ctx.strokeStyle = rgba([255, 255, 255], 0.92 * puAlpha);
+      ctx.lineWidth = 3.2;
       ctx.stroke();
 
       ctx.beginPath();
-      ctx.arc(pu.x, pu.y, coreRad * 0.62, 0, Math.PI * 2);
-      ctx.fillStyle = rgba(effectCol, 0.88 * puAlpha);
+      ctx.ellipse(cx, cy, coreRad * 1.15, coreRad * 0.42, -0.25, 0, Math.PI * 2);
+      ctx.strokeStyle = rgba([186, 230, 253], 0.88 * puAlpha);
+      ctx.lineWidth = 2.4;
+      ctx.stroke();
+
+      ctx.font = `900 ${Math.max(12, Math.round(15 * perspScale))}px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
+      ctx.textAlign = "center";
+      ctx.fillStyle = "#BAE6FD";
+      ctx.fillText("🛡️ SHIELD", cx, cy - coreRad * 1.36);
+    } else if (isSupernova) {
+      // ★ 3D VOLUMETRIC 24K GOLD STAR POWER SPHERE
+      const glow = ctx.createRadialGradient(cx, cy, 2, cx, cy, coreRad * 2.3);
+      glow.addColorStop(0, rgba([255, 255, 255], 0.96 * puAlpha));
+      glow.addColorStop(0.45, rgba([250, 204, 21], 0.84 * puAlpha));
+      glow.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.beginPath();
+      ctx.arc(cx, cy, coreRad * 2.3, 0, Math.PI * 2);
+      ctx.fillStyle = glow;
       ctx.fill();
 
+      const starSphere = ctx.createRadialGradient(
+        cx - coreRad * 0.34, cy - coreRad * 0.36, coreRad * 0.08,
+        cx, cy, coreRad * 1.08
+      );
+      starSphere.addColorStop(0, "#FFFFFF");
+      starSphere.addColorStop(0.32, "#FEF08A");
+      starSphere.addColorStop(0.72, "#EAB308");
+      starSphere.addColorStop(1, "#422006");
       ctx.beginPath();
-      ctx.arc(pu.x, pu.y, coreRad * 0.30, 0, Math.PI * 2);
-      ctx.fillStyle = "#FFFFFF";
+      ctx.arc(cx, cy, coreRad, 0, Math.PI * 2);
+      ctx.fillStyle = starSphere;
       ctx.fill();
+
+      // Tilted 3D equatorial gyro-ring
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, coreRad * 1.22, coreRad * 0.44, 0.22, 0, Math.PI * 2);
+      ctx.strokeStyle = rgba([255, 255, 255], 0.92 * puAlpha);
+      ctx.lineWidth = 2.8;
+      ctx.stroke();
+
+      // Embossed ★ inside sphere
+      ctx.font = `900 ${Math.max(14, Math.round(coreRad * 0.92))}px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillStyle = "#422006";
+      ctx.fillText("★", cx, cy + 1);
+
+      ctx.font = `900 ${Math.max(12, Math.round(14.5 * perspScale))}px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
+      ctx.textBaseline = "alphabetic";
+      ctx.fillStyle = "#FEF08A";
+      ctx.fillText("★ 4X STAR", cx, cy - coreRad * 1.38);
+    } else {
+      // TRUE 3D VOLUMETRIC PULSING BEAT ORB (Spherical Shading + Equatorial Gyro-Ring + Embossed ♪)
+      const glow = ctx.createRadialGradient(cx, cy, 2, cx, cy, coreRad * 1.95);
+      glow.addColorStop(0, rgba(effectCol, 0.72 * puAlpha));
+      glow.addColorStop(0.55, rgba(effectCol, 0.25 * puAlpha));
+      glow.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.beginPath();
+      ctx.arc(cx, cy, coreRad * 1.95, 0, Math.PI * 2);
+      ctx.fillStyle = glow;
+      ctx.fill();
+
+      // Off-center 3D spherical radial lighting (bright top-left specular to deep bottom-right shadow)
+      const darkRim = [
+        Math.round(effectCol[0] * 0.16),
+        Math.round(effectCol[1] * 0.16),
+        Math.round(effectCol[2] * 0.22)
+      ];
+      const sphere3D = ctx.createRadialGradient(
+        cx - coreRad * 0.34, cy - coreRad * 0.36, coreRad * 0.08,
+        cx, cy, coreRad * 1.12
+      );
+      sphere3D.addColorStop(0, rgba([255, 255, 255], 0.98 * puAlpha));
+      sphere3D.addColorStop(0.28, rgba(effectCol, 0.96 * puAlpha));
+      sphere3D.addColorStop(0.74, rgba(effectCol, 0.88 * puAlpha));
+      sphere3D.addColorStop(1, rgba(darkRim, 0.98 * puAlpha));
+
+      ctx.beginPath();
+      ctx.arc(cx, cy, coreRad, 0, Math.PI * 2);
+      ctx.fillStyle = sphere3D;
+      ctx.fill();
+
+      // Outer 3D rim ring
+      ctx.strokeStyle = isOnStrikeLine ? "#FFFFFF" : rgba(effectCol, 0.96 * puAlpha);
+      ctx.lineWidth = isOnStrikeLine ? 3.8 : 2.6;
+      ctx.stroke();
+
+      // Tilted 3D equatorial gyro-ring wrapping the orb
+      ctx.beginPath();
+      ctx.ellipse(
+        cx,
+        cy + coreRad * 0.05,
+        coreRad * (1.14 + beatPulse * 0.10),
+        coreRad * 0.38,
+        (laneIdx % 2 === 0 ? -0.18 : 0.18),
+        0,
+        Math.PI * 2
+      );
+      ctx.strokeStyle = rgba([255, 255, 255], (0.58 + beatPulse * 0.30) * puAlpha);
+      ctx.lineWidth = Math.max(1.8, 2.4 * perspScale);
+      ctx.stroke();
+
+      // Upper-left curved glass specular highlight arc
+      ctx.beginPath();
+      ctx.arc(cx, cy, coreRad * 0.76, Math.PI * 1.08, Math.PI * 1.62);
+      ctx.strokeStyle = rgba([255, 255, 255], 0.88 * puAlpha);
+      ctx.lineWidth = Math.max(2.2, 3.2 * perspScale);
+      ctx.lineCap = "round";
+      ctx.stroke();
+
+      // Embossed ♪ Musical Note Emblem inside the 3D sphere
+      ctx.font = `900 ${Math.max(13, Math.round(coreRad * 0.82))}px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillStyle = `rgba(6, 10, 25, ${(0.72 * puAlpha).toFixed(3)})`;
+      ctx.fillText("♪", cx + 1, cy + 2);
+      ctx.fillStyle = `rgba(255, 255, 255, ${(0.96 * puAlpha).toFixed(3)})`;
+      ctx.fillText("♪", cx, cy + 1);
+      ctx.textBaseline = "alphabetic";
     }
     ctx.restore();
   }
