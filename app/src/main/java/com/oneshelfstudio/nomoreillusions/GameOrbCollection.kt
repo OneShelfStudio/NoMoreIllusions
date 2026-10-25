@@ -293,27 +293,77 @@ internal fun spawnStationaryBeatOrbsForFrame(
     applyColorBlind: (Color) -> Color,
     powerUps: MutableList<GameObject>,
     shockwaves: MutableList<Shockwave>,
-    hasActiveSustainRibbon: Boolean = false
+    hasActiveSustainRibbon: Boolean = false,
+    isTrainingMode: Boolean = false
 ): Int {
     var nextOrbCueIdx = startCueIdx
+    // 100% Mutually Exclusive Rule: While a Sustain Slide Ribbon is on screen, NEVER spawn ANY beat peg alongside it!
+    if (hasActiveSustainRibbon) {
+        powerUps.clear()
+        while (nextOrbCueIdx < chart.size && chart[nextOrbCueIdx].timestampSec <= trackSec + spawnLeadTime * 0.5f) {
+            nextOrbCueIdx++
+        }
+        return nextOrbCueIdx
+    }
+
+    val laneColors = listOf(
+        Color(0xFF22C55EL), // Lane 1: Emerald Fret
+        Color(0xFFFB7185L), // Lane 2: Crimson Fret
+        Color(0xFFFACC15L), // Lane 3: Gold Fret
+        Color(0xFF38BDF8L)  // Lane 4: Cyan Fret
+    )
+
     while (
         nextOrbCueIdx < chart.size &&
-        powerUps.size < 10 &&
-        (trackSec >= chart[nextOrbCueIdx].timestampSec - spawnLeadTime || (powerUps.isEmpty() && !hasActiveSustainRibbon && trackSec + spawnLeadTime * 1.5f >= chart[nextOrbCueIdx].timestampSec))
+        powerUps.size < 16 &&
+        (trackSec >= chart[nextOrbCueIdx].timestampSec - spawnLeadTime || (powerUps.isEmpty() && trackSec + spawnLeadTime * 1.5f >= chart[nextOrbCueIdx].timestampSec))
     ) {
+        val prevCueSec = if (nextOrbCueIdx > 0) chart[nextOrbCueIdx - 1].timestampSec else 0f
         val cue = chart[nextOrbCueIdx]
         nextOrbCueIdx++
+
+        // In Training/Easy/Chill mode, skip every 3rd dense subdivision peg so beats feel relaxed and easy to learn
+        if (isTrainingMode && cue.sequenceIndex % 3 == 2 && cue.powerUpType == PowerUpType.NONE && !cue.isGoldenCue) {
+            continue
+        }
+
         if (trackSec <= cue.timestampSec + ttlGraceSec && screenWidth > 0f && screenHeight > 0f) {
-            // Quantize into 4 Guitar-Hero / Band-Hero perspective lanes (0, 1, 2, 3)
             val laneIdx = (((cue.normX - 0.16f) / 0.68f * 4f).toInt() + cue.sequenceIndex) % 4
             val clampedLane = laneIdx.coerceIn(0, 3)
-            val startPt = computeHighwayPoint(clampedLane.toFloat(), 0f, screenWidth, screenHeight)
 
-            // Simplify pickups strictly to:
-            // 1. Standard Beat Notes (PowerUpType.NONE, KeyWordEffect.NONE)
-            // 2. 24K Star Notes (KeyWordEffect.CONSTELLATION_STAR)
-            // 3. 💥 BOMB (PowerUpType.BLAST) - vaporizes all enemies on screen
-            // 4. 🛡️ SHIELD (PowerUpType.SHIELD) - protective barrier dome
+            // In Normal & Hard/Fast modes, if there is a wide gap (>= 0.90s) before this cue, inject a bonus intermediate Band-Hero beat peg!
+            val gapSec = cue.timestampSec - prevCueSec
+            if (!isTrainingMode && prevCueSec > 0.5f && gapSec in 0.90f..2.60f && powerUps.size < 14) {
+                val midBeatSec = prevCueSec + gapSec * 0.5f
+                if (midBeatSec > trackSec + 0.35f) {
+                    val midLane = (clampedLane + 2) % 4
+                    val midStartPt = computeHighwayPoint(midLane.toFloat(), 0f, screenWidth, screenHeight)
+                    val midSpawnSec = minOf(trackSec, midBeatSec - spawnLeadTime * 0.85f)
+                    powerUps.add(
+                        GameObject(
+                            x = midStartPt.x,
+                            y = midStartPt.y,
+                            radius = 32f,
+                            color = applyColorBlind(laneColors[midLane]),
+                            angle = 0f,
+                            speed = 0f,
+                            powerUpType = PowerUpType.NONE,
+                            phase = (cue.sequenceIndex + 0.5f) * 0.7f,
+                            anchorX = midStartPt.x,
+                            anchorY = midStartPt.y,
+                            spawnBeatSec = midSpawnSec,
+                            targetBeatSec = midBeatSec,
+                            expireBeatSec = midBeatSec + ttlGraceSec,
+                            phraseBeatNum = midLane + 1,
+                            sequenceIndex = cue.sequenceIndex * 2,
+                            isGoldenOrb = isGoldenActive,
+                            keyWordEffect = KeyWordEffect.NONE
+                        )
+                    )
+                }
+            }
+
+            val startPt = computeHighwayPoint(clampedLane.toFloat(), 0f, screenWidth, screenHeight)
             val mappedPowerUpType = when (cue.powerUpType) {
                 PowerUpType.BLAST, PowerUpType.MAGNET -> PowerUpType.BLAST
                 PowerUpType.SHIELD, PowerUpType.SLOW_MO -> PowerUpType.SHIELD
@@ -329,19 +379,9 @@ internal fun spawnStationaryBeatOrbsForFrame(
                 else -> KeyWordEffect.NONE
             }
 
-            // Mutually Exclusive Rule: Sustain Slide Ribbons replace regular tap beats — never spawn regular tap notes alongside a ribbon!
-            if (hasActiveSustainRibbon && mappedPowerUpType == PowerUpType.NONE && mappedKeyWord == KeyWordEffect.NONE) {
-                continue
-            }
             val isSupernova = mappedKeyWord == KeyWordEffect.CONSTELLATION_STAR
             val isOrbGolden = isSupernova || isGoldenActive
 
-            val laneColors = listOf(
-                Color(0xFF22C55EL), // Lane 1: Emerald Fret
-                Color(0xFFFB7185L), // Lane 2: Crimson Fret
-                Color(0xFFFACC15L), // Lane 3: Gold Fret
-                Color(0xFF38BDF8L)  // Lane 4: Cyan Fret
-            )
             val pColor = when {
                 mappedPowerUpType == PowerUpType.BLAST -> Color(0xFFF97316L)
                 mappedPowerUpType == PowerUpType.SHIELD -> Color(0xFF38BDF8L)
@@ -354,7 +394,7 @@ internal fun spawnStationaryBeatOrbsForFrame(
                 GameObject(
                     x = startPt.x,
                     y = startPt.y,
-                    radius = if (isSupernova || mappedPowerUpType != PowerUpType.NONE) 31f else 24f,
+                    radius = if (isSupernova || mappedPowerUpType != PowerUpType.NONE) 38f else 32f,
                     color = applyColorBlind(pColor),
                     angle = 0f,
                     speed = 0f,
@@ -366,7 +406,7 @@ internal fun spawnStationaryBeatOrbsForFrame(
                     targetBeatSec = cue.timestampSec,
                     expireBeatSec = cue.timestampSec + ttlGraceSec,
                     phraseBeatNum = clampedLane + 1,
-                    sequenceIndex = cue.sequenceIndex,
+                    sequenceIndex = cue.sequenceIndex * 2 + 1,
                     isGoldenOrb = isOrbGolden,
                     keyWordEffect = mappedKeyWord
                 )
@@ -424,19 +464,19 @@ internal fun stepWormholeSlideAndPortals(
     val toast: PowerUpBannerToast? = null
 
     // Guitar-Hero / Beatstar Sustain Slide Ribbon Tracking:
-    // Player steers freely! Holding the ship inside the scrolling sustain ribbon awards rapid SLIDE ♪ sparks.
+    // Slower 3.6s travel speed + generous 88f catch radius so sliding along the ribbon feels effortless!
     for (w in wormholes) {
-        val uHead = (w.ageSec / 2.2f)
-        val uTail = (uHead - 0.44f).coerceAtLeast(0f)
-        if (uHead < 0.25f || uTail > 1.18f) continue
+        val uHead = (w.ageSec / 3.6f)
+        val uTail = (uHead - 0.52f).coerceAtLeast(0f)
+        if (uHead < 0.18f || uTail > 1.18f) continue
 
         val startLane = w.x.coerceIn(0f, 3f)
         val endLane = w.exitX.coerceIn(0f, 3f)
         var minRibbonDist = 9999f
         var hitPt = Offset(player.x, player.y)
 
-        for (step in 0..8) {
-            val s = step / 8f
+        for (step in 0..10) {
+            val s = step / 10f
             val uSample = uTail + (uHead - uTail) * s
             if (uSample < 0f || uSample > 1.22f) continue
             val laneAtS = startLane + (endLane - startLane) * (0.5f - 0.5f * cos(s * PI.toFloat()))
@@ -448,7 +488,7 @@ internal fun stepWormholeSlideAndPortals(
             }
         }
 
-        if (minRibbonDist <= 68f) {
+        if (minRibbonDist <= 88f) {
             nextInvuln = maxOf(nextInvuln, 0.28f)
             if (w.slideCooldownSec <= 0f) {
                 w.slideCooldownSec = 0.18f

@@ -105,25 +105,31 @@ fun stepAndSpawnTelegraphedEnemies(
     }
 
     // 3. Only initiate new telegraphs on the beat when total active + telegraphed threats are below the section's musical cap
-    val maxActiveEnemies = (sectionMaxEnemies * spawnRateScale).roundToInt().coerceIn(1, 12)
+    val maxActiveEnemies = when {
+        spawnRateScale <= 0.30f -> 1 // Easy / Chill Training Mode: at most 1 enemy at a time!
+        spawnRateScale <= 0.58f -> minOf(2, (sectionMaxEnemies * spawnRateScale).roundToInt().coerceAtLeast(1)) // Normal Mode: 1-2 enemies max!
+        else -> (sectionMaxEnemies * spawnRateScale).roundToInt().coerceIn(2, 6) // Hard / Fast / Endless
+    }
     if (enemies.size + telegraphs.size >= maxActiveEnemies) return
 
-    val isBeatOnset = beatPhase in 0f..0.32f
+    val isBeatOnset = beatPhase in 0f..0.28f
     if (!isBeatOnset) return
 
-    val rampFactor = (levelPlayTime / 18f).coerceIn(0.55f, 1.0f)
-    val energyScale = (0.58f + multiBand.bass * 0.45f + multiBand.rms * 0.32f).coerceIn(0.50f, 1.25f)
-    val sectionUrgency = if (sectionMaxEnemies >= 4) 1.15f else if (sectionMaxEnemies >= 2) 0.88f else 0.62f
-    val effectiveSpawnChance = (0.062f + difficulty * 0.055f) * spawnRateScale * rampFactor * energyScale * sectionUrgency
+    val rampFactor = (levelPlayTime / 22f).coerceIn(0.45f, 1.0f)
+    val energyScale = (0.52f + multiBand.bass * 0.38f + multiBand.rms * 0.25f).coerceIn(0.45f, 1.15f)
+    val sectionUrgency = if (sectionMaxEnemies >= 4) 1.0f else if (sectionMaxEnemies >= 2) 0.75f else 0.50f
+    val effectiveSpawnChance = (0.042f + difficulty * 0.040f) * spawnRateScale * rampFactor * energyScale * sectionUrgency
 
     if (Random.nextFloat() < effectiveSpawnChance) {
-        val spawnCount = if (sectionMaxEnemies >= 4 &&
+        val spawnCount = if (spawnRateScale > 0.85f &&
+            sectionMaxEnemies >= 4 &&
             enemies.size + telegraphs.size + 1 < maxActiveEnemies &&
-            Random.nextFloat() < 0.35f
+            Random.nextFloat() < 0.30f
         ) 2 else 1
         val baseSide = Random.nextInt(3)
-        val warnSec = (1.02f - difficulty * 0.14f).coerceIn(0.72f, 1.05f)
-        val maxUpperSideY = (screenHeight * 0.44f).coerceAtLeast(160f)
+        val warnSec = (1.05f - difficulty * 0.12f).coerceIn(0.75f, 1.08f)
+        // Strict Upper-Screen Spawn Zone (top 26% of screen height only, NEVER near bottom!)
+        val maxUpperSideY = (screenHeight * 0.26f).coerceAtLeast(130f)
 
         for (sIdx in 0 until spawnCount) {
             // ONLY spawn from Top Edge (0), Upper-Right (1), or Upper-Left (2) — NEVER from the bottom!
@@ -135,16 +141,17 @@ fun stepAndSpawnTelegraphedEnemies(
                     floatArrayOf(rx, margin, rx, -28f)
                 }
                 1 -> {
-                    val ry = 70f + Random.nextFloat() * (maxUpperSideY - 70f)
+                    val ry = 60f + Random.nextFloat() * (maxUpperSideY - 60f)
                     floatArrayOf(screenWidth - margin, ry, screenWidth + 28f, ry)
                 }
                 else -> {
-                    val ry = 70f + Random.nextFloat() * (maxUpperSideY - 70f)
+                    val ry = 60f + Random.nextFloat() * (maxUpperSideY - 60f)
                     floatArrayOf(margin, ry, -28f, ry)
                 }
             }
 
             val allowLaserSweeper = sIdx == 0 &&
+                spawnRateScale > 0.85f &&
                 sectionMaxEnemies >= 6 &&
                 (stageMode == StageMode.SPEED_PORTAL || stageMode == StageMode.OVERDRIVE_SHATTER || stageMode == StageMode.GOLDEN_OVERDRIVE) &&
                 multiBand.high > 0.54f &&
@@ -156,22 +163,24 @@ fun stepAndSpawnTelegraphedEnemies(
                 EnemySpawnData(EnemyType.LASER_SWEEPER, Color(0xFFFF1E42L), 2.85f, 62f)
             } else {
                 when (customEnemyStyle) {
-                    "PULSARS" -> EnemySpawnData(EnemyType.PULSE, Color(0xFFF43F5EL), 2.95f, 16f)
-                    "SEEKERS" -> EnemySpawnData(EnemyType.SEEKER, Color(0xFFFF1E42L), 2.90f, 10f)
-                    "WANDERERS" -> EnemySpawnData(EnemyType.WANDERER, Color(0xFFFB7185L), 2.75f, 22f)
+                    "PULSARS" -> EnemySpawnData(EnemyType.PULSE, Color(0xFFF43F5EL), 2.75f, 16f)
+                    "SEEKERS" -> EnemySpawnData(EnemyType.SEEKER, Color(0xFFFF1E42L), 2.70f, 10f)
+                    "WANDERERS" -> EnemySpawnData(EnemyType.WANDERER, Color(0xFFFB7185L), 2.55f, 22f)
                     else -> {
                         val roll = Random.nextFloat()
                         when {
-                            roll < 0.36f -> EnemySpawnData(EnemyType.PULSE, Color(0xFFF43F5EL), 2.95f, 16f)
-                            roll < 0.74f -> EnemySpawnData(EnemyType.SEEKER, Color(0xFFFF1E42L), 2.90f, 10f)
-                            else -> EnemySpawnData(EnemyType.WANDERER, Color(0xFFFB7185L), 2.75f, 22f)
+                            roll < 0.36f -> EnemySpawnData(EnemyType.PULSE, Color(0xFFF43F5EL), 2.75f, 16f)
+                            roll < 0.74f -> EnemySpawnData(EnemyType.SEEKER, Color(0xFFFF1E42L), 2.70f, 10f)
+                            else -> EnemySpawnData(EnemyType.WANDERER, Color(0xFFFB7185L), 2.55f, 22f)
                         }
                     }
                 }
             }
 
-            val targetAngle = atan2(player.y - edgeY, player.x - edgeX) + (Random.nextFloat() - 0.5f) * 0.18f
-            val finalSpeed = (spawnData.speed + difficulty * 1.45f) * speedScale * sectionSpeedMult * (0.82f + 0.18f * rampFactor)
+            // Strictly downward trajectory angle so enemies always travel from top toward bottom
+            val rawAngle = atan2((player.y.coerceAtLeast(edgeY + 140f)) - edgeY, player.x - edgeX) + (Random.nextFloat() - 0.5f) * 0.16f
+            val targetAngle = rawAngle.coerceIn(PI.toFloat() * 0.16f, PI.toFloat() * 0.84f)
+            val finalSpeed = (spawnData.speed + difficulty * 1.25f) * speedScale * sectionSpeedMult * (0.82f + 0.18f * rampFactor)
 
             telegraphs.add(
                 EnemySpawnTelegraph(
@@ -220,7 +229,8 @@ fun stepEnemyKinematicsAndFlocking(
     }
 
     val distToPlayer = hypot(player.x - e.x, player.y - e.y)
-    if (distToPlayer < 68f) {
+    // Once an enemy approaches the player's vertical level (or lower half of screen), lock it into downward exit so it NEVER loops up from the bottom!
+    if (distToPlayer < 85f || e.y >= player.y - 24f) {
         e.hasPassedPlayer = true
     }
 
@@ -321,11 +331,13 @@ fun stepEnemyKinematicsAndFlocking(
     val drumCutScale = if (multiBand.bass < 0.16f) 0.42f else 1.0f
 
     val baseVx = cos(e.angle) * e.speed * beatSpeedMult * drumCutScale
-    val baseVy = sin(e.angle) * e.speed * beatSpeedMult * drumCutScale
+    // Enforce strictly downward vertical movement (minDownwardVy) so enemies NEVER fly upward from the bottom!
+    val minDownwardVy = e.speed * 0.42f * drumCutScale
+    val baseVy = maxOf(minDownwardVy, sin(e.angle) * e.speed * beatSpeedMult * drumCutScale)
     val perpAngle = e.angle + (PI.toFloat() / 2f)
     val oscFactor = cos(gameTime * 3.8f + e.phase) * (e.orbitRadius * 0.09f) * drumCutScale
     val oscVx = cos(perpAngle) * oscFactor
-    val oscVy = sin(perpAngle) * oscFactor
+    val oscVy = maxOf(0f, sin(perpAngle) * oscFactor)
 
     e.x += (baseVx + oscVx) * currentScale
     e.y += (baseVy + oscVy) * currentScale
@@ -457,14 +469,14 @@ fun stepAndSpawnWormholes(
         if (w.slideCooldownSec > 0f) {
             w.slideCooldownSec = (w.slideCooldownSec - 0.016f * currentScale).coerceAtLeast(0f)
         }
-        if (w.ageSec >= 3.2f) {
+        if (w.ageSec >= 4.6f) {
             wIter.remove()
         }
     }
 
-    // Mutually Exclusive Rule: While a Sustain Slide Ribbon is active, clear regular tap beat notes so they NEVER overlap!
+    // 100% Mutually Exclusive Rule: While a Sustain Slide Ribbon is active, clear ALL beat pegs so they NEVER overlap!
     if (wormholes.isNotEmpty() && powerUps != null) {
-        powerUps.removeAll { it.powerUpType == PowerUpType.NONE && it.keyWordEffect == KeyWordEffect.NONE }
+        powerUps.clear()
     }
 
     if (!allowAnomalies || multiBand.bassDropOut) return
@@ -474,14 +486,14 @@ fun stepAndSpawnWormholes(
     if (!isBeatOnset) return
 
     val swellTrigger = multiBand.rms > 0.42f || multiBand.swellDelta > 0.05f
-    val spawnChance = if (swellTrigger) 0.16f else 0.065f
+    val spawnChance = if (swellTrigger) 0.14f else 0.055f
     if (Random.nextFloat() < spawnChance) {
         val startLane = Random.nextInt(4)
         val delta = if (Random.nextBoolean()) 1 else -1
         val endLane = (startLane + delta).coerceIn(0, 3).let { if (it == startLane) (startLane + 1) % 4 else it }
 
-        // Clear existing regular tap notes on the highway so the Sustain Slide Ribbon replaces beats cleanly!
-        powerUps?.removeAll { it.powerUpType == PowerUpType.NONE && it.keyWordEffect == KeyWordEffect.NONE }
+        // Clear ALL existing beat pegs on the highway so the Sustain Slide Ribbon replaces beats 100% cleanly!
+        powerUps?.clear()
 
         wormholes.add(
             SingularityWormhole(

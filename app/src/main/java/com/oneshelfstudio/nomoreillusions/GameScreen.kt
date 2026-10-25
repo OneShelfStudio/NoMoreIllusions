@@ -409,9 +409,9 @@ fun GameScreen(
         GameDifficulty.HARD -> 1.18f
     }) * trackDifficultyBoost
     val spawnRateScale = (when (gameDifficulty) {
-        GameDifficulty.EASY -> 0.50f
-        GameDifficulty.REGULAR -> 0.72f
-        GameDifficulty.HARD -> 1.25f
+        GameDifficulty.EASY -> 0.22f
+        GameDifficulty.REGULAR -> 0.42f
+        GameDifficulty.HARD -> 1.15f
     }) * trackDifficultyBoost * selectedRemixMode.enemyScale
 
     val applyColorBlind: (Color) -> Color = { color ->
@@ -788,7 +788,8 @@ fun GameScreen(
                     applyColorBlind = applyColorBlind,
                     powerUps = powerUps,
                     shockwaves = shockwaves,
-                    hasActiveSustainRibbon = wormholes.isNotEmpty()
+                    hasActiveSustainRibbon = wormholes.isNotEmpty(),
+                    isTrainingMode = (gameDifficulty == GameDifficulty.EASY || selectedRemixMode == TrackRemixMode.SLOWED)
                 )
 
                 // Step Scrolling Highway Beat Notes + Expiration Check (Miss resets combo only, never health!)

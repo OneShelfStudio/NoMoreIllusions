@@ -322,6 +322,14 @@ Object.assign(NoMoreIllusionsApp.prototype, {
     this.syncCustomizerUI();
   },
 
+  toggleVictoryExclusivePopup(show) {
+    this.playSfx(show ? "powerup" : "click", 0.78);
+    const popupEl = document.getElementById("tc-excl-popup");
+    if (popupEl) {
+      popupEl.style.display = show ? "block" : "none";
+    }
+  },
+
   selectStage(index) {
     this.unlockAudioOnFirstGesture();
     this.playSfx("click");
@@ -395,20 +403,20 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       `;
     }
 
-    // 1. Song Selector Dropdown (#menu-track-deck-row)
+    // 1. Song Selector Dropdown (#menu-track-deck-row) — Mystery Prize Preview Card!
     const trackDeckRow = document.getElementById("menu-track-deck-row");
     if (trackDeckRow) {
       const selStars = this.prefs.trackMasteryMedals[activeStage.id] || 0;
       const selStarsStr = [1, 2, 3].map(s => s <= selStars ? "★" : "☆").join("");
-      const selEffBpm = Math.round(activeStage.bpm * (activeRemix.speed || 1.0));
+      const selUnlocked = this.prefs.unlockedTracks.includes(activeStage.id);
       trackDeckRow.innerHTML = `
         <div style="background:#0A0D16;border:1.4px solid rgba(234,179,8,0.85);border-radius:10px;overflow:hidden;">
           <div onclick="window.app.toggleTrackDropdown()"
                style="padding:9px 12px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;">
             <div style="text-align:left;min-width:0;flex:1;">
-              <div style="font-size:8px;font-weight:800;color:#94A3B8;letter-spacing:0.8px;">🎵 SELECTED TRACK (TAP TO SWITCH SONG)</div>
+              <div style="font-size:8px;font-weight:800;color:#94A3B8;letter-spacing:0.8px;">🎵 TAP TO PREVIEW TRACK PRIZE &amp; SWITCH SONG</div>
               <div style="font-size:13px;font-weight:900;color:#FAF8F5;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-                0${this.selectedStageIndex + 1}. ${activeStage.title.toUpperCase()} • ${selEffBpm} BPM
+                ${selUnlocked ? `TRACK 0${this.selectedStageIndex + 1}: "${activeStage.title.toUpperCase()}"` : `TRACK 0${this.selectedStageIndex + 1} • 🔒 TAP TO SEE PRIZE`}
               </div>
             </div>
             <div style="display:flex;align-items:center;gap:6px;margin-left:8px;">
@@ -417,17 +425,32 @@ Object.assign(NoMoreIllusionsApp.prototype, {
             </div>
           </div>
           ${this.showTrackDropdown ? `
-            <div style="background:#06080E;padding:6px 10px 8px;border-top:1px solid rgba(255,255,255,0.1);display:flex;flex-direction:column;gap:5px;">
+            <div style="background:#06080E;padding:8px 10px 10px;border-top:1px solid rgba(255,255,255,0.1);display:flex;flex-direction:column;gap:7px;">
               ${OFFICIAL_TRACKS.map((track, idx) => {
                 const isSel = idx === this.selectedStageIndex;
+                const isTrkUnlocked = this.prefs.unlockedTracks.includes(track.id);
                 const stars = this.prefs.trackMasteryMedals[track.id] || 0;
                 const starsStr = [1, 2, 3].map(s => s <= stars ? "★" : "☆").join("");
                 const effBpm = Math.round(track.bpm * (activeRemix.speed || 1.0));
                 return `
                   <div onclick="window.app.selectStage(${idx})"
-                       style="background:${isSel ? "rgba(234,179,8,0.18)" : "#0D111C"};border:1px solid ${isSel ? "#EAB308" : "rgba(255,255,255,0.12)"};border-radius:8px;padding:8px 10px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;">
-                    <span style="font-size:11.5px;font-weight:900;color:${isSel ? "#EAB308" : "#FAF8F5"};">0${idx + 1}. ${track.title.toUpperCase()} (${effBpm} BPM)</span>
-                    <span style="font-size:10px;font-weight:900;color:#FACC15;">${starsStr} ${isSel ? "✓" : ""}</span>
+                       style="background:${isSel ? "rgba(234,179,8,0.16)" : "#0D111C"};border:1.2px solid ${isSel ? "#EAB308" : "rgba(255,255,255,0.14)"};border-radius:10px;padding:8px 10px;display:flex;align-items:center;gap:10px;cursor:pointer;text-align:left;">
+                    <div style="position:relative;width:50px;height:50px;border-radius:9px;overflow:hidden;border:1.5px solid ${isTrkUnlocked ? "#4ADE80" : "#EAB308"};flex-shrink:0;">
+                      <img src="assets/nmi_logo.png" alt="Cover" style="width:100%;height:100%;object-fit:cover;filter:${isTrkUnlocked ? "none" : "blur(4px) brightness(0.38)"};" />
+                      ${!isTrkUnlocked ? `<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:18px;">🔒</div>` : ""}
+                    </div>
+                    <div style="flex:1;min-width:0;">
+                      <div style="display:flex;align-items:center;justify-content:space-between;">
+                        <span style="font-size:11.5px;font-weight:900;color:${isSel ? "#EAB308" : "#FAF8F5"};">TRACK 0${idx + 1}: "${track.title.toUpperCase()}"</span>
+                        <span style="font-size:10px;font-weight:900;color:#FACC15;">${starsStr}</span>
+                      </div>
+                      <div style="font-size:9.5px;font-weight:800;color:${isTrkUnlocked ? "#4ADE80" : "#38BDF8"};margin-top:2px;">
+                        ${isTrkUnlocked ? "★ UNLOCKED IN YOUR ALBUM VAULT!" : "🎁 WIN: Full Song in Album + Cover Art + Vault Secret!"}
+                      </div>
+                      <div style="font-size:8.5px;font-weight:700;color:#94A3B8;margin-top:1px;">
+                        ${effBpm} BPM • ${isSel ? "✓ READY TO LAUNCH" : "TAP TO SELECT"}
+                      </div>
+                    </div>
                   </div>
                 `;
               }).join("")}
@@ -493,7 +516,7 @@ Object.assign(NoMoreIllusionsApp.prototype, {
 
     const launchMain = document.getElementById("menu-launch-main");
     if (launchMain) {
-      launchMain.innerHTML = `▶ &nbsp;PLAY ${activeStage.title.toUpperCase()} (${activeRemix.displayName})`;
+      launchMain.innerHTML = `▶ &nbsp;PLAY TRACK ${this.selectedStageIndex + 1} (${activeRemix.displayName})`;
     }
 
     const vaultCountEl = document.getElementById("menu-vault-count");
@@ -537,15 +560,14 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       vipBadge.textContent = this.prefs.vipUnlocked ? "• ★ VIP UNLOCKED" : "";
     }
 
-    // Track Completed Screen (Showstopping Premiere Celebration)
+    // Track Completed Screen (Visual-First Premiere Celebration)
     if (this.gameState === "TRACK_COMPLETED") {
       const tcTitle = document.getElementById("tc-track-title");
-      if (tcTitle) tcTitle.textContent = `"${activeStage.title.toUpperCase()}" MASTERED!`;
-      const tcMedal = document.getElementById("tc-medal-badge");
-      if (tcMedal) {
-        const grade = this.maxComboRun >= 8 ? "S+ MASTER" : (this.maxComboRun >= 5 ? "S RANK" : "A RANK");
-        const label = this.earnedMedalTier === 3 ? "★★★ 24K GOLD VINYL MASTER" : this.earnedMedalTier === 2 ? "★★☆ PLATINUM RHYTHM CUT" : "★☆☆ STUDIO STAGE CLEAR";
-        tcMedal.textContent = `${label} • ${grade}`;
+      if (tcTitle) tcTitle.textContent = `TRACK ${this.selectedStageIndex + 1}: "${activeStage.title.toUpperCase()}"`;
+      const popupEl = document.getElementById("tc-excl-popup");
+      if (popupEl && this._lastCompletedPopupInit !== this.survivalSeconds) {
+        this._lastCompletedPopupInit = this.survivalSeconds;
+        popupEl.style.display = "none";
       }
       const tcScore = document.getElementById("tc-score-val");
       if (tcScore) tcScore.textContent = String(this.score);
@@ -563,7 +585,7 @@ Object.assign(NoMoreIllusionsApp.prototype, {
           const tEl = document.getElementById("tc-excl-title");
           const bodyEl = document.getElementById("tc-excl-body");
           const qEl = document.getElementById("tc-excl-quote");
-          if (bEl) bEl.textContent = `★ ARTIST EXCLUSIVE UNLOCKED • ${excl.categoryBadge}`;
+          if (bEl) bEl.textContent = `★ VAULT EXCLUSIVE UNLOCKED • ${excl.categoryBadge}`;
           if (tEl) tEl.textContent = excl.title;
           if (bodyEl) bodyEl.textContent = excl.unlockedBody;
           if (qEl) qEl.textContent = excl.unlockedQuote;

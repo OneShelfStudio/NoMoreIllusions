@@ -106,14 +106,51 @@ Object.assign(NoMoreIllusionsApp.prototype, {
     // 1. Band Hero / Guitar Hero Scrolling Highway Note Spawner
     const chart = stage.orbChart;
     const spawnLeadTime = Math.max(1.75, Math.min(2.35, beatPeriod * 3.8));
-    while (
-      this.nextBeatCueIndex < chart.length &&
-      this.powerUps.length < 10 &&
-      (chart[this.nextBeatCueIndex].timestampSec || chart[this.nextBeatCueIndex].timeSec) <= this.trackElapsedSec + spawnLeadTime
-    ) {
-      const cue = chart[this.nextBeatCueIndex];
-      this.nextBeatCueIndex++;
-      this.spawnChartedOrb(cue, beatPeriod);
+    if (this.wormholes && this.wormholes.length > 0) {
+      // ZERO OVERLAP RULE: While a Sustain Slide Ribbon is active, clear ALL beat pegs and advance cues!
+      this.powerUps = [];
+      while (
+        this.nextBeatCueIndex < chart.length &&
+        (chart[this.nextBeatCueIndex].timestampSec || chart[this.nextBeatCueIndex].timeSec) <= this.trackElapsedSec + spawnLeadTime
+      ) {
+        this.nextBeatCueIndex++;
+      }
+    } else {
+      const isTrainingEasy = mode.id === "CHILL" || this.prefs.difficulty === "EASY";
+      while (
+        this.nextBeatCueIndex < chart.length &&
+        this.powerUps.length < 16 &&
+        (chart[this.nextBeatCueIndex].timestampSec || chart[this.nextBeatCueIndex].timeSec) <= this.trackElapsedSec + spawnLeadTime
+      ) {
+        const cue = chart[this.nextBeatCueIndex];
+        this.nextBeatCueIndex++;
+        if (isTrainingEasy && cue.sequenceIndex % 3 === 2 && !cue.isGoldenCue && (!cue.powerUpType || cue.powerUpType === "SCORE_ORB")) {
+          continue;
+        }
+        this.spawnChartedOrb(cue, beatPeriod);
+
+        // Band-Hero Highway Density Boost: fill wide gaps (>= 0.90s) on Normal & Hard/Fast modes with an extra on-beat highway peg!
+        if (!isTrainingEasy && this.nextBeatCueIndex < chart.length && this.powerUps.length < 15) {
+          const nextCue = chart[this.nextBeatCueIndex];
+          const curT = cue.timestampSec || cue.timeSec || this.trackElapsedSec;
+          const nextT = nextCue.timestampSec || nextCue.timeSec || (curT + 1.0);
+          const gapSec = nextT - curT;
+          if (gapSec >= 0.90 && gapSec <= 2.40) {
+            const curLane = Math.max(0, Math.min(3, Math.floor(((cue.normX || 0.5) - 0.14) / 0.18 + 0.5)));
+            const midLane = (curLane + 1) % 4;
+            this.spawnChartedOrb({
+              timestampSec: curT + gapSec * 0.5,
+              normX: 0.14 + midLane * 0.18,
+              normY: 0.65,
+              sequenceIndex: (cue.sequenceIndex || 1) + 1000,
+              phraseBeatNum: midLane + 1,
+              powerUpType: "SCORE_ORB",
+              keyWordEffect: "NONE",
+              isGoldenCue: false
+            }, beatPeriod);
+          }
+        }
+      }
     }
 
     // 2. Choreographed Section Director (1:1 with Android TrackSection table)
@@ -199,14 +236,13 @@ Object.assign(NoMoreIllusionsApp.prototype, {
 
     // 3. Simplified Pickups (Fret Beat Notes, ★ 4X STAR, 💥 BOMB, 🛡️ SHIELD) arrive via the beat highway chart
 
-    // 4. Guitar-Hero Sustain Slide Ribbon Spawner (REPLACES regular tap notes while active!)
+    // 4. Guitar-Hero Sustain Slide Ribbon Spawner (100% REPLACES ALL beat pegs while active!)
     if (this.wormholes.length > 0) {
-      // Mutually Exclusive Rule: remove regular tap beat notes so sustain ribbons replace beats instead of running alongside them!
-      this.powerUps = this.powerUps.filter((p) => p.type !== "SCORE_ORB" || p.isSupernova || (p.keyWordEffect && p.keyWordEffect !== "NONE"));
+      this.powerUps = [];
     }
     if (activeSec.allowAnomalies) {
       this.wormholeSpawnTimer += dt;
-      if (this.wormholeSpawnTimer >= 11.5 && this.wormholes.length === 0) {
+      if (this.wormholeSpawnTimer >= 13.5 && this.wormholes.length === 0) {
         this.wormholeSpawnTimer = 0;
         const startLane = Math.floor(Math.random() * 4);
         const shift = Math.random() < 0.5 ? -1 : 1;
@@ -216,11 +252,11 @@ Object.assign(NoMoreIllusionsApp.prototype, {
           ? this.computeHighwayPoint(startLane, 0, this.W, this.H)
           : { x: this.W * 0.5, y: this.H * 0.15 };
         const tailPt = typeof this.computeHighwayPoint === "function"
-          ? this.computeHighwayPoint(endLane, -0.58, this.W, this.H)
+          ? this.computeHighwayPoint(endLane, -0.52, this.W, this.H)
           : { x: this.W * 0.5, y: this.H * 0.08 };
 
-        // Clear regular tap beat notes so the Sustain Ribbon takes center stage!
-        this.powerUps = this.powerUps.filter((p) => p.type !== "SCORE_ORB" || p.isSupernova || (p.keyWordEffect && p.keyWordEffect !== "NONE"));
+        // Clear ALL beat pegs so the Sustain Slide Ribbon takes 100% solo stage!
+        this.powerUps = [];
 
         this.wormholes.push({
           ax: headPt.x,
@@ -231,9 +267,9 @@ Object.assign(NoMoreIllusionsApp.prototype, {
           ctrlY: (headPt.y + tailPt.y) * 0.5,
           startLane,
           endLane,
-          radius: 36,
+          radius: 42,
           age: 0,
-          maxLifetime: 3.2,
+          maxLifetime: 4.6, // Slower, smooth 3.6s descent down the highway
           teleportCooldown: 0,
           tailCompleted: false
         });
@@ -244,7 +280,7 @@ Object.assign(NoMoreIllusionsApp.prototype, {
     this.orbitalPhenomenon = null;
     this.satellites = [];
 
-    // 6. 1:1 Telegraphed Enemy Spawner (Scaled by Difficulty & Mode enemyMult!)
+    // 6. 1:1 Telegraphed Enemy Spawner (Rhythm-First 3-Tier Difficulty Scaling!)
     const sectionMax = activeSec.maxEnemies ?? 2;
     if (sectionMax <= 0 || this.multiBandState.bassDropOut) {
       this.telegraphs = [];
@@ -258,7 +294,7 @@ Object.assign(NoMoreIllusionsApp.prototype, {
             x: tg.edgeX,
             y: tg.edgeY,
             vx: Math.cos(tg.targetAngle) * tg.speed,
-            vy: Math.sin(tg.targetAngle) * tg.speed,
+            vy: Math.max(tg.speed * 0.45, Math.sin(tg.targetAngle) * tg.speed),
             radius: tg.type === "PULSAR" ? 21 : 17,
             type: tg.type,
             phase: Math.random() * 6.28
@@ -275,21 +311,31 @@ Object.assign(NoMoreIllusionsApp.prototype, {
         }
       }
 
-      const enemyScale = (mode.enemyMult || 1.0) * (this.prefs.difficulty === "EASY" ? 0.65 : (this.prefs.difficulty === "HARD" ? 1.30 : 1.0));
-      const maxEnemies = Math.min(6, Math.max(1, Math.round(sectionMax * enemyScale)));
-      const sectionUrgency = sectionMax >= 3 ? 0.92 : 0.65;
+      // Rhythm-First Difficulty Scaling:
+      // - CHILL / EASY: Training Mode (hardly any enemies: max 1, 4.8s cooldown)
+      // - ORIGINAL / NORMAL: Band-Hero Standard (lots of beat pegs, max 1-2 enemies, 3.2s cooldown)
+      // - NIGHTCORE / ENDLESS / HARD: Full Multi-Enemy Challenge (3-5 enemies)
+      const isEasyMode = mode.id === "CHILL" || this.prefs.difficulty === "EASY";
+      const isHardMode = mode.id === "NIGHTCORE" || mode.id === "ENDLESS" || this.prefs.difficulty === "HARD";
+      const enemyScale = isEasyMode ? 0.22 : (isHardMode ? 1.15 : 0.42);
+      const maxEnemies = isEasyMode
+        ? 1
+        : isHardMode
+          ? Math.min(5, Math.max(2, Math.round(sectionMax * 1.15)))
+          : Math.min(2, Math.max(1, Math.round(sectionMax * 0.55)));
+      const sectionUrgency = sectionMax >= 3 ? 0.85 : 0.55;
       this.spawnTimer += worldDt * sectionUrgency * enemyScale;
-      const spawnCooldown = Math.max(1.25, 2.10 - (sectionMax * 0.18));
+      const spawnCooldown = isEasyMode ? 4.8 : (isHardMode ? 1.65 : 3.2);
       const canSpawn = (this.enemies.length + this.telegraphs.length < maxEnemies) &&
-                       (this.beatPulse > 0.42 || this.spawnTimer >= 1.85);
+                       (this.beatPulse > 0.42 || this.spawnTimer >= 2.2);
 
       if (canSpawn && this.spawnTimer >= spawnCooldown) {
         this.spawnTimer = 0;
-        this.initiateEnemyTelegraph((activeSec.enemySpeedMult || 0.80) * Math.max(0.75, Math.min(1.25, enemyScale)));
+        this.initiateEnemyTelegraph((activeSec.enemySpeedMult || 0.78) * (isEasyMode ? 0.68 : (isHardMode ? 1.05 : 0.82)));
       }
     }
 
-    // 7. Update Scrolling Guitar-Hero Sustain Slide Ribbons (Free-Steering Hold & Slide Tracking!)
+    // 7. Update Scrolling Guitar-Hero Sustain Slide Ribbons (Slower 3.6s Travel + Generous 88px Catch!)
     this.activeWormholeSlide = null;
     for (let i = this.wormholes.length - 1; i >= 0; i--) {
       const wh = this.wormholes[i];
@@ -300,8 +346,8 @@ Object.assign(NoMoreIllusionsApp.prototype, {
         continue;
       }
 
-      const headU = (wh.age / wh.maxLifetime) * 1.45;
-      const tailU = headU - 0.58;
+      const headU = wh.age / 3.6;
+      const tailU = Math.max(0, headU - 0.52);
       const sLane = typeof wh.startLane === "number" ? wh.startLane : 1;
       const eLane = typeof wh.endLane === "number" ? wh.endLane : 2;
 
@@ -316,13 +362,13 @@ Object.assign(NoMoreIllusionsApp.prototype, {
         wh.ctrlX = midPt.x;
         wh.ctrlY = midPt.y;
 
-        // Free-steering tracking check: sample 7 points along the scrolling sustain ribbon
+        // Free-steering tracking check: sample 9 points along the scrolling sustain ribbon
         let minDist = 9999;
         let closestPt = headPt;
-        for (let s = 0; s <= 6; s++) {
-          const frac = s / 6.0;
+        for (let s = 0; s <= 8; s++) {
+          const frac = s / 8.0;
           const uSample = headU + (tailU - headU) * frac;
-          if (uSample < 0.05 || uSample > 1.25) continue;
+          if (uSample < 0.04 || uSample > 1.25) continue;
           const laneSample = sLane + (eLane - sLane) * frac;
           const pt = this.computeHighwayPoint(laneSample, uSample, this.W, this.H);
           const d = Math.hypot(this.playerX - pt.x, this.playerY - pt.y);
@@ -332,12 +378,12 @@ Object.assign(NoMoreIllusionsApp.prototype, {
           }
         }
 
-        if (minDist <= 68 && wh.teleportCooldown <= 0) {
+        if (minDist <= 88 && wh.teleportCooldown <= 0) {
           wh.teleportCooldown = 0.14;
-          this.shieldTimer = Math.max(this.shieldTimer, 0.35);
+          this.shieldTimer = Math.max(this.shieldTimer, 0.45);
           this.playSfx("orb", 0.58);
           this.triggerHaptic([12]);
-          const slidePts = Math.round(65 * Math.max(1, this.combo) * diffMult);
+          const slidePts = Math.round(75 * Math.max(1, this.combo) * diffMult);
           this.score += slidePts;
           this.comboTimer = 4.5;
           this.spawnBurstMotes(closestPt.x, closestPt.y, [56, 189, 248], 6);
@@ -359,9 +405,9 @@ Object.assign(NoMoreIllusionsApp.prototype, {
           });
 
           // Tail Release Burst: finishing the sustain ribbon triggers Melodic Starfall Cascade!
-          if (tailU >= 0.68 && !wh.tailCompleted) {
+          if (tailU >= 0.62 && !wh.tailCompleted) {
             wh.tailCompleted = true;
-            const bonusPts = Math.round(240 * Math.max(1, this.combo) * diffMult);
+            const bonusPts = Math.round(280 * Math.max(1, this.combo) * diffMult);
             this.score += bonusPts;
             this.combo = Math.min(8, this.combo + 1);
             if (this.combo > this.maxComboRun) this.maxComboRun = this.combo;
@@ -450,35 +496,39 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       }
     }
 
-    // 9. Update Enemies (with 135px Beat-Node Repulsion Buffer so enemies never camp on notes!)
+    // 9. Update Enemies (Strictly Downward Descent — Never Loops Upward from Bottom!)
     for (let i = this.enemies.length - 1; i >= 0; i--) {
       const e = this.enemies[i];
-      if (e.type === "SEEKER") {
+      const curSpeed = Math.max(120, Math.hypot(e.vx, e.vy));
+      // Only steer toward player while above the Beat Strike Line (e.y < playerY - 24).
+      // Once near or below the player, maintain downward trajectory and exit cleanly off the bottom!
+      if (e.type === "SEEKER" && e.y < this.playerY - 24) {
         const dx = this.playerX - e.x;
-        const dy = this.playerY - e.y;
+        const dy = Math.max(40, this.playerY - e.y); // Never steer upward!
         const d = Math.max(1, Math.hypot(dx, dy));
-        const curSpeed = Math.hypot(e.vx, e.vy);
-        e.vx += (dx / d) * 195 * worldDt;
-        e.vy += (dy / d) * 195 * worldDt;
+        e.vx += (dx / d) * 165 * worldDt;
+        e.vy += (dy / d) * 165 * worldDt;
         const newSpeed = Math.max(1, Math.hypot(e.vx, e.vy));
         e.vx = (e.vx / newSpeed) * curSpeed;
-        e.vy = (e.vy / newSpeed) * curSpeed;
+        e.vy = Math.max(curSpeed * 0.45, (e.vy / newSpeed) * curSpeed);
       } else if (e.type === "WANDERER") {
-        e.vx += Math.sin(this.time * 3.8 + e.phase) * 105 * worldDt;
-        e.vy += Math.cos(this.time * 3.8 + e.phase) * 105 * worldDt;
+        e.vx += Math.sin(this.time * 3.8 + e.phase) * 95 * worldDt;
+        e.vy = Math.max(curSpeed * 0.45, e.vy);
+      } else {
+        e.vy = Math.max(curSpeed * 0.42, e.vy);
       }
 
-      // Repel enemies away from all active stationary beat nodes so players always have a clean path!
+      // Repel enemies horizontally away from all active beat nodes so players always have a clean path!
       for (let bIdx = 0; bIdx < this.powerUps.length; bIdx++) {
         const orb = this.powerUps[bIdx];
         const bdx = e.x - orb.x;
         const bdy = e.y - orb.y;
         const bDist = Math.hypot(bdx, bdy);
-        const safeZone = 135;
+        const safeZone = 145;
         if (bDist > 1 && bDist < safeZone) {
           const push = ((safeZone - bDist) / safeZone) * 420 * worldDt;
           e.vx += (bdx / bDist) * push;
-          e.vy += (bdy / bDist) * push;
+          e.vy = Math.max(curSpeed * 0.42, e.vy + Math.max(0, (bdy / bDist) * push * 0.35));
         }
       }
 
@@ -645,8 +695,8 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       isSupernova = true;
     }
 
-    // Mutually Exclusive Rule: while a Sustain Slide Ribbon is active on the highway, skip regular tap notes!
-    if (this.wormholes && this.wormholes.length > 0 && cueType === "SCORE_ORB" && !isSupernova) {
+    // ZERO OVERLAP RULE: while a Sustain Slide Ribbon is active on the highway, skip ALL beat pegs!
+    if (this.wormholes && this.wormholes.length > 0) {
       return;
     }
 
@@ -671,7 +721,7 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       vy: 0,
       speed: 0,
       angle: 0,
-      radius: (isSupernova || cueType !== "SCORE_ORB") ? 28 : 23,
+      radius: (isSupernova || cueType !== "SCORE_ORB") ? 36 : 30,
       type: cueType,
       keyWordEffect,
       isSupernova,
@@ -892,8 +942,8 @@ Object.assign(NoMoreIllusionsApp.prototype, {
   },
 
   initiateEnemyTelegraph(sectionSpeedMult = 1.0) {
-    // THUMB-FRIENDLY SPAWN RULE: Enemies ONLY spawn from Top Edge or Upper-Left / Upper-Right Sides (Y <= 44% H),
-    // NEVER from the bottom edge where the player's finger/thumb rests!
+    // STRICT TOP-ONLY SPAWN RULE: Enemies ONLY spawn in the top 26% of the screen (Y <= 26% H),
+    // and strictly travel downward — NEVER from the bottom or middle where the player's thumb rests!
     const edge = Math.floor(Math.random() * 3); // 0 = Top, 1 = Upper-Left, 2 = Upper-Right
     let edgeX, edgeY;
     if (edge === 0) {
@@ -901,21 +951,22 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       edgeY = 24;
     } else if (edge === 1) {
       edgeX = 24;
-      edgeY = 50 + Math.random() * (this.H * 0.39);
+      edgeY = 36 + Math.random() * (this.H * 0.22);
     } else {
       edgeX = this.W - 24;
-      edgeY = 50 + Math.random() * (this.H * 0.39);
+      edgeY = 36 + Math.random() * (this.H * 0.22);
     }
 
     const mode = this.getRemixMode();
     const isTrackTwo = this.selectedStageIndex >= 1;
     const trackDiffMult = isTrackTwo ? 1.15 : 1.0;
 
-    // Target angle aims toward player's current position with tight lead
-    const aimAngle = Math.atan2(this.playerY - edgeY, this.playerX - edgeX) + (Math.random() - 0.5) * 0.22;
+    // Target angle strictly aims downward toward the bottom half of the screen
+    const targetDownY = Math.max(this.playerY, edgeY + this.H * 0.35);
+    const aimAngle = Math.atan2(targetDownY - edgeY, this.playerX - edgeX) + (Math.random() - 0.5) * 0.16;
     const roll = Math.random();
     const type = roll < 0.38 ? "PULSAR" : (roll < 0.76 ? "SEEKER" : "WANDERER");
-    const speed = (178 + this.level * 14) * (type === "SEEKER" ? 1.12 : 0.98) * trackDiffMult * sectionSpeedMult * (mode.speed || 1.0);
+    const speed = (165 + this.level * 12) * (type === "SEEKER" ? 1.08 : 0.96) * trackDiffMult * sectionSpeedMult * (mode.speed || 1.0);
 
     this.telegraphs.push({
       edgeX,
@@ -923,28 +974,29 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       targetAngle: aimAngle,
       speed,
       type,
-      timer: 0.80, // Crisp warning before launch
-      maxTimer: 0.80
+      timer: 0.85, // Crisp warning before launch
+      maxTimer: 0.85
     });
   },
 
   spawnEnemy() {
-    // Only spawn from Top or Upper Sides (never from bottom)
+    // Strictly spawn from Top or Top-Quarter Sides (Y <= 26% H)
     const edge = Math.floor(Math.random() * 3);
     let x, y;
     if (edge === 0) { x = Math.random() * this.W; y = -45; }
-    else if (edge === 1) { x = -45; y = Math.random() * (this.H * 0.44); }
-    else { x = this.W + 45; y = Math.random() * (this.H * 0.44); }
+    else if (edge === 1) { x = -45; y = Math.random() * (this.H * 0.25); }
+    else { x = this.W + 45; y = Math.random() * (this.H * 0.25); }
 
     const roll = Math.random();
     const type = roll < 0.36 ? "PULSAR" : roll < 0.68 ? "SEEKER" : "WANDERER";
-    const baseSpeed = (145 + this.level * 14) * (type === "SEEKER" ? 1.08 : 0.95);
-    const angle = Math.atan2(this.playerY - y, this.playerX - x) + (Math.random() - 0.5) * 0.35;
+    const baseSpeed = (145 + this.level * 12) * (type === "SEEKER" ? 1.06 : 0.95);
+    const targetDownY = Math.max(this.playerY, y + this.H * 0.35);
+    const angle = Math.atan2(targetDownY - y, this.playerX - x) + (Math.random() - 0.5) * 0.22;
 
     this.enemies.push({
       x, y,
       vx: Math.cos(angle) * baseSpeed,
-      vy: Math.sin(angle) * baseSpeed,
+      vy: Math.max(baseSpeed * 0.45, Math.sin(angle) * baseSpeed),
       radius: type === "PULSAR" ? 21 : 19,
       type,
       phase: Math.random() * 6.28

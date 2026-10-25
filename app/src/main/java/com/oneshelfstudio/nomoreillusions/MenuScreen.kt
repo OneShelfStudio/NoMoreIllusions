@@ -418,10 +418,11 @@ fun MenuUI(
                     .padding(12.dp)
             ) {
                 Column(modifier = Modifier.fillMaxWidth()) {
-                    // A. SONG SELECTOR DROPDOWN BAR
+                    // A. SONG SELECTOR & LOCKED PRIZE PREVIEW DROPDOWN BAR
                     val selStars = trackMasteryStars.getOrElse(selectedTrackIndex - 1) { 0 }.coerceIn(0, 3)
                     val selStarStr = buildString { for (s in 1..3) append(if (s <= selStars) "★" else "☆") }
                     val effBpm = (selectedTrack.bpm * selectedRemixMode.audioSpeed).toInt()
+                    val isSelArtUnlocked = prefs.getBoolean("art_unlocked_$selectedTrackIndex", false) || isVipUnlocked
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -441,7 +442,7 @@ fun MenuUI(
                         ) {
                             Column {
                                 Text(
-                                    text = "🎵 SELECTED TRACK (TAP TO CHANGE)",
+                                    text = "🎵 SELECTED TRACK (TAP TO SEE PRIZE & SWITCH)",
                                     color = Color(0xFF94A3B8L),
                                     fontSize = 8.sp,
                                     fontWeight = FontWeight.Black,
@@ -449,9 +450,9 @@ fun MenuUI(
                                 )
                                 Spacer(modifier = Modifier.height(2.dp))
                                 Text(
-                                    text = "0$selectedTrackIndex. ${selectedTrack.title.uppercase()} • $effBpm BPM",
+                                    text = "TRACK $selectedTrackIndex • ${if (isSelArtUnlocked) selectedTrack.title.uppercase() else "🔒 TAP TO PEEK PRIZE"} ($effBpm BPM)",
                                     color = Color(0xFFFAF8F5L),
-                                    fontSize = 14.sp,
+                                    fontSize = 13.sp,
                                     fontWeight = FontWeight.Black
                                 )
                             }
@@ -476,62 +477,93 @@ fun MenuUI(
                     if (showTrackDropdown) {
                         Spacer(modifier = Modifier.height(6.dp))
                         Column(
-                            verticalArrangement = Arrangement.spacedBy(5.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp),
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clip(RoundedCornerShape(8.dp))
+                                .clip(RoundedCornerShape(10.dp))
                                 .background(Color(0xFF060913L))
-                                .border(1.dp, Color.White.copy(alpha = 0.18f), RoundedCornerShape(8.dp))
-                                .padding(6.dp)
+                                .border(1.dp, Color.White.copy(alpha = 0.22f), RoundedCornerShape(10.dp))
+                                .padding(8.dp)
                         ) {
                             for (idx in 1..MusicLibrary.TOTAL_TRACKS) {
                                 val t = MusicLibrary.getTrack(idx)
                                 val isSel = idx == selectedTrackIndex
-                                val isUnlocked = idx <= unlockedTrackCount
+                                val isArtWon = prefs.getBoolean("art_unlocked_$idx", false) || isVipUnlocked
                                 val st = trackMasteryStars.getOrElse(idx - 1) { 0 }.coerceIn(0, 3)
                                 val stTxt = buildString { for (s in 1..3) append(if (s <= st) "★" else "☆") }
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.SpaceBetween,
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .clip(RoundedCornerShape(6.dp))
+                                        .clip(RoundedCornerShape(8.dp))
                                         .background(if (isSel) modeAccent.copy(alpha = 0.20f) else Color(0xFF0B1020L))
                                         .border(
                                             width = if (isSel) 1.5.dp else 1.dp,
-                                            color = if (isSel) modeAccent else Color.White.copy(alpha = 0.10f),
-                                            shape = RoundedCornerShape(6.dp)
+                                            color = if (isSel) modeAccent else Color.White.copy(alpha = 0.12f),
+                                            shape = RoundedCornerShape(8.dp)
                                         )
                                         .clickable {
-                                            if (isUnlocked) {
-                                                onSelectQuickTrack(idx)
-                                                showTrackDropdown = false
-                                            } else {
-                                                onMusicDemo()
+                                            onSelectQuickTrack(idx)
+                                            showTrackDropdown = false
+                                        }
+                                        .padding(8.dp)
+                                ) {
+                                    // Locked / Unlocked Mystery Prize Image Thumbnail
+                                    Box(
+                                        modifier = Modifier
+                                            .size(54.dp)
+                                            .clip(RoundedCornerShape(10.dp))
+                                            .border(1.5.dp, if (isArtWon) Color(0xFF4ADE80L) else Color(0xFFFACC15L), RoundedCornerShape(10.dp)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        TrackRevealOverlay(
+                                            trackIndex = idx,
+                                            progress = if (isArtWon) 1.0f else 0.18f,
+                                            modifier = Modifier.fillMaxSize()
+                                        )
+                                        if (!isArtWon) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .fillMaxSize()
+                                                    .background(Color.Black.copy(alpha = 0.45f)),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text(
+                                                    text = "🔒",
+                                                    fontSize = 16.sp
+                                                )
                                             }
                                         }
-                                        .padding(horizontal = 10.dp, vertical = 8.dp)
-                                ) {
-                                    Column {
+                                    }
+                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            Text(
+                                                text = "TRACK $idx: \"${t.title.uppercase()}\"",
+                                                color = Color.White,
+                                                fontSize = 12.sp,
+                                                fontWeight = FontWeight.Black
+                                            )
+                                            Text(
+                                                text = stTxt,
+                                                color = Color(0xFFEAB308L),
+                                                fontSize = 10.5.sp,
+                                                fontWeight = FontWeight.Black
+                                            )
+                                        }
+                                        Spacer(modifier = Modifier.height(2.dp))
                                         Text(
-                                            text = "0$idx. ${t.title.uppercase()} (${t.bpm.toInt()} BPM)",
-                                            color = if (isUnlocked) Color.White else Color.White.copy(alpha = 0.5f),
-                                            fontSize = 12.sp,
-                                            fontWeight = FontWeight.Black
-                                        )
-                                        Text(
-                                            text = if (isUnlocked) "Tap to select track" else "🔒 Beat previous song to unlock",
-                                            color = if (isSel) modeAccent else Color(0xFF94A3B8L),
-                                            fontSize = 8.5.sp,
-                                            fontWeight = FontWeight.SemiBold
+                                            text = if (isArtWon) "✓ WON: Song & Cover Art in Album + Vault Note!"
+                                            else "🎁 WIN: Full Song in Album + Cover Art + Vault Secret!",
+                                            color = if (isArtWon) Color(0xFF4ADE80L) else Color(0xFFFACC15L),
+                                            fontSize = 8.8.sp,
+                                            fontWeight = FontWeight.Bold
                                         )
                                     }
-                                    Text(
-                                        text = if (isUnlocked) stTxt else "🔒",
-                                        color = Color(0xFFEAB308L),
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Black
-                                    )
                                 }
                             }
                         }
@@ -683,7 +715,7 @@ fun MenuUI(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "▶  PLAY ${selectedTrack.title.uppercase()}",
+                            text = "▶  PLAY TRACK $selectedTrackIndex",
                             color = Color(0xFFFAF8F5L),
                             fontSize = 14.5.sp,
                             fontWeight = FontWeight.Black,
