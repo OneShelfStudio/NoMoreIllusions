@@ -129,7 +129,7 @@ fun MenuUI(
             .statusBarsPadding()
             .padding(top = 48.dp, bottom = 12.dp, start = 16.dp, end = 16.dp)
     ) {
-        // Top Studio Control Bar: ♪ Music Notes Balance + Lobby Synth Switcher
+        // Top Frameless Stage Bar: ♪ Music Notes Balance + Lobby Synth Switcher (Zero Boxy Pills!)
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -137,50 +137,33 @@ fun MenuUI(
                 .fillMaxWidth()
                 .align(Alignment.TopCenter)
         ) {
-            // Music Notes Wallet Pill (tappable to open Customizer & Vault)
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(Color(0xD9050B14L))
-                    .border(1.dp, Color(0xFFFACC15L).copy(alpha = 0.55f), RoundedCornerShape(10.dp))
                     .clickable { onMusicDemo() }
-                    .padding(horizontal = 10.dp, vertical = 6.dp)
+                    .padding(horizontal = 4.dp, vertical = 6.dp)
             ) {
                 Text(
                     text = "♪ $pulsePoints NOTES",
                     color = Color(0xFFFACC15L),
-                    fontSize = 11.sp,
+                    fontSize = 11.5.sp,
+                    fontWeight = FontWeight.Black,
+                    letterSpacing = 0.8.sp
+                )
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = if (isVipUnlocked) "• ★ VIP" else "• 🔑 VIP",
+                    color = if (isVipUnlocked) Color(0xFF4ADE80L) else Color(0xFFC084FCL),
+                    fontSize = 9.5.sp,
                     fontWeight = FontWeight.Black
                 )
-                if (isVipUnlocked) {
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = "• ★ VIP UNLOCKED",
-                        color = Color(0xFF4ADE80L),
-                        fontSize = 9.sp,
-                        fontWeight = FontWeight.Black
-                    )
-                } else {
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = "• 🔑 VIP",
-                        color = Color(0xFFC084FCL),
-                        fontSize = 9.sp,
-                        fontWeight = FontWeight.Black
-                    )
-                }
             }
 
-            // Selectable Studio Lobby Music Switcher
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(Color(0xD9050B14L))
-                    .border(1.dp, Color(0xFF6366F1L).copy(alpha = 0.45f), RoundedCornerShape(10.dp))
                     .clickable { onCycleLobbyTrack() }
-                    .padding(horizontal = 10.dp, vertical = 6.dp)
+                    .padding(horizontal = 4.dp, vertical = 6.dp)
             ) {
                 Box(
                     modifier = Modifier
@@ -190,11 +173,11 @@ fun MenuUI(
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = "MENU MUSIC: ${activeLobbyTrack.title.uppercase()} ↻",
+                    text = "STAGE SYNTH: ${activeLobbyTrack.title.uppercase()} ↻",
                     color = Color(0xFFC7D2FEL),
                     fontSize = 9.5.sp,
                     fontWeight = FontWeight.Black,
-                    letterSpacing = 0.5.sp
+                    letterSpacing = 0.8.sp
                 )
             }
         }
@@ -310,448 +293,393 @@ fun MenuUI(
             var showTrackDropdown by remember { mutableStateOf(false) }
             var showModeDropdown by remember { mutableStateOf(false) }
 
-            // 1. "Ooh, What Does This Do?" Curiosity Reward Peek Dropdown
-            val sleeveShape = CutCornerShape(topStart = 9.dp, bottomEnd = 9.dp)
+            // 1. Frameless Curiosity Reward Peek Line (Zero Boxy AI Pill Containers!)
             Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(sleeveShape)
-                    .background(Color(0xFF100E07L))
-                    .border(1.3.dp, Color(0xFFEAB308L).copy(alpha = 0.85f), sleeveShape)
                     .clickable { showRewardsPeek = !showRewardsPeek }
-                    .padding(horizontal = 12.dp, vertical = 8.dp)
+                    .padding(vertical = 6.dp)
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        text = "🎁 WHAT CAN I UNLOCK? ($unlockedExclusivesCount/${ARTIST_EXCLUSIVES_CATALOG.size} SECRETS)",
-                        color = Color(0xFFEAB308L),
-                        fontSize = 9.5.sp,
-                        fontWeight = FontWeight.Black,
-                        letterSpacing = 0.6.sp
-                    )
-                    Text(
-                        text = if (showRewardsPeek) "HIDE ▴" else "TAP TO PEEK ▾",
-                        color = Color(0xFFFAF8F5L),
-                        fontSize = 8.8.sp,
-                        fontWeight = FontWeight.Black
-                    )
-                }
+                Text(
+                    text = if (showRewardsPeek) "🎁 FAN REWARDS ($unlockedExclusivesCount/${ARTIST_EXCLUSIVES_CATALOG.size} UNLOCKED) ▴"
+                    else "🎁 WHAT CAN I WIN? ($unlockedExclusivesCount/${ARTIST_EXCLUSIVES_CATALOG.size} SECRETS) • TAP TO PEEK ▾",
+                    color = Color(0xFFFACC15L),
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Black,
+                    letterSpacing = 1.0.sp
+                )
 
                 if (showRewardsPeek) {
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(6.dp))
                     Column(
-                        verticalArrangement = Arrangement.spacedBy(5.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(Color(0xFF070911L))
-                            .padding(8.dp)
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
                     ) {
                         Text(
-                            text = "💿 Beat Any Song (Normal/Fast) → Unlock Full Track & Studio Note",
+                            text = "💿 Beat Any Track → Unlock Full Song & Cover Art in Album",
                             color = Color(0xFF4ADE80L),
-                            fontSize = 8.8.sp,
+                            fontSize = 9.sp,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "🔥 Hit an 8x Beat Streak → Unlock Ethan's Vocal Mix Secrets",
+                            text = "⚡ 2-Finger Plasma Hold → Master Vocal Swells for +500 Bonus",
                             color = Color(0xFF38BDF8L),
-                            fontSize = 8.8.sp,
+                            fontSize = 9.sp,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "🏆 15,000+ on ∞ Endless Loop → Secret Personal Message from Ethan!",
+                            text = "🏆 15,000+ on ∞ Endless → Artist Secret Message Slot Unlocked!",
                             color = Color(0xFFFACC15L),
-                            fontSize = 8.8.sp,
+                            fontSize = 9.sp,
                             fontWeight = FontWeight.Black
                         )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Box(
+                        Text(
+                            text = "★ OPEN ARTIST VAULT & FAN NOTES →",
+                            color = Color(0xFFFAF8F5L),
+                            fontSize = 9.5.sp,
+                            fontWeight = FontWeight.Black,
+                            letterSpacing = 1.sp,
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(Color(0xFFEAB308L).copy(alpha = 0.22f))
-                                .border(1.dp, Color(0xFFEAB308L), RoundedCornerShape(6.dp))
                                 .clickable { onMusicDemo() }
-                                .padding(vertical = 5.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "★ OPEN ARTIST VAULT & SECRETS →",
-                                color = Color(0xFFFACC15L),
-                                fontSize = 8.8.sp,
-                                fontWeight = FontWeight.Black
-                            )
-                        }
+                                .padding(top = 4.dp)
+                        )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // 2. Visual-First Dropdown Studio Console (Zero Button Crowding!)
-            val consoleShape = CutCornerShape(topStart = 14.dp, bottomEnd = 14.dp)
+            // Subtle Laser Horizon Hairline Divider
             Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .shadow(16.dp, consoleShape, ambientColor = modeAccent, spotColor = Color(0xFFEAB308L))
-                    .clip(consoleShape)
+                    .fillMaxWidth(0.78f)
+                    .height(1.dp)
                     .background(
-                        Brush.verticalGradient(
-                            listOf(
-                                Color(0xF50A0E17L),
-                                Color(0xFA05070CL)
-                            )
+                        Brush.horizontalGradient(
+                            listOf(Color.Transparent, modeAccent.copy(alpha = 0.65f), Color(0xFFFACC15L).copy(alpha = 0.65f), Color.Transparent)
                         )
                     )
-                    .border(
-                        width = 1.6.dp,
-                        brush = Brush.horizontalGradient(
-                            listOf(modeAccent.copy(alpha = 0.90f), Color(0xFFEAB308L).copy(alpha = 0.78f))
-                        ),
-                        shape = consoleShape
-                    )
-                    .padding(12.dp)
+            )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // 2. Frameless Open-Canvas Vinyl Stage Selector (Zero Boxy Console Cards or Squares!)
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 6.dp)
             ) {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    // A. SONG SELECTOR & LOCKED PRIZE PREVIEW DROPDOWN BAR
-                    val selStars = trackMasteryStars.getOrElse(selectedTrackIndex - 1) { 0 }.coerceIn(0, 3)
-                    val selStarStr = buildString { for (s in 1..3) append(if (s <= selStars) "★" else "☆") }
-                    val effBpm = (selectedTrack.bpm * selectedRemixMode.audioSpeed).toInt()
-                    val isSelArtUnlocked = prefs.getBoolean("art_unlocked_$selectedTrackIndex", false) || isVipUnlocked
-                    Box(
+                val selStars = trackMasteryStars.getOrElse(selectedTrackIndex - 1) { 0 }.coerceIn(0, 3)
+                val selStarStr = buildString { for (s in 1..3) append(if (s <= selStars) "★" else "☆") }
+                val effBpm = (selectedTrack.bpm * selectedRemixMode.audioSpeed).toInt()
+                val isSelArtUnlocked = prefs.getBoolean("art_unlocked_$selectedTrackIndex", false) || isVipUnlocked
+
+                // A. Frameless Track Selector Header
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            showTrackDropdown = !showTrackDropdown
+                            if (showTrackDropdown) showModeDropdown = false
+                        }
+                        .padding(vertical = 6.dp)
+                ) {
+                    Text(
+                        text = "SELECTED TRACK • TAP TO PEEK PRIZE & SWITCH",
+                        color = Color(0xFF94A3B8L),
+                        fontSize = 8.5.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 1.4.sp
+                    )
+                    Spacer(modifier = Modifier.height(3.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Text(
+                            text = "TRACK 0$selectedTrackIndex",
+                            color = Color(0xFFFAF8F5L),
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Black,
+                            letterSpacing = 1.8.sp
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = if (isSelArtUnlocked) "• ${selectedTrack.title.uppercase()}" else "• 🔒 MYSTERY PRIZE",
+                            color = modeAccent,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Black
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "$selStarStr ${if (showTrackDropdown) "▴" else "▾"}",
+                            color = Color(0xFFFACC15L),
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Black
+                        )
+                    }
+                    Text(
+                        text = "$effBpm BPM • ${if (isSelArtUnlocked) "SONG & COVER ART UNLOCKED" else "BEAT TRACK TO UNLOCK SONG & FAN NOTE"}",
+                        color = Color(0xFFCBD5E1L),
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+
+                if (showTrackDropdown) {
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(Color(0xFF0E1525L))
-                            .border(1.5.dp, modeAccent.copy(alpha = 0.85f), RoundedCornerShape(8.dp))
-                            .clickable {
-                                showTrackDropdown = !showTrackDropdown
-                                if (showTrackDropdown) showModeDropdown = false
-                            }
-                            .padding(horizontal = 12.dp, vertical = 10.dp)
+                            .padding(vertical = 6.dp)
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Column {
-                                Text(
-                                    text = "🎵 SELECTED TRACK (TAP TO SEE PRIZE & SWITCH)",
-                                    color = Color(0xFF94A3B8L),
-                                    fontSize = 8.sp,
-                                    fontWeight = FontWeight.Black,
-                                    letterSpacing = 0.8.sp
-                                )
-                                Spacer(modifier = Modifier.height(2.dp))
-                                Text(
-                                    text = "TRACK $selectedTrackIndex • ${if (isSelArtUnlocked) selectedTrack.title.uppercase() else "🔒 TAP TO PEEK PRIZE"} ($effBpm BPM)",
-                                    color = Color(0xFFFAF8F5L),
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.Black
-                                )
-                            }
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(
-                                    text = selStarStr,
-                                    color = Color(0xFFEAB308L),
-                                    fontSize = 11.5.sp,
-                                    fontWeight = FontWeight.Black
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = if (showTrackDropdown) "▴" else "▾",
-                                    color = modeAccent,
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Black
-                                )
-                            }
-                        }
-                    }
-
-                    if (showTrackDropdown) {
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Column(
-                            verticalArrangement = Arrangement.spacedBy(6.dp),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(10.dp))
-                                .background(Color(0xFF060913L))
-                                .border(1.dp, Color.White.copy(alpha = 0.22f), RoundedCornerShape(10.dp))
-                                .padding(8.dp)
-                        ) {
-                            for (idx in 1..MusicLibrary.TOTAL_TRACKS) {
-                                val t = MusicLibrary.getTrack(idx)
-                                val isSel = idx == selectedTrackIndex
-                                val isArtWon = prefs.getBoolean("art_unlocked_$idx", false) || isVipUnlocked
-                                val st = trackMasteryStars.getOrElse(idx - 1) { 0 }.coerceIn(0, 3)
-                                val stTxt = buildString { for (s in 1..3) append(if (s <= st) "★" else "☆") }
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .background(if (isSel) modeAccent.copy(alpha = 0.20f) else Color(0xFF0B1020L))
-                                        .border(
-                                            width = if (isSel) 1.5.dp else 1.dp,
-                                            color = if (isSel) modeAccent else Color.White.copy(alpha = 0.12f),
-                                            shape = RoundedCornerShape(8.dp)
-                                        )
-                                        .clickable {
-                                            onSelectQuickTrack(idx)
-                                            showTrackDropdown = false
-                                        }
-                                        .padding(8.dp)
-                                ) {
-                                    // Locked / Unlocked Mystery Prize Image Thumbnail
-                                    Box(
-                                        modifier = Modifier
-                                            .size(54.dp)
-                                            .clip(RoundedCornerShape(10.dp))
-                                            .border(1.5.dp, if (isArtWon) Color(0xFF4ADE80L) else Color(0xFFFACC15L), RoundedCornerShape(10.dp)),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        TrackRevealOverlay(
-                                            trackIndex = idx,
-                                            progress = if (isArtWon) 1.0f else 0.18f,
-                                            modifier = Modifier.fillMaxSize()
-                                        )
-                                        if (!isArtWon) {
-                                            Box(
-                                                modifier = Modifier
-                                                    .fillMaxSize()
-                                                    .background(Color.Black.copy(alpha = 0.45f)),
-                                                contentAlignment = Alignment.Center
-                                            ) {
-                                                Text(
-                                                    text = "🔒",
-                                                    fontSize = 16.sp
-                                                )
-                                            }
-                                        }
+                        for (idx in 1..MusicLibrary.TOTAL_TRACKS) {
+                            val t = MusicLibrary.getTrack(idx)
+                            val isSel = idx == selectedTrackIndex
+                            val isArtWon = prefs.getBoolean("art_unlocked_$idx", false) || isVipUnlocked
+                            val st = trackMasteryStars.getOrElse(idx - 1) { 0 }.coerceIn(0, 3)
+                            val stTxt = buildString { for (s in 1..3) append(if (s <= st) "★" else "☆") }
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        onSelectQuickTrack(idx)
+                                        showTrackDropdown = false
                                     }
-                                    Spacer(modifier = Modifier.width(10.dp))
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.SpaceBetween,
-                                            modifier = Modifier.fillMaxWidth()
+                                    .padding(horizontal = 8.dp, vertical = 6.dp)
+                            ) {
+                                // Circular Vinyl Sleeve Prize Preview
+                                Box(
+                                    modifier = Modifier
+                                        .size(52.dp)
+                                        .clip(CircleShape)
+                                        .border(2.dp, if (isArtWon) Color(0xFF4ADE80L) else Color(0xFFFACC15L), CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    TrackRevealOverlay(
+                                        trackIndex = idx,
+                                        progress = if (isArtWon) 1.0f else 0.18f,
+                                        modifier = Modifier.fillMaxSize()
+                                    )
+                                    if (!isArtWon) {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxSize()
+                                                .background(Color.Black.copy(alpha = 0.45f)),
+                                            contentAlignment = Alignment.Center
                                         ) {
-                                            Text(
-                                                text = "TRACK $idx: \"${t.title.uppercase()}\"",
-                                                color = Color.White,
-                                                fontSize = 12.sp,
-                                                fontWeight = FontWeight.Black
-                                            )
-                                            Text(
-                                                text = stTxt,
-                                                color = Color(0xFFEAB308L),
-                                                fontSize = 10.5.sp,
-                                                fontWeight = FontWeight.Black
-                                            )
+                                            Text(text = "🔒", fontSize = 15.sp)
                                         }
-                                        Spacer(modifier = Modifier.height(2.dp))
-                                        Text(
-                                            text = if (isArtWon) "✓ WON: Song & Cover Art in Album + Vault Note!"
-                                            else "🎁 WIN: Full Song in Album + Cover Art + Vault Secret!",
-                                            color = if (isArtWon) Color(0xFF4ADE80L) else Color(0xFFFACC15L),
-                                            fontSize = 8.8.sp,
-                                            fontWeight = FontWeight.Bold
-                                        )
                                     }
                                 }
-                            }
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    // B. GAME MODE & SPEED DROPDOWN BAR (With Curiosity Reward Hooks!)
-                    val modeHook = when (selectedRemixMode) {
-                        TrackRemixMode.ORIGINAL -> "1.0x Pts • Beat 1x to unlock Album Track & Vault"
-                        TrackRemixMode.OVERCLOCK -> "1.5x Pts • Beat 1x to earn ★3 Gold Medal"
-                        TrackRemixMode.SLOWED -> "0.5x Pts • Beat 2x to unlock Album Track"
-                        TrackRemixMode.ENDLESS -> "🏆 Speeds up +8%/loop! Hit 15,000+ pts for Ethan's Secret Message!"
-                    }
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(Color(0xFF0E1525L))
-                            .border(1.5.dp, modeAccent.copy(alpha = 0.85f), RoundedCornerShape(8.dp))
-                            .clickable {
-                                showModeDropdown = !showModeDropdown
-                                if (showModeDropdown) showTrackDropdown = false
-                            }
-                            .padding(horizontal = 12.dp, vertical = 10.dp)
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = "⚡ SPEED & MODE: ${selectedRemixMode.shortTag} ${selectedRemixMode.displayName}",
-                                    color = modeAccent,
-                                    fontSize = 11.5.sp,
-                                    fontWeight = FontWeight.Black
-                                )
-                                Spacer(modifier = Modifier.height(2.dp))
-                                Text(
-                                    text = modeHook,
-                                    color = Color(0xFFFAF8F5L).copy(alpha = 0.90f),
-                                    fontSize = 8.8.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    maxLines = 1
-                                )
-                            }
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = if (showModeDropdown) "▴" else "▾",
-                                color = modeAccent,
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Black
-                            )
-                        }
-                    }
-
-                    if (showModeDropdown) {
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Column(
-                            verticalArrangement = Arrangement.spacedBy(5.dp),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(Color(0xFF060913L))
-                                .border(1.dp, Color.White.copy(alpha = 0.18f), RoundedCornerShape(8.dp))
-                                .padding(6.dp)
-                        ) {
-                            TrackRemixMode.entries.forEach { mode ->
-                                val isModeSel = mode == selectedRemixMode
-                                val mCol = when (mode) {
-                                    TrackRemixMode.ORIGINAL -> Color(0xFF4ADE80L)
-                                    TrackRemixMode.OVERCLOCK -> Color(0xFFF43F5EL)
-                                    TrackRemixMode.SLOWED -> Color(0xFF38BDF8L)
-                                    TrackRemixMode.ENDLESS -> Color(0xFFEAB308L)
-                                }
-                                val hookText = when (mode) {
-                                    TrackRemixMode.ORIGINAL -> "1.0x Pts • Unlocks song in 1 run"
-                                    TrackRemixMode.OVERCLOCK -> "1.5x Pts • Faster notes + ★3 Gold Medal"
-                                    TrackRemixMode.SLOWED -> "0.5x Pts • Relaxed speed (2 runs to unlock)"
-                                    TrackRemixMode.ENDLESS -> "🏆 Speeds up every loop! 15,000+ pts unlocks Ethan's Secret Message!"
-                                }
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clip(RoundedCornerShape(6.dp))
-                                        .background(if (isModeSel) mCol.copy(alpha = 0.22f) else Color(0xFF0B1020L))
-                                        .border(
-                                            width = if (isModeSel) 1.5.dp else 1.dp,
-                                            color = if (isModeSel) mCol else Color.White.copy(alpha = 0.10f),
-                                            shape = RoundedCornerShape(6.dp)
-                                        )
-                                        .clickable {
-                                            onSelectRemixMode(mode)
-                                            showModeDropdown = false
-                                        }
-                                        .padding(horizontal = 10.dp, vertical = 8.dp)
-                                ) {
-                                    Column(modifier = Modifier.weight(1f)) {
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
                                         Text(
-                                            text = "${mode.shortTag} ${mode.displayName}",
-                                            color = mCol,
+                                            text = "TRACK 0$idx • \"${t.title.uppercase()}\"",
+                                            color = if (isSel) modeAccent else Color.White,
+                                            fontSize = 12.5.sp,
+                                            fontWeight = FontWeight.Black
+                                        )
+                                        Text(
+                                            text = stTxt,
+                                            color = Color(0xFFFACC15L),
                                             fontSize = 11.sp,
                                             fontWeight = FontWeight.Black
                                         )
-                                        Text(
-                                            text = hookText,
-                                            color = Color.White.copy(alpha = 0.88f),
-                                            fontSize = 8.5.sp,
-                                            fontWeight = FontWeight.SemiBold
-                                        )
                                     }
-                                    if (isModeSel) {
-                                        Text(
-                                            text = "✓",
-                                            color = mCol,
-                                            fontSize = 13.sp,
-                                            fontWeight = FontWeight.Black
-                                        )
-                                    }
+                                    Text(
+                                        text = if (isArtWon) "✓ UNLOCKED: Full Song + Cover Art + Artist Fan Note Slot"
+                                        else "🎁 WIN: Full Song in Album + Cover Art + Artist Fan Note Slot",
+                                        color = if (isArtWon) Color(0xFF4ADE80L) else Color(0xFFFACC15L),
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
                                 }
                             }
                         }
                     }
+                }
 
-                    Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(6.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(0.55f)
+                        .height(1.dp)
+                        .background(Color.White.copy(alpha = 0.14f))
+                )
+                Spacer(modifier = Modifier.height(6.dp))
 
-                    // C. Chamfered Studio Master Launch Button
-                    val launchShape = CutCornerShape(topStart = 10.dp, bottomEnd = 10.dp)
-                    Box(
+                // B. Frameless Speed & Mode Selector Line
+                val modeHook = when (selectedRemixMode) {
+                    TrackRemixMode.ORIGINAL -> "1.0x Pts • Unlocks Album Track in 1 run"
+                    TrackRemixMode.OVERCLOCK -> "1.5x Pts • Faster highway + ★3 Gold Medal"
+                    TrackRemixMode.SLOWED -> "0.5x Pts • Relaxed training (2 runs to unlock)"
+                    TrackRemixMode.ENDLESS -> "🏆 Speeds up +8%/loop • 15,000+ unlocks Artist Secret Message!"
+                }
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            showModeDropdown = !showModeDropdown
+                            if (showModeDropdown) showTrackDropdown = false
+                        }
+                        .padding(vertical = 4.dp)
+                ) {
+                    Text(
+                        text = "⚡ SPEED & MODE: ${selectedRemixMode.shortTag} ${selectedRemixMode.displayName} ${if (showModeDropdown) "▴" else "▾"}",
+                        color = modeAccent,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 1.sp
+                    )
+                    Text(
+                        text = modeHook,
+                        color = Color(0xFFFAF8F5L).copy(alpha = 0.85f),
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+
+                if (showModeDropdown) {
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(50.dp)
-                            .shadow(12.dp, launchShape, ambientColor = modeAccent)
-                            .clip(launchShape)
-                            .background(
-                                Brush.horizontalGradient(
-                                    listOf(
-                                        Color(0xFF15803DL),
-                                        Color(0xFF0F766EL),
-                                        Color(0xFFB45309L)
-                                    )
-                                )
-                            )
-                            .border(2.0.dp, modeAccent, launchShape)
-                            .clickable { onStart() },
-                        contentAlignment = Alignment.Center
+                            .padding(vertical = 4.dp)
                     ) {
-                        Text(
-                            text = "▶  PLAY TRACK $selectedTrackIndex",
-                            color = Color(0xFFFAF8F5L),
-                            fontSize = 14.5.sp,
-                            fontWeight = FontWeight.Black,
-                            letterSpacing = 1.2.sp
+                        TrackRemixMode.entries.forEach { mode ->
+                            val isModeSel = mode == selectedRemixMode
+                            val mCol = when (mode) {
+                                TrackRemixMode.ORIGINAL -> Color(0xFF4ADE80L)
+                                TrackRemixMode.OVERCLOCK -> Color(0xFFF43F5EL)
+                                TrackRemixMode.SLOWED -> Color(0xFF38BDF8L)
+                                TrackRemixMode.ENDLESS -> Color(0xFFEAB308L)
+                            }
+                            val hookText = when (mode) {
+                                TrackRemixMode.ORIGINAL -> "1.0x Pts • Unlocks song in 1 run"
+                                TrackRemixMode.OVERCLOCK -> "1.5x Pts • Faster notes + ★3 Gold Medal"
+                                TrackRemixMode.SLOWED -> "0.5x Pts • Relaxed speed (2 runs to unlock)"
+                                TrackRemixMode.ENDLESS -> "🏆 Speeds up every loop! 15,000+ pts unlocks Artist Secret Message!"
+                            }
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        onSelectRemixMode(mode)
+                                        showModeDropdown = false
+                                    }
+                                    .padding(horizontal = 12.dp, vertical = 6.dp)
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "${mode.shortTag} ${mode.displayName}",
+                                        color = mCol,
+                                        fontSize = 11.5.sp,
+                                        fontWeight = FontWeight.Black
+                                    )
+                                    Text(
+                                        text = hookText,
+                                        color = Color.White.copy(alpha = 0.85f),
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                }
+                                if (isModeSel) {
+                                    Text(
+                                        text = "● ACTIVE",
+                                        color = mCol,
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Black
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                // C. Custom Vinyl-Groove Stage Launch Emblem (Frameless Glowing Stage Igniter!)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(0.88f)
+                        .height(54.dp)
+                        .clickable { onStart() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Canvas(modifier = Modifier.fillMaxSize()) {
+                        val w = size.width
+                        val h = size.height
+                        // Glowing laser horizon bars top & bottom + vinyl arc caps
+                        drawLine(
+                            brush = Brush.horizontalGradient(
+                                listOf(Color.Transparent, modeAccent, Color(0xFFFACC15L), modeAccent, Color.Transparent)
+                            ),
+                            start = Offset(0f, 2f),
+                            end = Offset(w, 2f),
+                            strokeWidth = 3.2f,
+                            cap = StrokeCap.Round
+                        )
+                        drawLine(
+                            brush = Brush.horizontalGradient(
+                                listOf(Color.Transparent, modeAccent, Color(0xFFFACC15L), modeAccent, Color.Transparent)
+                            ),
+                            start = Offset(0f, h - 2f),
+                            end = Offset(w, h - 2f),
+                            strokeWidth = 3.2f,
+                            cap = StrokeCap.Round
                         )
                     }
+                    Text(
+                        text = "▶  PLAY TRACK $selectedTrackIndex  ◀",
+                        color = Color(0xFFFAF8F5L),
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 2.6.sp
+                    )
                 }
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
-            // 3-Tile Studio Console Navigation Row (Always visible, crisp 1-word titles!)
+            // 3 Frameless Floating Stage Icons (Zero Boxy AI Tiles!)
             Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 MenuBentoTile(
-                    title = "★ VAULT",
-                    subtitle = "Secrets & Skins",
+                    title = "💿 ALBUM & VAULT",
+                    subtitle = "Songs & Fan Notes",
                     accent = Color(0xFFEAB308L),
-                    onClick = onMusicDemo,
-                    modifier = Modifier.weight(1.1f)
+                    onClick = onMusicDemo
                 )
                 MenuBentoTile(
-                    title = "▶ REEL",
-                    subtitle = "Mini Video",
+                    title = "🎬 MINI VIDEO",
+                    subtitle = "How To Play",
                     accent = Color(0xFF4ADE80L),
-                    onClick = onHowToPlay,
-                    modifier = Modifier.weight(1.0f)
+                    onClick = onHowToPlay
                 )
                 MenuBentoTile(
-                    title = "⚙ OPTIONS",
-                    subtitle = "Audio & Setup",
+                    title = "🎚️ STUDIO",
+                    subtitle = "Audio & VIP",
                     accent = Color(0xFF38BDF8L),
-                    onClick = onSettings,
-                    modifier = Modifier.weight(1.0f)
+                    onClick = onSettings
                 )
             }
 
@@ -787,39 +715,35 @@ private fun MenuBentoTile(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val tileShape = CutCornerShape(topStart = 8.dp, bottomEnd = 8.dp)
-    Box(
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
         modifier = modifier
-            .height(58.dp)
-            .clip(tileShape)
-            .background(
-                Brush.verticalGradient(
-                    listOf(Color(0xFF0D111CL), Color(0xFF06080EL))
-                )
-            )
-            .border(1.3.dp, accent.copy(alpha = 0.72f), tileShape)
             .clickable { onClick() }
-            .padding(horizontal = 8.dp, vertical = 8.dp),
-        contentAlignment = Alignment.Center
+            .padding(horizontal = 10.dp, vertical = 6.dp)
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                text = title,
-                color = Color(0xFFFAF8F5L),
-                fontSize = 10.5.sp,
-                fontWeight = FontWeight.Black,
-                letterSpacing = 0.6.sp,
-                maxLines = 1
-            )
-            Spacer(modifier = Modifier.height(2.dp))
-            Text(
-                text = subtitle,
-                color = accent,
-                fontSize = 8.5.sp,
-                fontWeight = FontWeight.SemiBold,
-                maxLines = 1
-            )
-        }
+        Text(
+            text = title,
+            color = Color(0xFFFAF8F5L),
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Black,
+            letterSpacing = 0.8.sp,
+            maxLines = 1
+        )
+        Spacer(modifier = Modifier.height(2.dp))
+        Text(
+            text = subtitle,
+            color = accent,
+            fontSize = 8.5.sp,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Box(
+            modifier = Modifier
+                .width(36.dp)
+                .height(2.dp)
+                .background(accent.copy(alpha = 0.75f))
+        )
     }
 }
 
@@ -899,8 +823,8 @@ fun HowToPlayUI(
                 "Notes scroll down the 4-lane perspective highway. Catch them right as they cross the glowing lower Beat Strike Line for ★ PERFECT ON-BEAT (+200) and Fret Flames!"
             )
             InstructionItem(
-                "2. HOLD & SLIDE SUSTAIN RIBBONS",
-                "When a golden HOLD & SLIDE ♪ ribbon scrolls down the highway, steer onto the note head and follow the glowing ribbon tail for rapid combo points!"
+                "2. TWO-FINGER TWIN HERO & VOCAL SUSTAIN HOLDS",
+                "Touch with a 2nd finger anytime to spawn a Twin Hero linked by a live Electric/Liquid Plasma Tether! On flowy vocal swells, hold 2 fingers on the Beat Strike Line to charge 100% Vocal Harmony (+500)!"
             )
             InstructionItem(
                 "3. GRAB 💥 BOMB TO VAPORIZE ALL ENEMIES",

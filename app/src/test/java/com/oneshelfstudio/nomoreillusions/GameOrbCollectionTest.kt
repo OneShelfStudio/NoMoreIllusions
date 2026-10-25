@@ -7,13 +7,13 @@ import org.junit.Test
 class GameOrbCollectionTest {
 
     @Test
-    fun testSpawnStationaryBeatOrbsForFrame_clearsAndSuppressesWhenSustainRibbonActive() {
+    fun testSpawnStationaryBeatOrbsForFrame_preservesMidFlightPegsAndSuppressesNewSpawnsWhenSustainRibbonActive() {
         val chart = listOf(
             BeatOrbCue(sequenceIndex = 0, timestampSec = 0.5f, normX = 0.5f, normY = 0.5f, powerUpType = PowerUpType.NONE),
             BeatOrbCue(sequenceIndex = 1, timestampSec = 1.0f, normX = 0.5f, normY = 0.5f, powerUpType = PowerUpType.NONE),
             BeatOrbCue(sequenceIndex = 2, timestampSec = 1.5f, normX = 0.5f, normY = 0.5f, powerUpType = PowerUpType.NONE)
         )
-        // Add existing powerUps to verify they get cleared
+        // Existing mid-flight powerUps must be preserved while new spawns are suppressed
         val powerUps = mutableListOf<GameObject>(
             GameObject(x = 0f, y = 0f, radius = 32f, color = Color.Red),
             GameObject(x = 10f, y = 10f, radius = 32f, color = Color.Blue)
@@ -32,11 +32,11 @@ class GameOrbCollectionTest {
             applyColorBlind = { it },
             powerUps = powerUps,
             shockwaves = shockwaves,
-            hasActiveSustainRibbon = true, // The condition we are testing
+            hasActiveSustainRibbon = true,
             isTrainingMode = false
         )
 
-        assertTrue("powerUps list should be cleared when hasActiveSustainRibbon is true", powerUps.isEmpty())
+        assertEquals("Mid-flight powerUps must be preserved when hasActiveSustainRibbon is true", 2, powerUps.size)
         assertTrue("nextCueIdx should advance past cues that would have spawned", nextCueIdx > 0)
     }
 
@@ -51,7 +51,7 @@ class GameOrbCollectionTest {
         val nextCueIdx = spawnStationaryBeatOrbsForFrame(
             chart = chart,
             startCueIdx = 0,
-            trackSec = 0.2f, // trackSec is well before timestampSec, but trackSec + spawnLeadTime > timestampSec (0.2 + 1.5 > 1.0)
+            trackSec = 0.2f,
             spawnLeadTime = 1.0f,
             ttlGraceSec = 0.5f,
             screenWidth = 1080f,
@@ -60,7 +60,7 @@ class GameOrbCollectionTest {
             applyColorBlind = { it },
             powerUps = powerUps,
             shockwaves = shockwaves,
-            hasActiveSustainRibbon = false, // Not active, should spawn
+            hasActiveSustainRibbon = false,
             isTrainingMode = false
         )
 

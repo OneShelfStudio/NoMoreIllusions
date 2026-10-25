@@ -1,7 +1,7 @@
 package com.oneshelfstudio.nomoreillusions
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -10,6 +10,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.positionChanged
 import kotlin.random.Random
 
 @Suppress("UNUSED_PARAMETER")
@@ -44,6 +45,7 @@ fun GamePlayfieldCanvas(
     enemyTelegraphs: List<EnemySpawnTelegraph> = emptyList(),
     wormholes: List<SingularityWormhole> = emptyList(),
     player: GameObject,
+    secondTouchPos: Offset? = null,
     motes: List<GameObject>,
     playerTrail: List<Offset>,
     shockwaves: List<Shockwave>,
@@ -63,7 +65,8 @@ fun GamePlayfieldCanvas(
     enemySeekerMandala: ImageBitmap,
     enemyWandererMandala: ImageBitmap,
     applyColorBlind: (Color) -> Color,
-    onDragPlayer: (dx: Float, dy: Float) -> Unit
+    onDragPlayer: (dx: Float, dy: Float) -> Unit,
+    onSecondFingerChange: (Offset?) -> Unit = {}
 ) {
     val isGoldenOverdrive = stageMode == StageMode.GOLDEN_OVERDRIVE ||
         goldenOverdriveIntensity > 0.25f ||
@@ -74,9 +77,30 @@ fun GamePlayfieldCanvas(
             .fillMaxSize()
             .pointerInput(gameState) {
                 if (gameState == GameState.PLAYING || gameState == GameState.COUNTDOWN) {
-                    detectDragGestures { change, dragAmount ->
-                        change.consume()
-                        onDragPlayer(dragAmount.x, dragAmount.y)
+                    awaitEachGesture {
+                        do {
+                            val event = awaitPointerEvent()
+                            val activeChanges = event.changes.filter { it.pressed }
+                            if (activeChanges.isNotEmpty()) {
+                                val primary = activeChanges.first()
+                                if (primary.positionChanged()) {
+                                    val delta = primary.position - primary.previousPosition
+                                    onDragPlayer(delta.x, delta.y)
+                                }
+                                primary.consume()
+
+                                if (activeChanges.size >= 2) {
+                                    val secondary = activeChanges[1]
+                                    onSecondFingerChange(secondary.position)
+                                    secondary.consume()
+                                } else {
+                                    onSecondFingerChange(null)
+                                }
+                            } else {
+                                onSecondFingerChange(null)
+                            }
+                        } while (event.changes.any { it.pressed })
+                        onSecondFingerChange(null)
                     }
                 }
             }
@@ -159,6 +183,30 @@ fun GamePlayfieldCanvas(
                 )
             }
             if (gameState != GameState.MENU) {
+                if (secondTouchPos != null) {
+                    drawDualHeroPlasmaTether(
+                        p1 = Offset(player.x, player.y),
+                        p2 = secondTouchPos,
+                        time = gameTime,
+                        beatPhase = beatPhase
+                    )
+                    val twinHero = player.copy(x = secondTouchPos.x, y = secondTouchPos.y, color = Color(0xFF38BDF8L))
+                    drawPlayerSprite(
+                        p = twinHero,
+                        isFocus = isFocusActive,
+                        time = gameTime + 1.57f,
+                        shield = shieldTime,
+                        applyCB = applyColorBlind,
+                        isDead = gameState == GameState.GAME_OVER,
+                        heroSolarMandala = heroSolarMandala,
+                        heroCyberMandala = heroCyberMandala,
+                        heroPrismMandala = heroPrismMandala,
+                        skin = customHeroSkin,
+                        invulnTime = spawnInvulnerabilityTime,
+                        beatPhase = beatPhase,
+                        isGoldenOverdrive = isGoldenOverdrive
+                    )
+                }
                 drawPlayerSprite(
                     p = player,
                     isFocus = isFocusActive,

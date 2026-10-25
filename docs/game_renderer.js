@@ -498,6 +498,65 @@ function drawPlayerSprite(
   ctx.fill();
 }
 
+// ============================================================================
+// TWO-FINGER TWIN-HERO ELECTRIC / LIQUID PLASMA TETHER
+// ============================================================================
+function drawDualHeroPlasmaTether(ctx, p1, p2, time, beatPulse = 0) {
+  const dx = p2.x - p1.x;
+  const dy = p2.y - p1.y;
+  const dist = Math.hypot(dx, dy);
+  if (dist < 8) return;
+
+  const nx = -dy / dist;
+  const ny = dx / dist;
+  const segments = 20;
+
+  ctx.save();
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+
+  for (let strand = 0; strand < 3; strand++) {
+    ctx.beginPath();
+    const freq = strand === 0 ? 3.0 : (strand === 1 ? 5.0 : 8.0);
+    const amp = (strand === 0 ? 16 : (strand === 1 ? 24 : 11)) * (1 + beatPulse * 0.35);
+    const speed = strand === 0 ? 9.5 : (strand === 1 ? -13.0 : 17.5);
+    for (let s = 0; s <= segments; s++) {
+      const f = s / segments;
+      const bx = p1.x + dx * f;
+      const by = p1.y + dy * f;
+      const env = Math.sin(f * Math.PI);
+      const wave = Math.sin(f * Math.PI * freq + time * speed + strand * 2.09) * amp * env;
+      const px = bx + nx * wave;
+      const py = by + ny * wave;
+      if (s === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
+    }
+    const col = strand === 0 ? [236, 72, 153] : (strand === 1 ? [56, 189, 248] : [255, 255, 255]);
+    const width = strand === 0 ? 18 : (strand === 1 ? 10 : 4);
+    ctx.strokeStyle = rgba(col, strand === 2 ? 0.96 : 0.62);
+    ctx.lineWidth = width;
+    ctx.stroke();
+  }
+
+  // Flowing liquid plasma droplets along the tether
+  for (let i = 0; i < 5; i++) {
+    const f = ((i / 5) + time * 1.8) % 1.0;
+    const env = Math.sin(f * Math.PI);
+    const wave = Math.sin(f * Math.PI * 4 + time * 11) * 12 * env;
+    const px = p1.x + dx * f + nx * wave;
+    const py = p1.y + dy * f + ny * wave;
+    ctx.beginPath();
+    ctx.arc(px, py, 9 + beatPulse * 4, 0, Math.PI * 2);
+    ctx.fillStyle = rgba([250, 204, 21], 0.72);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(px, py, 4.5, 0, Math.PI * 2);
+    ctx.fillStyle = "#FFFFFF";
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
 function drawFloatingTexts(ctx, floatingTexts) {
   ctx.save();
   ctx.textAlign = "center";

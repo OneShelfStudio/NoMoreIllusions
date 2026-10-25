@@ -469,45 +469,36 @@ fun stepAndSpawnWormholes(
         if (w.slideCooldownSec > 0f) {
             w.slideCooldownSec = (w.slideCooldownSec - 0.016f * currentScale).coerceAtLeast(0f)
         }
-        if (w.ageSec >= 4.6f) {
+        if (w.ageSec >= 4.4f) {
             wIter.remove()
         }
     }
 
-    // 100% Mutually Exclusive Rule: While a Sustain Slide Ribbon is active, clear ALL beat pegs so they NEVER overlap!
-    if (wormholes.isNotEmpty() && powerUps != null) {
-        powerUps.clear()
-    }
-
+    // Never clear active mid-flight beat pegs (`powerUps`) when a sustain hold spawns or is active!
     if (!allowAnomalies || multiBand.bassDropOut) return
     if (wormholes.isNotEmpty()) return
 
-    val isBeatOnset = beatPhase in 0f..0.22f
+    val isBeatOnset = beatPhase in 0f..0.20f
     if (!isBeatOnset) return
 
-    val swellTrigger = multiBand.rms > 0.42f || multiBand.swellDelta > 0.05f
-    val spawnChance = if (swellTrigger) 0.14f else 0.055f
-    if (Random.nextFloat() < spawnChance) {
-        val startLane = Random.nextInt(4)
-        val delta = if (Random.nextBoolean()) 1 else -1
-        val endLane = (startLane + delta).coerceIn(0, 3).let { if (it == startLane) (startLane + 1) % 4 else it }
+    // Only trigger 2-Finger Vocal Sustain Holds during long, flowy vocal/harmonic swells ("ooh / aaah" moments)!
+    val vocalSwellTrigger = multiBand.vocal >= 0.48f && (multiBand.rms > 0.44f || multiBand.swellDelta > 0.04f)
+    if (!vocalSwellTrigger) return
 
-        // Clear ALL existing beat pegs on the highway so the Sustain Slide Ribbon replaces beats 100% cleanly!
-        powerUps?.clear()
-
+    if (Random.nextFloat() < 0.12f) {
         wormholes.add(
             SingularityWormhole(
-                x = startLane.toFloat(),
+                x = 0f, // Lane 1 Left Sustain Anchor Peg
                 y = 0f,
-                radius = 34f,
+                radius = 36f,
                 kind = AnomalyKind.WORMHOLE_VORTEX,
                 angle = 0f,
                 length = 1f,
-                color = Color(0xFFFACC15L),
-                exitX = endLane.toFloat(),
+                color = Color(0xFF38BDF8L),
+                exitX = 3f, // Lane 4 Right Sustain Anchor Peg
                 exitY = 1f,
-                ctrlX = (startLane + endLane) * 0.5f,
-                ctrlY = 0.5f
+                ctrlX = 1.5f,
+                ctrlY = 0f // 0.0 -> 1.0 Hold Progress Gauge!
             )
         )
     }

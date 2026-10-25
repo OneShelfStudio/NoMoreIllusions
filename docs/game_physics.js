@@ -107,8 +107,7 @@ Object.assign(NoMoreIllusionsApp.prototype, {
     const chart = stage.orbChart;
     const spawnLeadTime = Math.max(1.75, Math.min(2.35, beatPeriod * 3.8));
     if (this.wormholes && this.wormholes.length > 0) {
-      // ZERO OVERLAP RULE: While a Sustain Slide Ribbon is active, clear ALL beat pegs and advance cues!
-      this.powerUps = [];
+      // Preserve mid-flight highway pegs so notes NEVER vanish on the way down; only pause new spawns at the horizon!
       while (
         this.nextBeatCueIndex < chart.length &&
         (chart[this.nextBeatCueIndex].timestampSec || chart[this.nextBeatCueIndex].timeSec) <= this.trackElapsedSec + spawnLeadTime
@@ -236,27 +235,22 @@ Object.assign(NoMoreIllusionsApp.prototype, {
 
     // 3. Simplified Pickups (Fret Beat Notes, ★ 4X STAR, 💥 BOMB, 🛡️ SHIELD) arrive via the beat highway chart
 
-    // 4. Guitar-Hero Sustain Slide Ribbon Spawner (100% REPLACES ALL beat pegs while active!)
-    if (this.wormholes.length > 0) {
-      this.powerUps = [];
-    }
+    // 4. 2-Finger Stationary Vocal Sustain Hold Spawner (Triggered ONLY on Long Flowy Vocal "Ooh / Aaah" Swells!)
+    // Preserves mid-flight highway pegs while pausing new spawns at the horizon.
     if (activeSec.allowAnomalies) {
       this.wormholeSpawnTimer += dt;
-      if (this.wormholeSpawnTimer >= 13.5 && this.wormholes.length === 0) {
+      const isVocalSwellMoment = (this.multiBandState.vocal >= 0.48) || (this.multiBandState.swellDelta >= 0.14);
+      if (this.wormholeSpawnTimer >= 16.5 && this.wormholes.length === 0 && isVocalSwellMoment) {
         this.wormholeSpawnTimer = 0;
-        const startLane = Math.floor(Math.random() * 4);
-        const shift = Math.random() < 0.5 ? -1 : 1;
-        const endLane = Math.max(0, Math.min(3, startLane + shift));
+        const startLane = 0; // Left Sustain Anchor (Lane 1)
+        const endLane = 3;   // Right Sustain Anchor (Lane 4)
 
         const headPt = typeof this.computeHighwayPoint === "function"
           ? this.computeHighwayPoint(startLane, 0, this.W, this.H)
-          : { x: this.W * 0.5, y: this.H * 0.15 };
+          : { x: this.W * 0.25, y: this.H * 0.15 };
         const tailPt = typeof this.computeHighwayPoint === "function"
-          ? this.computeHighwayPoint(endLane, -0.52, this.W, this.H)
-          : { x: this.W * 0.5, y: this.H * 0.08 };
-
-        // Clear ALL beat pegs so the Sustain Slide Ribbon takes 100% solo stage!
-        this.powerUps = [];
+          ? this.computeHighwayPoint(endLane, 0, this.W, this.H)
+          : { x: this.W * 0.75, y: this.H * 0.15 };
 
         this.wormholes.push({
           ax: headPt.x,
@@ -267,9 +261,10 @@ Object.assign(NoMoreIllusionsApp.prototype, {
           ctrlY: (headPt.y + tailPt.y) * 0.5,
           startLane,
           endLane,
+          holdProgress: 0,
           radius: 42,
           age: 0,
-          maxLifetime: 4.6, // Slower, smooth 3.6s descent down the highway
+          maxLifetime: 4.5, // 1.8s scroll to Strike Line + 2.7s stationary hold window
           teleportCooldown: 0,
           tailCompleted: false
         });
@@ -335,7 +330,7 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       }
     }
 
-    // 7. Update Scrolling Guitar-Hero Sustain Slide Ribbons (Slower 3.6s Travel + Generous 88px Catch!)
+    // 7. Update 2-Finger Stationary Vocal Sustain Hold Anchors (Scrolls to Strike Line in 1.8s, Locks & Charges 0% -> 100%!)
     this.activeWormholeSlide = null;
     for (let i = this.wormholes.length - 1; i >= 0; i--) {
       const wh = this.wormholes[i];
@@ -346,88 +341,95 @@ Object.assign(NoMoreIllusionsApp.prototype, {
         continue;
       }
 
-      const headU = wh.age / 3.6;
-      const tailU = Math.max(0, headU - 0.52);
-      const sLane = typeof wh.startLane === "number" ? wh.startLane : 1;
-      const eLane = typeof wh.endLane === "number" ? wh.endLane : 2;
+      const travelU = Math.min(1.0, wh.age / 1.8);
+      const sLane = typeof wh.startLane === "number" ? wh.startLane : 0;
+      const eLane = typeof wh.endLane === "number" ? wh.endLane : 3;
 
       if (typeof this.computeHighwayPoint === "function") {
-        const headPt = this.computeHighwayPoint(sLane, headU, this.W, this.H);
-        const tailPt = this.computeHighwayPoint(eLane, tailU, this.W, this.H);
-        const midPt = this.computeHighwayPoint((sLane + eLane) * 0.5, (headU + tailU) * 0.5, this.W, this.H);
-        wh.ax = headPt.x;
-        wh.ay = headPt.y;
-        wh.bx = tailPt.x;
-        wh.by = tailPt.y;
-        wh.ctrlX = midPt.x;
-        wh.ctrlY = midPt.y;
+        const leftPt = this.computeHighwayPoint(sLane, travelU, this.W, this.H);
+        const rightPt = this.computeHighwayPoint(eLane, travelU, this.W, this.H);
+        wh.ax = leftPt.x;
+        wh.ay = leftPt.y;
+        wh.bx = rightPt.x;
+        wh.by = rightPt.y;
+        wh.ctrlX = (leftPt.x + rightPt.x) * 0.5;
+        wh.ctrlY = (leftPt.y + rightPt.y) * 0.5;
 
-        // Free-steering tracking check: sample 9 points along the scrolling sustain ribbon
-        let minDist = 9999;
-        let closestPt = headPt;
-        for (let s = 0; s <= 8; s++) {
-          const frac = s / 8.0;
-          const uSample = headU + (tailU - headU) * frac;
-          if (uSample < 0.04 || uSample > 1.25) continue;
-          const laneSample = sLane + (eLane - sLane) * frac;
-          const pt = this.computeHighwayPoint(laneSample, uSample, this.W, this.H);
-          const d = Math.hypot(this.playerX - pt.x, this.playerY - pt.y);
-          if (d < minDist) {
-            minDist = d;
-            closestPt = pt;
+        const isAtStrikeZone = travelU >= 0.72;
+        const p1DistLeft = Math.hypot(this.playerX - leftPt.x, this.playerY - leftPt.y);
+        const p1DistRight = Math.hypot(this.playerX - rightPt.x, this.playerY - rightPt.y);
+        const hasTwoFingers = Boolean(this.secondPlayerPos);
+        const isHoldingSingleAnchor = Math.min(p1DistLeft, p1DistRight) <= 105;
+
+        if (isAtStrikeZone && (hasTwoFingers || isHoldingSingleAnchor)) {
+          const chargeRate = hasTwoFingers ? 0.85 : 0.65;
+          wh.holdProgress = Math.min(1.0, (wh.holdProgress || 0) + dt * chargeRate);
+
+          if (wh.teleportCooldown <= 0) {
+            wh.teleportCooldown = 0.14;
+            this.shieldTimer = Math.max(this.shieldTimer, 0.55);
+            this.playSfx("orb", 0.58);
+            this.triggerHaptic([12]);
+            const holdPts = Math.round(85 * Math.max(1, this.combo) * diffMult);
+            this.score += holdPts;
+            this.comboTimer = 4.5;
+            this.spawnBurstMotes(leftPt.x, leftPt.y, [56, 189, 248], 5);
+            this.spawnBurstMotes(rightPt.x, rightPt.y, [250, 204, 21], 5);
+            this.shockwaves.push({
+              x: (leftPt.x + rightPt.x) * 0.5,
+              y: leftPt.y,
+              radius: 10,
+              maxRadius: 95,
+              color: [56, 189, 248],
+              alpha: 1
+            });
+            const pct = Math.round(wh.holdProgress * 100);
+            this.floatingTexts.push({
+              x: (leftPt.x + rightPt.x) * 0.5,
+              y: leftPt.y - 34,
+              text: `⚡ HARMONY HOLD ${pct}% (+${holdPts})`,
+              color: [56, 189, 248],
+              alpha: 1,
+              age: 0
+            });
           }
-        }
 
-        if (minDist <= 88 && wh.teleportCooldown <= 0) {
-          wh.teleportCooldown = 0.14;
-          this.shieldTimer = Math.max(this.shieldTimer, 0.45);
-          this.playSfx("orb", 0.58);
-          this.triggerHaptic([12]);
-          const slidePts = Math.round(75 * Math.max(1, this.combo) * diffMult);
-          this.score += slidePts;
-          this.comboTimer = 4.5;
-          this.spawnBurstMotes(closestPt.x, closestPt.y, [56, 189, 248], 6);
-          this.shockwaves.push({
-            x: closestPt.x,
-            y: closestPt.y,
-            radius: 6,
-            maxRadius: 68,
-            color: [56, 189, 248],
-            alpha: 1
-          });
-          this.floatingTexts.push({
-            x: this.playerX,
-            y: this.playerY - 24,
-            text: `SLIDE ♪ +${slidePts}`,
-            color: [56, 189, 248],
-            alpha: 1,
-            age: 0
-          });
-
-          // Tail Release Burst: finishing the sustain ribbon triggers Melodic Starfall Cascade!
-          if (tailU >= 0.62 && !wh.tailCompleted) {
+          // 100% Hold Completion: Explosive Visual Flourish + Melodic Starfall Cascade & Instant Clear!
+          if (wh.holdProgress >= 1.0 && !wh.tailCompleted) {
             wh.tailCompleted = true;
-            const bonusPts = Math.round(280 * Math.max(1, this.combo) * diffMult);
+            const bonusPts = Math.round(500 * Math.max(1, this.combo) * diffMult);
             this.score += bonusPts;
             this.combo = Math.min(8, this.combo + 1);
             if (this.combo > this.maxComboRun) this.maxComboRun = this.combo;
+            this.screenShake = Math.max(this.screenShake, 12);
+            this.playSfx("powerup", 0.85);
+            this.triggerHaptic([35]);
             this.spawnMelodicStarfallCascade();
             this.shockwaves.push({
-              x: tailPt.x,
-              y: tailPt.y,
-              radius: 10,
-              maxRadius: 195,
+              x: leftPt.x,
+              y: leftPt.y,
+              radius: 12,
+              maxRadius: 240,
+              color: [56, 189, 248],
+              alpha: 1
+            });
+            this.shockwaves.push({
+              x: rightPt.x,
+              y: rightPt.y,
+              radius: 12,
+              maxRadius: 240,
               color: [250, 204, 21],
               alpha: 1
             });
             this.floatingTexts.push({
-              x: tailPt.x,
-              y: tailPt.y - 34,
-              text: `★ SLIDE COMPLETE! +${bonusPts}`,
+              x: (leftPt.x + rightPt.x) * 0.5,
+              y: leftPt.y - 52,
+              text: `★ VOCAL HARMONY MASTERED! +${bonusPts} ★`,
               color: [250, 204, 21],
               alpha: 1,
               age: 0
             });
+            this.wormholes.splice(i, 1);
           }
         }
       }
@@ -484,11 +486,13 @@ Object.assign(NoMoreIllusionsApp.prototype, {
         continue;
       }
 
-      const dx = this.playerX - pu.x;
-      const dy = this.playerY - pu.y;
-      const dist = Math.max(1, Math.hypot(dx, dy));
+      const distPrimary = Math.max(1, Math.hypot(this.playerX - pu.x, this.playerY - pu.y));
+      const distSecondary = this.secondPlayerPos
+        ? Math.max(1, Math.hypot(this.secondPlayerPos.x - pu.x, this.secondPlayerPos.y - pu.y))
+        : 99999;
+      const dist = Math.min(distPrimary, distSecondary);
 
-      // Generous Collection Check for responsive highway note hits (NO MAGNET PULL!)
+      // Generous Collection Check for responsive highway note hits (Both Primary & Twin Hero can catch pegs!)
       const collectRadius = this.playerRadius + (pu.type === "SCORE_ORB" ? pu.radius * 1.42 : pu.radius * 1.32);
       if (dist <= collectRadius) {
         this.collectPowerUp(pu, u);
@@ -707,7 +711,13 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       ? this.computeHighwayPoint(laneIdx, 1.0, this.W, this.H)
       : { x: (0.14 + laneIdx * 0.24) * this.W, y: this.H * 0.65 };
 
-    const targetBeatSec = cue.timestampSec || (this.trackElapsedSec + 1.9);
+    // Quantize every peg's targetBeatSec to the exact musical half-beat/beat grid and enforce constant scroll lead time
+    // so 100% of pegs travel at uniform speed and cross the Beat Strike Line (u = 1.0) dead-on the beat!
+    const rawTargetSec = cue.timestampSec || cue.timeSec || (this.trackElapsedSec + 1.9);
+    const beatGridStep = Math.max(0.18, beatPeriod * 0.5);
+    const targetBeatSec = Math.round(rawTargetSec / beatGridStep) * beatGridStep;
+    const spawnLeadTime = Math.max(1.75, Math.min(2.35, beatPeriod * 3.8));
+    const spawnBeatSec = targetBeatSec - spawnLeadTime;
     const ttlGraceSec = Math.max(0.45, beatPeriod * 0.92);
     const expireBeatSec = targetBeatSec + ttlGraceSec;
     const seqIdx = cue.sequenceIndex || (this.powerUps.length + 1);
@@ -728,10 +738,10 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       sequenceIndex: seqIdx,
       phraseBeatNum,
       targetBeatSec,
-      spawnBeatSec: this.trackElapsedSec,
+      spawnBeatSec,
       expireBeatSec,
       age: 0,
-      maxLifetime: Math.max(2.6, (expireBeatSec - this.trackElapsedSec) + 0.45),
+      maxLifetime: Math.max(2.6, (expireBeatSec - spawnBeatSec) + 0.45),
       phase: Math.random() * 6.28,
       waveFreq: 2.4 + Math.random() * 1.2,
       wavePhase: Math.random() * 6.28

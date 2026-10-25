@@ -187,19 +187,19 @@ internal fun ArtistVaultShowcaseModal(
                     Spacer(modifier = Modifier.height(10.dp))
                     val notes = if (selectedSubTab == 0) {
                         listOf(
-                            "0:00 • ATMOSPHERIC INTRO — \"Shadow in the mirror...\" (Obsidian Nebula Drift)",
-                            "0:54 • CHORUS DROP I — \"Confide in me / No more illusions\" (24K Golden Overdrive + Concert Lasers)",
-                            "1:22 • VERSE II (B3NJI FEATURE) — \"Caught inside the undertow\" (Singularity Wormholes Materialize)",
-                            "2:15 • BRIDGE BREAKDOWN — \"Strip away the disguise\" (Solar Eclipse Blackout & Sub-Bass Swell)",
-                            "2:42 • FINAL CLIMAX — Full 24K Gold Stage Overdrive + Supernova Gyroscope Orbs"
+                            "0:00 • INTRO — Here is where you can put your opening lyrics or fan note for Track 01",
+                            "0:54 • CHORUS — Here is where you can put your chorus lyrics or vocal harmony story",
+                            "1:22 • VERSE II — Here is where you can put your feature verse lyrics or studio story",
+                            "2:15 • BRIDGE — Here is where you can put your bridge lyrics or breakdown note",
+                            "2:42 • OUTRO — Here is where you can put your closing lyrics or thank-you note for fans"
                         )
                     } else {
                         listOf(
-                            "0:00 • PULSE INTRO — \"Dialed into the frequency...\" (138 BPM High-Velocity Lock)",
-                            "0:26 • CHORUS HOOK — \"You're my number one\" (24K Gold Concert Laser Fan + Twin Pulse)",
-                            "0:55 • RAPID VERSE — \"Racing through the neon haze\" (Chrono-Saw & Seraph Swarm Surge)",
-                            "1:28 • BASS DROP — \"Zero gravity\" (Kerr Accretion Wormholes & Neon Phase Gates)",
-                            "1:52 • FINAL OVERDRIVE — Maximum BPM Star-Power Finale"
+                            "0:00 • INTRO — Here is where you can put your opening lyrics or fan note for Track 02",
+                            "0:26 • CHORUS — Here is where you can put your chorus hook lyrics or story",
+                            "0:55 • VERSE — Here is where you can put your verse lyrics or behind-the-scenes note",
+                            "1:28 • DROP — Here is where you can put your bass-drop note or production secret",
+                            "1:52 • FINALE — Here is where you can put your closing lyrics or fan shoutout"
                         )
                     }
                     Column(
@@ -228,10 +228,10 @@ internal fun ArtistVaultShowcaseModal(
 
                 "VAULT_POLAROIDS" -> {
                     val cards = listOf(
-                        Triple("SESSION 01 • THE MIRROR ERA", "Indigo & Emerald visual identity born from late-night vocal layering.", Color(0xFF4ADE80L)),
-                        Triple("SESSION 02 • CONFIDE (FEAT. B3NJI)", "124 BPM emotional anthem fusing melodic hooks with raw honesty.", Color(0xFF818CF8L)),
-                        Triple("SESSION 03 • NUMBER ONE OVERDRIVE", "138 BPM high-octane rush engineered for peak replayability.", Color(0xFFFACC15L)),
-                        Triple("SESSION 04 • THE NEXT CHAPTER", "Stay locked to the Release Radar for upcoming singles & live dates.", Color(0xFFE879F9L))
+                        Triple("CARD 01 • ARTIST STORY SLOT", "Here is where you can put a studio photo caption or personal story for your fans.", Color(0xFF4ADE80L)),
+                        Triple("CARD 02 • TRACK 01 MEMORY SLOT", "Here is where you can put behind-the-scenes notes or collaborator shoutouts for Track 01.", Color(0xFF818CF8L)),
+                        Triple("CARD 03 • TRACK 02 MEMORY SLOT", "Here is where you can put behind-the-scenes notes or recording stories for Track 02.", Color(0xFFFACC15L)),
+                        Triple("CARD 04 • UPCOMING RELEASES SLOT", "Here is where you can put upcoming single announcements, presave links, or show dates for your fans.", Color(0xFFE879F9L))
                     )
                     Column(
                         verticalArrangement = Arrangement.spacedBy(7.dp),

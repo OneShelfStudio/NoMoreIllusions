@@ -841,6 +841,74 @@ fun DrawScope.drawPlayerSprite(
 }
 
 /**
+ * Renders the Live Electric/Liquid Plasma Tether connecting the Primary Hero Sprite (`p1`)
+ * and the Duplicate Second-Finger Hero Sprite (`p2`) when two fingers are touching the stage!
+ */
+fun DrawScope.drawDualHeroPlasmaTether(
+    p1: Offset,
+    p2: Offset,
+    time: Float,
+    beatPhase: Float
+) {
+    val beatKick = if (beatPhase >= 0f) exp(-beatPhase * 5f).coerceIn(0f, 1f) else 0.2f
+    val dx = p2.x - p1.x
+    val dy = p2.y - p1.y
+    val dist = hypot(dx, dy).coerceAtLeast(1f)
+    val nx = -dy / dist
+    val ny = dx / dist
+
+    val strandCols = listOf(
+        Color(0xFF38BDF8L), // Electric Cyan
+        Color(0xFFE879F9L), // Liquid Magenta
+        Color(0xFFFACC15L)  // 24K Gold Core
+    )
+
+    for (sIdx in 0..2) {
+        val path = Path()
+        val steps = 20
+        val amp = (14f + 10f * beatKick) * (if (sIdx % 2 == 0) 1f else -1f)
+        val freq = 3.0f + sIdx * 1.3f
+        val speed = 10f + sIdx * 3.5f
+        for (i in 0..steps) {
+            val t = i / steps.toFloat()
+            val env = sin(t * PI.toFloat())
+            val wave = sin(t * freq * PI.toFloat() + time * speed + sIdx * 1.9f) * amp * env
+            val px = p1.x + dx * t + nx * wave
+            val py = p1.y + dy * t + ny * wave
+            if (i == 0) path.moveTo(px, py) else path.lineTo(px, py)
+        }
+        drawPath(
+            path = path,
+            color = strandCols[sIdx].copy(alpha = if (sIdx == 2) 0.95f else 0.72f),
+            style = Stroke(
+                width = if (sIdx == 2) 5.5f else 11f + 4f * beatKick,
+                cap = StrokeCap.Round,
+                join = StrokeJoin.Round
+            ),
+            blendMode = BlendMode.Screen
+        )
+    }
+
+    // Flowing Liquid-Plasma Pearls along the tether
+    for (pIdx in 0..5) {
+        val t = ((pIdx / 6f) + time * 1.1f) % 1f
+        val px = p1.x + dx * t
+        val py = p1.y + dy * t
+        drawCircle(
+            color = Color(0xFF38BDF8L).copy(alpha = 0.55f),
+            radius = 9f + 3f * beatKick,
+            center = Offset(px, py),
+            blendMode = BlendMode.Screen
+        )
+        drawCircle(
+            color = Color.White,
+            radius = 4.2f,
+            center = Offset(px, py)
+        )
+    }
+}
+
+/**
  * Renders both World-Space Rhythm Judgments (`PERFECT!`, `GOOD!`, `MISS`, `SLIDE!`) right above each
  * beat node AND Center-Top Song Section Callout Pills when `isLarge` is set.
  */

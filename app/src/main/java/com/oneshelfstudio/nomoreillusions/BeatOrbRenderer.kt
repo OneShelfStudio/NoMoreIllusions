@@ -510,9 +510,12 @@ fun DrawScope.drawPowerUps(
 }
 
 /**
- * V8 BAND-HERO / BEATSTAR SCROLLING SUSTAIN SLIDE RIBBONS:
- * Slower (`3.6s` travel), ultra-vibrant neon path with animated directional pearls (`»`)
- * and clear `SLIDE HERE ♪` -> `FINISH ★` endpoints!
+ * V9 2-FINGER STATIONARY SUSTAIN HOLD ANCHOR PEGS & "OOH / AAAH" VOCAL AURORA SPECTACLE:
+ * - Paired 3D Sustain Hold Pegs (Lane 1 & Lane 4) scroll down to the Beat Strike Line (`u = 1.0` in 1.8s)
+ *   and LOCK stationary on the Beat Strike Line!
+ * - Linked by a crackling 3-strand Electric/Liquid Plasma Bridge + 0% -> 100% Radial Hold Progress Ring (`w.ctrlY`).
+ * - While held, concentric liquid-plasma vortex rings erupt around BOTH pegs and "Ooh / Aaah" Vocal Aurora
+ *   curtains bloom across the upper stage!
  */
 fun DrawScope.drawWormholes(
     wormholes: List<SingularityWormhole>,
@@ -526,119 +529,178 @@ fun DrawScope.drawWormholes(
     val beatKick = if (beatPhase >= 0f) exp(-beatPhase * 5f).coerceIn(0f, 1f) else 0.25f
 
     wormholes.forEach { w ->
-        val uHead = (w.ageSec / 3.6f)
-        val uTail = (uHead - 0.52f).coerceAtLeast(0f)
-        if (uHead <= 0.02f || uTail >= 1.22f) return@forEach
+        if (w.angle >= 90f) return@forEach
+        val uAnchor = (w.ageSec / 1.8f).coerceIn(0f, 1.0f)
+        if (uAnchor <= 0.02f) return@forEach
 
         val startLane = w.x.coerceIn(0f, 3f)
         val endLane = w.exitX.coerceIn(0f, 3f)
-        val ribbonPath = Path()
-        val steps = 18
-        var headPt = Offset.Zero
-        var tailPt = Offset.Zero
-        val samplePts = ArrayList<Offset>(steps + 1)
+        val pt1 = computeHighwayPoint(startLane, uAnchor, wScreen, hScreen)
+        val pt2 = computeHighwayPoint(endLane, uAnchor, wScreen, hScreen)
+        val midPt = Offset((pt1.x + pt2.x) * 0.5f, (pt1.y + pt2.y) * 0.5f)
+        val perspScale = computeHighwayScale(uAnchor)
+        val holdProg = w.ctrlY.coerceIn(0f, 1f)
+        val isBeingHeld = holdProg > 0.02f
 
-        for (i in 0..steps) {
-            val s = i / steps.toFloat()
-            val uSample = (uTail + (uHead - uTail) * s).coerceIn(0f, 1.24f)
-            val laneAtS = startLane + (endLane - startLane) * (0.5f - 0.5f * cos(s * PI.toFloat()))
-            val pt = computeHighwayPoint(laneAtS, uSample, wScreen, hScreen)
-            samplePts.add(pt)
-            if (i == 0) {
-                tailPt = pt
-                ribbonPath.moveTo(pt.x, pt.y)
-            } else {
-                ribbonPath.lineTo(pt.x, pt.y)
+        // 0. "OOH / AAAH" VOCAL AURORA BOREALIS CURTAINS across the upper stage while holding!
+        if (isBeingHeld) {
+            for (cIdx in 0..5) {
+                val xFrac = 0.14f + (cIdx / 5f) * 0.72f + sin(time * 2.2f + cIdx) * 0.03f
+                val cx = wScreen * xFrac
+                val curtainH = hScreen * (0.26f + 0.18f * holdProg + 0.06f * sin(time * 4f + cIdx))
+                val cCol = when (cIdx % 3) {
+                    0 -> Color(0xFF38BDF8L)
+                    1 -> Color(0xFFE879F9L)
+                    else -> Color(0xFF4ADE80L)
+                }
+                drawLine(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            cCol.copy(alpha = (0.28f + 0.42f * holdProg)),
+                            Color(0xFFFACC15L).copy(alpha = 0.22f * holdProg),
+                            Color.Transparent
+                        ),
+                        startY = 0f,
+                        endY = curtainH
+                    ),
+                    start = Offset(cx, 0f),
+                    end = Offset(cx, curtainH),
+                    strokeWidth = 42f + 24f * holdProg,
+                    cap = StrokeCap.Round,
+                    blendMode = BlendMode.Screen
+                )
             }
-            if (i == steps) headPt = pt
         }
 
-        // 1. Ultra-Vibrant Multi-Layered Neon Slide Highway Ribbon
-        drawPath(
-            path = ribbonPath,
-            color = Color(0xFFF43F5EL).copy(alpha = 0.45f + 0.25f * beatKick),
-            style = Stroke(width = 44f + beatKick * 10f, cap = StrokeCap.Round, join = StrokeJoin.Round)
+        // 1. 3-Strand Intertwined Electric/Liquid Plasma Bridge connecting the two Sustain Hold Pegs!
+        val strandColors = listOf(
+            Color(0xFF38BDF8L), // Electric Cyan
+            Color(0xFFE879F9L), // Liquid Magenta
+            Color(0xFFFACC15L)  // 24K Gold Core
         )
-        drawPath(
-            path = ribbonPath,
-            color = Color(0xFFFACC15L).copy(alpha = 0.82f),
-            style = Stroke(width = 24f + beatKick * 4f, cap = StrokeCap.Round, join = StrokeJoin.Round)
-        )
-        drawPath(
-            path = ribbonPath,
-            color = Color(0xFF22D3EE).copy(alpha = 0.92f),
-            style = Stroke(width = 12f, cap = StrokeCap.Round, join = StrokeJoin.Round)
-        )
-        drawPath(
-            path = ribbonPath,
-            color = Color.White,
-            style = Stroke(width = 4.5f, cap = StrokeCap.Round, join = StrokeJoin.Round)
-        )
+        for (sIdx in 0..2) {
+            val plasmaPath = Path()
+            val segs = 22
+            val freq = 3.0f + sIdx * 1.2f
+            val speed = 8.5f + sIdx * 3.0f
+            val amp = (12f + 16f * holdProg + 8f * beatKick) * perspScale * (if (sIdx % 2 == 0) 1f else -1f)
+            for (i in 0..segs) {
+                val t = i / segs.toFloat()
+                val bx = pt1.x + (pt2.x - pt1.x) * t
+                val env = sin(t * PI.toFloat())
+                val waveY = sin(t * freq * PI.toFloat() + time * speed + sIdx * 2.1f) * amp * env
+                val by = pt1.y + (pt2.y - pt1.y) * t + waveY
+                if (i == 0) plasmaPath.moveTo(bx, by) else plasmaPath.lineTo(bx, by)
+            }
+            drawPath(
+                path = plasmaPath,
+                color = strandColors[sIdx].copy(alpha = 0.65f + 0.30f * holdProg),
+                style = Stroke(
+                    width = (if (sIdx == 2) 6.5f else 11f) * perspScale * (1f + 0.35f * holdProg),
+                    cap = StrokeCap.Round,
+                    join = StrokeJoin.Round
+                ),
+                blendMode = BlendMode.Screen
+            )
+        }
 
-        // 2. Animated Directional Guide Pearls flowing along the ribbon so the player sees the exact swipe path!
-        val flowShift = (time * 1.8f) % 1f
-        for (pIdx in 0..5) {
-            val frac = ((pIdx / 6f) + flowShift * 0.16f).coerceIn(0.08f, 0.92f)
-            val sFloat = (1f - frac) * steps // Flow from Head (s=1) toward Tail (s=0)
-            val idx0 = sFloat.toInt().coerceIn(0, steps - 1)
-            val idx1 = (idx0 + 1).coerceAtMost(steps)
-            val localT = sFloat - idx0
-            val p0 = samplePts[idx0]
-            val p1 = samplePts[idx1]
-            val pearlPt = Offset(p0.x + (p1.x - p0.x) * localT, p0.y + (p1.y - p0.y) * localT)
+        // Crackling Plasma Nodes flowing between the two pegs
+        for (nIdx in 0..6) {
+            val tNode = ((nIdx / 7f) + time * 0.85f) % 1f
+            val nx = pt1.x + (pt2.x - pt1.x) * tNode
+            val ny = pt1.y + (pt2.y - pt1.y) * tNode + sin(tNode * PI.toFloat() * 4f + time * 10f) * 8f * perspScale
             drawCircle(
-                color = Color(0xFFFACC15L).copy(alpha = 0.92f),
-                radius = 9.5f,
-                center = pearlPt
+                color = Color.White.copy(alpha = 0.90f),
+                radius = (4.5f + 4.0f * holdProg) * perspScale,
+                center = Offset(nx, ny)
+            )
+        }
+
+        // 2. Render Both 3D Sustain Hold Pegs (Lane 1 & Lane 4) + Special Vortex Effect when Held!
+        val pegRadius = 35f * perspScale * (1f + 0.16f * beatKick + 0.18f * holdProg)
+        listOf(Pair(pt1, Color(0xFF38BDF8L)), Pair(pt2, Color(0xFFE879F9L))).forEachIndexed { idx, (pt, pegCol) ->
+            // Special Concentric Liquid-Plasma Vortex Rings when held!
+            if (isBeingHeld) {
+                for (ring in 0..2) {
+                    val vr = pegRadius * (1.35f + ring * 0.36f + 0.12f * sin(time * 9f + ring))
+                    val startDeg = ((time * (if (ring % 2 == 0) 210f else -180f)) + ring * 90f) % 360f
+                    drawArc(
+                        color = (if (ring % 2 == 0) Color(0xFFFACC15L) else pegCol).copy(alpha = 0.85f),
+                        startAngle = startDeg,
+                        sweepAngle = 125f + holdProg * 95f,
+                        useCenter = false,
+                        topLeft = Offset(pt.x - vr, pt.y - vr),
+                        size = Size(vr * 2f, vr * 2f),
+                        style = Stroke(width = 4.2f * perspScale, cap = StrokeCap.Round)
+                    )
+                }
+            }
+
+            // Outer Volumetric Halo
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(
+                        pegCol.copy(alpha = 0.72f),
+                        Color(0xFFFACC15L).copy(alpha = 0.30f),
+                        Color.Transparent
+                    ),
+                    center = pt,
+                    radius = pegRadius * 2.1f
+                ),
+                radius = pegRadius * 2.1f,
+                center = pt,
+                blendMode = BlendMode.Screen
+            )
+
+            // 3D Lit Sphere Core
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(
+                        Color.White,
+                        pegCol,
+                        Color(0xFF0F172AL)
+                    ),
+                    center = Offset(pt.x - pegRadius * 0.32f, pt.y - pegRadius * 0.32f),
+                    radius = pegRadius * 1.35f
+                ),
+                radius = pegRadius,
+                center = pt
             )
             drawCircle(
                 color = Color.White,
-                radius = 5.2f,
-                center = pearlPt
+                radius = pegRadius,
+                center = pt,
+                style = Stroke(width = 3.5f * perspScale)
             )
+
+            // 360-Degree Radial Hold Progress Gauge around each peg!
+            if (holdProg > 0.01f) {
+                val gaugeR = pegRadius * 1.24f
+                drawArc(
+                    color = Color(0xFF4ADE80L),
+                    startAngle = -90f,
+                    sweepAngle = holdProg * 360f,
+                    useCenter = false,
+                    topLeft = Offset(pt.x - gaugeR, pt.y - gaugeR),
+                    size = Size(gaugeR * 2f, gaugeR * 2f),
+                    style = Stroke(width = 6.0f * perspScale, cap = StrokeCap.Round)
+                )
+            }
+
+            drawIntoCanvas { canvas ->
+                cachedSubPaint.textSize = (pegRadius * 0.72f).coerceAtLeast(12f)
+                cachedSubPaint.color = android.graphics.Color.WHITE
+                canvas.nativeCanvas.drawText(if (idx == 0) "L ♪" else "R ♫", pt.x, pt.y + pegRadius * 0.26f, cachedSubPaint)
+            }
         }
 
-        // 3. Tail Finish Ring (`FINISH ★`)
-        val tailScale = computeHighwayScale(uTail.coerceIn(0f, 1.2f))
-        val tailR = 26f * tailScale
-        drawCircle(
-            color = Color(0xFF4ADE80L).copy(alpha = 0.88f),
-            radius = tailR,
-            center = tailPt
-        )
-        drawCircle(
-            color = Color.White,
-            radius = tailR,
-            center = tailPt,
-            style = Stroke(width = 3.2f)
-        )
-
-        // 4. Giant 3D Sustain Note Head (`SLIDE HERE ♪`)
-        val headScale = computeHighwayScale(uHead.coerceIn(0f, 1.2f))
-        val headR = 34f * headScale * (1f + 0.18f * beatKick)
-        drawCircle(
-            brush = Brush.radialGradient(
-                colors = listOf(
-                    Color.White,
-                    Color(0xFFFACC15L),
-                    Color(0xFFF97316L)
-                ),
-                center = Offset(headPt.x - headR * 0.3f, headPt.y - headR * 0.3f),
-                radius = headR * 1.3f
-            ),
-            radius = headR,
-            center = headPt
-        )
-        drawCircle(
-            color = Color.White,
-            radius = headR,
-            center = headPt,
-            style = Stroke(width = 3.8f)
-        )
+        // 3. Clear Center Callout Banner (`⚡ HOLD 2 FINGERS • X% ⚡`)
         drawIntoCanvas { canvas ->
-            cachedSubPaint.textSize = (18.5f * headScale).coerceAtLeast(13.5f)
+            cachedSubPaint.textSize = (18.5f * perspScale).coerceAtLeast(13.5f)
             cachedSubPaint.color = android.graphics.Color.rgb(254, 240, 138)
-            canvas.nativeCanvas.drawText("SLIDE & FOLLOW ♪ »", headPt.x, headPt.y - headR * 1.35f, cachedSubPaint)
+            val pct = (holdProg * 100f).toInt().coerceIn(0, 100)
+            val label = if (isBeingHeld) "⚡ PLASMA HARMONY HOLD • $pct% ⚡" else "⚡ HOLD 2 FINGERS ON BEAT LINE ♪"
+            canvas.nativeCanvas.drawText(label, midPt.x, midPt.y - pegRadius * 1.45f, cachedSubPaint)
         }
     }
 }

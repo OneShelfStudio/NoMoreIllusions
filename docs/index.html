@@ -10,7 +10,7 @@
   <title>No More Illusions — Interactive Album Experience</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="apple-touch-icon" href="assets/nmi_logo.png" />
-  <link rel="stylesheet" href="styles.css?v=17" />
+  <link rel="stylesheet" href="styles.css?v=18" />
   <meta name="google-adsense-account" content="ca-pub-7651037308656903" />
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7651037308656903" data-ad-client="ca-pub-7651037308656903" data-ad-frequency-hint="30s" crossorigin="anonymous"></script>
   <script>
@@ -23,20 +23,23 @@
   <canvas id="game-canvas"></canvas>
 
   <!-- ======================================================================
-       1. MENU SCREEN (1:1 Port of MenuScreen.kt — Tactile Pop & Zoom Console)
+       1. MENU SCREEN (1:1 Port of MenuScreen.kt — Frameless Open-Canvas Vinyl Stage)
        ====================================================================== -->
   <div id="screen-MENU" class="screen-overlay" style="display:flex;">
-    <!-- Top Utility Bar (1:1 with MenuScreen.kt) -->
+    <!-- Top Floating Stage Header (Frameless — Zero Boxy Pill Containers!) -->
     <div class="menu-top-bar">
       <div class="pill-currency" onclick="window.app.openScreen('CUSTOMIZER')">
-        <span style="color:#FACC15;font-size:12px;">♪</span>
-        <span id="menu-points-val">350</span>
+        <span style="color:#FACC15;font-size:15px;">♪</span>
+        <span id="menu-points-val" style="font-size:15px;font-weight:900;color:#FAF8F5;">350</span>
+        <span style="font-size:9px;font-weight:800;color:#94A3B8;letter-spacing:1.2px;">NOTES</span>
         <span id="menu-vip-badge" class="pill-vip-badge"></span>
       </div>
-      <div class="vip-pill" onclick="window.app.openVipPasscode()">🔑 VIP</div>
-      <div id="menu-lobby-pill" class="pill-lobby" onclick="window.app.cycleLobbyTheme()">
-        <span id="menu-lobby-dot" class="lobby-dot"></span>
-        <span id="menu-lobby-text">LOBBY: VELVET SYNTH ↻</span>
+      <div style="display:flex;align-items:center;gap:14px;">
+        <div class="vip-pill" onclick="window.app.openVipPasscode()">🔑 VIP</div>
+        <div id="menu-lobby-pill" class="pill-lobby" onclick="window.app.cycleLobbyTheme()">
+          <span id="menu-lobby-dot" class="lobby-dot"></span>
+          <span id="menu-lobby-text">VELVET SYNTH ↻</span>
+        </div>
       </div>
     </div>
 
@@ -49,38 +52,39 @@
       </div>
       <div id="menu-sub-banner" class="menu-sub-banner">BEST SCORE: <span id="menu-best-score">0</span></div>
 
-      <!-- 1. "Ooh, What Can I Unlock?" Curiosity Peek Dropdown (Collapsed by Default!) -->
+      <!-- 1. Frameless Curiosity Peek Header ("What Can I Unlock?") -->
       <div id="menu-rewards-dropdown-wrap" style="margin-top:6px;width:100%;max-width:430px;"></div>
     </div>
 
-    <!-- Visual-First Dropdown Studio Console Card (Zero Crowding, Tap-to-Open Selectors) -->
+    <!-- Frameless Vinyl Stage Selector & Custom Vinyl-Groove Launch Emblem -->
     <div style="width:100%;max-width:430px;display:flex;flex-direction:column;align-items:center;">
       <div id="menu-console-card" class="console-card">
-        <!-- 1. Song Selector Dropdown -->
+        <!-- 1. Song Selector (Frameless Vinyl Stage Track Header) -->
         <div id="menu-track-deck-row" style="width:100%;"></div>
 
-        <!-- 2. Speed & Mode Dropdown (With Curiosity Reward Hooks!) -->
+        <!-- 2. Speed & Mode Selector (Frameless Laser Hairline Header) -->
         <div id="menu-remix-pills" style="width:100%;"></div>
 
-        <!-- 3. High-Dopamine Launch Button -->
+        <!-- 3. Custom Vinyl-Groove Stage Launch Emblem -->
         <div id="btn-launch-stage" class="btn-launch-stage" onclick="window.app.startStage()">
-          <div id="menu-launch-main" class="btn-launch-main">▶ &nbsp;PLAY TRACK 1 (NORMAL)</div>
+          <div id="menu-launch-main" class="btn-launch-main">▶ &nbsp;PLAY TRACK 1 &nbsp;◀</div>
+          <div id="menu-launch-sub" class="btn-launch-sub">NORMAL • 1.0x PTS • 1 RUN UNLOCK</div>
         </div>
       </div>
 
-      <!-- 3-Tile Studio Console Navigation Row (Crisp 1-Word Titles!) -->
+      <!-- 3 Frameless Floating Stage Icons (Zero Boxy Tiles!) -->
       <div class="bento-row">
-        <div class="bento-tile" style="border-color:rgba(234,179,8,0.75);flex:1.1;" onclick="window.app.openScreen('CUSTOMIZER', -1)">
-          <div class="bento-title">★ VAULT</div>
-          <div class="bento-sub" style="color:#EAB308;">Album &amp; Notes</div>
+        <div class="bento-tile" onclick="window.app.openScreen('CUSTOMIZER', -1)">
+          <div class="bento-icon-circle" style="border-color:rgba(234,179,8,0.65);background:radial-gradient(circle,rgba(234,179,8,0.28),transparent);">💿</div>
+          <div class="bento-title" style="color:#EAB308;">ALBUM &amp; VAULT</div>
         </div>
-        <div class="bento-tile" style="border-color:rgba(74,222,128,0.65);flex:1;" onclick="window.app.openScreen('HOW_TO_PLAY')">
-          <div class="bento-title">▶ REEL</div>
-          <div class="bento-sub" style="color:#4ADE80;">Mini Video</div>
+        <div class="bento-tile" onclick="window.app.openScreen('HOW_TO_PLAY')">
+          <div class="bento-icon-circle" style="border-color:rgba(74,222,128,0.65);background:radial-gradient(circle,rgba(74,222,128,0.28),transparent);">🎬</div>
+          <div class="bento-title" style="color:#4ADE80;">MINI VIDEO</div>
         </div>
-        <div class="bento-tile" style="border-color:rgba(56,189,248,0.65);flex:1;" onclick="window.app.openScreen('SETTINGS')">
-          <div class="bento-title">⚙ OPTIONS</div>
-          <div class="bento-sub" style="color:#38BDF8;">Audio &amp; Setup</div>
+        <div class="bento-tile" onclick="window.app.openScreen('SETTINGS')">
+          <div class="bento-icon-circle" style="border-color:rgba(56,189,248,0.65);background:radial-gradient(circle,rgba(56,189,248,0.28),transparent);">🎚️</div>
+          <div class="bento-title" style="color:#38BDF8;">STUDIO</div>
         </div>
       </div>
     </div>
@@ -156,13 +160,6 @@
         </div>
       </div>
       <div class="toast-bar-bg"><div id="hud-toast-bar"></div></div>
-    </div>
-
-    <div class="hud-bottom-row">
-      <div id="btn-focus-hold" class="btn-focus-wrap">
-        <div class="btn-focus-label">HOLD FOCUS</div>
-        <div class="focus-bar-bg"><div id="hud-focus-fill"></div></div>
-      </div>
     </div>
   </div>
 
@@ -397,13 +394,13 @@
         </div>
       </div>
 
-      <!-- 2. HOLD & SLIDE RIBBONS -->
+      <!-- 2. 2-FINGER TWIN HERO & VOCAL SUSTAIN HOLDS -->
       <div class="guide-item" style="border-color:rgba(56,189,248,0.45);">
-        <div class="guide-icon-badge" style="background:rgba(56,189,248,0.18);border:1.5px solid #38BDF8;color:#38BDF8;">♪</div>
+        <div class="guide-icon-badge" style="background:rgba(56,189,248,0.18);border:1.5px solid #38BDF8;color:#38BDF8;">⚡</div>
         <div>
-          <div class="guide-text-title" style="color:#38BDF8;">HOLD &amp; FOLLOW SUSTAIN SLIDE RIBBONS</div>
+          <div class="guide-text-title" style="color:#38BDF8;">2-FINGER TWIN HERO &amp; VOCAL SUSTAIN HOLDS</div>
           <div class="guide-text-body">
-            When a glowing <b>HOLD &amp; SLIDE ♪</b> ribbon scrolls down the highway, steer inside the ribbon to rack up rapid <b>SLIDE ♪ +65</b> combo ticks!
+            Place a <b>2nd finger</b> anywhere on screen to spawn a <b>Twin Hero Sprite</b> linked by an <b>Electric Plasma Tether</b>! On vocal swells, <b>hold 2 fingers</b> to charge the dual sustain chord to 100%!
           </div>
         </div>
       </div>
@@ -489,7 +486,7 @@
       <div style="background:rgba(10,7,24,0.85);border:1.2px solid rgba(250,204,21,0.35);border-radius:16px;padding:12px 14px;">
         <div style="font-size:10px;font-weight:900;letter-spacing:1.4px;color:#FACC15;margin-bottom:4px;">PRODUCTION STORY &amp; INSPIRATION</div>
         <div id="liner-track-story" style="font-size:11.5px;color:#CBD5E1;line-height:1.55;">
-          Written during late-night studio sessions surrounded by analog synthesizers and tape machines. 'Confide' explores the vulnerable threshold between holding up emotional armor and letting someone see what lies beneath.
+          Here is where you can put your personal production story, studio memories, or behind-the-scenes inspiration for your fans!
         </div>
       </div>
 
@@ -497,10 +494,7 @@
       <div style="background:rgba(10,7,24,0.85);border:1.2px solid rgba(56,189,248,0.35);border-radius:16px;padding:12px 14px;">
         <div style="font-size:10px;font-weight:900;letter-spacing:1.4px;color:#38BDF8;margin-bottom:4px;">LYRIC &amp; CADENCE BREAKDOWN</div>
         <div id="liner-track-lyrics" style="font-size:12px;color:#E0F2FE;font-style:italic;line-height:1.6;white-space:pre-line;">
-          "Can I confide in you tonight?
-          No more illusions to hide behind...
-          Through the dark void and the frequency light,
-          We break the signal and come alive."
+          Here is where you can put the official lyrics, chorus breakdown, or personal liner notes for your fans!
         </div>
       </div>
 
@@ -570,16 +564,16 @@
     </div>
   </div>
 
-  <script src="multi_band_data.js?v=17"></script>
-  <script src="music_library.js?v=17"></script>
-  <script src="background_renderer.js?v=17"></script>
-  <script src="beat_orb_renderer.js?v=17"></script>
-  <script src="game_renderer.js?v=17"></script>
-  <script src="engine.js?v=17"></script>
-  <script src="audio_synth.js?v=17"></script>
-  <script src="game_physics.js?v=17"></script>
-  <script src="ui_screens.js?v=17"></script>
-  <script src="tutorial_overlay.js?v=17"></script>
+  <script src="multi_band_data.js?v=18"></script>
+  <script src="music_library.js?v=18"></script>
+  <script src="background_renderer.js?v=18"></script>
+  <script src="beat_orb_renderer.js?v=18"></script>
+  <script src="game_renderer.js?v=18"></script>
+  <script src="engine.js?v=18"></script>
+  <script src="audio_synth.js?v=18"></script>
+  <script src="game_physics.js?v=18"></script>
+  <script src="ui_screens.js?v=18"></script>
+  <script src="tutorial_overlay.js?v=18"></script>
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {

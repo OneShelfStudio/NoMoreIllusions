@@ -9,7 +9,7 @@ import kotlin.math.PI
 class GameRhythmAndPhysicsTest {
 
     @Test
-    fun `spawnStationaryBeatOrbsForFrame clears and suppresses all pegs when sustain ribbon is active`() {
+    fun `spawnStationaryBeatOrbsForFrame preserves mid-flight pegs and suppresses new spawns when sustain hold is active`() {
         val chart = listOf(
             BeatOrbCue(1, 1.0f, 0.25f, 0.65f, PowerUpType.NONE, isGoldenCue = false),
             BeatOrbCue(2, 1.5f, 0.50f, 0.65f, PowerUpType.BLAST, isGoldenCue = true),
@@ -37,7 +37,7 @@ class GameRhythmAndPhysicsTest {
             isTrainingMode = false
         )
 
-        assertTrue("All active beat pegs must be cleared while sustain ribbon is active", powerUps.isEmpty())
+        assertEquals("Mid-flight beat pegs must be preserved while new spawns are suppressed", 2, powerUps.size)
         assertTrue("Cue index should advance past overlapping ribbon timestamps", nextIdx > 0)
     }
 

@@ -337,6 +337,7 @@ fun GameScreen(
     var player by remember { mutableStateOf(GameObject(0f, 0f, 18f, Color(0xFF22C55EL))) }
     var targetX by remember { mutableFloatStateOf(0f) }
     var targetY by remember { mutableFloatStateOf(0f) }
+    var secondTouchPos by remember { mutableStateOf<Offset?>(null) }
     var spawnInvulnerabilityTime by remember { mutableFloatStateOf(2.5f) }
 
     val enemies = remember { mutableStateListOf<GameObject>() }
@@ -927,7 +928,10 @@ fun GameScreen(
                 val pIter = powerUps.iterator()
                 while (pIter.hasNext()) {
                     val p = pIter.next()
-                    val dist = hypot(p.x - player.x, p.y - player.y)
+                    val distPrimary = hypot(p.x - player.x, p.y - player.y)
+                    val secPos = secondTouchPos
+                    val distSecondary = if (secPos != null) hypot(p.x - secPos.x, p.y - secPos.y) else 9999f
+                    val dist = minOf(distPrimary, distSecondary)
                     val catchRadius = p.radius + player.radius + (if (isGoldenActive) 22f else 18f)
                     if (dist < catchRadius) {
                         rhythmCombo++
@@ -1199,7 +1203,8 @@ fun GameScreen(
                     floatingTexts = floatingTexts,
                     screenWidth = screenWidth,
                     screenHeight = screenHeight,
-                    particles = particles
+                    particles = particles,
+                    secondFingerPos = secondTouchPos
                 )
                 activeWormholeSlide = surfRes.nextSlide
                 targetX = surfRes.targetX
@@ -1287,6 +1292,7 @@ fun GameScreen(
             enemyTelegraphs = enemyTelegraphs,
             wormholes = wormholes,
             player = player,
+            secondTouchPos = secondTouchPos,
             motes = motes,
             playerTrail = playerTrail,
             shockwaves = shockwaves,
@@ -1309,6 +1315,9 @@ fun GameScreen(
             onDragPlayer = { dx, dy ->
                 targetX = (targetX + dx).coerceIn(player.radius, screenWidth - player.radius)
                 targetY = (targetY + dy).coerceIn(player.radius, screenHeight - player.radius)
+            },
+            onSecondFingerChange = { secOffset ->
+                secondTouchPos = secOffset
             }
         )
 
@@ -1339,29 +1348,7 @@ fun GameScreen(
             )
         }
 
-        if (gameState == GameState.PLAYING) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(bottom = 36.dp, end = 20.dp),
-                contentAlignment = Alignment.BottomEnd
-            ) {
-                ArcadeFocusButton(
-                    focusPower = focusPower,
-                    isActive = isFocusActive,
-                    onPressStart = {
-                        if (focusPower > 0.15f) {
-                            isFocusActive = true
-                            audioEngine.playFocus()
-                            voiceOverManager.playVoiceOver("vo_focus_enter")
-                        }
-                    },
-                    onPressEnd = {
-                        isFocusActive = false
-                    }
-                )
-            }
-        }
+
 
         if (gameState != GameState.MUSIC_DEMO) {
             Box(modifier = Modifier.align(Alignment.TopCenter).statusBarsPadding()) {

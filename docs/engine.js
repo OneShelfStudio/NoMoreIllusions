@@ -114,11 +114,12 @@ class NoMoreIllusionsApp {
     this.newlyUnlockedTrack = null;
     this.earnedMedalTier = 0;
 
-    // Player & Entities
+    // Player & Entities (Primary Hero + Optional 2nd-Finger Twin Hero)
     this.playerX = window.innerWidth / 2;
     this.playerY = window.innerHeight * 0.65;
     this.targetX = this.playerX;
     this.targetY = this.playerY;
+    this.secondPlayerPos = null;
     this.playerRadius = 22;
     this.trailPoints = Array.from({ length: 28 }, () => ({ x: 0, y: 0 }));
     this.trailLength = 0;
@@ -311,24 +312,68 @@ class NoMoreIllusionsApp {
       window.addEventListener("pointercancel", endScratch);
     }
 
-    // Pointer / Touch Controls on Game Canvas (Thumb-friendly bottom steering zone!)
-    const updatePointer = (clientX, clientY) => {
+    // Pointer / Multi-Touch Controls on Game Canvas (1st Finger = Primary Hero, 2nd Finger = Twin Hero + Plasma Tether!)
+    const mapFingerToStage = (clientX, clientY) => {
+      const x = Math.max(this.playerRadius, Math.min(this.W - this.playerRadius, clientX));
+      const offsetY = clientY > this.H * 0.48 ? clientY - 58 : clientY - 36;
+      const y = Math.max(this.playerRadius, Math.min(this.H - this.playerRadius, offsetY));
+      return { x, y };
+    };
+
+    const updatePointer = (clientX, clientY, shiftHeld = false) => {
       this.unlockAudioOnFirstGesture();
       if (this.gameState === "PLAYING") {
-        this.targetX = Math.max(this.playerRadius, Math.min(this.W - this.playerRadius, clientX));
-        // Ergonomic thumb-below vertical offset: keep your finger near the bottom while the Hero glides along the 65% Strike Line!
-        const offsetY = clientY > this.H * 0.48 ? clientY - 58 : clientY - 36;
-        this.targetY = Math.max(this.playerRadius, Math.min(this.H - this.playerRadius, offsetY));
+        const pt = mapFingerToStage(clientX, clientY);
+        this.targetX = pt.x;
+        this.targetY = pt.y;
+        if (shiftHeld) {
+          this.secondPlayerPos = {
+            x: Math.max(this.playerRadius, Math.min(this.W - this.playerRadius, this.W - pt.x)),
+            y: pt.y
+          };
+        }
       }
     };
 
+    const handleTouches = (e) => {
+      this.unlockAudioOnFirstGesture();
+      if (this.gameState !== "PLAYING") {
+        this.secondPlayerPos = null;
+        return;
+      }
+      if (e.touches && e.touches.length > 0) {
+        const t0 = e.touches[0];
+        const p0 = mapFingerToStage(t0.clientX, t0.clientY);
+        this.targetX = p0.x;
+        this.targetY = p0.y;
+        if (e.touches.length >= 2) {
+          const t1 = e.touches[1];
+          this.secondPlayerPos = mapFingerToStage(t1.clientX, t1.clientY);
+        } else {
+          this.secondPlayerPos = null;
+        }
+      } else {
+        this.secondPlayerPos = null;
+      }
+    };
+
+    this.canvas.addEventListener("touchstart", handleTouches, { passive: true });
+    this.canvas.addEventListener("touchmove", handleTouches, { passive: true });
+    this.canvas.addEventListener("touchend", handleTouches, { passive: true });
+    this.canvas.addEventListener("touchcancel", () => { this.secondPlayerPos = null; }, { passive: true });
+
     this.canvas.addEventListener("pointerdown", (e) => {
-      updatePointer(e.clientX, e.clientY);
+      if (e.pointerType !== "touch") {
+        updatePointer(e.clientX, e.clientY, e.shiftKey);
+      }
     });
     this.canvas.addEventListener("pointermove", (e) => {
-      if (e.buttons > 0 || e.pointerType === "touch") {
-        updatePointer(e.clientX, e.clientY);
+      if (e.pointerType !== "touch" && e.buttons > 0) {
+        updatePointer(e.clientX, e.clientY, e.shiftKey);
       }
+    });
+    window.addEventListener("keyup", (e) => {
+      if (e.key === "Shift") this.secondPlayerPos = null;
     });
 
     // Live Customizer Preview Drag
@@ -346,17 +391,6 @@ class NoMoreIllusionsApp {
       });
       this.previewCanvas.addEventListener("pointerup", () => { this.previewTouchPos = null; });
       this.previewCanvas.addEventListener("pointercancel", () => { this.previewTouchPos = null; });
-    }
-
-    // Focus Button Hold
-    const focusBtn = document.getElementById("btn-focus-hold");
-    if (focusBtn) {
-      focusBtn.addEventListener("pointerdown", (e) => {
-        e.stopPropagation();
-        if (this.focusCharge > 0.12) this.isFocusHolding = true;
-      });
-      window.addEventListener("pointerup", () => { this.isFocusHolding = false; });
-      window.addEventListener("pointercancel", () => { this.isFocusHolding = false; });
     }
 
     // Track Audio Ended -> Track Completed (or Endless Loop Escalation)!
@@ -491,6 +525,7 @@ class NoMoreIllusionsApp {
     this.playerY = this.H * 0.65;
     this.targetX = this.playerX;
     this.targetY = this.playerY;
+    this.secondPlayerPos = null;
     this.trailLength = 0;
 
     this.enemies = [];
@@ -805,8 +840,8 @@ class NoMoreIllusionsApp {
         titleEl.textContent = "1/3 • HIT FRET NOTES ON THE GLOWING BEAT LINE";
         subEl.textContent = "Notes scroll down 4 lanes — catch them at the Strike Line for ★ PERFECT ON-BEAT!";
       } else if (sceneIdx === 1) {
-        titleEl.textContent = "2/3 • HOLD & FOLLOW SUSTAIN SLIDE RIBBONS";
-        subEl.textContent = "Steer inside scrolling neon ribbons to rack up rapid SLIDE ♪ combo ticks!";
+        titleEl.textContent = "2/3 • 2-FINGER TWIN HERO & VOCAL SUSTAIN HOLDS";
+        subEl.textContent = "Touch with 2 fingers to spawn a Twin Hero with Electric Plasma Tether & charge Vocal Sustain Holds!";
       } else {
         titleEl.textContent = "3/3 • GRAB 💥 BOMBS TO VAPORIZE RED HAZARDS";
         subEl.textContent = "Collect labeled 💥 BOMB cores to wipe out every enemy on screen for +150 pts each!";
@@ -918,31 +953,40 @@ class NoMoreIllusionsApp {
         ctx.fillText("★ PERFECT ON-BEAT! +240", targetRp.x, strikeY - 18);
       }
     } else if (sceneIdx === 1) {
-      const headU = 0.25 + sceneT * 0.85;
-      const tailU = headU - 0.50;
-      const pHead = lanePt(1.0 + sceneT * 1.2, headU);
-      const pTail = lanePt(1.0, Math.max(0, tailU));
-      shipX = pHead.x;
+      const pLeft = lanePt(0, 1.0);
+      const pRight = lanePt(3, 1.0);
+      shipX = pLeft.x;
+      const twinX = pRight.x;
 
+      // Electric Plasma Tether between Twin Heroes
       ctx.beginPath();
-      ctx.moveTo(pTail.x, pTail.y);
-      ctx.lineTo(pHead.x, pHead.y);
-      ctx.strokeStyle = "rgba(56, 189, 248, 0.55)";
-      ctx.lineWidth = 14;
+      ctx.moveTo(shipX, strikeY);
+      ctx.quadraticCurveTo((shipX + twinX) * 0.5, strikeY - 14 * Math.sin(this.time * 12), twinX, strikeY);
+      ctx.strokeStyle = "rgba(56, 189, 248, 0.78)";
+      ctx.lineWidth = 8;
       ctx.lineCap = "round";
       ctx.stroke();
 
       ctx.beginPath();
-      ctx.moveTo(pTail.x, pTail.y);
-      ctx.lineTo(pHead.x, pHead.y);
+      ctx.moveTo(shipX, strikeY);
+      ctx.quadraticCurveTo((shipX + twinX) * 0.5, strikeY + 10 * Math.cos(this.time * 15), twinX, strikeY);
       ctx.strokeStyle = "#FFFFFF";
-      ctx.lineWidth = 3;
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+
+      // Twin Hero Sprite on Right Anchor
+      ctx.beginPath();
+      ctx.arc(twinX, strikeY, 10, 0, Math.PI * 2);
+      ctx.fillStyle = "#FACC15";
+      ctx.fill();
+      ctx.strokeStyle = "#FFFFFF";
+      ctx.lineWidth = 2;
       ctx.stroke();
 
       ctx.font = "900 10px sans-serif";
-      ctx.fillStyle = "#38BDF8";
+      ctx.fillStyle = "#FACC15";
       ctx.textAlign = "center";
-      ctx.fillText("SLIDE ♪ +65", shipX, shipY - 18);
+      ctx.fillText(`⚡ 2-FINGER SUSTAIN HOLD • ${Math.min(100, Math.round(sceneT * 115))}%`, w * 0.5, strikeY - 22);
     } else {
       const bombU = Math.min(1.0, sceneT * 1.55);
       const bombPt = lanePt(2, bombU);
@@ -1041,6 +1085,16 @@ class NoMoreIllusionsApp {
         drawEnemySprite(ctx, this.enemies[i], enemyBmps, this.time, this.beatPulse);
       }
 
+      if (this.secondPlayerPos && typeof drawDualHeroPlasmaTether === "function") {
+        drawDualHeroPlasmaTether(
+          ctx,
+          { x: this.playerX, y: this.playerY },
+          this.secondPlayerPos,
+          this.time,
+          this.beatPulse
+        );
+      }
+
       drawPlayerSprite(
         ctx,
         this.playerX,
@@ -1051,11 +1105,29 @@ class NoMoreIllusionsApp {
         this.shieldTimer,
         this.overdriveTimer,
         this.magnetTimer,
-        this.isFocusHolding,
-        this.focusCharge,
+        false,
+        0,
         this.beatPulse,
         this.time
       );
+
+      if (this.secondPlayerPos) {
+        drawPlayerSprite(
+          ctx,
+          this.secondPlayerPos.x,
+          this.secondPlayerPos.y,
+          this.playerRadius,
+          this.getHeroBitmap(),
+          this.prefs.selectedSkin,
+          this.shieldTimer,
+          this.overdriveTimer,
+          this.magnetTimer,
+          false,
+          0,
+          this.beatPulse,
+          this.time + 0.35
+        );
+      }
 
       drawFloatingTexts(ctx, this.floatingTexts);
     }
