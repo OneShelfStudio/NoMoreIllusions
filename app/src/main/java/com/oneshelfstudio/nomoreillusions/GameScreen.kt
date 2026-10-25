@@ -397,22 +397,10 @@ fun GameScreen(
     var liveTrackSec by remember { mutableFloatStateOf(0f) }
     var liveBeatPhase by remember { mutableFloatStateOf(0f) }
 
-    val difficultyScoreMultiplier = (when (gameDifficulty) {
-        GameDifficulty.EASY -> 0.5f
-        GameDifficulty.REGULAR -> 1.0f
-        GameDifficulty.HARD -> 1.5f
-    }) * selectedRemixMode.scoreMultiplier
-    val trackDifficultyBoost = 1.0f + (selectedTrackIndex - 1).coerceAtLeast(0) * 0.14f
-    val speedScale = (when (gameDifficulty) {
-        GameDifficulty.EASY -> 0.68f
-        GameDifficulty.REGULAR -> 0.85f
-        GameDifficulty.HARD -> 1.18f
-    }) * trackDifficultyBoost
-    val spawnRateScale = (when (gameDifficulty) {
-        GameDifficulty.EASY -> 0.22f
-        GameDifficulty.REGULAR -> 0.42f
-        GameDifficulty.HARD -> 1.15f
-    }) * trackDifficultyBoost * selectedRemixMode.enemyScale
+    val difficultyScoreMultiplier = getDifficultyScoreMultiplier(gameDifficulty, selectedRemixMode)
+    val trackDifficultyBoost = getTrackDifficultyBoost(selectedTrackIndex)
+    val speedScale = getSpeedScale(gameDifficulty, trackDifficultyBoost)
+    val spawnRateScale = getSpawnRateScale(gameDifficulty, trackDifficultyBoost, selectedRemixMode)
 
     val applyColorBlind: (Color) -> Color = { color ->
         when (colorBlindMode) {
