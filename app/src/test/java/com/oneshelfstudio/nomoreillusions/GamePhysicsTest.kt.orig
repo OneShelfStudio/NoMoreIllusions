@@ -1,0 +1,216 @@
+package com.oneshelfstudio.nomoreillusions
+
+import androidx.compose.ui.graphics.Color
+import org.junit.Assert.*
+import org.junit.Test
+import kotlin.math.PI
+
+class GamePhysicsTest {
+
+    @Test
+    fun testStepEnemyKinematicsAndFlocking_enforcesDownwardVelocity() {
+        // Given an enemy that wants to move UPWARD (angle = -PI/2)
+        val enemy = GameObject(
+            x = 100f,
+            y = 100f,
+            radius = 10f,
+            color = Color.Red,
+            speed = 100f, // Make speed large enough to see clear changes
+            angle = -PI.toFloat() / 2f, // Pointing straight UP
+            type = EnemyType.SEEKER
+        )
+        val player = GameObject(x = 100f, y = 500f, radius = 10f, color = Color.Blue)
+        val multiBand = MultiBandAudioState(bass = 0.5f) // Normal bass, drumCutScale = 1.0f
+
+        // When we step the enemy
+        stepEnemyKinematicsAndFlocking(
+            e = enemy,
+            enemies = listOf(enemy),
+            player = player,
+            gameTime = 0f,
+            currentScale = 1f, // 1 second worth of movement for easy math if we pretend 1 tick = 1s, but here scale=1 means we just apply baseVy + oscVy
+            beatPhase = 0.5f, // Not on kick beat
+            activeTargetOrb = null,
+            activePhenomenon = null,
+            multiBand = multiBand,
+            allBeatOrbs = emptyList()
+        )
+
+        // Then its y position should INCREASE (meaning it moved DOWNWARD), despite wanting to move UP
+        val minDownwardVy = enemy.speed * 0.42f // Expected min Vy
+
+        assertTrue("Enemy should have moved downward (y > 100f), actual y: ${enemy.y}", enemy.y > 100f)
+        assertTrue("Enemy y movement should be at least minDownwardVy (${minDownwardVy}), actual delta: ${enemy.y - 100f}", enemy.y - 100f >= minDownwardVy - 0.01f) // Account for small float inaccuracies or oscillator
+    }
+
+    @Test
+    fun testStepEnemyKinematicsAndFlocking_drumCutReducesVelocity() {
+        val enemy = GameObject(x = 100f, y = 100f, radius = 10f, color = Color.Red, speed = 100f, angle = PI.toFloat() / 2f, type = EnemyType.SEEKER)
+        val player = GameObject(x = 100f, y = 500f, radius = 10f, color = Color.Blue)
+        val multiBandDrumCut = MultiBandAudioState(bass = 0.1f) // Drum cut active! (bass < 0.16)
+
+        stepEnemyKinematicsAndFlocking(
+            e = enemy,
+            enemies = listOf(enemy),
+            player = player,
+            gameTime = 0f,
+            currentScale = 1f,
+            beatPhase = 0.5f,
+            multiBand = multiBandDrumCut
+        )
+
+        // The speed should be scaled by drumCutScale = 0.42f
+        // baseVy = maxOf(minDownwardVy, sin(PI/2)*speed*beatSpeedMult*drumCutScale)
+        // beatSpeedMult for SEEKER without beatKick is 0.98f
+        val expectedMovement = 100f * 0.98f * 0.42f
+        assertEquals("Movement should be reduced by drumCutScale", 100f + expectedMovement, enemy.y, 0.5f)
+    }
+
+    @Test
+    fun testStepEnemyKinematicsAndFlocking_locksHasPassedPlayer() {
+        // Enemy is vertically below player (y > player.y)
+        val enemy = GameObject(x = 100f, y = 600f, radius = 10f, color = Color.Red, speed = 10f)
+        val player = GameObject(x = 100f, y = 500f, radius = 10f, color = Color.Blue)
+
+        assertFalse(enemy.hasPassedPlayer)
+
+        stepEnemyKinematicsAndFlocking(
+            e = enemy,
+            enemies = listOf(enemy),
+            player = player,
+            gameTime = 0f,
+            currentScale = 1f
+        )
+
+        assertTrue("Enemy should be marked as having passed player", enemy.hasPassedPlayer)
+    }
+
+    @Test
+    fun testStepEnemyKinematicsAndFlocking_locksHasPassedPlayer_closeProximity() {
+        // Enemy is close to player but slightly above
+        val enemy = GameObject(x = 100f, y = 490f, radius = 10f, color = Color.Red, speed = 10f)
+        val player = GameObject(x = 100f, y = 500f, radius = 10f, color = Color.Blue)
+
+        assertFalse(enemy.hasPassedPlayer)
+
+        stepEnemyKinematicsAndFlocking(
+            e = enemy,
+            enemies = listOf(enemy),
+            player = player,
+            gameTime = 0f,
+            currentScale = 1f
+        )
+        // Condition: distToPlayer < 85f || e.y >= player.y - 24f
+        // Here distToPlayer = 10f < 85f
+        assertTrue("Enemy should be marked as having passed player when close", enemy.hasPassedPlayer)
+    }
+
+    @Test
+    fun testStepAndSpawnTelegraphedEnemies_clampsSpawningToTop26Percent() {
+        val enemies = mutableListOf<GameObject>()
+        val telegraphs = mutableListOf<EnemySpawnTelegraph>()
+        val shockwaves = mutableListOf<Shockwave>()
+        val screenWidth = 1080f
+        val screenHeight = 1920f
+        val player = GameObject(x = 540f, y = 1600f, radius = 10f, color = Color.Blue)
+
+        // Force a spawn by setting spawn chance > 1 and being on beat
+        stepAndSpawnTelegraphedEnemies(
+            enemies = enemies,
+            telegraphs = telegraphs,
+            shockwaves = shockwaves,
+            levelPlayTime = 22f, // Max ramp factor
+            difficulty = 1.0f,
+            spawnRateScale = 1.0f, // Max spawn rate logic path
+            speedScale = 1.0f,
+            screenWidth = screenWidth,
+            screenHeight = screenHeight,
+            customEnemyStyle = "DEFAULT",
+            player = player,
+            applyColorBlind = { it },
+            multiBand = MultiBandAudioState(bassDropOut = false, bass = 1.0f, rms = 1.0f),
+            beatPhase = 0.1f, // On beat! (0..0.28)
+            sectionMaxEnemies = 10 // high cap
+        )
+
+        // Print for debugging why it failed
+        assertTrue("Should have spawned at least one telegraph", telegraphs.isNotEmpty())
+
+        // Check ALL generated telegraphs to ensure they spawn in the top 26%
+        val maxUpperSideY = (screenHeight * 0.26f).coerceAtLeast(130f)
+        for (telegraph in telegraphs) {
+            // Allow for a small margin of error or negative values for off-screen entry
+            if (telegraph.edgeX < 100f || telegraph.edgeX > screenWidth - 100f) {
+                assertTrue("Telegraph edgeY should be <= maxUpperSideY ($maxUpperSideY), was ${telegraph.edgeY}", telegraph.edgeY <= maxUpperSideY + 1f)
+                assertTrue("Telegraph entryY should be <= maxUpperSideY ($maxUpperSideY), was ${telegraph.entryY}", telegraph.entryY <= maxUpperSideY + 1f)
+            } else {
+                // Top spawn, edgeY is margin (24f), entryY is -28f
+            }
+        }
+    }
+
+    @Test
+    fun testStepAndSpawnTelegraphedEnemies_enforcesMaxActiveEnemies_Easy() {
+        val enemies = mutableListOf<GameObject>(
+            GameObject(x=0f, y=0f, radius=10f, color=Color.Red)
+        )
+        val telegraphs = mutableListOf<EnemySpawnTelegraph>()
+        val shockwaves = mutableListOf<Shockwave>()
+        val player = GameObject(x=540f, y=1600f, radius=10f, color=Color.Blue)
+
+        // spawnRateScale = 0.22f for EASY
+        stepAndSpawnTelegraphedEnemies(
+            enemies = enemies,
+            telegraphs = telegraphs,
+            shockwaves = shockwaves,
+            levelPlayTime = 22f,
+            difficulty = 1.0f,
+            spawnRateScale = 0.22f,
+            speedScale = 1.0f,
+            screenWidth = 1080f,
+            screenHeight = 1920f,
+            customEnemyStyle = "DEFAULT",
+            player = player,
+            applyColorBlind = { it },
+            beatPhase = 0.1f,
+            sectionMaxEnemies = 10
+        )
+
+        // Max enemies for <= 0.30f is 1. We already have 1 enemy. It should NOT spawn any telegraphs.
+        assertTrue("Should not spawn telegraphs when max enemies is reached", telegraphs.isEmpty())
+    }
+
+    @Test
+    fun testStepAndSpawnTelegraphedEnemies_enforcesMaxActiveEnemies_Normal() {
+        // spawnRateScale = 0.42f for NORMAL. sectionMaxEnemies = 5.
+        // max = minOf(2, round(5 * 0.42)) = minOf(2, round(2.1)) = minOf(2, 2) = 2.
+
+        // Add 2 enemies to reach cap.
+        val enemies = mutableListOf<GameObject>(
+            GameObject(x=0f, y=0f, radius=10f, color=Color.Red),
+            GameObject(x=0f, y=0f, radius=10f, color=Color.Red)
+        )
+        val telegraphs = mutableListOf<EnemySpawnTelegraph>()
+        val shockwaves = mutableListOf<Shockwave>()
+        val player = GameObject(x=540f, y=1600f, radius=10f, color=Color.Blue)
+
+        stepAndSpawnTelegraphedEnemies(
+            enemies = enemies,
+            telegraphs = telegraphs,
+            shockwaves = shockwaves,
+            levelPlayTime = 22f,
+            difficulty = 1.0f,
+            spawnRateScale = 0.42f,
+            speedScale = 1.0f,
+            screenWidth = 1080f,
+            screenHeight = 1920f,
+            customEnemyStyle = "DEFAULT",
+            player = player,
+            applyColorBlind = { it },
+            beatPhase = 0.1f,
+            sectionMaxEnemies = 5
+        )
+
+        assertTrue("Should not spawn telegraphs when cap (2) is reached for normal mode", telegraphs.isEmpty())
+    }
+}
