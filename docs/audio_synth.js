@@ -4,27 +4,43 @@
 
 Object.assign(NoMoreIllusionsApp.prototype, {
   initH5Ads() {
-    const H5_TEST_MODE = true;
+    const H5_TEST_MODE = location.hostname === "localhost" || location.hostname === "127.0.0.1" || location.search.includes("adtest=1");
     const PUB_ID = "ca-pub-7651037308656903";
-    this.h5AdsEnabled = /(^|\.)digital-dads-llc\.com$/i.test(location.hostname);
+    this.h5AdsEnabled = /(^|\.)digital-dads-llc\.com$/i.test(location.hostname) || H5_TEST_MODE;
     this.pendingShowRewardAd = null;
     this.gameOverCount = 0;
     if (!this.h5AdsEnabled) return;
     try {
-      const s = document.createElement("script");
-      s.async = true;
-      s.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${PUB_ID}`;
-      s.crossOrigin = "anonymous";
-      s.setAttribute("data-ad-client", PUB_ID);
-      s.setAttribute("data-ad-frequency-hint", "30s");
+      let s = document.querySelector('script[src*="adsbygoogle.js"]');
+      if (!s) {
+        s = document.createElement("script");
+        s.async = true;
+        s.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${PUB_ID}`;
+        s.crossOrigin = "anonymous";
+        s.setAttribute("data-ad-client", PUB_ID);
+        s.setAttribute("data-ad-frequency-hint", "30s");
+        document.head.appendChild(s);
+      }
       if (H5_TEST_MODE) s.setAttribute("data-adbreak-test", "on");
-      document.head.appendChild(s);
       window.adsbygoogle = window.adsbygoogle || [];
-      window.adBreak = window.adConfig = function (o) { window.adsbygoogle.push(o); };
-      window.adConfig({ preloadAdBreaks: "on", sound: "on" });
+      if (typeof window.adBreak !== "function") {
+        window.adBreak = window.adConfig = function (o) { window.adsbygoogle.push(o); };
+      }
+      window.adConfig({
+        preloadAdBreaks: "on",
+        sound: (this.prefs && this.prefs.musicMuted) ? "off" : "on",
+        onReady: () => { this.h5AdsReady = true; }
+      });
     } catch (e) {
       this.h5AdsEnabled = false;
     }
+  },
+
+  syncH5SoundState() {
+    if (!this.h5AdsEnabled || typeof window.adConfig !== "function") return;
+    try {
+      window.adConfig({ sound: (this.prefs && this.prefs.musicMuted) ? "off" : "on" });
+    } catch (e) {}
   },
 
   pauseAllAudioForAd() {
