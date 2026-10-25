@@ -286,10 +286,47 @@ Object.assign(NoMoreIllusionsApp.prototype, {
     this.syncUI();
   },
 
+  toggleRewardsPeek() {
+    this.playSfx("click");
+    this.showRewardsPeek = !this.showRewardsPeek;
+    if (this.showRewardsPeek) {
+      this.showTrackDropdown = false;
+      this.showModeDropdown = false;
+    }
+    this.syncUI();
+  },
+
+  toggleTrackDropdown() {
+    this.playSfx("click");
+    this.showTrackDropdown = !this.showTrackDropdown;
+    if (this.showTrackDropdown) {
+      this.showModeDropdown = false;
+      this.showRewardsPeek = false;
+    }
+    this.syncUI();
+  },
+
+  toggleModeDropdown() {
+    this.playSfx("click");
+    this.showModeDropdown = !this.showModeDropdown;
+    if (this.showModeDropdown) {
+      this.showTrackDropdown = false;
+      this.showRewardsPeek = false;
+    }
+    this.syncUI();
+  },
+
+  toggleCustomizerCatDropdown() {
+    this.playSfx("click");
+    this.showCustomizerCatDropdown = !this.showCustomizerCatDropdown;
+    this.syncCustomizerUI();
+  },
+
   selectStage(index) {
     this.unlockAudioOnFirstGesture();
     this.playSfx("click");
     this.selectedStageIndex = index;
+    this.showTrackDropdown = false;
     this.syncUI();
   },
 
@@ -330,41 +367,117 @@ Object.assign(NoMoreIllusionsApp.prototype, {
     }
 
     const activeStage = OFFICIAL_TRACKS[this.selectedStageIndex] || OFFICIAL_TRACKS[0];
+    const unlockedExclCount = typeof this.getUnlockedExclusivesCount === "function" ? this.getUnlockedExclusivesCount() : 0;
+    const totalExclCount = typeof ARTIST_EXCLUSIVES_CATALOG !== "undefined" ? ARTIST_EXCLUSIVES_CATALOG.length : 7;
 
-    // 1. Tactile Pop & Zoom Vinyl Track Cards (#menu-track-deck-row)
-    const trackDeckRow = document.getElementById("menu-track-deck-row");
-    if (trackDeckRow) {
-      trackDeckRow.innerHTML = OFFICIAL_TRACKS.map((track, idx) => {
-        const isSelected = idx === this.selectedStageIndex;
-        const stars = this.prefs.trackMasteryMedals[track.id] || 0;
-        const starsStr = [1, 2, 3].map(s => `<span style="color:${s <= stars ? "#FACC15" : "#334155"};">★</span>`).join("");
-        const effBpm = Math.round(track.bpm * (activeRemix.speed || 1.0));
-        return `
-          <div class="track-card ${isSelected ? "selected" : ""}" onclick="window.app.selectStage(${idx})">
-            <div class="track-card-header">
-              <span class="track-card-bpm">SIDE 0${idx + 1} • ${effBpm} BPM</span>
-              <span class="track-card-stars">${starsStr}</span>
-            </div>
-            <div class="track-card-title">${track.title.toUpperCase()}</div>
+    // 0. "Ooh, What Can I Unlock?" Curiosity Peek Dropdown (#menu-rewards-dropdown-wrap)
+    const rewardsDropWrap = document.getElementById("menu-rewards-dropdown-wrap");
+    if (rewardsDropWrap) {
+      rewardsDropWrap.innerHTML = `
+        <div style="background:#0E0C07;border:1.3px solid rgba(234,179,8,0.85);border-radius:10px;overflow:hidden;">
+          <div onclick="window.app.toggleRewardsPeek()"
+               style="padding:8px 12px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;">
+            <span style="font-size:10px;font-weight:900;color:#EAB308;letter-spacing:0.6px;">🎁 WHAT CAN I UNLOCK? (ARTIST EXCLUSIVES)</span>
+            <span style="font-size:9px;font-weight:900;color:#FAF8F5;white-space:nowrap;">${unlockedExclCount}/${totalExclCount} ${this.showRewardsPeek ? "▴" : "▾"}</span>
           </div>
-        `;
-      }).join("");
+          ${this.showRewardsPeek ? `
+            <div style="background:#08070C;padding:8px 12px 10px;border-top:1px solid rgba(234,179,8,0.25);display:flex;flex-direction:column;gap:5px;text-align:left;">
+              <div style="font-size:10px;font-weight:700;color:#4ADE80;">💿 Beat Any Song → Unlock Full 432Hz Track &amp; Ethan's Liner Note</div>
+              <div style="font-size:10px;font-weight:700;color:#38BDF8;">🔥 Hit 8x Beat Streak → Unlock Backstage Vocal Chain Secrets</div>
+              <div style="font-size:10px;font-weight:900;color:#F43F5E;">🏆 15,000+ on ∞ Endless Loop → Secret Personal Message from Ethan!</div>
+              <div onclick="window.app.openScreen('CUSTOMIZER', -1)"
+                   style="margin-top:4px;background:rgba(234,179,8,0.18);border:1px solid #EAB308;border-radius:7px;padding:6px;text-align:center;font-size:9.5px;font-weight:900;color:#EAB308;cursor:pointer;">
+                ★ OPEN ARTIST VAULT &amp; MYSTERY ENVELOPES →
+              </div>
+            </div>
+          ` : ""}
+        </div>
+      `;
     }
 
-    // 2. Tactile Pop & Zoom Speed Switches (#menu-remix-pills) — Zoomed Pill Reveals Crisp 1-Line Spec!
+    // 1. Song Selector Dropdown (#menu-track-deck-row)
+    const trackDeckRow = document.getElementById("menu-track-deck-row");
+    if (trackDeckRow) {
+      const selStars = this.prefs.trackMasteryMedals[activeStage.id] || 0;
+      const selStarsStr = [1, 2, 3].map(s => s <= selStars ? "★" : "☆").join("");
+      const selEffBpm = Math.round(activeStage.bpm * (activeRemix.speed || 1.0));
+      trackDeckRow.innerHTML = `
+        <div style="background:#0A0D16;border:1.4px solid rgba(234,179,8,0.85);border-radius:10px;overflow:hidden;">
+          <div onclick="window.app.toggleTrackDropdown()"
+               style="padding:9px 12px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;">
+            <div style="text-align:left;min-width:0;flex:1;">
+              <div style="font-size:8px;font-weight:800;color:#94A3B8;letter-spacing:0.8px;">🎵 SELECTED TRACK (TAP TO SWITCH SONG)</div>
+              <div style="font-size:13px;font-weight:900;color:#FAF8F5;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                0${this.selectedStageIndex + 1}. ${activeStage.title.toUpperCase()} • ${selEffBpm} BPM
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;margin-left:8px;">
+              <span style="font-size:11px;font-weight:900;color:#FACC15;">${selStarsStr}</span>
+              <span style="font-size:11px;font-weight:900;color:#EAB308;">${this.showTrackDropdown ? "▴" : "▾"}</span>
+            </div>
+          </div>
+          ${this.showTrackDropdown ? `
+            <div style="background:#06080E;padding:6px 10px 8px;border-top:1px solid rgba(255,255,255,0.1);display:flex;flex-direction:column;gap:5px;">
+              ${OFFICIAL_TRACKS.map((track, idx) => {
+                const isSel = idx === this.selectedStageIndex;
+                const stars = this.prefs.trackMasteryMedals[track.id] || 0;
+                const starsStr = [1, 2, 3].map(s => s <= stars ? "★" : "☆").join("");
+                const effBpm = Math.round(track.bpm * (activeRemix.speed || 1.0));
+                return `
+                  <div onclick="window.app.selectStage(${idx})"
+                       style="background:${isSel ? "rgba(234,179,8,0.18)" : "#0D111C"};border:1px solid ${isSel ? "#EAB308" : "rgba(255,255,255,0.12)"};border-radius:8px;padding:8px 10px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;">
+                    <span style="font-size:11.5px;font-weight:900;color:${isSel ? "#EAB308" : "#FAF8F5"};">0${idx + 1}. ${track.title.toUpperCase()} (${effBpm} BPM)</span>
+                    <span style="font-size:10px;font-weight:900;color:#FACC15;">${starsStr} ${isSel ? "✓" : ""}</span>
+                  </div>
+                `;
+              }).join("")}
+            </div>
+          ` : ""}
+        </div>
+      `;
+    }
+
+    // 2. Speed & Mode Dropdown (#menu-remix-pills) — With 1-Line Curiosity Reward Hooks!
     const remixPillsEl = document.getElementById("menu-remix-pills");
     if (remixPillsEl) {
-      remixPillsEl.innerHTML = TRACK_REMIX_MODES.map((mode) => {
-        const isSelected = mode.id === activeRemix.id;
-        return `
-          <div class="remix-pill ${isSelected ? "selected" : ""}"
-               style="border-color:${isSelected ? mode.color : "rgba(255,255,255,0.16)"};background:${isSelected ? `${mode.color}28` : "#07090E"};"
-               onclick="window.app.setRemixMode('${mode.id}')">
-            <div class="remix-pill-tag" style="color:${isSelected ? mode.color : "#CBD5E1"};">${mode.shortTag} ${mode.displayName}</div>
-            ${isSelected ? `<div class="remix-pill-id" style="color:#FAF8F5;">${mode.subtitle}</div>` : ""}
+      const modeHooks = {
+        ORIGINAL: "1.0x Pts • Beat 1x to unlock Album Track & Studio Note",
+        NIGHTCORE: "1.5x Pts • Faster notes + unlocks ★3 Gold Medal",
+        CHILL: "0.5x Pts • Relaxed speed (Play 2x to unlock Album Art)",
+        ENDLESS: "🏆 Speeds up +8%/loop! Hit 15,000+ pts for Ethan's Secret Message!"
+      };
+      remixPillsEl.innerHTML = `
+        <div style="background:#0A0D16;border:1.4px solid ${activeRemix.color};border-radius:10px;overflow:hidden;">
+          <div onclick="window.app.toggleModeDropdown()"
+               style="padding:9px 12px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;">
+            <div style="text-align:left;min-width:0;flex:1;">
+              <div style="font-size:8px;font-weight:800;color:#94A3B8;letter-spacing:0.8px;">⚡ SPEED &amp; GAME MODE (TAP TO CHANGE)</div>
+              <div style="font-size:12.5px;font-weight:900;color:${activeRemix.color};margin-top:1px;">
+                ${activeRemix.shortTag} ${activeRemix.displayName} • ${activeRemix.subtitle}
+              </div>
+            </div>
+            <span style="font-size:11px;font-weight:900;color:${activeRemix.color};margin-left:8px;">${this.showModeDropdown ? "▴" : "▾"}</span>
           </div>
-        `;
-      }).join("");
+          ${this.showModeDropdown ? `
+            <div style="background:#06080E;padding:6px 10px 8px;border-top:1px solid rgba(255,255,255,0.1);display:flex;flex-direction:column;gap:5px;">
+              ${TRACK_REMIX_MODES.map((mode) => {
+                const isSel = mode.id === activeRemix.id;
+                const hook = modeHooks[mode.id] || mode.subtitle;
+                return `
+                  <div onclick="window.app.setRemixMode('${mode.id}')"
+                       style="background:${isSel ? `${mode.color}26` : "#0D111C"};border:1px solid ${isSel ? mode.color : "rgba(255,255,255,0.12)"};border-radius:8px;padding:7px 10px;text-align:left;cursor:pointer;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;">
+                      <span style="font-size:11px;font-weight:900;color:${mode.color};">${mode.shortTag} ${mode.displayName}</span>
+                      <span style="font-size:9px;font-weight:900;color:#FAF8F5;">${isSel ? "✓ ACTIVE" : "SELECT"}</span>
+                    </div>
+                    <div style="font-size:9.5px;font-weight:600;color:#CBD5E1;margin-top:2px;">${hook}</div>
+                  </div>
+                `;
+              }).join("")}
+            </div>
+          ` : ""}
+        </div>
+      `;
     }
 
     // 3. Console Card Border & Launch Button (#menu-launch-main & #btn-launch-stage)
@@ -488,6 +601,7 @@ Object.assign(NoMoreIllusionsApp.prototype, {
   setCustomizerTab(tabIdx) {
     this.playSfx("whoosh_modal", 0.72);
     this.customizerTab = tabIdx;
+    this.showCustomizerCatDropdown = false;
     if (tabIdx >= 0) setTimeout(() => this.resize(), 20);
     this.syncCustomizerUI();
   },
@@ -517,10 +631,45 @@ Object.assign(NoMoreIllusionsApp.prototype, {
     const ptsEl = document.getElementById("cust-points-val");
     if (ptsEl) ptsEl.textContent = `♪ ${this.prefs.points}`;
 
-    // Tabs (-1 = ★ SPECIALS, 0 = CORES, 1 = TRAILS, 2 = THEMES)
-    for (const i of [-1, 0, 1, 2]) {
-      const tBtn = document.getElementById(`cust-tab-${i}`);
-      if (tBtn) tBtn.className = `cust-tab ${this.customizerTab === i ? "active" : ""}`;
+    const catOptions = [
+      { id: -1, label: "★ ARTIST VAULT & MYSTERY ENVELOPES", col: "#FACC15" },
+      { id: 0, label: "🛸 HERO AVATAR CORES (5 SKINS)", col: "#38BDF8" },
+      { id: 1, label: "✨ RHYTHM SILK TRAILS (5 WAKE FX)", col: "#4ADE80" },
+      { id: 2, label: "🌌 STAGE NEBULA PALETTES (5 THEMES)", col: "#C084FC" }
+    ];
+    const activeCat = catOptions.find(c => c.id === this.customizerTab) || catOptions[0];
+    const catWrap = document.getElementById("cust-category-dropdown-wrap");
+    if (catWrap) {
+      catWrap.innerHTML = `
+        <div style="background:#090D1A;border:1.5px solid ${activeCat.col};border-radius:12px;overflow:hidden;">
+          <div onclick="window.app.toggleCustomizerCatDropdown()"
+               style="padding:10px 12px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;">
+            <div style="text-align:left;min-width:0;flex:1;">
+              <div style="font-size:8px;font-weight:800;color:#94A3B8;letter-spacing:0.8px;">🎨 SELECT CATEGORY (TAP TO SWITCH VIEW)</div>
+              <div style="font-size:12px;font-weight:900;color:${activeCat.col};margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                ${activeCat.label}
+              </div>
+            </div>
+            <span style="background:${activeCat.col}22;border:1px solid ${activeCat.col};border-radius:50px;padding:3px 9px;font-size:9px;font-weight:900;color:${activeCat.col};margin-left:8px;white-space:nowrap;">
+              ${this.showCustomizerCatDropdown ? "CLOSE ▴" : "SWITCH ▾"}
+            </span>
+          </div>
+          ${this.showCustomizerCatDropdown ? `
+            <div style="background:#050811;padding:6px 10px 8px;border-top:1px solid rgba(255,255,255,0.1);display:flex;flex-direction:column;gap:5px;">
+              ${catOptions.map(c => {
+                const isSel = c.id === this.customizerTab;
+                return `
+                  <div onclick="window.app.setCustomizerTab(${c.id})"
+                       style="background:${isSel ? `${c.col}24` : "#0B1020"};border:1px solid ${isSel ? c.col : "rgba(255,255,255,0.12)"};border-radius:8px;padding:8px 10px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;">
+                    <span style="font-size:11px;font-weight:900;color:${isSel ? c.col : "#F8FAFC"};">${c.label}</span>
+                    <span style="font-size:9px;font-weight:900;color:${isSel ? c.col : "#94A3B8"};">${isSel ? "✓ ACTIVE" : "OPEN →"}</span>
+                  </div>
+                `;
+              }).join("")}
+            </div>
+          ` : ""}
+        </div>
+      `;
     }
 
     const specialsWrap = document.getElementById("cust-specials-wrap");

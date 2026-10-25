@@ -306,16 +306,20 @@ fun MenuUI(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Compact 1-Line Artist Vault Pill (Zero Wordy Paragraphs!)
+            var showRewardsPeek by remember { mutableStateOf(false) }
+            var showTrackDropdown by remember { mutableStateOf(false) }
+            var showModeDropdown by remember { mutableStateOf(false) }
+
+            // 1. "Ooh, What Does This Do?" Curiosity Reward Peek Dropdown
             val sleeveShape = CutCornerShape(topStart = 9.dp, bottomEnd = 9.dp)
-            Box(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(sleeveShape)
                     .background(Color(0xFF100E07L))
                     .border(1.3.dp, Color(0xFFEAB308L).copy(alpha = 0.85f), sleeveShape)
-                    .clickable { onMusicDemo() }
-                    .padding(horizontal = 12.dp, vertical = 7.dp)
+                    .clickable { showRewardsPeek = !showRewardsPeek }
+                    .padding(horizontal = 12.dp, vertical = 8.dp)
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -323,24 +327,73 @@ fun MenuUI(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        text = "★ ETHAN'S VAULT & LINER NOTES",
+                        text = "🎁 WHAT CAN I UNLOCK? ($unlockedExclusivesCount/${ARTIST_EXCLUSIVES_CATALOG.size} SECRETS)",
                         color = Color(0xFFEAB308L),
                         fontSize = 9.5.sp,
                         fontWeight = FontWeight.Black,
-                        letterSpacing = 0.7.sp
+                        letterSpacing = 0.6.sp
                     )
                     Text(
-                        text = "$unlockedExclusivesCount/${ARTIST_EXCLUSIVES_CATALOG.size} UNLOCKED →",
+                        text = if (showRewardsPeek) "HIDE ▴" else "TAP TO PEEK ▾",
                         color = Color(0xFFFAF8F5L),
                         fontSize = 8.8.sp,
                         fontWeight = FontWeight.Black
                     )
                 }
+
+                if (showRewardsPeek) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(5.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color(0xFF070911L))
+                            .padding(8.dp)
+                    ) {
+                        Text(
+                            text = "💿 Beat Any Song (Normal/Fast) → Unlock Full Track & Studio Note",
+                            color = Color(0xFF4ADE80L),
+                            fontSize = 8.8.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "🔥 Hit an 8x Beat Streak → Unlock Ethan's Vocal Mix Secrets",
+                            color = Color(0xFF38BDF8L),
+                            fontSize = 8.8.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "🏆 15,000+ on ∞ Endless Loop → Secret Personal Message from Ethan!",
+                            color = Color(0xFFFACC15L),
+                            fontSize = 8.8.sp,
+                            fontWeight = FontWeight.Black
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(Color(0xFFEAB308L).copy(alpha = 0.22f))
+                                .border(1.dp, Color(0xFFEAB308L), RoundedCornerShape(6.dp))
+                                .clickable { onMusicDemo() }
+                                .padding(vertical = 5.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "★ OPEN ARTIST VAULT & SECRETS →",
+                                color = Color(0xFFFACC15L),
+                                fontSize = 8.8.sp,
+                                fontWeight = FontWeight.Black
+                            )
+                        }
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // Tactile Pop & Zoom Studio Console (Clean, Visual-First, Minimal Text)
+            // 2. Visual-First Dropdown Studio Console (Zero Button Crowding!)
             val consoleShape = CutCornerShape(topStart = 14.dp, bottomEnd = 14.dp)
             Box(
                 modifier = Modifier
@@ -365,137 +418,240 @@ fun MenuUI(
                     .padding(12.dp)
             ) {
                 Column(modifier = Modifier.fillMaxWidth()) {
-                    // 1. Tactile Pop & Zoom Vinyl Track Cards (SIDE A: CONFIDE | SIDE B: NUMBER ONE)
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        for (idx in 1..MusicLibrary.TOTAL_TRACKS) {
-                            val t = MusicLibrary.getTrack(idx)
-                            val isSel = idx == selectedTrackIndex
-                            val isUnlocked = idx <= unlockedTrackCount
-                            val stars = trackMasteryStars.getOrElse(idx - 1) { 0 }.coerceIn(0, 3)
-                            val starText = buildString {
-                                for (s in 1..3) append(if (s <= stars) "★" else "☆")
+                    // A. SONG SELECTOR DROPDOWN BAR
+                    val selStars = trackMasteryStars.getOrElse(selectedTrackIndex - 1) { 0 }.coerceIn(0, 3)
+                    val selStarStr = buildString { for (s in 1..3) append(if (s <= selStars) "★" else "☆") }
+                    val effBpm = (selectedTrack.bpm * selectedRemixMode.audioSpeed).toInt()
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color(0xFF0E1525L))
+                            .border(1.5.dp, modeAccent.copy(alpha = 0.85f), RoundedCornerShape(8.dp))
+                            .clickable {
+                                showTrackDropdown = !showTrackDropdown
+                                if (showTrackDropdown) showModeDropdown = false
                             }
-                            val cardScale by animateFloatAsState(
-                                targetValue = if (isSel) 1.05f else 0.96f,
-                                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
-                                label = "trackScale$idx"
-                            )
-                            val cardCut = CutCornerShape(topEnd = 10.dp, bottomStart = 10.dp)
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .graphicsLayer {
-                                        scaleX = cardScale
-                                        scaleY = cardScale
-                                    }
-                                    .shadow(if (isSel) 10.dp else 2.dp, cardCut, ambientColor = modeAccent)
-                                    .clip(cardCut)
-                                    .background(
-                                        if (isSel) Brush.horizontalGradient(listOf(Color(0xFF14211BL), Color(0xFF1A1508L)))
-                                        else Brush.horizontalGradient(listOf(Color(0xFF070A10L), Color(0xFF070A10L)))
-                                    )
-                                    .border(
-                                        width = if (isSel) 2.2.dp else 1.dp,
-                                        color = if (isSel) modeAccent else Color.White.copy(alpha = 0.16f),
-                                        shape = cardCut
-                                    )
-                                    .clickable {
-                                        if (isUnlocked) onSelectQuickTrack(idx) else onMusicDemo()
-                                    }
-                                    .padding(vertical = 10.dp, horizontal = 10.dp)
-                            ) {
-                                Column {
-                                    Row(
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
+                            .padding(horizontal = 12.dp, vertical = 10.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column {
+                                Text(
+                                    text = "🎵 SELECTED TRACK (TAP TO CHANGE)",
+                                    color = Color(0xFF94A3B8L),
+                                    fontSize = 8.sp,
+                                    fontWeight = FontWeight.Black,
+                                    letterSpacing = 0.8.sp
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = "0$selectedTrackIndex. ${selectedTrack.title.uppercase()} • $effBpm BPM",
+                                    color = Color(0xFFFAF8F5L),
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Black
+                                )
+                            }
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = selStarStr,
+                                    color = Color(0xFFEAB308L),
+                                    fontSize = 11.5.sp,
+                                    fontWeight = FontWeight.Black
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = if (showTrackDropdown) "▴" else "▾",
+                                    color = modeAccent,
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Black
+                                )
+                            }
+                        }
+                    }
+
+                    if (showTrackDropdown) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(5.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(Color(0xFF060913L))
+                                .border(1.dp, Color.White.copy(alpha = 0.18f), RoundedCornerShape(8.dp))
+                                .padding(6.dp)
+                        ) {
+                            for (idx in 1..MusicLibrary.TOTAL_TRACKS) {
+                                val t = MusicLibrary.getTrack(idx)
+                                val isSel = idx == selectedTrackIndex
+                                val isUnlocked = idx <= unlockedTrackCount
+                                val st = trackMasteryStars.getOrElse(idx - 1) { 0 }.coerceIn(0, 3)
+                                val stTxt = buildString { for (s in 1..3) append(if (s <= st) "★" else "☆") }
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(6.dp))
+                                        .background(if (isSel) modeAccent.copy(alpha = 0.20f) else Color(0xFF0B1020L))
+                                        .border(
+                                            width = if (isSel) 1.5.dp else 1.dp,
+                                            color = if (isSel) modeAccent else Color.White.copy(alpha = 0.10f),
+                                            shape = RoundedCornerShape(6.dp)
+                                        )
+                                        .clickable {
+                                            if (isUnlocked) {
+                                                onSelectQuickTrack(idx)
+                                                showTrackDropdown = false
+                                            } else {
+                                                onMusicDemo()
+                                            }
+                                        }
+                                        .padding(horizontal = 10.dp, vertical = 8.dp)
+                                ) {
+                                    Column {
                                         Text(
-                                            text = if (isUnlocked) "SIDE 0$idx • ${(t.bpm * selectedRemixMode.audioSpeed).toInt()} BPM" else "SIDE 0$idx • LOCKED",
+                                            text = "0$idx. ${t.title.uppercase()} (${t.bpm.toInt()} BPM)",
+                                            color = if (isUnlocked) Color.White else Color.White.copy(alpha = 0.5f),
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Black
+                                        )
+                                        Text(
+                                            text = if (isUnlocked) "Tap to select track" else "🔒 Beat previous song to unlock",
                                             color = if (isSel) modeAccent else Color(0xFF94A3B8L),
                                             fontSize = 8.5.sp,
-                                            fontWeight = FontWeight.Black
-                                        )
-                                        Text(
-                                            text = starText,
-                                            color = Color(0xFFEAB308L),
-                                            fontSize = 10.5.sp,
-                                            fontWeight = FontWeight.Black
+                                            fontWeight = FontWeight.SemiBold
                                         )
                                     }
-                                    Spacer(modifier = Modifier.height(3.dp))
                                     Text(
-                                        text = t.title.uppercase(),
-                                        color = if (isUnlocked) Color(0xFFFAF8F5L) else Color.White.copy(alpha = 0.45f),
-                                        fontSize = 14.5.sp,
-                                        fontWeight = FontWeight.Black,
-                                        letterSpacing = 0.6.sp
+                                        text = if (isUnlocked) stTxt else "🔒",
+                                        color = Color(0xFFEAB308L),
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Black
                                     )
                                 }
                             }
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(8.dp))
 
-                    // 2. Tactile Pop & Zoom Speed Switches (Pop-Out Card Reveals Crisp 1-Line Spec!)
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(7.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth()
+                    // B. GAME MODE & SPEED DROPDOWN BAR (With Curiosity Reward Hooks!)
+                    val modeHook = when (selectedRemixMode) {
+                        TrackRemixMode.ORIGINAL -> "1.0x Pts • Beat 1x to unlock Album Track & Vault"
+                        TrackRemixMode.OVERCLOCK -> "1.5x Pts • Beat 1x to earn ★3 Gold Medal"
+                        TrackRemixMode.SLOWED -> "0.5x Pts • Beat 2x to unlock Album Track"
+                        TrackRemixMode.ENDLESS -> "🏆 Speeds up +8%/loop! Hit 15,000+ pts for Ethan's Secret Message!"
+                    }
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color(0xFF0E1525L))
+                            .border(1.5.dp, modeAccent.copy(alpha = 0.85f), RoundedCornerShape(8.dp))
+                            .clickable {
+                                showModeDropdown = !showModeDropdown
+                                if (showModeDropdown) showTrackDropdown = false
+                            }
+                            .padding(horizontal = 12.dp, vertical = 10.dp)
                     ) {
-                        TrackRemixMode.entries.forEach { mode ->
-                            val isModeSel = mode == selectedRemixMode
-                            val mCol = when (mode) {
-                                TrackRemixMode.ORIGINAL -> Color(0xFF4ADE80L)
-                                TrackRemixMode.OVERCLOCK -> Color(0xFFF43F5EL)
-                                TrackRemixMode.SLOWED -> Color(0xFF38BDF8L)
-                                TrackRemixMode.ENDLESS -> Color(0xFFEAB308L)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "⚡ SPEED & MODE: ${selectedRemixMode.shortTag} ${selectedRemixMode.displayName}",
+                                    color = modeAccent,
+                                    fontSize = 11.5.sp,
+                                    fontWeight = FontWeight.Black
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = modeHook,
+                                    color = Color(0xFFFAF8F5L).copy(alpha = 0.90f),
+                                    fontSize = 8.8.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1
+                                )
                             }
-                            val modeScale by animateFloatAsState(
-                                targetValue = if (isModeSel) 1.08f else 0.94f,
-                                animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
-                                label = "modeScale_${mode.name}"
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = if (showModeDropdown) "▴" else "▾",
+                                color = modeAccent,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Black
                             )
-                            val switchShape = RoundedCornerShape(6.dp)
-                            Box(
-                                modifier = Modifier
-                                    .weight(if (isModeSel) 1.25f else 0.92f)
-                                    .graphicsLayer {
-                                        scaleX = modeScale
-                                        scaleY = modeScale
-                                    }
-                                    .shadow(if (isModeSel) 8.dp else 0.dp, switchShape, ambientColor = mCol)
-                                    .clip(switchShape)
-                                    .background(if (isModeSel) mCol.copy(alpha = 0.24f) else Color(0xFF06080EL))
-                                    .border(
-                                        width = if (isModeSel) 2.0.dp else 1.dp,
-                                        color = if (isModeSel) mCol else Color.White.copy(alpha = 0.16f),
-                                        shape = switchShape
-                                    )
-                                    .clickable { onSelectRemixMode(mode) }
-                                    .padding(vertical = 8.dp, horizontal = 4.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Text(
-                                        text = "${mode.shortTag} ${mode.displayName}",
-                                        color = if (isModeSel) mCol else Color(0xFFFAF8F5L).copy(alpha = 0.78f),
-                                        fontSize = if (isModeSel) 10.sp else 8.8.sp,
-                                        fontWeight = FontWeight.Black,
-                                        maxLines = 1
-                                    )
-                                    if (isModeSel) {
-                                        Spacer(modifier = Modifier.height(2.dp))
+                        }
+                    }
+
+                    if (showModeDropdown) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(5.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(Color(0xFF060913L))
+                                .border(1.dp, Color.White.copy(alpha = 0.18f), RoundedCornerShape(8.dp))
+                                .padding(6.dp)
+                        ) {
+                            TrackRemixMode.entries.forEach { mode ->
+                                val isModeSel = mode == selectedRemixMode
+                                val mCol = when (mode) {
+                                    TrackRemixMode.ORIGINAL -> Color(0xFF4ADE80L)
+                                    TrackRemixMode.OVERCLOCK -> Color(0xFFF43F5EL)
+                                    TrackRemixMode.SLOWED -> Color(0xFF38BDF8L)
+                                    TrackRemixMode.ENDLESS -> Color(0xFFEAB308L)
+                                }
+                                val hookText = when (mode) {
+                                    TrackRemixMode.ORIGINAL -> "1.0x Pts • Unlocks song in 1 run"
+                                    TrackRemixMode.OVERCLOCK -> "1.5x Pts • Faster notes + ★3 Gold Medal"
+                                    TrackRemixMode.SLOWED -> "0.5x Pts • Relaxed speed (2 runs to unlock)"
+                                    TrackRemixMode.ENDLESS -> "🏆 Speeds up every loop! 15,000+ pts unlocks Ethan's Secret Message!"
+                                }
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(6.dp))
+                                        .background(if (isModeSel) mCol.copy(alpha = 0.22f) else Color(0xFF0B1020L))
+                                        .border(
+                                            width = if (isModeSel) 1.5.dp else 1.dp,
+                                            color = if (isModeSel) mCol else Color.White.copy(alpha = 0.10f),
+                                            shape = RoundedCornerShape(6.dp)
+                                        )
+                                        .clickable {
+                                            onSelectRemixMode(mode)
+                                            showModeDropdown = false
+                                        }
+                                        .padding(horizontal = 10.dp, vertical = 8.dp)
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
                                         Text(
-                                            text = mode.subtitle,
-                                            color = Color(0xFFFAF8F5L),
-                                            fontSize = 7.4.sp,
-                                            fontWeight = FontWeight.ExtraBold,
-                                            maxLines = 1
+                                            text = "${mode.shortTag} ${mode.displayName}",
+                                            color = mCol,
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Black
+                                        )
+                                        Text(
+                                            text = hookText,
+                                            color = Color.White.copy(alpha = 0.88f),
+                                            fontSize = 8.5.sp,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                    }
+                                    if (isModeSel) {
+                                        Text(
+                                            text = "✓",
+                                            color = mCol,
+                                            fontSize = 13.sp,
+                                            fontWeight = FontWeight.Black
                                         )
                                     }
                                 }
@@ -503,14 +659,14 @@ fun MenuUI(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
 
-                    // 3. Chamfered Studio Master Launch Button
+                    // C. Chamfered Studio Master Launch Button
                     val launchShape = CutCornerShape(topStart = 10.dp, bottomEnd = 10.dp)
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(52.dp)
+                            .height(50.dp)
                             .shadow(12.dp, launchShape, ambientColor = modeAccent)
                             .clip(launchShape)
                             .background(
@@ -527,11 +683,11 @@ fun MenuUI(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "▶  PLAY ${selectedTrack.title.uppercase()} (${selectedRemixMode.displayName})",
+                            text = "▶  PLAY ${selectedTrack.title.uppercase()}",
                             color = Color(0xFFFAF8F5L),
-                            fontSize = 14.sp,
+                            fontSize = 14.5.sp,
                             fontWeight = FontWeight.Black,
-                            letterSpacing = 1.1.sp
+                            letterSpacing = 1.2.sp
                         )
                     }
                 }
@@ -546,7 +702,7 @@ fun MenuUI(
             ) {
                 MenuBentoTile(
                     title = "★ VAULT",
-                    subtitle = "Album & Notes",
+                    subtitle = "Secrets & Skins",
                     accent = Color(0xFFEAB308L),
                     onClick = onMusicDemo,
                     modifier = Modifier.weight(1.1f)

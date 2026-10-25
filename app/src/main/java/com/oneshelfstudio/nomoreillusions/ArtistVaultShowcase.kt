@@ -464,25 +464,27 @@ fun ArtistExclusivesSpecialsHub(
         isVipUnlocked || it.isUnlocked(prefs, highScore, pulsePoints)
     }
 
+    var expandedItemId by remember { mutableStateOf<String?>("excl_endless_champion") }
+
     Box(modifier = modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(bottom = 24.dp)
+                .padding(bottom = 64.dp)
         ) {
-            // 1. Collector's Gatefold Header Card with Live Fan Progress Bar
+            // 1. Compact Collector's Progress Header & 4 Vault Launchers
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(18.dp))
+                    .clip(RoundedCornerShape(16.dp))
                     .background(
                         Brush.verticalGradient(
                             listOf(Color(0xFF101D3BL), Color(0xFF060B18L))
                         )
                     )
-                    .border(1.5.dp, Color(0xFFFACC15L).copy(alpha = 0.85f), RoundedCornerShape(18.dp))
-                    .padding(14.dp)
+                    .border(1.5.dp, Color(0xFFFACC15L).copy(alpha = 0.85f), RoundedCornerShape(16.dp))
+                    .padding(12.dp)
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -490,11 +492,11 @@ fun ArtistExclusivesSpecialsHub(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        text = "★ COLLECTOR'S VAULT & ARTIST SPECIALS",
+                        text = "★ ARTIST VAULT & SECRETS",
                         color = Color(0xFFFACC15L),
                         fontSize = 11.5.sp,
                         fontWeight = FontWeight.Black,
-                        letterSpacing = 0.8.sp
+                        letterSpacing = 0.6.sp
                     )
                     Box(
                         modifier = Modifier
@@ -512,22 +514,14 @@ fun ArtistExclusivesSpecialsHub(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(6.dp))
-                Text(
-                    text = "Play through No Morē Illusīons to unlock Ethan's personal Studio Liner Notes, Behind-the-Scenes Vocal Secrets, Slowed/Nightcore Master Reels, and Backstage Storyboards.",
-                    color = Color.White.copy(alpha = 0.88f),
-                    fontSize = 11.sp,
-                    lineHeight = 15.sp
-                )
-
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
                 // Progress bar
                 val pct = (unlockedCount.toFloat() / ARTIST_EXCLUSIVES_CATALOG.size.toFloat()).coerceIn(0.08f, 1f)
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(8.dp)
+                        .height(7.dp)
                         .clip(CircleShape)
                         .background(Color(0xFF040812L))
                         .border(1.dp, Color.White.copy(alpha = 0.15f), CircleShape)
@@ -547,16 +541,16 @@ fun ArtistExclusivesSpecialsHub(
 
                 Spacer(modifier = Modifier.height(10.dp))
 
-                // Quick Interactive Vault Showcase Launchers (4 Collector Modals + VIP Passcode)
+                // Quick Interactive Vault Showcase Launchers (4 Collector Modals)
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     listOf(
-                        Triple("VAULT_LYRICS", "📖 LYRIC BOOK", Color(0xFF38BDF8L)),
-                        Triple("VAULT_DEMO", "📼 TAPE REEL", Color(0xFFFACC15L)),
-                        Triple("VAULT_POLAROIDS", "📸 STORYBOARD", Color(0xFFE879F9L)),
-                        Triple("VAULT_WALLPAPER", "💿 4K VINYL", Color(0xFF4ADE80L))
+                        Triple("VAULT_LYRICS", "📖 LYRICS", Color(0xFF38BDF8L)),
+                        Triple("VAULT_DEMO", "📼 REELS", Color(0xFFFACC15L)),
+                        Triple("VAULT_POLAROIDS", "📸 PHOTOS", Color(0xFFE879F9L)),
+                        Triple("VAULT_WALLPAPER", "💿 4K ART", Color(0xFF4ADE80L))
                     ).forEach { (id, label, col) ->
                         Box(
                             modifier = Modifier
@@ -571,7 +565,7 @@ fun ArtistExclusivesSpecialsHub(
                             Text(
                                 text = label,
                                 color = Color.White,
-                                fontSize = 8.5.sp,
+                                fontSize = 9.sp,
                                 fontWeight = FontWeight.Black,
                                 textAlign = TextAlign.Center,
                                 maxLines = 1
@@ -581,48 +575,63 @@ fun ArtistExclusivesSpecialsHub(
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
-            // 2. Track-by-Track Artist Liner Notes & Exclusive Rewards Feed
+            // 2. Tap-to-Open Mystery Envelopes (Zero Wall of Text!)
             Text(
-                text = "ETHAN'S PERSONAL LINER NOTES & STUDIO EXCLUSIVES",
+                text = "💌 TAP ANY MYSTERY ENVELOPE TO PEEK INSIDE",
                 color = Color(0xFF38BDF8L),
-                fontSize = 11.sp,
+                fontSize = 10.sp,
                 fontWeight = FontWeight.Black,
-                letterSpacing = 0.8.sp
+                letterSpacing = 0.7.sp
             )
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(6.dp))
 
             ARTIST_EXCLUSIVES_CATALOG.forEachIndexed { idx, item ->
                 val unlocked = isVipUnlocked || item.isUnlocked(prefs, highScore, pulsePoints)
+                val isExpanded = expandedItemId == item.id
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(bottom = 10.dp)
-                        .clip(RoundedCornerShape(16.dp))
+                        .padding(bottom = 8.dp)
+                        .clip(RoundedCornerShape(14.dp))
                         .background(
                             if (unlocked) Brush.verticalGradient(listOf(Color(0xFF0A1428L), Color(0xFF050914L)))
-                            else Brush.verticalGradient(listOf(Color(0xFF050811L), Color(0xFF03050AL)))
+                            else Brush.verticalGradient(listOf(Color(0xFF060A15L), Color(0xFF03050BL)))
                         )
                         .border(
-                            width = if (unlocked) 1.5.dp else 1.dp,
-                            color = if (unlocked) item.accentColor.copy(alpha = 0.78f) else Color.White.copy(alpha = 0.15f),
-                            shape = RoundedCornerShape(16.dp)
+                            width = if (isExpanded) 1.5.dp else 1.dp,
+                            color = if (unlocked) item.accentColor.copy(alpha = if (isExpanded) 0.9f else 0.55f)
+                            else Color.White.copy(alpha = if (isExpanded) 0.35f else 0.15f),
+                            shape = RoundedCornerShape(14.dp)
                         )
-                        .padding(14.dp)
+                        .clickable { expandedItemId = if (isExpanded) null else item.id }
+                        .padding(horizontal = 12.dp, vertical = 10.dp)
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text(
-                            text = item.category,
-                            color = item.accentColor,
-                            fontSize = 9.sp,
-                            fontWeight = FontWeight.Black,
-                            letterSpacing = 0.7.sp
-                        )
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = item.category,
+                                color = item.accentColor,
+                                fontSize = 8.5.sp,
+                                fontWeight = FontWeight.Black,
+                                letterSpacing = 0.6.sp,
+                                maxLines = 1
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = item.title,
+                                color = Color.White,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Black,
+                                maxLines = 1
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
                         Box(
                             modifier = Modifier
                                 .clip(CircleShape)
@@ -635,10 +644,11 @@ fun ArtistExclusivesSpecialsHub(
                                     if (unlocked) Color(0xFF4ADE80L) else Color(0xFFFACC15L).copy(alpha = 0.55f),
                                     CircleShape
                                 )
-                                .padding(horizontal = 8.dp, vertical = 2.dp)
+                                .padding(horizontal = 8.dp, vertical = 3.dp)
                         ) {
                             Text(
-                                text = if (unlocked) "✓ UNLOCKED" else "🔒 LOCKED EXCLUSIVE",
+                                text = if (unlocked) (if (isExpanded) "✓ OPEN ▴" else "✓ READ ▾")
+                                else (if (isExpanded) "🔒 HOW ▴" else "🔒 PEEK ▾"),
                                 color = if (unlocked) Color(0xFF4ADE80L) else Color(0xFFFACC15L),
                                 fontSize = 8.5.sp,
                                 fontWeight = FontWeight.Black
@@ -646,140 +656,133 @@ fun ArtistExclusivesSpecialsHub(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = item.title,
-                        color = Color.White,
-                        fontSize = 13.5.sp,
-                        fontWeight = FontWeight.Black
-                    )
-                    Text(
-                        text = item.subtitle,
-                        color = Color.White.copy(alpha = 0.68f),
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    if (unlocked) {
-                        // Personal Quote Box from Ethan
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(10.dp))
-                                .background(Color(0xFF040812L))
-                                .border(1.dp, item.accentColor.copy(alpha = 0.42f), RoundedCornerShape(10.dp))
-                                .padding(10.dp)
-                        ) {
-                            Column {
-                                Text(
-                                    text = item.artistNoteQuote,
-                                    color = Color(0xFFF8FAFCL),
-                                    fontSize = 11.sp,
-                                    lineHeight = 15.5.sp
-                                )
-                                Spacer(modifier = Modifier.height(6.dp))
-                                Text(
-                                    text = "★ PERK: ${item.exclusiveDetail}",
-                                    color = item.accentColor,
-                                    fontSize = 9.5.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                        }
+                    if (isExpanded) {
                         Spacer(modifier = Modifier.height(8.dp))
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
+                        Text(
+                            text = item.subtitle,
+                            color = Color.White.copy(alpha = 0.72f),
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+
+                        if (unlocked) {
                             Box(
                                 modifier = Modifier
-                                    .weight(1f)
-                                    .height(36.dp)
-                                    .clip(RoundedCornerShape(50))
-                                    .background(item.accentColor.copy(alpha = 0.20f))
-                                    .border(1.dp, item.accentColor, RoundedCornerShape(50))
-                                    .clickable {
-                                        when (idx) {
-                                            0, 1 -> activeModalId = "VAULT_LYRICS"
-                                            2 -> activeModalId = "VAULT_WALLPAPER"
-                                            3, 4 -> activeModalId = "VAULT_DEMO"
-                                            else -> activeModalId = "VAULT_POLAROIDS"
-                                        }
-                                    },
-                                contentAlignment = Alignment.Center
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(Color(0xFF040812L))
+                                    .border(1.dp, item.accentColor.copy(alpha = 0.42f), RoundedCornerShape(10.dp))
+                                    .padding(10.dp)
                             ) {
-                                Text(
-                                    text = "OPEN COLLECTOR VIEW",
-                                    color = Color.White,
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Black
-                                )
-                            }
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(36.dp)
-                                    .clip(RoundedCornerShape(50))
-                                    .background(
-                                        Brush.horizontalGradient(listOf(Color(0xFF22C55EL), Color(0xFF0D9488L)))
-                                    )
-                                    .clickable { onPlayTrack(if (idx == 2 || idx == 4) 2 else 1) },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = if (idx == 2 || idx == 4) "PLAY NUMBER ONE ▶" else "PLAY CONFIDE ▶",
-                                    color = Color.White,
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Black
-                                )
-                            }
-                        }
-                    } else {
-                        // Clear Fan Incentive Callout explaining exactly how to unlock this Artist Exclusive
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(10.dp))
-                                .background(Color(0xFF080D1AL))
-                                .border(1.dp, Color(0xFFFACC15L).copy(alpha = 0.35f), RoundedCornerShape(10.dp))
-                                .padding(10.dp)
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Column(modifier = Modifier.weight(1f)) {
+                                Column {
                                     Text(
-                                        text = "HOW TO UNLOCK THIS ARTIST EXCLUSIVE:",
-                                        color = Color(0xFFFACC15L),
-                                        fontSize = 9.sp,
-                                        fontWeight = FontWeight.Black
+                                        text = item.artistNoteQuote,
+                                        color = Color(0xFFF8FAFCL),
+                                        fontSize = 11.sp,
+                                        lineHeight = 15.5.sp
                                     )
-                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Spacer(modifier = Modifier.height(6.dp))
                                     Text(
-                                        text = item.unlockRequirementText,
-                                        color = Color.White.copy(alpha = 0.85f),
-                                        fontSize = 10.5.sp,
-                                        fontWeight = FontWeight.SemiBold
+                                        text = "★ PERK: ${item.exclusiveDetail}",
+                                        color = item.accentColor,
+                                        fontSize = 9.5.sp,
+                                        fontWeight = FontWeight.Bold
                                     )
                                 }
-                                Spacer(modifier = Modifier.width(8.dp))
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
                                 Box(
                                     modifier = Modifier
+                                        .weight(1f)
+                                        .height(34.dp)
                                         .clip(RoundedCornerShape(50))
-                                        .background(Color(0xFF22C55EL))
-                                        .clickable { onPlayTrack(if (idx == 2 || idx == 4) 2 else 1) }
-                                        .padding(horizontal = 12.dp, vertical = 7.dp)
+                                        .background(item.accentColor.copy(alpha = 0.20f))
+                                        .border(1.dp, item.accentColor, RoundedCornerShape(50))
+                                        .clickable {
+                                            when (idx) {
+                                                0, 1 -> activeModalId = "VAULT_LYRICS"
+                                                2 -> activeModalId = "VAULT_WALLPAPER"
+                                                3, 4 -> activeModalId = "VAULT_DEMO"
+                                                else -> activeModalId = "VAULT_POLAROIDS"
+                                            }
+                                        },
+                                    contentAlignment = Alignment.Center
                                 ) {
                                     Text(
-                                        text = "PLAY NOW ▶",
-                                        color = Color(0xFF020617L),
+                                        text = "OPEN VIEW",
+                                        color = Color.White,
                                         fontSize = 9.5.sp,
                                         fontWeight = FontWeight.Black
                                     )
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(34.dp)
+                                        .clip(RoundedCornerShape(50))
+                                        .background(
+                                            Brush.horizontalGradient(listOf(Color(0xFF22C55EL), Color(0xFF0D9488L)))
+                                        )
+                                        .clickable { onPlayTrack(if (idx == 2 || idx == 4) 2 else 1) },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = if (idx == 2 || idx == 4) "PLAY TRACK 2 ▶" else "PLAY TRACK 1 ▶",
+                                        color = Color.White,
+                                        fontSize = 9.5.sp,
+                                        fontWeight = FontWeight.Black
+                                    )
+                                }
+                            }
+                        } else {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(Color(0xFF080D1AL))
+                                    .border(1.dp, Color(0xFFFACC15L).copy(alpha = 0.35f), RoundedCornerShape(10.dp))
+                                    .padding(10.dp)
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = "HOW TO UNLOCK:",
+                                            color = Color(0xFFFACC15L),
+                                            fontSize = 9.sp,
+                                            fontWeight = FontWeight.Black
+                                        )
+                                        Spacer(modifier = Modifier.height(2.dp))
+                                        Text(
+                                            text = item.unlockRequirementText,
+                                            color = Color.White.copy(alpha = 0.9f),
+                                            fontSize = 10.5.sp,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(50))
+                                            .background(Color(0xFF22C55EL))
+                                            .clickable { onPlayTrack(if (idx == 2 || idx == 4) 2 else 1) }
+                                            .padding(horizontal = 12.dp, vertical = 7.dp)
+                                    ) {
+                                        Text(
+                                            text = "PLAY ▶",
+                                            color = Color(0xFF020617L),
+                                            fontSize = 9.5.sp,
+                                            fontWeight = FontWeight.Black
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -804,14 +807,14 @@ fun ArtistExclusivesSpecialsHub(
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = if (isVipUnlocked) "★ VIP BACKSTAGE PASS ACTIVE" else "🔑 HAVE AN ARTIST VIP BACKSTAGE CODE?",
+                            text = if (isVipUnlocked) "★ VIP BACKSTAGE PASS ACTIVE" else "🔑 ARTIST VIP PASSCODE",
                             color = Color(0xFFC084FCL),
                             fontSize = 10.5.sp,
                             fontWeight = FontWeight.Black
                         )
                         Text(
-                            text = if (isVipUnlocked) "All Artist Liner Notes, Master Reels & +50,000 ♪ Notes Unlocked!"
-                            else "Tap to enter your fan/artist code to unlock all Vault items immediately.",
+                            text = if (isVipUnlocked) "All Artist Secrets & +50,000 ♪ Notes Unlocked!"
+                            else "Have Ethan's backstage code? Tap to unlock everything.",
                             color = Color.White.copy(alpha = 0.75f),
                             fontSize = 9.5.sp
                         )
@@ -824,6 +827,7 @@ fun ArtistExclusivesSpecialsHub(
                     )
                 }
             }
+            Spacer(modifier = Modifier.height(36.dp))
         }
 
         if (activeModalId != null) {

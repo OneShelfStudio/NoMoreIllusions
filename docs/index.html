@@ -10,7 +10,7 @@
   <title>No More Illusions — Interactive Album Experience</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="apple-touch-icon" href="assets/nmi_logo.png" />
-  <link rel="stylesheet" href="styles.css?v=15" />
+  <link rel="stylesheet" href="styles.css?v=16" />
 </head>
 <body>
   <!-- Full-Screen 60FPS Audio-Reactive Game & Nebula Canvas -->
@@ -43,22 +43,18 @@
       </div>
       <div id="menu-sub-banner" class="menu-sub-banner">BEST SCORE: <span id="menu-best-score">0</span></div>
 
-      <!-- Compact 1-Line Artist Vault Pill (Zero Wordy Paragraphs!) -->
-      <div onclick="window.app.openScreen('CUSTOMIZER', -1)"
-           style="margin-top:6px;width:100%;max-width:430px;background:#100E07;border:1.3px solid rgba(234,179,8,0.85);border-radius:8px;padding:7px 12px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;">
-        <span style="font-size:9.5px;font-weight:900;color:#EAB308;letter-spacing:0.8px;">★ ETHAN'S VAULT &amp; LINER NOTES</span>
-        <span id="menu-exclusives-pill" style="font-size:9px;font-weight:900;color:#FAF8F5;white-space:nowrap;">0/6 UNLOCKED →</span>
-      </div>
+      <!-- 1. "Ooh, What Can I Unlock?" Curiosity Peek Dropdown (Collapsed by Default!) -->
+      <div id="menu-rewards-dropdown-wrap" style="margin-top:6px;width:100%;max-width:430px;"></div>
     </div>
 
-    <!-- Tactile Pop & Zoom Studio Console Card (Clean, Visual-First, Minimal Text) -->
+    <!-- Visual-First Dropdown Studio Console Card (Zero Crowding, Tap-to-Open Selectors) -->
     <div style="width:100%;max-width:430px;display:flex;flex-direction:column;align-items:center;">
       <div id="menu-console-card" class="console-card">
-        <!-- 1. Tactile Pop & Zoom Vinyl Track Cards -->
-        <div id="menu-track-deck-row" class="track-deck-row"></div>
+        <!-- 1. Song Selector Dropdown -->
+        <div id="menu-track-deck-row" style="width:100%;"></div>
 
-        <!-- 2. Tactile Pop & Zoom Speed Switches (Zoomed Card Reveals Crisp 1-Line Spec!) -->
-        <div id="menu-remix-pills" class="remix-pills-row"></div>
+        <!-- 2. Speed & Mode Dropdown (With Curiosity Reward Hooks!) -->
+        <div id="menu-remix-pills" style="width:100%;"></div>
 
         <!-- 3. High-Dopamine Launch Button -->
         <div id="btn-launch-stage" class="btn-launch-stage" onclick="window.app.startStage()">
@@ -268,26 +264,22 @@
         </div>
       </div>
 
-      <!-- Customizer & Artist Vault Category Tabs (-1 = ★ SPECIALS, 0 = CORES, 1 = TRAILS, 2 = THEMES) -->
-      <div class="cust-tabs-row">
-        <div id="cust-tab--1" class="cust-tab active" onclick="window.app.setCustomizerTab(-1)">★ SPECIALS</div>
-        <div id="cust-tab-0" class="cust-tab" onclick="window.app.setCustomizerTab(0)">CORES</div>
-        <div id="cust-tab-1" class="cust-tab" onclick="window.app.setCustomizerTab(1)">TRAILS</div>
-        <div id="cust-tab-2" class="cust-tab" onclick="window.app.setCustomizerTab(2)">THEMES</div>
-      </div>
+      <!-- Customizer & Artist Vault Category Dropdown Selector (Zero Button Crowding!) -->
+      <div id="cust-category-dropdown-wrap" style="width:100%;margin-bottom:6px;"></div>
 
       <!-- Artist Specials & Liner Notes View (Shown when tab == -1) -->
       <div id="cust-specials-wrap">
         <!-- Album Vault Quick Section -->
         <div style="display:flex;align-items:center;justify-content:space-between;margin:2px 0 4px;">
-          <span style="font-size:10px;font-weight:900;letter-spacing:1.4px;color:#FACC15;">MASTERED ALBUM TRACKS</span>
+          <span style="font-size:10px;font-weight:900;letter-spacing:1.1px;color:#FACC15;">MASTERED ALBUM TRACKS</span>
           <div style="display:flex;gap:10px;">
-            <span style="font-size:10px;font-weight:900;color:#FACC15;cursor:pointer;" onclick="window.app.openLinerNotes()">📖 FULL LYRICS</span>
+            <span style="font-size:10px;font-weight:900;color:#FACC15;cursor:pointer;" onclick="window.app.openLinerNotes()">📖 LYRICS</span>
             <span style="font-size:10px;font-weight:900;color:#38BDF8;cursor:pointer;" onclick="window.app.openScreen('DEMO_PLAYER')">STUDIO DECK →</span>
           </div>
         </div>
         <div id="cust-vault-tracks" style="margin-bottom:10px;"></div>
         <div id="cust-specials-list"></div>
+        <div style="height:36px;"></div>
       </div>
 
       <!-- Cosmetics Customizer View (Shown when tab >= 0) -->
@@ -298,6 +290,7 @@
           <div class="preview-badge-br">DRAG HERE TO TEST</div>
         </div>
         <div id="cust-items-list"></div>
+        <div style="height:36px;"></div>
       </div>
     </div>
   </div>
@@ -562,16 +555,16 @@
     </div>
   </div>
 
-  <script src="multi_band_data.js?v=15"></script>
-  <script src="music_library.js?v=15"></script>
-  <script src="background_renderer.js?v=15"></script>
-  <script src="beat_orb_renderer.js?v=15"></script>
-  <script src="game_renderer.js?v=15"></script>
-  <script src="engine.js?v=15"></script>
-  <script src="audio_synth.js?v=15"></script>
-  <script src="game_physics.js?v=15"></script>
-  <script src="ui_screens.js?v=15"></script>
-  <script src="tutorial_overlay.js?v=15"></script>
+  <script src="multi_band_data.js?v=16"></script>
+  <script src="music_library.js?v=16"></script>
+  <script src="background_renderer.js?v=16"></script>
+  <script src="beat_orb_renderer.js?v=16"></script>
+  <script src="game_renderer.js?v=16"></script>
+  <script src="engine.js?v=16"></script>
+  <script src="audio_synth.js?v=16"></script>
+  <script src="game_physics.js?v=16"></script>
+  <script src="ui_screens.js?v=16"></script>
+  <script src="tutorial_overlay.js?v=16"></script>
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {

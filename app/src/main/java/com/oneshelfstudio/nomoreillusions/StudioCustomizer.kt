@@ -269,11 +269,20 @@ fun StudioCustomizerSuite(
 
             Spacer(modifier = Modifier.height(8.dp))
 
+            var selectedCategoryIndex by remember { mutableIntStateOf(0) }
+            var showCategoryDropdown by remember { mutableStateOf(false) }
+            val categories = listOf(
+                Triple(0, "🌌 STAGE PALETTES (6 THEMES)", Color(0xFF38BDF8L)),
+                Triple(1, "🛸 HERO AVATARS (6 CORES)", Color(0xFF4ADE80L)),
+                Triple(2, "👾 ENEMY SWARMS (4 STYLES)", Color(0xFFF43F5EL)),
+                Triple(3, "★ VAULT REELS & BOOKLETS", Color(0xFFFACC15L))
+            )
+
             // Live Interactive Optical Illusion Simulation Box
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(185.dp)
+                    .height(145.dp)
                     .clip(RoundedCornerShape(16.dp))
                     .border(1.5.dp, Color(0xFF6366F1L).copy(alpha = 0.65f), RoundedCornerShape(16.dp))
                     .pointerInput(Unit) {
@@ -344,327 +353,385 @@ fun StudioCustomizerSuite(
                 }
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
-            // SECTION 1: BACKGROUND THEME
-            Text(
-                text = "1. OPTICAL WAVE PALETTE (UNLOCK WITH ♪ NOTES)",
-                color = Color(0xFF4ADE80L),
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Black,
-                letterSpacing = 0.8.sp
-            )
-            Spacer(modifier = Modifier.height(6.dp))
-            Row(modifier = Modifier.fillMaxWidth()) {
-                ThemeCard(
-                    title = "ILLUSION",
-                    subtitle = "Indigo & Forest Green",
-                    isSelected = bgTheme == "OBSIDIAN",
-                    isUnlocked = "BG_OBSIDIAN" in unlockedSet,
-                    costNotes = 0,
-                    accentColor = Color(0xFF6366F1L),
-                    modifier = Modifier.weight(1f)
-                ) { applyOrUnlock("BG_OBSIDIAN", 0, newBg = "OBSIDIAN") }
-
-                Spacer(modifier = Modifier.width(8.dp))
-
-                ThemeCard(
-                    title = "FOREST ABYSS",
-                    subtitle = "Deep Emerald Matrix",
-                    isSelected = bgTheme == "CYBER",
-                    isUnlocked = "BG_CYBER" in unlockedSet,
-                    costNotes = 200,
-                    accentColor = Color(0xFF22C55EL),
-                    modifier = Modifier.weight(1f)
-                ) { applyOrUnlock("BG_CYBER", 200, newBg = "CYBER") }
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(modifier = Modifier.fillMaxWidth()) {
-                ThemeCard(
-                    title = "BREAKDOWN",
-                    subtitle = "Crimson & Violet Surge",
-                    isSelected = bgTheme == "SUNSET",
-                    isUnlocked = "BG_SUNSET" in unlockedSet,
-                    costNotes = 300,
-                    accentColor = Color(0xFFEC4899L),
-                    modifier = Modifier.weight(1f)
-                ) { applyOrUnlock("BG_SUNSET", 300, newBg = "SUNSET") }
-
-                Spacer(modifier = Modifier.width(8.dp))
-
-                ThemeCard(
-                    title = "MIRAGE",
-                    subtitle = "Electric Purple Bloom",
-                    isSelected = bgTheme == "PRISM",
-                    isUnlocked = "BG_PRISM" in unlockedSet,
-                    costNotes = 350,
-                    accentColor = Color(0xFFA855F7L),
-                    modifier = Modifier.weight(1f)
-                ) { applyOrUnlock("BG_PRISM", 350, newBg = "PRISM") }
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(modifier = Modifier.fillMaxWidth()) {
-                ThemeCard(
-                    title = "24K VINYL",
-                    subtitle = "Gold Collector Stage",
-                    isSelected = bgTheme == "GOLD_VINYL",
-                    isUnlocked = "BG_GOLD_VINYL" in unlockedSet,
-                    costNotes = 450,
-                    accentColor = Color(0xFFFACC15L),
-                    modifier = Modifier.weight(1f)
-                ) { applyOrUnlock("BG_GOLD_VINYL", 450, newBg = "GOLD_VINYL") }
-
-                Spacer(modifier = Modifier.width(8.dp))
-
-                ThemeCard(
-                    title = "BLOOD MOON",
-                    subtitle = "Crimson Solar Eclipse",
-                    isSelected = bgTheme == "BLOOD_MOON",
-                    isUnlocked = "BG_BLOOD_MOON" in unlockedSet,
-                    costNotes = 500,
-                    accentColor = Color(0xFFF43F5EL),
-                    modifier = Modifier.weight(1f)
-                ) { applyOrUnlock("BG_BLOOD_MOON", 500, newBg = "BLOOD_MOON") }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // SECTION 2: HERO CORE SKIN
-            Text(
-                text = "2. HERO ILLUSION CORE (6 SIGNATURE AVATARS)",
-                color = Color(0xFF4ADE80L),
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Black,
-                letterSpacing = 0.8.sp
-            )
-            Spacer(modifier = Modifier.height(6.dp))
-            Row(modifier = Modifier.fillMaxWidth()) {
-                ThemeCard(
-                    title = "EMERALD",
-                    subtitle = "Starter Core",
-                    isSelected = heroSkin == "SOLAR",
-                    isUnlocked = "HERO_SOLAR" in unlockedSet,
-                    costNotes = 0,
-                    accentColor = Color(0xFF22C55EL),
-                    modifier = Modifier.weight(1f)
-                ) { applyOrUnlock("HERO_SOLAR", 0, newHero = "SOLAR") }
-
-                Spacer(modifier = Modifier.width(8.dp))
-
-                ThemeCard(
-                    title = "INDIGO",
-                    subtitle = "Deep Nebula",
-                    isSelected = heroSkin == "CYBER",
-                    isUnlocked = "HERO_CYBER" in unlockedSet,
-                    costNotes = 250,
-                    accentColor = Color(0xFF6366F1L),
-                    modifier = Modifier.weight(1f)
-                ) { applyOrUnlock("HERO_CYBER", 250, newHero = "CYBER") }
-
-                Spacer(modifier = Modifier.width(8.dp))
-
-                ThemeCard(
-                    title = "PRISM",
-                    subtitle = "Dual Spectrum",
-                    isSelected = heroSkin == "PRISM",
-                    isUnlocked = "HERO_PRISM" in unlockedSet,
-                    costNotes = 350,
-                    accentColor = Color(0xFFA855F7L),
-                    modifier = Modifier.weight(1f)
-                ) { applyOrUnlock("HERO_PRISM", 350, newHero = "PRISM") }
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(modifier = Modifier.fillMaxWidth()) {
-                ThemeCard(
-                    title = "45-RPM VINYL",
-                    subtitle = "Turntable Halo",
-                    isSelected = heroSkin == "VINYL",
-                    isUnlocked = "HERO_VINYL" in unlockedSet,
-                    costNotes = 400,
-                    accentColor = Color(0xFF38BDF8L),
-                    modifier = Modifier.weight(1f)
-                ) { applyOrUnlock("HERO_VINYL", 400, newHero = "VINYL") }
-
-                Spacer(modifier = Modifier.width(8.dp))
-
-                ThemeCard(
-                    title = "24K ECLIPSE",
-                    subtitle = "Solar Corona",
-                    isSelected = heroSkin == "ECLIPSE",
-                    isUnlocked = "HERO_ECLIPSE" in unlockedSet,
-                    costNotes = 450,
-                    accentColor = Color(0xFFFACC15L),
-                    modifier = Modifier.weight(1f)
-                ) { applyOrUnlock("HERO_ECLIPSE", 450, newHero = "ECLIPSE") }
-
-                Spacer(modifier = Modifier.width(8.dp))
-
-                ThemeCard(
-                    title = "TWIN PULSE",
-                    subtitle = "Binary Orbit",
-                    isSelected = heroSkin == "SERAPH",
-                    isUnlocked = "HERO_SERAPH" in unlockedSet,
-                    costNotes = 500,
-                    accentColor = Color(0xFFE879F9L),
-                    modifier = Modifier.weight(1f)
-                ) { applyOrUnlock("HERO_SERAPH", 500, newHero = "SERAPH") }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // SECTION 3: ENEMY HAZARD SWARM
-            Text(
-                text = "3. OPTICAL HAZARD SWARM (UNLOCK WITH ♪ NOTES)",
-                color = Color(0xFF4ADE80L),
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Black,
-                letterSpacing = 0.8.sp
-            )
-            Spacer(modifier = Modifier.height(6.dp))
-            Row(modifier = Modifier.fillMaxWidth()) {
-                ThemeCard(
-                    title = "BALANCED",
-                    subtitle = "Full Spectrum",
-                    isSelected = enemyStyle == "BALANCED",
-                    isUnlocked = "ENEMY_BALANCED" in unlockedSet,
-                    costNotes = 0,
-                    accentColor = Color(0xFF22C55EL),
-                    modifier = Modifier.weight(1f)
-                ) { applyOrUnlock("ENEMY_BALANCED", 0, newEnemy = "BALANCED") }
-
-                Spacer(modifier = Modifier.width(8.dp))
-
-                ThemeCard(
-                    title = "PULSARS",
-                    subtitle = "Chrono-Saw Swarm",
-                    isSelected = enemyStyle == "PULSARS",
-                    isUnlocked = "ENEMY_PULSARS" in unlockedSet,
-                    costNotes = 150,
-                    accentColor = Color(0xFF8B5CF6L),
-                    modifier = Modifier.weight(1f)
-                ) { applyOrUnlock("ENEMY_PULSARS", 150, newEnemy = "PULSARS") }
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(modifier = Modifier.fillMaxWidth()) {
-                ThemeCard(
-                    title = "SEEKERS",
-                    subtitle = "Fractured Seraphs",
-                    isSelected = enemyStyle == "SEEKERS",
-                    isUnlocked = "ENEMY_SEEKERS" in unlockedSet,
-                    costNotes = 250,
-                    accentColor = Color(0xFFEC4899L),
-                    modifier = Modifier.weight(1f)
-                ) { applyOrUnlock("ENEMY_SEEKERS", 250, newEnemy = "SEEKERS") }
-
-                Spacer(modifier = Modifier.width(8.dp))
-
-                ThemeCard(
-                    title = "WANDERERS",
-                    subtitle = "Void Leviathans",
-                    isSelected = enemyStyle == "WANDERERS",
-                    isUnlocked = "ENEMY_WANDERERS" in unlockedSet,
-                    costNotes = 300,
-                    accentColor = Color(0xFF10B981L),
-                    modifier = Modifier.weight(1f)
-                ) { applyOrUnlock("ENEMY_WANDERERS", 300, newEnemy = "WANDERERS") }
-            }
-
-            Spacer(modifier = Modifier.height(18.dp))
-
-            // SECTION 4: INTERACTIVE ARTIST VAULT EXCLUSIVES
-            Text(
-                text = "4. ARTIST VAULT EXCLUSIVES (TAP UNLOCKED CARD TO OPEN)",
-                color = Color(0xFFFACC15L),
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Black,
-                letterSpacing = 0.8.sp
-            )
-            Spacer(modifier = Modifier.height(6.dp))
-            Row(modifier = Modifier.fillMaxWidth()) {
-                ThemeCard(
-                    title = "VAULT TAPE DECK",
-                    subtitle = "Slowed & Nightcore",
-                    isSelected = "VAULT_DEMO" in unlockedSet,
-                    isUnlocked = "VAULT_DEMO" in unlockedSet,
-                    costNotes = 500,
-                    accentColor = Color(0xFFFACC15L),
-                    modifier = Modifier.weight(1f)
+            // CATEGORY DROPDOWN SELECTOR (Eliminates vertical scroll wall!)
+            val activeCat = categories[selectedCategoryIndex]
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(Color(0xFF0A1328L))
+                    .border(1.5.dp, activeCat.third.copy(alpha = 0.85f), RoundedCornerShape(14.dp))
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { showCategoryDropdown = !showCategoryDropdown }
+                        .padding(horizontal = 14.dp, vertical = 11.dp)
                 ) {
-                    if ("VAULT_DEMO" in unlockedSet) {
-                        activeVaultModal = "VAULT_DEMO"
-                    } else {
-                        applyOrUnlock("VAULT_DEMO", 500)
-                        if ("VAULT_DEMO" in unlockedSet || pulsePoints >= 500) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "CUSTOMIZE CATEGORY (TAP TO SWITCH)",
+                            color = Color.White.copy(alpha = 0.55f),
+                            fontSize = 8.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 0.7.sp
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = activeCat.second,
+                            color = activeCat.third,
+                            fontSize = 12.5.sp,
+                            fontWeight = FontWeight.Black,
+                            maxLines = 1
+                        )
+                    }
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(50))
+                            .background(activeCat.third.copy(alpha = 0.18f))
+                            .border(1.dp, activeCat.third.copy(alpha = 0.65f), RoundedCornerShape(50))
+                            .padding(horizontal = 10.dp, vertical = 4.dp)
+                    ) {
+                        Text(
+                            text = if (showCategoryDropdown) "CLOSE ▴" else "SWITCH ▾",
+                            color = activeCat.third,
+                            fontSize = 9.5.sp,
+                            fontWeight = FontWeight.Black
+                        )
+                    }
+                }
+
+                if (showCategoryDropdown) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color(0xFF050914L))
+                            .padding(horizontal = 10.dp, vertical = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        categories.forEach { (idx, label, col) ->
+                            val isSel = idx == selectedCategoryIndex
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(if (isSel) col.copy(alpha = 0.18f) else Color(0xFF0B1324L))
+                                    .border(1.dp, if (isSel) col else Color.White.copy(alpha = 0.12f), RoundedCornerShape(10.dp))
+                                    .clickable {
+                                        selectedCategoryIndex = idx
+                                        showCategoryDropdown = false
+                                    }
+                                    .padding(horizontal = 12.dp, vertical = 9.dp)
+                            ) {
+                                Text(
+                                    text = label,
+                                    color = if (isSel) col else Color.White,
+                                    fontSize = 11.5.sp,
+                                    fontWeight = FontWeight.Black
+                                )
+                                Text(
+                                    text = if (isSel) "✓ SELECTED" else "SELECT →",
+                                    color = if (isSel) col else Color.White.copy(alpha = 0.6f),
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Black
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            if (selectedCategoryIndex == 0) {
+                // SECTION 1: BACKGROUND THEME
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    ThemeCard(
+                        title = "ILLUSION",
+                        subtitle = "Indigo & Forest Green",
+                        isSelected = bgTheme == "OBSIDIAN",
+                        isUnlocked = "BG_OBSIDIAN" in unlockedSet,
+                        costNotes = 0,
+                        accentColor = Color(0xFF6366F1L),
+                        modifier = Modifier.weight(1f)
+                    ) { applyOrUnlock("BG_OBSIDIAN", 0, newBg = "OBSIDIAN") }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    ThemeCard(
+                        title = "FOREST ABYSS",
+                        subtitle = "Deep Emerald Matrix",
+                        isSelected = bgTheme == "CYBER",
+                        isUnlocked = "BG_CYBER" in unlockedSet,
+                        costNotes = 200,
+                        accentColor = Color(0xFF22C55EL),
+                        modifier = Modifier.weight(1f)
+                    ) { applyOrUnlock("BG_CYBER", 200, newBg = "CYBER") }
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    ThemeCard(
+                        title = "BREAKDOWN",
+                        subtitle = "Crimson & Violet Surge",
+                        isSelected = bgTheme == "SUNSET",
+                        isUnlocked = "BG_SUNSET" in unlockedSet,
+                        costNotes = 300,
+                        accentColor = Color(0xFFEC4899L),
+                        modifier = Modifier.weight(1f)
+                    ) { applyOrUnlock("BG_SUNSET", 300, newBg = "SUNSET") }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    ThemeCard(
+                        title = "MIRAGE",
+                        subtitle = "Electric Purple Bloom",
+                        isSelected = bgTheme == "PRISM",
+                        isUnlocked = "BG_PRISM" in unlockedSet,
+                        costNotes = 350,
+                        accentColor = Color(0xFFA855F7L),
+                        modifier = Modifier.weight(1f)
+                    ) { applyOrUnlock("BG_PRISM", 350, newBg = "PRISM") }
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    ThemeCard(
+                        title = "24K VINYL",
+                        subtitle = "Gold Collector Stage",
+                        isSelected = bgTheme == "GOLD_VINYL",
+                        isUnlocked = "BG_GOLD_VINYL" in unlockedSet,
+                        costNotes = 450,
+                        accentColor = Color(0xFFFACC15L),
+                        modifier = Modifier.weight(1f)
+                    ) { applyOrUnlock("BG_GOLD_VINYL", 450, newBg = "GOLD_VINYL") }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    ThemeCard(
+                        title = "BLOOD MOON",
+                        subtitle = "Crimson Solar Eclipse",
+                        isSelected = bgTheme == "BLOOD_MOON",
+                        isUnlocked = "BG_BLOOD_MOON" in unlockedSet,
+                        costNotes = 500,
+                        accentColor = Color(0xFFF43F5EL),
+                        modifier = Modifier.weight(1f)
+                    ) { applyOrUnlock("BG_BLOOD_MOON", 500, newBg = "BLOOD_MOON") }
+                }
+            } else if (selectedCategoryIndex == 1) {
+                // SECTION 2: HERO CORE SKIN
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    ThemeCard(
+                        title = "EMERALD",
+                        subtitle = "Starter Core",
+                        isSelected = heroSkin == "SOLAR",
+                        isUnlocked = "HERO_SOLAR" in unlockedSet,
+                        costNotes = 0,
+                        accentColor = Color(0xFF22C55EL),
+                        modifier = Modifier.weight(1f)
+                    ) { applyOrUnlock("HERO_SOLAR", 0, newHero = "SOLAR") }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    ThemeCard(
+                        title = "INDIGO",
+                        subtitle = "Deep Nebula",
+                        isSelected = heroSkin == "CYBER",
+                        isUnlocked = "HERO_CYBER" in unlockedSet,
+                        costNotes = 250,
+                        accentColor = Color(0xFF6366F1L),
+                        modifier = Modifier.weight(1f)
+                    ) { applyOrUnlock("HERO_CYBER", 250, newHero = "CYBER") }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    ThemeCard(
+                        title = "PRISM",
+                        subtitle = "Dual Spectrum",
+                        isSelected = heroSkin == "PRISM",
+                        isUnlocked = "HERO_PRISM" in unlockedSet,
+                        costNotes = 350,
+                        accentColor = Color(0xFFA855F7L),
+                        modifier = Modifier.weight(1f)
+                    ) { applyOrUnlock("HERO_PRISM", 350, newHero = "PRISM") }
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    ThemeCard(
+                        title = "45-RPM VINYL",
+                        subtitle = "Turntable Halo",
+                        isSelected = heroSkin == "VINYL",
+                        isUnlocked = "HERO_VINYL" in unlockedSet,
+                        costNotes = 400,
+                        accentColor = Color(0xFF38BDF8L),
+                        modifier = Modifier.weight(1f)
+                    ) { applyOrUnlock("HERO_VINYL", 400, newHero = "VINYL") }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    ThemeCard(
+                        title = "24K ECLIPSE",
+                        subtitle = "Solar Corona",
+                        isSelected = heroSkin == "ECLIPSE",
+                        isUnlocked = "HERO_ECLIPSE" in unlockedSet,
+                        costNotes = 450,
+                        accentColor = Color(0xFFFACC15L),
+                        modifier = Modifier.weight(1f)
+                    ) { applyOrUnlock("HERO_ECLIPSE", 450, newHero = "ECLIPSE") }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    ThemeCard(
+                        title = "TWIN PULSE",
+                        subtitle = "Binary Orbit",
+                        isSelected = heroSkin == "SERAPH",
+                        isUnlocked = "HERO_SERAPH" in unlockedSet,
+                        costNotes = 500,
+                        accentColor = Color(0xFFE879F9L),
+                        modifier = Modifier.weight(1f)
+                    ) { applyOrUnlock("HERO_SERAPH", 500, newHero = "SERAPH") }
+                }
+            } else if (selectedCategoryIndex == 2) {
+                // SECTION 3: ENEMY HAZARD SWARM
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    ThemeCard(
+                        title = "BALANCED",
+                        subtitle = "Full Spectrum",
+                        isSelected = enemyStyle == "BALANCED",
+                        isUnlocked = "ENEMY_BALANCED" in unlockedSet,
+                        costNotes = 0,
+                        accentColor = Color(0xFF22C55EL),
+                        modifier = Modifier.weight(1f)
+                    ) { applyOrUnlock("ENEMY_BALANCED", 0, newEnemy = "BALANCED") }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    ThemeCard(
+                        title = "PULSARS",
+                        subtitle = "Chrono-Saw Swarm",
+                        isSelected = enemyStyle == "PULSARS",
+                        isUnlocked = "ENEMY_PULSARS" in unlockedSet,
+                        costNotes = 150,
+                        accentColor = Color(0xFF8B5CF6L),
+                        modifier = Modifier.weight(1f)
+                    ) { applyOrUnlock("ENEMY_PULSARS", 150, newEnemy = "PULSARS") }
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    ThemeCard(
+                        title = "SEEKERS",
+                        subtitle = "Fractured Seraphs",
+                        isSelected = enemyStyle == "SEEKERS",
+                        isUnlocked = "ENEMY_SEEKERS" in unlockedSet,
+                        costNotes = 250,
+                        accentColor = Color(0xFFEC4899L),
+                        modifier = Modifier.weight(1f)
+                    ) { applyOrUnlock("ENEMY_SEEKERS", 250, newEnemy = "SEEKERS") }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    ThemeCard(
+                        title = "WANDERERS",
+                        subtitle = "Void Leviathans",
+                        isSelected = enemyStyle == "WANDERERS",
+                        isUnlocked = "ENEMY_WANDERERS" in unlockedSet,
+                        costNotes = 300,
+                        accentColor = Color(0xFF10B981L),
+                        modifier = Modifier.weight(1f)
+                    ) { applyOrUnlock("ENEMY_WANDERERS", 300, newEnemy = "WANDERERS") }
+                }
+            } else {
+                // SECTION 4: INTERACTIVE ARTIST VAULT EXCLUSIVES
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    ThemeCard(
+                        title = "VAULT TAPE DECK",
+                        subtitle = "Slowed & Nightcore",
+                        isSelected = "VAULT_DEMO" in unlockedSet,
+                        isUnlocked = "VAULT_DEMO" in unlockedSet,
+                        costNotes = 500,
+                        accentColor = Color(0xFFFACC15L),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        if ("VAULT_DEMO" in unlockedSet) {
                             activeVaultModal = "VAULT_DEMO"
+                        } else {
+                            applyOrUnlock("VAULT_DEMO", 500)
+                            if ("VAULT_DEMO" in unlockedSet || pulsePoints >= 500) {
+                                activeVaultModal = "VAULT_DEMO"
+                            }
                         }
                     }
-                }
 
-                Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
 
-                ThemeCard(
-                    title = "LYRIC BOOKLET",
-                    subtitle = "Director's Liner Notes",
-                    isSelected = "VAULT_LYRICS" in unlockedSet,
-                    isUnlocked = "VAULT_LYRICS" in unlockedSet,
-                    costNotes = 500,
-                    accentColor = Color(0xFF38BDF8L),
-                    modifier = Modifier.weight(1f)
-                ) {
-                    if ("VAULT_LYRICS" in unlockedSet) {
-                        activeVaultModal = "VAULT_LYRICS"
-                    } else {
-                        applyOrUnlock("VAULT_LYRICS", 500)
-                        if ("VAULT_LYRICS" in unlockedSet || pulsePoints >= 500) {
+                    ThemeCard(
+                        title = "LYRIC BOOKLET",
+                        subtitle = "Director's Liner Notes",
+                        isSelected = "VAULT_LYRICS" in unlockedSet,
+                        isUnlocked = "VAULT_LYRICS" in unlockedSet,
+                        costNotes = 500,
+                        accentColor = Color(0xFF38BDF8L),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        if ("VAULT_LYRICS" in unlockedSet) {
                             activeVaultModal = "VAULT_LYRICS"
+                        } else {
+                            applyOrUnlock("VAULT_LYRICS", 500)
+                            if ("VAULT_LYRICS" in unlockedSet || pulsePoints >= 500) {
+                                activeVaultModal = "VAULT_LYRICS"
+                            }
                         }
                     }
                 }
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(modifier = Modifier.fillMaxWidth()) {
-                ThemeCard(
-                    title = "ERA STORYBOARD",
-                    subtitle = "Studio Session Cards",
-                    isSelected = "VAULT_POLAROIDS" in unlockedSet,
-                    isUnlocked = "VAULT_POLAROIDS" in unlockedSet,
-                    costNotes = 600,
-                    accentColor = Color(0xFFE879F9L),
-                    modifier = Modifier.weight(1f)
-                ) {
-                    if ("VAULT_POLAROIDS" in unlockedSet) {
-                        activeVaultModal = "VAULT_POLAROIDS"
-                    } else {
-                        applyOrUnlock("VAULT_POLAROIDS", 600)
-                        if ("VAULT_POLAROIDS" in unlockedSet || pulsePoints >= 600) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    ThemeCard(
+                        title = "ERA STORYBOARD",
+                        subtitle = "Studio Session Cards",
+                        isSelected = "VAULT_POLAROIDS" in unlockedSet,
+                        isUnlocked = "VAULT_POLAROIDS" in unlockedSet,
+                        costNotes = 600,
+                        accentColor = Color(0xFFE879F9L),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        if ("VAULT_POLAROIDS" in unlockedSet) {
                             activeVaultModal = "VAULT_POLAROIDS"
+                        } else {
+                            applyOrUnlock("VAULT_POLAROIDS", 600)
+                            if ("VAULT_POLAROIDS" in unlockedSet || pulsePoints >= 600) {
+                                activeVaultModal = "VAULT_POLAROIDS"
+                            }
                         }
                     }
-                }
 
-                Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
 
-                ThemeCard(
-                    title = "4K ART & VINYL",
-                    subtitle = "Holographic Foil Showcase",
-                    isSelected = "VAULT_WALLPAPER" in unlockedSet,
-                    isUnlocked = "VAULT_WALLPAPER" in unlockedSet,
-                    costNotes = 600,
-                    accentColor = Color(0xFF4ADE80L),
-                    modifier = Modifier.weight(1f)
-                ) {
-                    if ("VAULT_WALLPAPER" in unlockedSet) {
-                        activeVaultModal = "VAULT_WALLPAPER"
-                    } else {
-                        applyOrUnlock("VAULT_WALLPAPER", 600)
-                        if ("VAULT_WALLPAPER" in unlockedSet || pulsePoints >= 600) {
+                    ThemeCard(
+                        title = "4K ART & VINYL",
+                        subtitle = "Holographic Foil Showcase",
+                        isSelected = "VAULT_WALLPAPER" in unlockedSet,
+                        isUnlocked = "VAULT_WALLPAPER" in unlockedSet,
+                        costNotes = 600,
+                        accentColor = Color(0xFF4ADE80L),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        if ("VAULT_WALLPAPER" in unlockedSet) {
                             activeVaultModal = "VAULT_WALLPAPER"
+                        } else {
+                            applyOrUnlock("VAULT_WALLPAPER", 600)
+                            if ("VAULT_WALLPAPER" in unlockedSet || pulsePoints >= 600) {
+                                activeVaultModal = "VAULT_WALLPAPER"
+                            }
                         }
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(22.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             // LAUNCH TEST GAME BUTTON
             ArcadePillButton(
@@ -672,10 +739,10 @@ fun StudioCustomizerSuite(
                 pillBitmap = btnPillGreen,
                 onClick = onLaunchTestGame,
                 fontSize = 15.sp,
-                modifier = Modifier.fillMaxWidth().height(52.dp)
+                modifier = Modifier.fillMaxWidth().height(50.dp)
             )
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(64.dp))
         }
 
         // Artist VIP Passcode Modal Overlay

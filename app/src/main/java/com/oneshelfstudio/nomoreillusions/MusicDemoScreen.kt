@@ -221,10 +221,11 @@ fun MusicDemoScreen(
                 )
             )
             .statusBarsPadding()
+            .navigationBarsPadding()
             .padding(horizontal = 14.dp, vertical = 10.dp)
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            // Top Bar: 3-Tab Pill Switcher (★ SPECIALS | ALBUM | CUSTOMIZE) + Music Notes Pill + Close Button
+            // Top Bar: 3-Tab Pill Switcher (★ VAULT | ALBUM | LOADOUT) + Music Notes Pill + Close Button
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth()
@@ -241,7 +242,7 @@ fun MusicDemoScreen(
                     val specialsSelected = activeTab == 0
                     Box(
                         modifier = Modifier
-                            .weight(1.15f)
+                            .weight(1.05f)
                             .fillMaxHeight()
                             .clip(RoundedCornerShape(50))
                             .background(
@@ -255,7 +256,7 @@ fun MusicDemoScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "★ SPECIALS",
+                            text = "★ VAULT",
                             color = if (specialsSelected) Color(0xFF020617L) else Color(0xFFFACC15L),
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Black,
@@ -309,7 +310,7 @@ fun MusicDemoScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "CUSTOMIZE",
+                            text = "LOADOUT",
                             color = if (custSelected) Color.White else Color.White.copy(alpha = 0.65f),
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Black,

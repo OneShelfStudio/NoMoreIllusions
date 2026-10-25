@@ -11,6 +11,7 @@ class NoMoreIllusionsApp {
     this.unlockAudioOnFirstGesture();
     this.prefs.selectedRemixModeId = modeId;
     localStorage.setItem("nmi_remix_mode", modeId);
+    this.showModeDropdown = false;
     const mode = this.getRemixMode();
     this.synthModeSwitchChime(mode);
     this.updateLobbyPlayback();
@@ -49,8 +50,14 @@ class NoMoreIllusionsApp {
       musicMuted: localStorage.getItem("nmi_music_muted") === "true",
       sfxMuted: localStorage.getItem("nmi_sfx_muted") === "true",
       seenHowToPlay: localStorage.getItem("nmi_seen_htp") === "true",
-      vipUnlocked: localStorage.getItem("nmi_vip") === "true"
+      vipUnlocked: localStorage.getItem("nmi_vip") === "true",
+      endlessBestLoop: parseInt(localStorage.getItem("nmi_endless_best_loop") || "0", 10)
     };
+    this.showRewardsPeek = false;
+    this.showTrackDropdown = false;
+    this.showModeDropdown = false;
+    this.showCustomizerCatDropdown = false;
+    this.expandedExclusiveId = "excl_endless_champion";
 
     // Bitmaps Registry
     this.images = {};
@@ -548,6 +555,10 @@ class NoMoreIllusionsApp {
 
   advanceEndlessLoop() {
     this.endlessLoopCount = (this.endlessLoopCount || 0) + 1;
+    if (this.endlessLoopCount + 1 > (this.prefs.endlessBestLoop || 0)) {
+      this.prefs.endlessBestLoop = this.endlessLoopCount + 1;
+      localStorage.setItem("nmi_endless_best_loop", String(this.prefs.endlessBestLoop));
+    }
     const newSpeed = Math.min(1.65, 1.0 + this.endlessLoopCount * 0.08);
     this.nextBeatCueIndex = 0;
     this.lastTriggeredSectionTime = -1;

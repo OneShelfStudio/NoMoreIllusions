@@ -187,6 +187,19 @@ val ARTIST_EXCLUSIVES_CATALOG = listOf(
         isUnlocked = { prefs, highScore, points ->
             points >= 1500 || highScore >= 6000 || (prefs.getBoolean("art_unlocked_1", false) && prefs.getBoolean("art_unlocked_2", false)) || prefs.getBoolean("vip_all_unlocked", false)
         }
+    ),
+    ArtistExclusiveItem(
+        id = "excl_endless_champion",
+        category = "🏆 ENDLESS LOOP CHAMPION SECRET",
+        title = "ETHAN'S SECRET MESSAGE TO ENDLESS CHAMPIONS",
+        subtitle = "Personal Reward for Mastering the Speeding Endless Loop",
+        unlockRequirementText = "Score 15,000+ pts or survive 2+ Loops in ∞ ENDLESS Mode",
+        artistNoteQuote = "\"Yo—if you unlocked this secret envelope on the speeding Endless Loop, your rhythm reflexes are unreal! Screenshot your high score on the Endless Loop and DM @nomoreillusionsmusic with code 'ENDLESS24K'—I'll send you an unreleased demo stem and a personal shoutout!\"",
+        exclusiveDetail = "Unlocks the 24K Endless Champion Crown & Direct Artist DM Code.",
+        accentColor = Color(0xFFFACC15L),
+        isUnlocked = { prefs, highScore, _ ->
+            highScore >= 15000 || prefs.getInt("endless_best_loop", 0) >= 2 || prefs.getBoolean("vip_all_unlocked", false)
+        }
     )
 )
 

@@ -325,6 +325,9 @@ fun GameScreen(
                 audioEngine.playVictory()
                 gameState = GameState.LEVEL_COMPLETE
                 voiceOverManager.playVoiceOver("vo_track_decoded")
+            } else if (trackRevealMusicProgress >= 0.99f && gameState == GameState.PLAYING && selectedRemixMode == TrackRemixMode.ENDLESS) {
+                val nextBestLoop = prefs.getInt("endless_best_loop", 0) + 1
+                prefs.edit().putInt("endless_best_loop", nextBestLoop).apply()
             }
             delay(120)
         }
