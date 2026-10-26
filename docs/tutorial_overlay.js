@@ -361,18 +361,18 @@ Object.assign(NoMoreIllusionsApp.prototype, {
     const pct = Math.max(8, Math.round((unlockedCount / totalCount) * 100));
 
     let html = `
-      <div style="background:linear-gradient(90deg,rgba(31,20,56,0.95),rgba(13,25,43,0.95));border:1.5px solid rgba(250,204,21,0.75);border-radius:14px;padding:10px 12px;margin-bottom:10px;">
+      <div style="padding:4px 2px 8px;margin-bottom:8px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-          <div style="font-size:11px;font-weight:900;color:#FACC15;letter-spacing:0.8px;">★ ARTIST VAULT &amp; SECRETS</div>
-          <div style="background:rgba(74,222,128,0.18);border:1px solid #4ADE80;border-radius:50px;padding:2px 9px;font-size:9.5px;font-weight:900;color:#4ADE80;">
+          <div style="font-size:11px;font-weight:900;color:#EAB308;letter-spacing:1.1px;">★ ARTIST VAULT &amp; SECRETS</div>
+          <div style="font-size:10px;font-weight:900;color:#4ADE80;letter-spacing:0.8px;">
             ${unlockedCount} / ${totalCount} UNLOCKED
           </div>
         </div>
-        <div style="width:100%;height:6px;background:#040812;border-radius:6px;overflow:hidden;border:1px solid rgba(255,255,255,0.12);">
-          <div style="width:${pct}%;height:100%;background:linear-gradient(90deg,#FACC15,#4ADE80,#38BDF8);"></div>
+        <div style="width:100%;height:3px;background:rgba(255,255,255,0.12);overflow:hidden;">
+          <div style="width:${pct}%;height:100%;background:linear-gradient(90deg,#EAB308,#4ADE80,#38BDF8);"></div>
         </div>
       </div>
-      <div style="font-size:9.5px;font-weight:900;color:#38BDF8;letter-spacing:0.8px;margin:4px 0 6px;">
+      <div style="font-size:9.5px;font-weight:900;color:#38BDF8;letter-spacing:0.9px;margin:4px 0 6px;">
         💌 TAP ANY MYSTERY ENVELOPE TO PEEK INSIDE
       </div>
     `;
@@ -381,32 +381,31 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       const unlocked = item.isUnlockedFn(this);
       const isExpanded = this.expandedExclusiveId === item.id;
       const badgeLabel = unlocked ? (isExpanded ? "✓ OPEN ▴" : "✓ READ ▾") : (isExpanded ? "🔒 HOW ▴" : "🔒 PEEK ▾");
-      const badgeCol = unlocked ? "#4ADE80" : "#FACC15";
-      const borderCol = unlocked ? (isExpanded ? item.accentHex : `${item.accentHex}88`) : (isExpanded ? "rgba(250,204,21,0.55)" : "rgba(148,163,184,0.25)");
+      const badgeCol = unlocked ? "#4ADE80" : "#EAB308";
 
       return `
         <div onclick="window.app.toggleExclusiveEnvelope('${item.id}')"
-             style="background:rgba(11,16,30,0.94);border:${isExpanded ? "1.5px" : "1px"} solid ${borderCol};border-radius:12px;padding:10px 12px;margin-bottom:8px;cursor:pointer;">
+             style="padding:10px 4px;border-bottom:1px solid ${unlocked ? item.accentHex : "rgba(234,179,8,0.28)"};margin-bottom:4px;cursor:pointer;">
           <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
             <div style="min-width:0;flex:1;">
-              <div style="font-size:8.5px;font-weight:900;color:${item.accentHex};letter-spacing:0.6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${item.categoryBadge}</div>
-              <div style="font-size:12px;font-weight:900;color:#F8FAFC;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;">${item.title}</div>
+              <div style="font-size:8.5px;font-weight:900;color:${item.accentHex};letter-spacing:0.8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${item.categoryBadge}</div>
+              <div style="font-size:12.5px;font-weight:900;color:#FAF8F5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;">${item.title}</div>
             </div>
-            <div style="background:${badgeCol}22;border:1px solid ${badgeCol};border-radius:50px;padding:3px 8px;font-size:8.5px;font-weight:900;color:${badgeCol};white-space:nowrap;">
+            <div style="font-size:9.5px;font-weight:900;color:${badgeCol};white-space:nowrap;">
               ${badgeLabel}
             </div>
           </div>
           ${isExpanded ? (unlocked ? `
-            <div style="background:rgba(6,9,19,0.94);border:1px solid ${item.accentHex}55;border-radius:10px;padding:10px;margin-top:8px;">
-              <div style="font-size:9px;font-weight:900;color:${item.accentHex};margin-bottom:4px;">${item.unlockedHeadline}</div>
-              <div style="font-size:11px;color:#F1F5F9;line-height:1.48;">${item.unlockedBody}</div>
-              <div style="font-size:9.5px;font-weight:800;font-style:italic;color:#FACC15;margin-top:6px;">${item.unlockedQuote}</div>
+            <div style="padding:8px 4px 4px;margin-top:6px;border-left:2px solid ${item.accentHex};padding-left:10px;">
+              <div style="font-size:9.5px;font-weight:900;color:${item.accentHex};margin-bottom:4px;">${item.unlockedHeadline}</div>
+              <div style="font-size:11px;color:#F1F5F9;line-height:1.5;">${item.unlockedBody}</div>
+              <div style="font-size:10px;font-weight:800;font-style:italic;color:#EAB308;margin-top:6px;">${item.unlockedQuote}</div>
               <div style="font-size:9.5px;font-weight:800;color:#4ADE80;margin-top:4px;">✦ PERK: ${item.bonusGamePerk}</div>
             </div>
           ` : `
-            <div style="background:rgba(8,13,26,0.92);border:1px solid rgba(250,204,21,0.38);border-radius:10px;padding:9px 10px;margin-top:8px;">
-              <div style="font-size:9px;font-weight:900;color:#FACC15;">HOW TO UNLOCK THIS SECRET:</div>
-              <div style="font-size:10.5px;font-weight:700;color:#F8FAFC;margin-top:2px;">${item.unlockRequirementText}</div>
+            <div style="padding:8px 4px 4px;margin-top:6px;border-left:2px solid #EAB308;padding-left:10px;">
+              <div style="font-size:9px;font-weight:900;color:#EAB308;">HOW TO UNLOCK THIS SECRET:</div>
+              <div style="font-size:10.5px;font-weight:700;color:#FAF8F5;margin-top:2px;">${item.unlockRequirementText}</div>
             </div>
           `) : ""}
         </div>

@@ -787,16 +787,18 @@
     .cust-item-row, .vault-track-row {
       display: flex;
       align-items: center;
-      gap: 10px;
-      background: rgba(12, 9, 28, 0.88);
-      border: 1px solid rgba(148, 163, 184, 0.22);
-      border-radius: 14px;
-      padding: 9px 11px;
-      margin-bottom: 6px;
+      gap: 12px;
+      background: transparent;
+      border: none;
+      border-bottom: 1px solid rgba(234, 179, 8, 0.25);
+      border-radius: 0;
+      padding: 10px 4px;
+      margin-bottom: 4px;
+      cursor: pointer;
     }
     .cust-item-row.selected, .vault-track-row.selected {
-      border-color: #38BDF8;
-      background: rgba(24, 18, 54, 0.92);
+      border-bottom: 1.5px solid #38BDF8;
+      background: linear-gradient(90deg, rgba(56, 189, 248, 0.10), transparent);
     }
     .cust-swatch {
       width: 28px;

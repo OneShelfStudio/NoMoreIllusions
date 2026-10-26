@@ -1,18 +1,18 @@
-const CACHE_NAME = "nmi-v18-dualtether";
+const CACHE_NAME = "nmi-v25-live";
 const ASSETS = [
   "./",
   "./index.html",
-  "./styles.css",
-  "./multi_band_data.js",
-  "./music_library.js",
-  "./background_renderer.js",
-  "./beat_orb_renderer.js",
-  "./game_renderer.js",
-  "./engine.js",
-  "./audio_synth.js",
-  "./game_physics.js",
-  "./ui_screens.js",
-  "./tutorial_overlay.js",
+  "./styles.css?v=25",
+  "./multi_band_data.js?v=25",
+  "./music_library.js?v=25",
+  "./background_renderer.js?v=25",
+  "./beat_orb_renderer.js?v=25",
+  "./game_renderer.js?v=25",
+  "./engine.js?v=25",
+  "./audio_synth.js?v=25",
+  "./game_physics.js?v=25",
+  "./ui_screens.js?v=25",
+  "./tutorial_overlay.js?v=25",
   "./manifest.json",
   "./assets/nmi_logo.png",
   "./assets/mandala_hero_cyber.png",
@@ -65,13 +65,37 @@ self.addEventListener("fetch", (event) => {
 
   // Audio files with range requests should never be cached as 206 partial responses
   const isRangeRequest = event.request.headers.has("range");
+  if (isRangeRequest) return;
+
+  // NETWORK-FIRST for HTML, CSS, and JS so updates are ALWAYS immediately visible on the website!
+  const isCodeOrMarkup =
+    event.request.mode === "navigate" ||
+    url.includes(".html") ||
+    url.includes(".js") ||
+    url.includes(".css") ||
+    url.endsWith("/");
+
+  if (isCodeOrMarkup) {
+    event.respondWith(
+      fetch(event.request, { cache: "no-store" })
+        .then((res) => {
+          if (res && res.status === 200) {
+            const copy = res.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy)).catch(() => {});
+          }
+          return res;
+        })
+        .catch(() => caches.match(event.request).then((cached) => cached || new Response("Offline", { status: 503 })))
+    );
+    return;
+  }
 
   event.respondWith(
     caches.match(event.request).then((cached) => {
-      if (cached && !isRangeRequest) return cached;
+      if (cached) return cached;
       return fetch(event.request)
         .then((res) => {
-          if (!res || res.status !== 200 || isRangeRequest) {
+          if (!res || res.status !== 200) {
             return res;
           }
           const copy = res.clone();

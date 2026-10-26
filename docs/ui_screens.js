@@ -670,28 +670,29 @@ Object.assign(NoMoreIllusionsApp.prototype, {
     const catWrap = document.getElementById("cust-category-dropdown-wrap");
     if (catWrap) {
       catWrap.innerHTML = `
-        <div style="background:#090D1A;border:1.5px solid ${activeCat.col};border-radius:12px;overflow:hidden;">
+        <div style="padding:2px 0;">
           <div onclick="window.app.toggleCustomizerCatDropdown()"
-               style="padding:10px 12px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;">
+               style="padding:8px 4px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;">
             <div style="text-align:left;min-width:0;flex:1;">
-              <div style="font-size:8px;font-weight:800;color:#94A3B8;letter-spacing:0.8px;">🎨 SELECT CATEGORY (TAP TO SWITCH VIEW)</div>
-              <div style="font-size:12px;font-weight:900;color:${activeCat.col};margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+              <div style="font-size:8.5px;font-weight:800;color:#94A3B8;letter-spacing:1.1px;">🎨 SELECT CATEGORY • TAP TO SWITCH VIEW</div>
+              <div style="font-size:13.5px;font-weight:900;color:${activeCat.col};margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
                 ${activeCat.label}
               </div>
             </div>
-            <span style="background:${activeCat.col}22;border:1px solid ${activeCat.col};border-radius:50px;padding:3px 9px;font-size:9px;font-weight:900;color:${activeCat.col};margin-left:8px;white-space:nowrap;">
+            <span style="font-size:11px;font-weight:900;color:${activeCat.col};margin-left:8px;white-space:nowrap;">
               ${this.showCustomizerCatDropdown ? "CLOSE ▴" : "SWITCH ▾"}
             </span>
           </div>
+          <div style="height:1.4px;background:linear-gradient(90deg,transparent,${activeCat.col},transparent);"></div>
           ${this.showCustomizerCatDropdown ? `
-            <div style="background:#050811;padding:6px 10px 8px;border-top:1px solid rgba(255,255,255,0.1);display:flex;flex-direction:column;gap:5px;">
+            <div style="padding:8px 2px 6px;display:flex;flex-direction:column;gap:6px;">
               ${catOptions.map(c => {
                 const isSel = c.id === this.customizerTab;
                 return `
                   <div onclick="window.app.setCustomizerTab(${c.id})"
-                       style="background:${isSel ? `${c.col}24` : "#0B1020"};border:1px solid ${isSel ? c.col : "rgba(255,255,255,0.12)"};border-radius:8px;padding:8px 10px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;">
-                    <span style="font-size:11px;font-weight:900;color:${isSel ? c.col : "#F8FAFC"};">${c.label}</span>
-                    <span style="font-size:9px;font-weight:900;color:${isSel ? c.col : "#94A3B8"};">${isSel ? "✓ ACTIVE" : "OPEN →"}</span>
+                       style="padding:8px 4px;border-bottom:1px solid ${isSel ? c.col : "rgba(255,255,255,0.10)"};display:flex;align-items:center;justify-content:space-between;cursor:pointer;">
+                    <span style="font-size:11.5px;font-weight:900;color:${isSel ? c.col : "#FAF8F5"};">${c.label}</span>
+                    <span style="font-size:9.5px;font-weight:900;color:${isSel ? c.col : "#94A3B8"};">${isSel ? "✓ ACTIVE" : "OPEN →"}</span>
                   </div>
                 `;
               }).join("")}
