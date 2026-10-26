@@ -329,8 +329,8 @@ function drawPowerUps(ctx, powerUps, playerX, playerY, time, trackSec, beatPulse
   ctx.lineTo(botR.x, botR.y);
   ctx.stroke();
 
-  // Scrolling horizontal beat-measure bars
-  const phaseFrac = (time * 2.1) % 1;
+  // Scrolling horizontal beat-measure bars synced to trackSec
+  const phaseFrac = trackSec > 0 ? ((trackSec / 0.48387) % 1) : ((time * 2.06) % 1);
   for (let bIdx = 0; bIdx < 4; bIdx++) {
     const uBar = Math.max(0.02, Math.min(1.12, (bIdx + phaseFrac) / 4));
     const bL = computeHighwayPoint(-0.42, uBar, w, h);
@@ -342,6 +342,38 @@ function drawPowerUps(ctx, powerUps, playerX, playerY, time, trackSec, beatPulse
     ctx.strokeStyle = rgba([226, 232, 240], barAlpha);
     ctx.lineWidth = 1.3 + uBar * 1.6;
     ctx.stroke();
+  }
+
+  // Ethereal "Ooh / Aaah" Vocal Aurora Borealis Curtains & Harmonic Halos during long flowy vocal swells!
+  const vLevel = multiBand && typeof multiBand.vocal === "number" ? multiBand.vocal : 0;
+  const bLevel = multiBand && typeof multiBand.bass === "number" ? multiBand.bass : 0.4;
+  const vocalGlow = (bLevel < 0.22 && vLevel >= 0.34)
+    ? Math.min(1, Math.max(0.25, (vLevel - 0.28) * 1.6))
+    : Math.min(1, Math.max(0, (vLevel - 0.50) * 2.2));
+  if (vocalGlow > 0.04) {
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+    const curtainCols = [[56, 189, 248], [192, 132, 252], [253, 224, 71]];
+    for (let c = 0; c < 4; c++) {
+      const baseY = h * (0.11 + c * 0.045);
+      ctx.beginPath();
+      ctx.moveTo(0, baseY);
+      for (let step = 1; step <= 12; step++) {
+        const xPt = w * (step / 12);
+        const yWave = baseY + Math.sin(time * (1.8 + c * 0.35) + step * 0.65 + c) * (18 + 16 * vocalGlow);
+        ctx.lineTo(xPt, yWave);
+      }
+      ctx.strokeStyle = rgba(curtainCols[c % 3], (0.16 + 0.26 * vocalGlow) * (1 - c * 0.16));
+      ctx.lineWidth = 5 + (3 - c) * 3.5;
+      ctx.lineCap = "round";
+      ctx.stroke();
+    }
+    ctx.beginPath();
+    ctx.arc(w * 0.5, h * 0.20, w * (0.24 + 0.06 * Math.sin(time * 2.4)), 0, Math.PI * 2);
+    ctx.strokeStyle = rgba([192, 132, 252], 0.22 * vocalGlow);
+    ctx.lineWidth = 2.4;
+    ctx.stroke();
+    ctx.restore();
   }
 
   // 4 Perspective Fret Lane Strings
