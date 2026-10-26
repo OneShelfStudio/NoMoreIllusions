@@ -650,9 +650,9 @@ fun GameScreen(
                     activeStageMode = currentSecObj.stageMode
 
                     // If entering a Vocal Float, Pre-Drop Hush, or Victory Outro, dissolve all active enemies into stardust!
+                    // Never clear `wormholes` here so active 2-Finger Vocal Sustain Holds remain intact during vocal floats!
                     if (currentSecObj.clearEnemiesOnEnter) {
                         enemyTelegraphs.clear()
-                        wormholes.clear()
                         for (e in enemies) {
                             shockwaves.add(
                                 Shockwave(
@@ -681,6 +681,29 @@ fun GameScreen(
                             }
                         }
                         enemies.clear()
+                    }
+
+                    // Guarantee a 2-Finger Vocal Sustain Hold spawns when entering long flowy Vocal Float / Swell sections ("ooh / aaah" moments)!
+                    if (
+                        wormholes.isEmpty() &&
+                        currentSecObj.timestampSec > 20f &&
+                        (currentSecObj.label.contains("VOCAL") || currentSecObj.label.contains("SWELL") || currentSecObj.label.contains("BREATHER"))
+                    ) {
+                        wormholes.add(
+                            SingularityWormhole(
+                                x = 0f,
+                                y = 0f,
+                                radius = 36f,
+                                kind = AnomalyKind.WORMHOLE_VORTEX,
+                                angle = 0f,
+                                length = 1f,
+                                color = Color(0xFF38BDF8L),
+                                exitX = 3f,
+                                exitY = 1f,
+                                ctrlX = 1.5f,
+                                ctrlY = 0f
+                            )
+                        )
                     }
 
                     if (currentSecObj.isGoldenOverdrive || currentSecObj.stageMode == StageMode.GOLDEN_OVERDRIVE) {
@@ -732,7 +755,7 @@ fun GameScreen(
                 }
 
                 // 808 Sub-Bass Heartbeat Pulse during Confide's 3:21–3:27.5 Breakdown
-                if (selectedTrackIndex == 0 && trackSec in 201.0f..207.5f && liveBeatPhase in 0f..0.14f && shockwaves.size < 6) {
+                if (selectedTrackIndex == 1 && trackSec in 201.0f..207.5f && liveBeatPhase in 0f..0.14f && shockwaves.size < 6) {
                     cameraPunch = maxOf(cameraPunch, 0.030f)
                     shockwaves.add(
                         Shockwave(
@@ -778,7 +801,8 @@ fun GameScreen(
                     powerUps = powerUps,
                     shockwaves = shockwaves,
                     hasActiveSustainRibbon = wormholes.isNotEmpty(),
-                    isTrainingMode = (gameDifficulty == GameDifficulty.EASY || selectedRemixMode == TrackRemixMode.SLOWED)
+                    isTrainingMode = (gameDifficulty == GameDifficulty.EASY || selectedRemixMode == TrackRemixMode.SLOWED),
+                    beatDurationSec = beatDurationSec
                 )
 
                 // Step Scrolling Highway Beat Notes + Expiration Check (Miss resets combo only, never health!)
@@ -931,7 +955,8 @@ fun GameScreen(
                     val distPrimary = hypot(p.x - player.x, p.y - player.y)
                     val secPos = secondTouchPos
                     val distSecondary = if (secPos != null) hypot(p.x - secPos.x, p.y - secPos.y) else 9999f
-                    val dist = minOf(distPrimary, distSecondary)
+                    val distTetherMid = if (secPos != null) hypot(p.x - (player.x + secPos.x) * 0.5f, p.y - (player.y + secPos.y) * 0.5f) else 9999f
+                    val dist = minOf(distPrimary, minOf(distSecondary, distTetherMid))
                     val catchRadius = p.radius + player.radius + (if (isGoldenActive) 22f else 18f)
                     if (dist < catchRadius) {
                         rhythmCombo++

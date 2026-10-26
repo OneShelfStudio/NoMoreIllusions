@@ -78,25 +78,34 @@ fun GamePlayfieldCanvas(
             .pointerInput(gameState) {
                 if (gameState == GameState.PLAYING || gameState == GameState.COUNTDOWN) {
                     awaitEachGesture {
+                        var primaryId: androidx.compose.ui.input.pointer.PointerId? = null
                         do {
                             val event = awaitPointerEvent()
                             val activeChanges = event.changes.filter { it.pressed }
                             if (activeChanges.isNotEmpty()) {
-                                val primary = activeChanges.first()
-                                if (primary.positionChanged()) {
-                                    val delta = primary.position - primary.previousPosition
+                                val currentPrimary = activeChanges.firstOrNull { it.id == primaryId } ?: activeChanges.first()
+                                primaryId = currentPrimary.id
+                                if (currentPrimary.positionChanged()) {
+                                    val delta = currentPrimary.position - currentPrimary.previousPosition
                                     onDragPlayer(delta.x, delta.y)
                                 }
-                                primary.consume()
+                                currentPrimary.consume()
 
-                                if (activeChanges.size >= 2) {
-                                    val secondary = activeChanges[1]
-                                    onSecondFingerChange(secondary.position)
+                                val secondary = activeChanges.firstOrNull { it.id != primaryId }
+                                if (secondary != null) {
+                                    val twinY = if (secondary.position.y > screenHeight * 0.50f) {
+                                        (secondary.position.y - screenHeight * 0.14f).coerceIn(player.radius, screenHeight * 0.68f)
+                                    } else {
+                                        secondary.position.y.coerceIn(player.radius, screenHeight * 0.68f)
+                                    }
+                                    val twinX = secondary.position.x.coerceIn(player.radius, (screenWidth - player.radius).coerceAtLeast(player.radius))
+                                    onSecondFingerChange(Offset(twinX, twinY))
                                     secondary.consume()
                                 } else {
                                     onSecondFingerChange(null)
                                 }
                             } else {
+                                primaryId = null
                                 onSecondFingerChange(null)
                             }
                         } while (event.changes.any { it.pressed })

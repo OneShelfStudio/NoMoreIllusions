@@ -80,8 +80,8 @@ fun DrawScope.drawPowerUps(
         cap = StrokeCap.Round
     )
 
-    // Scrolling horizontal beat-measure bars synced to the quarter-note beatPhase!
-    val phaseFrac = if (beatPhase >= 0f) (1f - beatPhase.coerceIn(0f, 1f)) else ((time * 2f) % 1f)
+    // Scrolling horizontal beat-measure bars synced to the quarter-note beatPhase (scrolling downward toward the Strike Line)!
+    val phaseFrac = if (beatPhase >= 0f) beatPhase.coerceIn(0f, 1f) else ((time * 2f) % 1f)
     for (barIdx in 0..3) {
         val uBar = ((barIdx + phaseFrac) / 4f).coerceIn(0.02f, 1.12f)
         val bL = computeHighwayPoint(-0.42f, uBar, w, h)
@@ -92,6 +92,43 @@ fun DrawScope.drawPowerUps(
             start = bL,
             end = bR,
             strokeWidth = 1.4f + uBar * 1.8f
+        )
+    }
+
+    // Ethereal "Ooh / Aaah" Vocal Aurora Borealis Curtains & Harmonic Halos during long flowy vocal swells!
+    val vocalGlow = if (multiBand.bassDropOut && multiBand.vocal >= 0.34f) {
+        ((multiBand.vocal - 0.28f) * 1.6f).coerceIn(0.25f, 1f)
+    } else {
+        ((multiBand.vocal - 0.50f) * 2.2f).coerceIn(0f, 1f)
+    }
+    if (vocalGlow > 0.04f) {
+        for (curtain in 0..3) {
+            val auroraPath = Path()
+            val baseY = h * (0.11f + curtain * 0.045f)
+            auroraPath.moveTo(0f, baseY)
+            for (step in 1..12) {
+                val xPt = w * (step / 12f)
+                val yWave = baseY + sin(time * (1.8f + curtain * 0.35f) + step * 0.65f + curtain) * (18f + 16f * vocalGlow)
+                auroraPath.lineTo(xPt, yWave)
+            }
+            val cCol = when (curtain % 3) {
+                0 -> Color(0xFF38BDF8L)
+                1 -> Color(0xFFC084FCL)
+                else -> Color(0xFFFDE047L)
+            }
+            drawPath(
+                path = auroraPath,
+                color = cCol.copy(alpha = (0.18f + 0.28f * vocalGlow) * (1f - curtain * 0.16f)),
+                style = Stroke(width = 6f + (3 - curtain) * 4f, cap = StrokeCap.Round),
+                blendMode = BlendMode.Screen
+            )
+        }
+        drawCircle(
+            color = Color(0xFFC084FCL).copy(alpha = 0.22f * vocalGlow),
+            radius = w * (0.24f + 0.06f * sin(time * 2.4f)),
+            center = Offset(w * 0.5f, h * 0.20f),
+            style = Stroke(width = 2.6f),
+            blendMode = BlendMode.Screen
         )
     }
 

@@ -475,17 +475,20 @@ fun stepAndSpawnWormholes(
     }
 
     // Never clear active mid-flight beat pegs (`powerUps`) when a sustain hold spawns or is active!
-    if (!allowAnomalies || multiBand.bassDropOut) return
+    // Allow 2-Finger Vocal Sustain Holds during both `allowAnomalies` sections AND ethereal vocal-float breakdowns (`bassDropOut && vocal >= 0.42f`)!
+    val canSpawnVocalHold = allowAnomalies || (multiBand.bassDropOut && multiBand.vocal >= 0.42f)
+    if (!canSpawnVocalHold) return
     if (wormholes.isNotEmpty()) return
 
-    val isBeatOnset = beatPhase in 0f..0.20f
+    val isBeatOnset = beatPhase in 0f..0.22f
     if (!isBeatOnset) return
 
-    // Only trigger 2-Finger Vocal Sustain Holds during long, flowy vocal/harmonic swells ("ooh / aaah" moments)!
-    val vocalSwellTrigger = multiBand.vocal >= 0.48f && (multiBand.rms > 0.44f || multiBand.swellDelta > 0.04f)
+    // Trigger 2-Finger Vocal Sustain Holds during long, flowy vocal/harmonic swells ("ooh / aaah" moments)!
+    val vocalSwellTrigger = (multiBand.vocal >= 0.46f && (multiBand.rms > 0.40f || multiBand.swellDelta > 0.03f)) ||
+        (multiBand.bassDropOut && multiBand.vocal >= 0.42f)
     if (!vocalSwellTrigger) return
 
-    if (Random.nextFloat() < 0.12f) {
+    if (Random.nextFloat() < 0.16f) {
         wormholes.add(
             SingularityWormhole(
                 x = 0f, // Lane 1 Left Sustain Anchor Peg

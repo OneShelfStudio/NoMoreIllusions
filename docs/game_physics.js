@@ -128,25 +128,29 @@ Object.assign(NoMoreIllusionsApp.prototype, {
         }
         this.spawnChartedOrb(cue, beatPeriod);
 
-        // Band-Hero Highway Density Boost: fill wide gaps (>= 0.90s) on Normal & Hard/Fast modes with an extra on-beat highway peg!
+        // Band-Hero Highway Density Boost: fill wide gaps (>= 2 beats) on Normal & Hard/Fast modes with an extra quarter-note downbeat peg!
         if (!isTrainingEasy && this.nextBeatCueIndex < chart.length && this.powerUps.length < 15) {
           const nextCue = chart[this.nextBeatCueIndex];
           const curT = cue.timestampSec || cue.timeSec || this.trackElapsedSec;
           const nextT = nextCue.timestampSec || nextCue.timeSec || (curT + 1.0);
           const gapSec = nextT - curT;
-          if (gapSec >= 0.90 && gapSec <= 2.40) {
-            const curLane = Math.max(0, Math.min(3, Math.floor(((cue.normX || 0.5) - 0.14) / 0.18 + 0.5)));
-            const midLane = (curLane + 1) % 4;
-            this.spawnChartedOrb({
-              timestampSec: curT + gapSec * 0.5,
-              normX: 0.14 + midLane * 0.18,
-              normY: 0.65,
-              sequenceIndex: (cue.sequenceIndex || 1) + 1000,
-              phraseBeatNum: midLane + 1,
-              powerUpType: "SCORE_ORB",
-              keyWordEffect: "NONE",
-              isGoldenCue: false
-            }, beatPeriod);
+          const fullBeat = Math.max(0.35, beatPeriod);
+          if (gapSec >= fullBeat * 1.85 && gapSec <= 2.80) {
+            const snappedMidT = Math.round((curT + gapSec * 0.5) / fullBeat) * fullBeat;
+            if (Math.abs(snappedMidT - curT) >= fullBeat * 0.85 && Math.abs(snappedMidT - nextT) >= fullBeat * 0.85) {
+              const curLane = Math.max(0, Math.min(3, Math.floor(((cue.normX || 0.5) - 0.14) / 0.18 + 0.5)));
+              const midLane = (curLane + 1) % 4;
+              this.spawnChartedOrb({
+                timestampSec: snappedMidT,
+                normX: 0.14 + midLane * 0.18,
+                normY: 0.65,
+                sequenceIndex: (cue.sequenceIndex || 1) + 1000,
+                phraseBeatNum: midLane + 1,
+                powerUpType: "SCORE_ORB",
+                keyWordEffect: "NONE",
+                isGoldenCue: false
+              }, beatPeriod);
+            }
           }
         }
       }
@@ -168,9 +172,9 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       this.choreoBannerTimer = 2.8;
 
       // If entering a Hook Vocal Float, Pre-Drop Hush, or Victory Outro, dissolve all active enemies into stardust!
+      // Never clear `this.wormholes` here so active 2-Finger Vocal Sustain Holds remain intact during vocal floats!
       if (activeSec.clearEnemiesOnEnter) {
         this.telegraphs = [];
-        this.wormholes = [];
         this.orbitalPhenomenon = null;
         this.satellites = [];
         for (let eIdx = 0; eIdx < this.enemies.length; eIdx++) {
@@ -186,6 +190,16 @@ Object.assign(NoMoreIllusionsApp.prototype, {
           });
         }
         this.enemies = [];
+      }
+
+      // Guarantee a 2-Finger Vocal Sustain Hold spawns when entering long flowy Vocal Float / Swell sections ("ooh / aaah" moments)!
+      const secTitleUpper = ((activeSec.title || "") + " " + (activeSec.subtitle || "")).toUpperCase();
+      if (
+        this.wormholes.length === 0 &&
+        activeSecTime > 20 &&
+        (secTitleUpper.includes("VOCAL") || secTitleUpper.includes("SWELL") || secTitleUpper.includes("BREATHER"))
+      ) {
+        this.initiateWormholePair();
       }
 
       if (activeSec.effectType === "CONSTELLATION_RUSH") {
@@ -490,7 +504,10 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       const distSecondary = this.secondPlayerPos
         ? Math.max(1, Math.hypot(this.secondPlayerPos.x - pu.x, this.secondPlayerPos.y - pu.y))
         : 99999;
-      const dist = Math.min(distPrimary, distSecondary);
+      const distTetherMid = this.secondPlayerPos
+        ? Math.max(1, Math.hypot((this.playerX + this.secondPlayerPos.x) * 0.5 - pu.x, (this.playerY + this.secondPlayerPos.y) * 0.5 - pu.y))
+        : 99999;
+      const dist = Math.min(distPrimary, Math.min(distSecondary, distTetherMid));
 
       // Generous Collection Check for responsive highway note hits (Both Primary & Twin Hero can catch pegs!)
       const collectRadius = this.playerRadius + (pu.type === "SCORE_ORB" ? pu.radius * 1.42 : pu.radius * 1.32);
@@ -711,10 +728,10 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       ? this.computeHighwayPoint(laneIdx, 1.0, this.W, this.H)
       : { x: (0.14 + laneIdx * 0.24) * this.W, y: this.H * 0.65 };
 
-    // Quantize every peg's targetBeatSec to the exact musical half-beat/beat grid and enforce constant scroll lead time
-    // so 100% of pegs travel at uniform speed and cross the Beat Strike Line (u = 1.0) dead-on the beat!
+    // Quantize every peg's targetBeatSec to the exact whole quarter-note beat grid and enforce constant scroll lead time
+    // so 100% of pegs travel at uniform speed and cross the Beat Strike Line (u = 1.0) dead-on the downbeat!
     const rawTargetSec = cue.timestampSec || cue.timeSec || (this.trackElapsedSec + 1.9);
-    const beatGridStep = Math.max(0.18, beatPeriod * 0.5);
+    const beatGridStep = Math.max(0.35, beatPeriod);
     const targetBeatSec = Math.round(rawTargetSec / beatGridStep) * beatGridStep;
     const spawnLeadTime = Math.max(1.75, Math.min(2.35, beatPeriod * 3.8));
     const spawnBeatSec = targetBeatSec - spawnLeadTime;

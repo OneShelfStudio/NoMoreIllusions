@@ -294,7 +294,8 @@ internal fun spawnStationaryBeatOrbsForFrame(
     powerUps: MutableList<GameObject>,
     shockwaves: MutableList<Shockwave>,
     hasActiveSustainRibbon: Boolean = false,
-    isTrainingMode: Boolean = false
+    isTrainingMode: Boolean = false,
+    beatDurationSec: Float = 0.48387f
 ): Int {
     var nextOrbCueIdx = startCueIdx
     // While a 2-Finger Vocal Sustain Hold is active on the stage, pause NEW peg spawns at the horizon
@@ -313,9 +314,9 @@ internal fun spawnStationaryBeatOrbsForFrame(
         Color(0xFF38BDF8L)  // Lane 4: Cyan Fret
     )
 
-    // Quantize every beat peg to the exact musical half-beat/beat grid and use a strictly constant scroll duration
-    // (`spawnBeatSec = quantizedBeatSec - spawnLeadTime`) so 100% of pegs travel at uniform speed and cross the Beat Strike Line on the beat!
-    val beatGridStep = (spawnLeadTime / 7.6f).coerceIn(0.21f, 0.28f) // Exact half-beat quantization grid
+    // Quantize every beat peg to the exact whole quarter-note beat grid (`beatDurationSec`) and use a strictly constant scroll duration
+    // (`spawnBeatSec = quantizedBeatSec - spawnLeadTime`) so 100% of pegs travel at uniform speed and cross the Beat Strike Line on the downbeat!
+    val beatGridStep = beatDurationSec.coerceIn(0.35f, 0.75f) // Exact quarter-note downbeat grid
 
     while (
         nextOrbCueIdx < chart.size &&
@@ -336,12 +337,12 @@ internal fun spawnStationaryBeatOrbsForFrame(
             val laneIdx = (((cue.normX - 0.16f) / 0.68f * 4f).toInt() + cue.sequenceIndex) % 4
             val clampedLane = laneIdx.coerceIn(0, 3)
 
-            // In Normal & Hard/Fast modes, if there is a wide gap (>= 0.90s) before this cue, inject a bonus on-beat peg!
+            // In Normal & Hard/Fast modes, if there is a wide gap (>= 2 beats) before this cue, inject a bonus quarter-note downbeat peg!
             val gapSec = quantizedBeatSec - prevCueSec
-            if (!isTrainingMode && prevCueSec > 0.5f && gapSec in 0.90f..2.60f && powerUps.size < 14) {
+            if (!isTrainingMode && prevCueSec > 0.5f && gapSec in (beatGridStep * 1.85f)..2.80f && powerUps.size < 14) {
                 val rawMidSec = prevCueSec + gapSec * 0.5f
                 val midBeatSec = (rawMidSec / beatGridStep).roundToInt() * beatGridStep
-                if (midBeatSec > trackSec + 0.45f && abs(midBeatSec - quantizedBeatSec) >= beatGridStep * 0.8f) {
+                if (midBeatSec > trackSec + 0.45f && abs(midBeatSec - quantizedBeatSec) >= beatGridStep * 0.85f && abs(midBeatSec - prevCueSec) >= beatGridStep * 0.85f) {
                     val midLane = (clampedLane + 2) % 4
                     val midStartPt = computeHighwayPoint(midLane.toFloat(), 0f, screenWidth, screenHeight)
                     val midSpawnSec = midBeatSec - spawnLeadTime
