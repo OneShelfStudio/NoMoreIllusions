@@ -313,9 +313,11 @@ class NoMoreIllusionsApp {
     }
 
     // Pointer / Multi-Touch Controls on Game Canvas (1st Finger = Primary Hero, 2nd Finger = Twin Hero + Plasma Tether!)
-    const mapFingerToStage = (clientX, clientY) => {
+    const mapFingerToStage = (clientX, clientY, isSecondFinger = false) => {
       const x = Math.max(this.playerRadius, Math.min(this.W - this.playerRadius, clientX));
-      const offsetY = clientY > this.H * 0.48 ? clientY - 58 : clientY - 36;
+      const offsetY = isSecondFinger && clientY > this.H * 0.50
+        ? Math.min(this.H * 0.68, clientY - this.H * 0.14)
+        : (clientY > this.H * 0.48 ? clientY - 58 : clientY - 36);
       const y = Math.max(this.playerRadius, Math.min(this.H - this.playerRadius, offsetY));
       return { x, y };
     };
@@ -348,7 +350,7 @@ class NoMoreIllusionsApp {
         this.targetY = p0.y;
         if (e.touches.length >= 2) {
           const t1 = e.touches[1];
-          this.secondPlayerPos = mapFingerToStage(t1.clientX, t1.clientY);
+          this.secondPlayerPos = mapFingerToStage(t1.clientX, t1.clientY, true);
         } else {
           this.secondPlayerPos = null;
         }
