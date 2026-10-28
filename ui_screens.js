@@ -330,6 +330,13 @@ Object.assign(NoMoreIllusionsApp.prototype, {
     }
   },
 
+  togglePrizePeek(trackIdx, ev) {
+    if (ev && typeof ev.stopPropagation === "function") ev.stopPropagation();
+    this.playSfx("click");
+    this.peekPrizeTrackIdx = (this.peekPrizeTrackIdx === trackIdx) ? null : trackIdx;
+    this.syncUI();
+  },
+
   selectStage(index) {
     this.unlockAudioOnFirstGesture();
     this.playSfx("click");
@@ -378,152 +385,153 @@ Object.assign(NoMoreIllusionsApp.prototype, {
     const unlockedExclCount = typeof this.getUnlockedExclusivesCount === "function" ? this.getUnlockedExclusivesCount() : 0;
     const totalExclCount = typeof ARTIST_EXCLUSIVES_CATALOG !== "undefined" ? ARTIST_EXCLUSIVES_CATALOG.length : 7;
 
-    // 0. Frameless Curiosity Peek Header (#menu-rewards-dropdown-wrap)
+    // 0. Hide legacy text curiosity dropdown (#menu-rewards-dropdown-wrap)
     const rewardsDropWrap = document.getElementById("menu-rewards-dropdown-wrap");
     if (rewardsDropWrap) {
-      rewardsDropWrap.innerHTML = `
-        <div style="padding:2px 6px;">
-          <div onclick="window.app.toggleRewardsPeek()"
-               style="padding:4px 0;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;">
-            <span style="font-size:10px;font-weight:900;color:#EAB308;letter-spacing:1.1px;">✦ WHAT CAN I UNLOCK? (${unlockedExclCount}/${totalExclCount} SECRETS) ${this.showRewardsPeek ? "▴" : "▾"}</span>
-          </div>
-          <div style="height:1px;background:linear-gradient(90deg,transparent,rgba(234,179,8,0.6),transparent);"></div>
-          ${this.showRewardsPeek ? `
-            <div style="padding:8px 8px 6px;display:flex;flex-direction:column;gap:5px;text-align:left;">
-              <div style="font-size:10px;font-weight:700;color:#4ADE80;">💿 Beat Any Song → Unlock Full Album Track &amp; Artist Fan Note</div>
-              <div style="font-size:10px;font-weight:700;color:#38BDF8;">🔥 Hit 8x Beat Streak → Unlock Backstage Studio Secret</div>
-              <div style="font-size:10px;font-weight:900;color:#F43F5E;">🏆 15,000+ on ∞ Endless Loop → Secret Personal Message from Artist!</div>
-              <div onclick="window.app.openScreen('CUSTOMIZER', -1)"
-                   style="margin-top:3px;padding:4px;text-align:center;font-size:9.5px;font-weight:900;color:#EAB308;letter-spacing:0.8px;cursor:pointer;">
-                ★ TAP TO OPEN ALBUM VAULT &amp; FAN NOTES →
-              </div>
-            </div>
-          ` : ""}
-        </div>
-      `;
+      rewardsDropWrap.innerHTML = "";
     }
 
-    // 1. Frameless Vinyl Stage Song Selector (#menu-track-deck-row)
+    // 1. ZERO-READING "TOUCH HERE -> GET THIS" DUAL VINYL STAGE DECK (#menu-track-deck-row)
     const trackDeckRow = document.getElementById("menu-track-deck-row");
     if (trackDeckRow) {
-      const selStars = this.prefs.trackMasteryMedals[activeStage.id] || 0;
-      const selStarsStr = [1, 2, 3].map(s => s <= selStars ? "★" : "☆").join("");
-      const selUnlocked = this.prefs.unlockedTracks.includes(activeStage.id);
-      trackDeckRow.innerHTML = `
-        <div style="padding:2px 4px;">
-          <div onclick="window.app.toggleTrackDropdown()"
-               style="padding:6px 4px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;">
-            <div style="position:relative;width:44px;height:44px;border-radius:50%;overflow:hidden;border:1.8px solid ${selUnlocked ? "#4ADE80" : "#EAB308"};flex-shrink:0;margin-right:12px;">
-              <img src="assets/nmi_logo.png" alt="Vinyl" style="width:100%;height:100%;object-fit:cover;filter:${selUnlocked ? "none" : "blur(3px) brightness(0.42)"};" />
-              ${!selUnlocked ? `<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:14px;">🔒</div>` : ""}
+      const discsHtml = OFFICIAL_TRACKS.map((track, idx) => {
+        const isSel = idx === this.selectedStageIndex;
+        const isTrkUnlocked = this.prefs.unlockedTracks.includes(track.id);
+        const stars = this.prefs.trackMasteryMedals[track.id] || 0;
+        const starsStr = [1, 2, 3].map(s => s <= stars ? "★" : "☆").join("");
+        const accentCol = isSel ? activeRemix.color : "#64748B";
+        return `
+          <div onclick="window.app.selectStage(${idx})"
+               style="flex:1;min-width:0;padding:10px 8px;cursor:pointer;position:relative;
+                      clip-path:polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px);
+                      background:${isSel ? `linear-gradient(180deg, ${accentCol}30, #070D1B)` : "linear-gradient(180deg, #080E1C, #040710)"};
+                      border:${isSel ? `2px solid ${accentCol}` : "1.2px solid rgba(255,255,255,0.18)"};
+                      box-shadow:${isSel ? `0 0 18px ${accentCol}44` : "none"};
+                      display:flex;flex-direction:column;align-items:center;">
+            <div style="width:100%;display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+              <span style="font-size:10px;font-weight:900;letter-spacing:1px;color:${isSel ? accentCol : "#94A3B8"};">TRACK 0${idx + 1}</span>
+              <span onclick="window.app.togglePrizePeek(${idx}, event)"
+                    style="padding:2px 6px;font-size:9.5px;font-weight:900;
+                           clip-path:polygon(5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%, 0 5px);
+                           background:${isTrkUnlocked ? "#064E3B" : "#422006"};
+                           border:1px solid ${isTrkUnlocked ? "#4ADE80" : "#FACC15"};
+                           color:${isTrkUnlocked ? "#4ADE80" : "#FACC15"};">
+                ${isTrkUnlocked ? "★ 🎁" : "🔒 🎁"}
+              </span>
             </div>
-            <div style="text-align:left;min-width:0;flex:1;">
-              <div style="font-size:8.5px;font-weight:800;color:#EAB308;letter-spacing:1.1px;">STAGE TRACK • TAP TO PREVIEW PRIZE &amp; SWITCH</div>
-              <div style="font-size:15px;font-weight:900;color:#FAF8F5;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-                ${selUnlocked ? `TRACK 0${this.selectedStageIndex + 1}: "${activeStage.title.toUpperCase()}"` : `TRACK 0${this.selectedStageIndex + 1} • 🔒 TAP TO SEE PRIZE`}
+            <div style="position:relative;width:64px;height:64px;border-radius:50%;background:#050811;
+                        border:${isSel ? `2.2px solid ${accentCol}` : "1.2px solid rgba(255,255,255,0.25)"};
+                        display:flex;align-items:center;justify-content:center;margin-bottom:6px;">
+              <div style="position:relative;width:44px;height:44px;border-radius:50%;overflow:hidden;border:1.5px solid ${isTrkUnlocked ? "#4ADE80" : "#FACC15"};">
+                <img src="assets/nmi_logo.png" alt="Cover" style="width:100%;height:100%;object-fit:cover;filter:${isTrkUnlocked ? "none" : "blur(3px) brightness(0.42)"};" />
+                ${!isTrkUnlocked ? `<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:13px;">🎁</div>` : ""}
               </div>
             </div>
-            <div style="display:flex;align-items:center;gap:6px;margin-left:8px;">
-              <span style="font-size:11px;font-weight:900;color:#FACC15;">${selStarsStr}</span>
-              <span style="font-size:12px;font-weight:900;color:#EAB308;">${this.showTrackDropdown ? "▴" : "▾"}</span>
+            <div style="font-size:11.5px;font-weight:900;color:#FFFFFF;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;">
+              ${track.title.toUpperCase()}
+            </div>
+            <div style="font-size:8.5px;font-weight:800;color:${isTrkUnlocked ? "#4ADE80" : "#FACC15"};margin-top:2px;">
+              ${starsStr} • ${isTrkUnlocked ? "UNLOCKED" : "WIN SONG + ART"}
             </div>
           </div>
-          <div style="height:1.2px;background:linear-gradient(90deg,transparent,rgba(234,179,8,0.75),rgba(56,189,248,0.55),transparent);"></div>
-          ${this.showTrackDropdown ? `
-            <div style="padding:8px 2px 6px;display:flex;flex-direction:column;gap:8px;">
-              ${OFFICIAL_TRACKS.map((track, idx) => {
-                const isSel = idx === this.selectedStageIndex;
-                const isTrkUnlocked = this.prefs.unlockedTracks.includes(track.id);
-                const stars = this.prefs.trackMasteryMedals[track.id] || 0;
-                const starsStr = [1, 2, 3].map(s => s <= stars ? "★" : "☆").join("");
-                const effBpm = Math.round(track.bpm * (activeRemix.speed || 1.0));
-                return `
-                  <div onclick="window.app.selectStage(${idx})"
-                       style="padding:6px 4px;display:flex;align-items:center;gap:12px;cursor:pointer;text-align:left;border-bottom:1px solid rgba(255,255,255,0.08);">
-                    <div style="position:relative;width:50px;height:50px;border-radius:50%;overflow:hidden;border:2px solid ${isTrkUnlocked ? "#4ADE80" : "#EAB308"};flex-shrink:0;">
-                      <img src="assets/nmi_logo.png" alt="Cover" style="width:100%;height:100%;object-fit:cover;filter:${isTrkUnlocked ? "none" : "blur(4px) brightness(0.38)"};" />
-                      ${!isTrkUnlocked ? `<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:17px;">🔒</div>` : ""}
-                    </div>
-                    <div style="flex:1;min-width:0;">
-                      <div style="display:flex;align-items:center;justify-content:space-between;">
-                        <span style="font-size:12.5px;font-weight:900;color:${isSel ? "#EAB308" : "#FAF8F5"};">TRACK 0${idx + 1}: "${track.title.toUpperCase()}"</span>
-                        <span style="font-size:10px;font-weight:900;color:#FACC15;">${starsStr}</span>
-                      </div>
-                      <div style="font-size:9.5px;font-weight:800;color:${isTrkUnlocked ? "#4ADE80" : "#38BDF8"};margin-top:2px;">
-                        ${isTrkUnlocked ? "★ UNLOCKED IN YOUR ALBUM VAULT!" : "🎁 WIN: Full Song in Album + Cover Art + Fan Note!"}
-                      </div>
-                      <div style="font-size:8.5px;font-weight:700;color:#94A3B8;margin-top:1px;">
-                        ${effBpm} BPM • ${isSel ? "✓ READY TO LAUNCH" : "TAP TO SELECT"}
-                      </div>
-                    </div>
-                  </div>
-                `;
-              }).join("")}
+        `;
+      }).join("");
+
+      let peekHtml = "";
+      if (typeof this.peekPrizeTrackIdx === "number" && OFFICIAL_TRACKS[this.peekPrizeTrackIdx]) {
+        const pTrack = OFFICIAL_TRACKS[this.peekPrizeTrackIdx];
+        const pWon = this.prefs.unlockedTracks.includes(pTrack.id);
+        peekHtml = `
+          <div onclick="window.app.togglePrizePeek(null, event)"
+               style="margin-top:8px;padding:8px 12px;display:flex;align-items:center;gap:10px;cursor:pointer;
+                      clip-path:polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
+                      background:#0A1224;border:1.5px solid #FACC15;">
+            <img src="assets/nmi_logo.png" alt="Prize" style="width:42px;height:42px;border-radius:8px;border:1.5px solid #FACC15;object-fit:cover;flex-shrink:0;" />
+            <div style="flex:1;text-align:left;min-width:0;">
+              <div style="font-size:10px;font-weight:900;color:#FACC15;">
+                ${pWon ? `★ TRACK 0${this.peekPrizeTrackIdx + 1} PRIZE UNLOCKED!` : `🎁 BEAT TRACK 0${this.peekPrizeTrackIdx + 1} TO WIN:`}
+              </div>
+              <div style="font-size:9.5px;font-weight:800;color:#FFFFFF;margin-top:2px;">
+                💿 "${pTrack.title}" Full Song + Album Art + Fan Note
+              </div>
             </div>
-          ` : ""}
+            <span style="font-size:12px;font-weight:900;color:#94A3B8;">✕</span>
+          </div>
+        `;
+      }
+
+      trackDeckRow.innerHTML = `
+        <div style="display:flex;gap:10px;width:100%;">
+          ${discsHtml}
         </div>
+        ${peekHtml}
       `;
     }
 
-    // 2. Frameless Speed & Mode Selector (#menu-remix-pills)
+    // 2. 4 SCULPTED CHAMFERED NEON MODE GEMS (#menu-remix-pills: Chill, Normal, Fast, Band Hero!)
     const remixPillsEl = document.getElementById("menu-remix-pills");
     if (remixPillsEl) {
-      const modeHooks = {
-        ORIGINAL: "1.0x Pts • Beat 1x to unlock Album Track & Artist Fan Note",
-        OVERCLOCK: "1.5x Pts • Faster notes + unlocks ★3 Gold Medal",
-        SLOWED: "0.5x Pts • Training speed (Play 2x to unlock Album Art)",
-        ENDLESS: "🏆 Speeds up +8%/loop! Hit 15,000+ pts for Artist's Secret Message!"
-      };
-      remixPillsEl.innerHTML = `
-        <div style="padding:2px 4px;">
-          <div onclick="window.app.toggleModeDropdown()"
-               style="padding:6px 4px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;">
-            <div style="text-align:left;min-width:0;flex:1;">
-              <div style="font-size:8.5px;font-weight:800;color:#94A3B8;letter-spacing:1.1px;">⚡ SPEED &amp; DIFFICULTY • TAP TO SWITCH</div>
-              <div style="font-size:13.5px;font-weight:900;color:${activeRemix.color};margin-top:1px;">
-                ${activeRemix.shortTag} ${activeRemix.displayName} • ${activeRemix.subtitle}
-              </div>
-            </div>
-            <span style="font-size:12px;font-weight:900;color:${activeRemix.color};margin-left:8px;">${this.showModeDropdown ? "▴" : "▾"}</span>
+      const gems = [
+        { id: "SLOWED", label: "🌙 CHILL", sub: "0.5x • 2 Runs", col: "#38BDF8" },
+        { id: "ORIGINAL", label: "⚡ NORMAL", sub: "1.0x • 1 Run", col: "#4ADE80" },
+        { id: "OVERCLOCK", label: "🔥 FAST", sub: "1.5x Score", col: "#F43F5E" }
+      ];
+      const gemsHtml = gems.map(g => {
+        const isAct = !this.isBandHeroMode && activeRemix.id === g.id;
+        return `
+          <div onclick="window.app.isBandHeroMode=false;window.app.setRemixMode('${g.id}')"
+               style="flex:1;min-width:0;padding:8px 4px;cursor:pointer;text-align:center;
+                      clip-path:polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+                      background:${isAct ? `${g.col}33` : "#070C18"};
+                      border:${isAct ? `2px solid ${g.col}` : "1px solid rgba(255,255,255,0.16)"};">
+            <div style="font-size:10px;font-weight:900;color:${isAct ? g.col : "#FFFFFF"};white-space:nowrap;">${g.label}</div>
+            <div style="font-size:7.5px;font-weight:800;color:#CBD5E1;margin-top:2px;white-space:nowrap;">${g.sub}</div>
           </div>
-          <div style="height:1.2px;background:linear-gradient(90deg,transparent,${activeRemix.color},transparent);"></div>
-          ${this.showModeDropdown ? `
-            <div style="padding:6px 2px 6px;display:flex;flex-direction:column;gap:6px;">
-              ${TRACK_REMIX_MODES.map((mode) => {
-                const isSel = mode.id === activeRemix.id;
-                const hook = modeHooks[mode.id] || mode.subtitle;
-                return `
-                  <div onclick="window.app.setRemixMode('${mode.id}')"
-                       style="padding:6px 4px;text-align:left;cursor:pointer;border-bottom:1px solid ${isSel ? mode.color : "rgba(255,255,255,0.08)"};">
-                    <div style="display:flex;align-items:center;justify-content:space-between;">
-                      <span style="font-size:11.5px;font-weight:900;color:${mode.color};">${mode.shortTag} ${mode.displayName}</span>
-                      <span style="font-size:9px;font-weight:900;color:#FAF8F5;">${isSel ? "✓ ACTIVE" : "SELECT"}</span>
-                    </div>
-                    <div style="font-size:9.5px;font-weight:600;color:#CBD5E1;margin-top:2px;">${hook}</div>
-                  </div>
-                `;
-              }).join("")}
-            </div>
-          ` : ""}
+        `;
+      }).join("");
+
+      const bhActive = Boolean(this.isBandHeroMode);
+      const bhGemHtml = `
+        <div onclick="window.app.toggleBandHeroMode()"
+             style="flex:1.15;min-width:0;padding:8px 4px;cursor:pointer;text-align:center;
+                    clip-path:polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+                    background:${bhActive ? "rgba(250,204,21,0.26)" : "#160B24"};
+                    border:${bhActive ? "2px solid #FACC15" : "1px solid rgba(236,72,153,0.48)"};">
+          <div style="font-size:9.5px;font-weight:900;color:${bhActive ? "#FACC15" : "#F472B6"};white-space:nowrap;">🎸 BAND HERO</div>
+          <div style="font-size:7.5px;font-weight:800;color:#CBD5E1;margin-top:2px;white-space:nowrap;">${bhActive ? "4-Lane ON" : "4-Lane Mode"}</div>
+        </div>
+      `;
+
+      remixPillsEl.innerHTML = `
+        <div style="display:flex;gap:6px;width:100%;margin-top:4px;">
+          ${gemsHtml}
+          ${bhGemHtml}
         </div>
       `;
     }
 
-    // 3. Custom Vinyl-Groove Stage Launch Emblem (#menu-launch-main & #menu-launch-sub)
+    // 3. Custom-Sculpted Chamfered Neon Launch Blade (#btn-launch-stage)
     const launchBtn = document.getElementById("btn-launch-stage");
+    const launchAccent = this.isBandHeroMode ? "#FACC15" : activeRemix.color;
     if (launchBtn) {
-      launchBtn.style.borderTopColor = activeRemix.color;
-      launchBtn.style.borderBottomColor = activeRemix.color;
+      launchBtn.style.clipPath = "polygon(18px 0, 100% 0, 100% calc(100% - 18px), calc(100% - 18px) 100%, 0 100%, 0 18px)";
+      launchBtn.style.background = `linear-gradient(90deg, ${launchAccent}44, #091326, ${launchAccent}44)`;
+      launchBtn.style.border = `2.2px solid ${launchAccent}`;
+      launchBtn.style.boxShadow = `0 0 22px ${launchAccent}44`;
     }
 
     const launchMain = document.getElementById("menu-launch-main");
     if (launchMain) {
-      launchMain.innerHTML = `▶ &nbsp;PLAY TRACK ${this.selectedStageIndex + 1} &nbsp;◀`;
+      launchMain.innerHTML = this.isBandHeroMode
+        ? `🎸 &nbsp;PLAY BAND HERO • TRACK 0${this.selectedStageIndex + 1}`
+        : `▶ &nbsp;PLAY TRACK 0${this.selectedStageIndex + 1} • ${activeStage.title.toUpperCase()}`;
     }
     const launchSub = document.getElementById("menu-launch-sub");
     if (launchSub) {
-      launchSub.textContent = `${activeRemix.displayName} • ${activeRemix.subtitle}`;
-      launchSub.style.color = activeRemix.color;
+      launchSub.textContent = this.isBandHeroMode
+        ? "4-LANE RHYTHM HIGHWAY EDITION"
+        : `${activeRemix.displayName} • 8-BEAT FREE-ROAM STAGE`;
+      launchSub.style.color = launchAccent;
     }
 
     const vaultCountEl = document.getElementById("menu-vault-count");

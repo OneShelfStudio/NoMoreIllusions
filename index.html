@@ -10,7 +10,7 @@
   <title>No More Illusions — Interactive Album Experience</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="apple-touch-icon" href="assets/nmi_logo.png" />
-  <link rel="stylesheet" href="styles.css?v=26" />
+  <link rel="stylesheet" href="styles.css?v=27" />
   <meta name="google-adsense-account" content="ca-pub-7651037308656903" />
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7651037308656903" data-ad-client="ca-pub-7651037308656903" data-ad-frequency-hint="30s" crossorigin="anonymous"></script>
   <script>
@@ -249,6 +249,20 @@
         <div id="tc-excl-title" style="font-size:13.5px;font-weight:900;color:#F8FAFC;margin:4px 0 6px;">Artist Fan Note: 'Confide'</div>
         <div id="tc-excl-body" style="font-size:11px;color:#E2E8F0;line-height:1.48;"></div>
         <div id="tc-excl-quote" style="font-size:10px;font-weight:800;font-style:italic;color:#38BDF8;margin-top:6px;"></div>
+      </div>
+
+      <!-- Prominent Alternate Mode Button: "PLAY MY MUSIC: BAND HERO STYLE" (4-Lane Highway Edition) -->
+      <div onclick="window.app.startBandHeroStage()"
+           style="width:100%;padding:10px 14px;margin-bottom:8px;cursor:pointer;text-align:center;
+                  clip-path:polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px);
+                  background:linear-gradient(90deg, #2E1065, #0F172A, #4C0519);
+                  border:2px solid #FACC15;box-shadow:0 0 24px rgba(250,204,21,0.35);">
+        <div style="font-size:12.5px;font-weight:900;color:#FACC15;letter-spacing:0.8px;">
+          🎸 PLAY MY MUSIC: BAND HERO STYLE
+        </div>
+        <div style="font-size:9px;font-weight:800;color:#38BDF8;letter-spacing:0.6px;margin-top:2px;">
+          4-LANE RHYTHM HIGHWAY EDITION • TAP TO LAUNCH
+        </div>
       </div>
 
       <button class="btn-action-gold" onclick="window.app.openScreen('CUSTOMIZER', -1)">★  OPEN ALBUM &amp; VAULT</button>
@@ -564,19 +578,19 @@
     </div>
   </div>
 
-  <script src="multi_band_data.js?v=26"></script>
-  <script src="music_library.js?v=26"></script>
-  <script src="background_renderer.js?v=26"></script>
-  <script src="beat_orb_renderer.js?v=26"></script>
-  <script src="game_renderer.js?v=26"></script>
-  <script src="engine.js?v=26"></script>
-  <script src="audio_synth.js?v=26"></script>
-  <script src="game_physics.js?v=26"></script>
-  <script src="ui_screens.js?v=26"></script>
-  <script src="tutorial_overlay.js?v=26"></script>
+  <script src="multi_band_data.js?v=27"></script>
+  <script src="music_library.js?v=27"></script>
+  <script src="background_renderer.js?v=27"></script>
+  <script src="beat_orb_renderer.js?v=27"></script>
+  <script src="game_renderer.js?v=27"></script>
+  <script src="engine.js?v=27"></script>
+  <script src="audio_synth.js?v=27"></script>
+  <script src="game_physics.js?v=27"></script>
+  <script src="ui_screens.js?v=27"></script>
+  <script src="tutorial_overlay.js?v=27"></script>
   <script>
     (function () {
-      const CURRENT_WEB_BUILD = "nmi-v26-live";
+      const CURRENT_WEB_BUILD = "nmi-v27-live";
       if ("serviceWorker" in navigator) {
         let refreshing = false;
         navigator.serviceWorker.addEventListener("controllerchange", () => {

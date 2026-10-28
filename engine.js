@@ -57,6 +57,9 @@ class NoMoreIllusionsApp {
     this.showTrackDropdown = false;
     this.showModeDropdown = false;
     this.showCustomizerCatDropdown = false;
+    this.peekPrizeTrackIdx = null;
+    this.isBandHeroMode = false;
+    this.vocalStreamContrailTimer = 0;
     this.expandedExclusiveId = "excl_endless_champion";
 
     // Bitmaps Registry
@@ -121,7 +124,7 @@ class NoMoreIllusionsApp {
     this.targetY = this.playerY;
     this.secondPlayerPos = null;
     this.playerRadius = 22;
-    this.trailPoints = Array.from({ length: 28 }, () => ({ x: 0, y: 0 }));
+    this.trailPoints = Array.from({ length: 58 }, () => ({ x: 0, y: 0 }));
     this.trailLength = 0;
 
     this.stars = [];
@@ -315,10 +318,11 @@ class NoMoreIllusionsApp {
     // Pointer / Multi-Touch Controls on Game Canvas (1st Finger = Primary Hero, 2nd Finger = Twin Hero + Plasma Tether!)
     const mapFingerToStage = (clientX, clientY, isSecondFinger = false) => {
       const x = Math.max(this.playerRadius, Math.min(this.W - this.playerRadius, clientX));
-      const offsetY = isSecondFinger && clientY > this.H * 0.50
+      const offsetY = (this.isBandHeroMode && isSecondFinger && clientY > this.H * 0.50)
         ? Math.min(this.H * 0.68, clientY - this.H * 0.14)
         : (clientY > this.H * 0.48 ? clientY - 58 : clientY - 36);
-      const y = Math.max(this.playerRadius, Math.min(this.H - this.playerRadius, offsetY));
+      const maxY = (this.isBandHeroMode && isSecondFinger) ? this.H * 0.68 : (this.H - this.playerRadius);
+      const y = Math.max(this.playerRadius, Math.min(maxY, offsetY));
       return { x, y };
     };
 
@@ -446,6 +450,20 @@ class NoMoreIllusionsApp {
     }
   }
 
+  toggleBandHeroMode(val) {
+    this.unlockAudioOnFirstGesture();
+    this.playSfx("click");
+    this.isBandHeroMode = typeof val === "boolean" ? val : !this.isBandHeroMode;
+    this.syncUI();
+  }
+
+  startBandHeroStage(stageIndex = this.selectedStageIndex) {
+    this.unlockAudioOnFirstGesture();
+    this.playSfx("powerup", 0.8);
+    this.isBandHeroMode = true;
+    this.startStage(stageIndex);
+  }
+
   startStage(stageIndex = this.selectedStageIndex) {
     this.unlockAudioOnFirstGesture();
     this.playSfx("click");
@@ -521,6 +539,7 @@ class NoMoreIllusionsApp {
     this.newlyUnlockedTrack = null;
     this.earnedMedalTier = 0;
     this.endlessLoopCount = 0;
+    this.vocalStreamContrailTimer = 0;
     this.activeToast = null;
 
     this.playerX = this.W / 2;
@@ -1074,12 +1093,15 @@ class NoMoreIllusionsApp {
     );
 
     if (this.gameState === "PLAYING" || this.gameState === "PAUSED" || this.gameState === "GAME_OVER" || this.gameState === "TRACK_COMPLETED") {
+      const isStreamContrail = this.vocalStreamContrailTimer > 0 ||
+        this.multiBandState.vocal >= 0.44 ||
+        (this.multiBandState.bassDropOut && this.multiBandState.vocal >= 0.32);
       drawWormholes(ctx, this.wormholes, this.time, this.beatPulse);
       drawOrbitalPhenomenonAndSatellites(ctx, this.orbitalPhenomenon, this.satellites, this.time, this.beatPulse, this.multiBandState.vocal);
       drawMotes(ctx, this.motes);
-      drawPlayerTrail(ctx, this.trailPoints, this.trailLength, this.prefs.selectedTrail);
+      drawPlayerTrail(ctx, this.trailPoints, this.trailLength, this.prefs.selectedTrail, isStreamContrail);
       drawShockwaves(ctx, this.shockwaves);
-      drawPowerUps(ctx, this.powerUps, this.playerX, this.playerY, this.time, this.trackElapsedSec, this.beatPulse, this.constellationRushTimer > 0, this.multiBandState);
+      drawPowerUps(ctx, this.powerUps, this.playerX, this.playerY, this.time, this.trackElapsedSec, this.beatPulse, this.constellationRushTimer > 0, this.multiBandState, this.isBandHeroMode);
       drawEnemyTelegraphs(ctx, this.telegraphs, this.time, this.beatPulse);
 
       const enemyBmps = this.getEnemyBitmaps();
