@@ -66,6 +66,8 @@ fun MenuUI(
     activeLobbyTrack: LobbyTrack = LobbyTrack.VELVET,
     selectedRemixMode: TrackRemixMode = TrackRemixMode.ORIGINAL,
     onSelectRemixMode: (TrackRemixMode) -> Unit = {},
+    isBandHeroMode: Boolean = false,
+    onToggleBandHeroMode: (Boolean) -> Unit = {},
     pulsePoints: Int = 0,
     highScore: Int = 0,
     trackMasteryStars: IntArray = intArrayOf(0, 0),
@@ -289,370 +291,321 @@ fun MenuUI(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            var showRewardsPeek by remember { mutableStateOf(false) }
-            var showTrackDropdown by remember { mutableStateOf(false) }
-            var showModeDropdown by remember { mutableStateOf(false) }
+            var peekPrizeTrackIdx by remember { mutableStateOf<Int?>(null) }
 
-            // 1. Frameless Curiosity Reward Peek Line (Zero Boxy AI Pill Containers!)
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
+            // 1. ZERO-READING "TOUCH HERE -> GET THIS" DUAL VINYL STAGE DECK (Track 01 & Track 02 Side-by-Side)
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { showRewardsPeek = !showRewardsPeek }
-                    .padding(vertical = 6.dp)
+                    .padding(horizontal = 4.dp)
             ) {
-                Text(
-                    text = if (showRewardsPeek) "🎁 FAN REWARDS ($unlockedExclusivesCount/${ARTIST_EXCLUSIVES_CATALOG.size} UNLOCKED) ▴"
-                    else "🎁 WHAT CAN I WIN? ($unlockedExclusivesCount/${ARTIST_EXCLUSIVES_CATALOG.size} SECRETS) • TAP TO PEEK ▾",
-                    color = Color(0xFFFACC15L),
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Black,
-                    letterSpacing = 1.0.sp
-                )
+                for (idx in 1..MusicLibrary.TOTAL_TRACKS) {
+                    val t = MusicLibrary.getTrack(idx)
+                    val isSel = idx == selectedTrackIndex
+                    val isArtWon = prefs.getBoolean("art_unlocked_$idx", false) || isVipUnlocked
+                    val st = trackMasteryStars.getOrElse(idx - 1) { 0 }.coerceIn(0, 3)
+                    val stTxt = buildString { for (s in 1..3) append(if (s <= st) "★" else "☆") }
+                    val discAccent = if (isSel) modeAccent else Color(0xFF64748BL)
 
-                if (showRewardsPeek) {
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    Box(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                            .weight(1f)
+                            .clip(CutCornerShape(topStart = 16.dp, bottomEnd = 16.dp))
+                            .background(
+                                Brush.verticalGradient(
+                                    if (isSel) listOf(discAccent.copy(alpha = 0.22f), Color(0xFF070D1BL))
+                                    else listOf(Color(0xFF080E1CL), Color(0xFF040710L))
+                                )
+                            )
+                            .border(
+                                width = if (isSel) 2.2.dp else 1.2.dp,
+                                color = if (isSel) discAccent else Color.White.copy(alpha = 0.18f),
+                                shape = CutCornerShape(topStart = 16.dp, bottomEnd = 16.dp)
+                            )
+                            .clickable { onSelectQuickTrack(idx) }
+                            .padding(vertical = 10.dp, horizontal = 8.dp)
                     ) {
-                        Text(
-                            text = "💿 Beat Any Track → Unlock Full Song & Cover Art in Album",
-                            color = Color(0xFF4ADE80L),
-                            fontSize = 9.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = "⚡ 2-Finger Plasma Hold → Master Vocal Swells for +500 Bonus",
-                            color = Color(0xFF38BDF8L),
-                            fontSize = 9.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = "🏆 15,000+ on ∞ Endless → Artist Secret Message Slot Unlocked!",
-                            color = Color(0xFFFACC15L),
-                            fontSize = 9.sp,
-                            fontWeight = FontWeight.Black
-                        )
-                        Text(
-                            text = "★ OPEN ARTIST VAULT & FAN NOTES →",
-                            color = Color(0xFFFAF8F5L),
-                            fontSize = 9.5.sp,
-                            fontWeight = FontWeight.Black,
-                            letterSpacing = 1.sp,
-                            modifier = Modifier
-                                .clickable { onMusicDemo() }
-                                .padding(top = 4.dp)
-                        )
-                    }
-                }
-            }
-
-            // Subtle Laser Horizon Hairline Divider
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth(0.78f)
-                    .height(1.dp)
-                    .background(
-                        Brush.horizontalGradient(
-                            listOf(Color.Transparent, modeAccent.copy(alpha = 0.65f), Color(0xFFFACC15L).copy(alpha = 0.65f), Color.Transparent)
-                        )
-                    )
-            )
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // 2. Frameless Open-Canvas Vinyl Stage Selector (Zero Boxy Console Cards or Squares!)
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 6.dp)
-            ) {
-                val selStars = trackMasteryStars.getOrElse(selectedTrackIndex - 1) { 0 }.coerceIn(0, 3)
-                val selStarStr = buildString { for (s in 1..3) append(if (s <= selStars) "★" else "☆") }
-                val effBpm = (selectedTrack.bpm * selectedRemixMode.audioSpeed).toInt()
-                val isSelArtUnlocked = prefs.getBoolean("art_unlocked_$selectedTrackIndex", false) || isVipUnlocked
-
-                // A. Frameless Track Selector Header
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable {
-                            showTrackDropdown = !showTrackDropdown
-                            if (showTrackDropdown) showModeDropdown = false
-                        }
-                        .padding(vertical = 6.dp)
-                ) {
-                    Text(
-                        text = "SELECTED TRACK • TAP TO PEEK PRIZE & SWITCH",
-                        color = Color(0xFF94A3B8L),
-                        fontSize = 8.5.sp,
-                        fontWeight = FontWeight.Black,
-                        letterSpacing = 1.4.sp
-                    )
-                    Spacer(modifier = Modifier.height(3.dp))
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        Text(
-                            text = "TRACK 0$selectedTrackIndex",
-                            color = Color(0xFFFAF8F5L),
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Black,
-                            letterSpacing = 1.8.sp
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = if (isSelArtUnlocked) "• ${selectedTrack.title.uppercase()}" else "• 🔒 MYSTERY PRIZE",
-                            color = modeAccent,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Black
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "$selStarStr ${if (showTrackDropdown) "▴" else "▾"}",
-                            color = Color(0xFFFACC15L),
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Black
-                        )
-                    }
-                    Text(
-                        text = "$effBpm BPM • ${if (isSelArtUnlocked) "SONG & COVER ART UNLOCKED" else "BEAT TRACK TO UNLOCK SONG & FAN NOTE"}",
-                        color = Color(0xFFCBD5E1L),
-                        fontSize = 9.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-
-                if (showTrackDropdown) {
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 6.dp)
-                    ) {
-                        for (idx in 1..MusicLibrary.TOTAL_TRACKS) {
-                            val t = MusicLibrary.getTrack(idx)
-                            val isSel = idx == selectedTrackIndex
-                            val isArtWon = prefs.getBoolean("art_unlocked_$idx", false) || isVipUnlocked
-                            val st = trackMasteryStars.getOrElse(idx - 1) { 0 }.coerceIn(0, 3)
-                            val stTxt = buildString { for (s in 1..3) append(if (s <= st) "★" else "☆") }
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            // Top Row: Track Number + Tap-to-Peek Prize Badge
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable {
-                                        onSelectQuickTrack(idx)
-                                        showTrackDropdown = false
-                                    }
-                                    .padding(horizontal = 8.dp, vertical = 6.dp)
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                modifier = Modifier.fillMaxWidth()
                             ) {
-                                // Circular Vinyl Sleeve Prize Preview
+                                Text(
+                                    text = "TRACK 0$idx",
+                                    color = if (isSel) discAccent else Color(0xFF94A3B8L),
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Black,
+                                    letterSpacing = 1.sp
+                                )
                                 Box(
                                     modifier = Modifier
-                                        .size(52.dp)
+                                        .clip(CutCornerShape(topEnd = 6.dp, bottomStart = 6.dp))
+                                        .background(if (isArtWon) Color(0xFF064E3BL) else Color(0xFF422006L))
+                                        .border(
+                                            1.dp,
+                                            if (isArtWon) Color(0xFF4ADE80L) else Color(0xFFFACC15L),
+                                            CutCornerShape(topEnd = 6.dp, bottomStart = 6.dp)
+                                        )
+                                        .clickable { peekPrizeTrackIdx = if (peekPrizeTrackIdx == idx) null else idx }
+                                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                                ) {
+                                    Text(
+                                        text = if (isArtWon) "★ 🎁" else "🔒 🎁",
+                                        color = if (isArtWon) Color(0xFF4ADE80L) else Color(0xFFFACC15L),
+                                        fontSize = 9.5.sp,
+                                        fontWeight = FontWeight.Black
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(6.dp))
+
+                            // Interactive Vinyl Record Disc + Cover Art Center
+                            Box(
+                                modifier = Modifier.size(66.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Canvas(modifier = Modifier.fillMaxSize()) {
+                                    drawCircle(color = Color(0xFF050811L), radius = size.minDimension * 0.5f)
+                                    drawCircle(
+                                        color = discAccent.copy(alpha = if (isSel) 0.85f else 0.35f),
+                                        radius = size.minDimension * 0.49f,
+                                        style = Stroke(width = if (isSel) 2.4f else 1.2f)
+                                    )
+                                    drawCircle(
+                                        color = Color.White.copy(alpha = 0.14f),
+                                        radius = size.minDimension * 0.39f,
+                                        style = Stroke(width = 1f)
+                                    )
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .size(46.dp)
                                         .clip(CircleShape)
-                                        .border(2.dp, if (isArtWon) Color(0xFF4ADE80L) else Color(0xFFFACC15L), CircleShape),
+                                        .border(1.5.dp, if (isArtWon) Color(0xFF4ADE80L) else Color(0xFFFACC15L), CircleShape),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     TrackRevealOverlay(
                                         trackIndex = idx,
-                                        progress = if (isArtWon) 1.0f else 0.18f,
+                                        progress = if (isArtWon) 1.0f else 0.24f,
                                         modifier = Modifier.fillMaxSize()
                                     )
                                     if (!isArtWon) {
                                         Box(
                                             modifier = Modifier
                                                 .fillMaxSize()
-                                                .background(Color.Black.copy(alpha = 0.45f)),
+                                                .background(Color.Black.copy(alpha = 0.42f)),
                                             contentAlignment = Alignment.Center
                                         ) {
-                                            Text(text = "🔒", fontSize = 15.sp)
+                                            Text(text = "🎁", fontSize = 13.sp)
                                         }
                                     }
                                 }
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-                                        Text(
-                                            text = "TRACK 0$idx • \"${t.title.uppercase()}\"",
-                                            color = if (isSel) modeAccent else Color.White,
-                                            fontSize = 12.5.sp,
-                                            fontWeight = FontWeight.Black
-                                        )
-                                        Text(
-                                            text = stTxt,
-                                            color = Color(0xFFFACC15L),
-                                            fontSize = 11.sp,
-                                            fontWeight = FontWeight.Black
-                                        )
-                                    }
-                                    Text(
-                                        text = if (isArtWon) "✓ UNLOCKED: Full Song + Cover Art + Artist Fan Note Slot"
-                                        else "🎁 WIN: Full Song in Album + Cover Art + Artist Fan Note Slot",
-                                        color = if (isArtWon) Color(0xFF4ADE80L) else Color(0xFFFACC15L),
-                                        fontSize = 9.sp,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                }
                             }
+
+                            Spacer(modifier = Modifier.height(6.dp))
+
+                            Text(
+                                text = t.title.uppercase(),
+                                color = Color.White,
+                                fontSize = 11.5.sp,
+                                fontWeight = FontWeight.Black,
+                                maxLines = 1
+                            )
+                            Text(
+                                text = "$stTxt • ${if (isArtWon) "UNLOCKED" else "WIN SONG + ART"}",
+                                color = if (isArtWon) Color(0xFF4ADE80L) else Color(0xFFFACC15L),
+                                fontSize = 8.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1
+                            )
                         }
                     }
                 }
+            }
 
-                Spacer(modifier = Modifier.height(6.dp))
-                Box(
+            // Visual Tap-to-Peek Prize Card (Opens when tapping 🔒 🎁 on either Vinyl Disc)
+            val peekIdx = peekPrizeTrackIdx
+            if (peekIdx != null) {
+                val peekTrack = MusicLibrary.getTrack(peekIdx)
+                val peekWon = prefs.getBoolean("art_unlocked_$peekIdx", false) || isVipUnlocked
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
-                        .fillMaxWidth(0.55f)
-                        .height(1.dp)
-                        .background(Color.White.copy(alpha = 0.14f))
-                )
-                Spacer(modifier = Modifier.height(6.dp))
-
-                // B. Frameless Speed & Mode Selector Line
-                val modeHook = when (selectedRemixMode) {
-                    TrackRemixMode.ORIGINAL -> "1.0x Pts • Unlocks Album Track in 1 run"
-                    TrackRemixMode.OVERCLOCK -> "1.5x Pts • Faster highway + ★3 Gold Medal"
-                    TrackRemixMode.SLOWED -> "0.5x Pts • Relaxed training (2 runs to unlock)"
-                    TrackRemixMode.ENDLESS -> "🏆 Speeds up +8%/loop • 15,000+ unlocks Artist Secret Message!"
+                        .fillMaxWidth()
+                        .clip(CutCornerShape(topStart = 12.dp, bottomEnd = 12.dp))
+                        .background(Color(0xFF0A1224L))
+                        .border(1.5.dp, Color(0xFFFACC15L), CutCornerShape(topStart = 12.dp, bottomEnd = 12.dp))
+                        .clickable { peekPrizeTrackIdx = null }
+                        .padding(horizontal = 12.dp, vertical = 8.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(44.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .border(1.5.dp, Color(0xFFFACC15L), RoundedCornerShape(8.dp))
+                    ) {
+                        TrackRevealOverlay(
+                            trackIndex = peekIdx,
+                            progress = 1.0f,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = if (peekWon) "★ TRACK 0$peekIdx PRIZE UNLOCKED!" else "🎁 BEAT TRACK 0$peekIdx TO WIN:",
+                            color = Color(0xFFFACC15L),
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Black
+                        )
+                        Text(
+                            text = "💿 \"${peekTrack.title}\" Full Song + Album Art + Fan Note",
+                            color = Color.White,
+                            fontSize = 9.5.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    Text(
+                        text = "✕",
+                        color = Color(0xFF94A3B8L),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Black
+                    )
                 }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // 2. 4 SCULPTED CHAMFERED NEON MODE GEMS (Touch Here -> Get This: Chill, Normal, Fast, Band Hero!)
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                val modes = listOf(
+                    Triple("🌙 CHILL", "0.5x • 2 Runs", TrackRemixMode.SLOWED),
+                    Triple("⚡ NORMAL", "1.0x • 1 Run", TrackRemixMode.ORIGINAL),
+                    Triple("🔥 FAST", "1.5x Score", TrackRemixMode.OVERCLOCK)
+                )
+                modes.forEach { (label, sub, mode) ->
+                    val isActive = !isBandHeroMode && selectedRemixMode == mode
+                    val gemCol = when (mode) {
+                        TrackRemixMode.SLOWED -> Color(0xFF38BDF8L)
+                        TrackRemixMode.ORIGINAL -> Color(0xFF4ADE80L)
+                        TrackRemixMode.OVERCLOCK -> Color(0xFFF43F5EL)
+                        TrackRemixMode.ENDLESS -> Color(0xFFFACC15L)
+                    }
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(CutCornerShape(topStart = 10.dp, bottomEnd = 10.dp))
+                            .background(if (isActive) gemCol.copy(alpha = 0.22f) else Color(0xFF070C18L))
+                            .border(
+                                width = if (isActive) 2.dp else 1.dp,
+                                color = if (isActive) gemCol else Color.White.copy(alpha = 0.16f),
+                                shape = CutCornerShape(topStart = 10.dp, bottomEnd = 10.dp)
+                            )
+                            .clickable {
+                                onToggleBandHeroMode(false)
+                                onSelectRemixMode(mode)
+                            }
+                            .padding(vertical = 8.dp, horizontal = 4.dp)
+                    ) {
+                        Text(
+                            text = label,
+                            color = if (isActive) gemCol else Color.White,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Black,
+                            maxLines = 1
+                        )
+                        Text(
+                            text = sub,
+                            color = Color(0xFFCBD5E1L),
+                            fontSize = 7.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1
+                        )
+                    }
+                }
+
+                // 4th Sculpted Gem: 🎸 BAND HERO (4-Lane Highway Edition)
+                val bhCol = Color(0xFFFACC15L)
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable {
-                            showModeDropdown = !showModeDropdown
-                            if (showModeDropdown) showTrackDropdown = false
-                        }
-                        .padding(vertical = 4.dp)
+                        .weight(1.1f)
+                        .clip(CutCornerShape(topStart = 10.dp, bottomEnd = 10.dp))
+                        .background(if (isBandHeroMode) bhCol.copy(alpha = 0.25f) else Color(0xFF160B24L))
+                        .border(
+                            width = if (isBandHeroMode) 2.dp else 1.dp,
+                            color = if (isBandHeroMode) bhCol else Color(0xFFEC4899L).copy(alpha = 0.45f),
+                            shape = CutCornerShape(topStart = 10.dp, bottomEnd = 10.dp)
+                        )
+                        .clickable { onToggleBandHeroMode(!isBandHeroMode) }
+                        .padding(vertical = 8.dp, horizontal = 4.dp)
                 ) {
                     Text(
-                        text = "⚡ SPEED & MODE: ${selectedRemixMode.shortTag} ${selectedRemixMode.displayName} ${if (showModeDropdown) "▴" else "▾"}",
-                        color = modeAccent,
-                        fontSize = 12.sp,
+                        text = "🎸 BAND HERO",
+                        color = if (isBandHeroMode) bhCol else Color(0xFFF472B6L),
+                        fontSize = 9.5.sp,
                         fontWeight = FontWeight.Black,
-                        letterSpacing = 1.sp
+                        maxLines = 1
                     )
                     Text(
-                        text = modeHook,
-                        color = Color(0xFFFAF8F5L).copy(alpha = 0.85f),
-                        fontSize = 9.sp,
-                        fontWeight = FontWeight.SemiBold
+                        text = if (isBandHeroMode) "4-Lane ON" else "4-Lane Mode",
+                        color = Color(0xFFCBD5E1L),
+                        fontSize = 7.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1
                     )
                 }
+            }
 
-                if (showModeDropdown) {
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(6.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 4.dp)
-                    ) {
-                        TrackRemixMode.entries.forEach { mode ->
-                            val isModeSel = mode == selectedRemixMode
-                            val mCol = when (mode) {
-                                TrackRemixMode.ORIGINAL -> Color(0xFF4ADE80L)
-                                TrackRemixMode.OVERCLOCK -> Color(0xFFF43F5EL)
-                                TrackRemixMode.SLOWED -> Color(0xFF38BDF8L)
-                                TrackRemixMode.ENDLESS -> Color(0xFFEAB308L)
-                            }
-                            val hookText = when (mode) {
-                                TrackRemixMode.ORIGINAL -> "1.0x Pts • Unlocks song in 1 run"
-                                TrackRemixMode.OVERCLOCK -> "1.5x Pts • Faster notes + ★3 Gold Medal"
-                                TrackRemixMode.SLOWED -> "0.5x Pts • Relaxed speed (2 runs to unlock)"
-                                TrackRemixMode.ENDLESS -> "🏆 Speeds up every loop! 15,000+ pts unlocks Artist Secret Message!"
-                            }
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable {
-                                        onSelectRemixMode(mode)
-                                        showModeDropdown = false
-                                    }
-                                    .padding(horizontal = 12.dp, vertical = 6.dp)
-                            ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = "${mode.shortTag} ${mode.displayName}",
-                                        color = mCol,
-                                        fontSize = 11.5.sp,
-                                        fontWeight = FontWeight.Black
-                                    )
-                                    Text(
-                                        text = hookText,
-                                        color = Color.White.copy(alpha = 0.85f),
-                                        fontSize = 9.sp,
-                                        fontWeight = FontWeight.SemiBold
-                                    )
-                                }
-                                if (isModeSel) {
-                                    Text(
-                                        text = "● ACTIVE",
-                                        color = mCol,
-                                        fontSize = 10.sp,
-                                        fontWeight = FontWeight.Black
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
+            Spacer(modifier = Modifier.height(12.dp))
 
-                Spacer(modifier = Modifier.height(14.dp))
-
-                // C. Custom Vinyl-Groove Stage Launch Emblem (Frameless Glowing Stage Igniter!)
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth(0.88f)
-                        .height(54.dp)
-                        .clickable { onStart() },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Canvas(modifier = Modifier.fillMaxSize()) {
-                        val w = size.width
-                        val h = size.height
-                        // Glowing laser horizon bars top & bottom + vinyl arc caps
-                        drawLine(
-                            brush = Brush.horizontalGradient(
-                                listOf(Color.Transparent, modeAccent, Color(0xFFFACC15L), modeAccent, Color.Transparent)
-                            ),
-                            start = Offset(0f, 2f),
-                            end = Offset(w, 2f),
-                            strokeWidth = 3.2f,
-                            cap = StrokeCap.Round
+            // 3. CUSTOM-SCULPTED CHAMFERED NEON LAUNCH BLADE
+            val launchAccent = if (isBandHeroMode) Color(0xFFFACC15L) else modeAccent
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(0.94f)
+                    .height(54.dp)
+                    .clip(CutCornerShape(topStart = 18.dp, bottomEnd = 18.dp))
+                    .background(
+                        Brush.horizontalGradient(
+                            listOf(
+                                launchAccent.copy(alpha = 0.28f),
+                                Color(0xFF091326L),
+                                launchAccent.copy(alpha = 0.28f)
+                            )
                         )
-                        drawLine(
-                            brush = Brush.horizontalGradient(
-                                listOf(Color.Transparent, modeAccent, Color(0xFFFACC15L), modeAccent, Color.Transparent)
-                            ),
-                            start = Offset(0f, h - 2f),
-                            end = Offset(w, h - 2f),
-                            strokeWidth = 3.2f,
-                            cap = StrokeCap.Round
-                        )
-                    }
-                    Text(
-                        text = "▶  PLAY TRACK $selectedTrackIndex  ◀",
-                        color = Color(0xFFFAF8F5L),
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Black,
-                        letterSpacing = 2.6.sp
                     )
-                }
+                    .border(
+                        width = 2.4.dp,
+                        brush = Brush.horizontalGradient(
+                            listOf(launchAccent, Color(0xFFFACC15L), launchAccent)
+                        ),
+                        shape = CutCornerShape(topStart = 18.dp, bottomEnd = 18.dp)
+                    )
+                    .clickable { onStart() },
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = if (isBandHeroMode) "🎸 PLAY BAND HERO • TRACK 0$selectedTrackIndex"
+                    else "▶ PLAY TRACK 0$selectedTrackIndex • ${selectedTrack.title.uppercase()}",
+                    color = Color(0xFFFAF8F5L),
+                    fontSize = 14.5.sp,
+                    fontWeight = FontWeight.Black,
+                    letterSpacing = 1.6.sp
+                )
             }
 
             Spacer(modifier = Modifier.height(14.dp))
@@ -718,31 +671,27 @@ private fun MenuBentoTile(
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = modifier
+            .clip(CutCornerShape(topStart = 10.dp, bottomEnd = 10.dp))
+            .background(Color(0xFF070C18L))
+            .border(1.2.dp, accent.copy(alpha = 0.65f), CutCornerShape(topStart = 10.dp, bottomEnd = 10.dp))
             .clickable { onClick() }
-            .padding(horizontal = 10.dp, vertical = 6.dp)
+            .padding(horizontal = 10.dp, vertical = 7.dp)
     ) {
         Text(
             text = title,
             color = Color(0xFFFAF8F5L),
-            fontSize = 11.sp,
+            fontSize = 10.5.sp,
             fontWeight = FontWeight.Black,
-            letterSpacing = 0.8.sp,
+            letterSpacing = 0.6.sp,
             maxLines = 1
         )
         Spacer(modifier = Modifier.height(2.dp))
         Text(
             text = subtitle,
             color = accent,
-            fontSize = 8.5.sp,
-            fontWeight = FontWeight.SemiBold,
+            fontSize = 8.sp,
+            fontWeight = FontWeight.Bold,
             maxLines = 1
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        Box(
-            modifier = Modifier
-                .width(36.dp)
-                .height(2.dp)
-                .background(accent.copy(alpha = 0.75f))
         )
     }
 }

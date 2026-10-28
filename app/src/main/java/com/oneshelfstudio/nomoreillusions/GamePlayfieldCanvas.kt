@@ -44,6 +44,7 @@ fun GamePlayfieldCanvas(
     tetheredSatellites: List<TetheredSatellite> = emptyList(),
     enemyTelegraphs: List<EnemySpawnTelegraph> = emptyList(),
     wormholes: List<SingularityWormhole> = emptyList(),
+    isBandHeroMode: Boolean = false,
     player: GameObject,
     secondTouchPos: Offset? = null,
     motes: List<GameObject>,
@@ -93,10 +94,11 @@ fun GamePlayfieldCanvas(
 
                                 val secondary = activeChanges.firstOrNull { it.id != primaryId }
                                 if (secondary != null) {
-                                    val twinY = if (secondary.position.y > screenHeight * 0.50f) {
-                                        (secondary.position.y - screenHeight * 0.14f).coerceIn(player.radius, screenHeight * 0.68f)
+                                    val maxY = if (isBandHeroMode) screenHeight * 0.68f else (screenHeight - player.radius).coerceAtLeast(player.radius)
+                                    val twinY = if (isBandHeroMode && secondary.position.y > screenHeight * 0.50f) {
+                                        (secondary.position.y - screenHeight * 0.14f).coerceIn(player.radius, maxY)
                                     } else {
-                                        secondary.position.y.coerceIn(player.radius, screenHeight * 0.68f)
+                                        secondary.position.y.coerceIn(player.radius, maxY)
                                     }
                                     val twinX = secondary.position.x.coerceIn(player.radius, (screenWidth - player.radius).coerceAtLeast(player.radius))
                                     onSecondFingerChange(Offset(twinX, twinY))
@@ -167,7 +169,8 @@ fun GamePlayfieldCanvas(
                     trackSec = trackSec,
                     beatPhase = beatPhase,
                     goldenOverdriveIntensity = goldenOverdriveIntensity,
-                    multiBand = multiBand
+                    multiBand = multiBand,
+                    isBandHeroMode = isBandHeroMode
                 )
             }
             // High-contrast Perimeter Enemy Spawn Telegraphs (2 beats before enemy enters!)

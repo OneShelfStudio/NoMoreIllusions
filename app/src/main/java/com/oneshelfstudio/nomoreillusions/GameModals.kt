@@ -8,6 +8,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.CutCornerShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
@@ -209,7 +210,8 @@ fun LevelCompleteUI(
     btnPillGold: ImageBitmap,
     onNextTrack: () -> Unit,
     onBackToAlbum: () -> Unit,
-    onOpenArtistVault: () -> Unit = onBackToAlbum
+    onOpenArtistVault: () -> Unit = onBackToAlbum,
+    onPlayBandHeroStyle: () -> Unit = {}
 ) {
     val currentTrack = MusicLibrary.getTrack(trackIndex)
     val nextTrack = if (trackIndex < MusicLibrary.TOTAL_TRACKS) MusicLibrary.getTrack(trackIndex + 1) else null
@@ -401,7 +403,51 @@ fun LevelCompleteUI(
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // Prominent Alternate Mode Button: "PLAY MY MUSIC: BAND HERO STYLE" (4-Lane Highway Edition)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(CutCornerShape(topStart = 14.dp, bottomEnd = 14.dp))
+                    .background(
+                        Brush.horizontalGradient(
+                            listOf(Color(0xFF2E1065L), Color(0xFF0F172AL), Color(0xFF4C0519L))
+                        )
+                    )
+                    .border(
+                        width = 2.dp,
+                        brush = Brush.horizontalGradient(
+                            listOf(Color(0xFFEC4899L), Color(0xFFFACC15L), Color(0xFF38BDF8L))
+                        ),
+                        shape = CutCornerShape(topStart = 14.dp, bottomEnd = 14.dp)
+                    )
+                    .clickable { onPlayBandHeroStyle() }
+                    .padding(vertical = 10.dp, horizontal = 14.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = "🎸 PLAY MY MUSIC: BAND HERO STYLE",
+                        color = Color(0xFFFACC15L),
+                        fontSize = 12.5.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 0.8.sp,
+                        textAlign = TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = "4-LANE RHYTHM HIGHWAY EDITION • TAP TO LAUNCH",
+                        color = Color(0xFF38BDF8L),
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 0.6.sp,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
 
             ArcadePillButton(
                 text = if (nextTrack != null) "▶ PLAY TRACK ${trackIndex + 1}" else "★ LISTEN IN ALBUM DECK",

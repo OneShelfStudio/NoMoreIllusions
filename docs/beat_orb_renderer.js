@@ -49,10 +49,11 @@ function drawMotes(ctx, motes) {
   }
 }
 
-function drawPlayerTrail(ctx, trailPoints, trailLength, selectedTrailId) {
+function drawPlayerTrail(ctx, trailPoints, trailLength, selectedTrailId, isStreamContrail = false) {
   if (trailLength <= 1) return;
   const [trailStart, trailEnd] = getTrailPalette(selectedTrailId);
-  // Smooth continuous quadratic Bezier silk ribbon + soft bokeh glow (Zero segmented stick lines!)
+  const boosted = Boolean(isStreamContrail) || trailLength > 26;
+  // Smooth continuous quadratic Bezier silk ribbon + thick, long Neon Contrail during vocal streams!
   ctx.save();
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
@@ -66,8 +67,22 @@ function drawPlayerTrail(ctx, trailPoints, trailLength, selectedTrailId) {
     const mid2Y = (p1.y + pNext.y) * 0.5;
     const prog = i / trailLength;
     const tCol = lerpColor(trailStart, trailEnd, prog);
-    const alpha = Math.pow(1 - prog, 1.35) * 0.44;
-    const r = (1 - prog) * 10 + 1.5;
+    const alpha = Math.pow(1 - prog, boosted ? 1.1 : 1.35) * (boosted ? 0.68 : 0.44);
+    const r = (1 - prog) * (boosted ? 18 : 10) + (boosted ? 3.0 : 1.5);
+
+    if (boosted) {
+      ctx.beginPath();
+      if (i === 0) {
+        ctx.moveTo(p0.x, p0.y);
+        ctx.quadraticCurveTo(p1.x, p1.y, mid2X, mid2Y);
+      } else {
+        ctx.moveTo(mid1X, mid1Y);
+        ctx.quadraticCurveTo(p1.x, p1.y, mid2X, mid2Y);
+      }
+      ctx.strokeStyle = rgba([236, 72, 153], alpha * 0.35);
+      ctx.lineWidth = r * 2.55;
+      ctx.stroke();
+    }
 
     ctx.beginPath();
     if (i === 0) {
@@ -81,10 +96,24 @@ function drawPlayerTrail(ctx, trailPoints, trailLength, selectedTrailId) {
     ctx.lineWidth = r * 1.85;
     ctx.stroke();
 
-    if (i % 3 === 0) {
+    if (boosted && i < trailLength - 2) {
       ctx.beginPath();
-      ctx.arc(p1.x, p1.y, r * 0.65, 0, Math.PI * 2);
-      ctx.fillStyle = rgba([255, 255, 255], alpha * 0.72);
+      if (i === 0) {
+        ctx.moveTo(p0.x, p0.y);
+        ctx.quadraticCurveTo(p1.x, p1.y, mid2X, mid2Y);
+      } else {
+        ctx.moveTo(mid1X, mid1Y);
+        ctx.quadraticCurveTo(p1.x, p1.y, mid2X, mid2Y);
+      }
+      ctx.strokeStyle = rgba([255, 255, 255], alpha * 0.85);
+      ctx.lineWidth = Math.max(2, r * 0.42);
+      ctx.stroke();
+    }
+
+    if (i % (boosted ? 2 : 3) === 0) {
+      ctx.beginPath();
+      ctx.arc(p1.x, p1.y, r * (boosted ? 0.78 : 0.65), 0, Math.PI * 2);
+      ctx.fillStyle = rgba([255, 255, 255], alpha * 0.82);
       ctx.fill();
     }
   }
@@ -287,62 +316,10 @@ function drawWormholes(ctx, wormholes, time, beatPulse = 0) {
   }
 }
 
-function drawPowerUps(ctx, powerUps, playerX, playerY, time, trackSec, beatPulse, isConstellationActive, multiBand) {
+function drawPowerUps(ctx, powerUps, playerX, playerY, time, trackSec, beatPulse, isConstellationActive, multiBand, isBandHeroMode = false) {
   const w = window.innerWidth || ctx.canvas.width;
   const h = window.innerHeight || ctx.canvas.height;
   if (w <= 0 || h <= 0) return;
-
-  // =========================================================================
-  // 1. 3D PERSPECTIVE BAND-HERO / GUITAR-HERO RHYTHM HIGHWAY & BEAT STRIKE LINE
-  // =========================================================================
-  const topL = computeHighwayPoint(-0.45, 0, w, h);
-  const topR = computeHighwayPoint(3.45, 0, w, h);
-  const strikeL = computeHighwayPoint(-0.45, 1.0, w, h);
-  const strikeR = computeHighwayPoint(3.45, 1.0, w, h);
-  const botL = computeHighwayPoint(-0.45, 1.18, w, h);
-  const botR = computeHighwayPoint(3.45, 1.18, w, h);
-
-  ctx.save();
-  const deckGrad = ctx.createLinearGradient(0, topL.y, 0, botL.y);
-  deckGrad.addColorStop(0, "rgba(7, 10, 22, 0.22)");
-  deckGrad.addColorStop(0.5, "rgba(10, 16, 34, 0.64)");
-  deckGrad.addColorStop(0.85, "rgba(17, 24, 50, 0.78)");
-  deckGrad.addColorStop(1, "rgba(7, 10, 22, 0.30)");
-
-  ctx.beginPath();
-  ctx.moveTo(topL.x, topL.y);
-  ctx.lineTo(topR.x, topR.y);
-  ctx.lineTo(botR.x, botR.y);
-  ctx.lineTo(botL.x, botL.y);
-  ctx.closePath();
-  ctx.fillStyle = deckGrad;
-  ctx.fill();
-
-  const railCol = isConstellationActive ? [250, 204, 21] : [56, 189, 248];
-  ctx.strokeStyle = rgba(railCol, 0.45 + beatPulse * 0.25);
-  ctx.lineWidth = 3;
-  ctx.lineCap = "round";
-  ctx.beginPath();
-  ctx.moveTo(topL.x, topL.y);
-  ctx.lineTo(botL.x, botL.y);
-  ctx.moveTo(topR.x, topR.y);
-  ctx.lineTo(botR.x, botR.y);
-  ctx.stroke();
-
-  // Scrolling horizontal beat-measure bars synced to trackSec
-  const phaseFrac = trackSec > 0 ? ((trackSec / 0.48387) % 1) : ((time * 2.06) % 1);
-  for (let bIdx = 0; bIdx < 4; bIdx++) {
-    const uBar = Math.max(0.02, Math.min(1.12, (bIdx + phaseFrac) / 4));
-    const bL = computeHighwayPoint(-0.42, uBar, w, h);
-    const bR = computeHighwayPoint(3.42, uBar, w, h);
-    const barAlpha = Math.min(0.46, (0.10 + 0.26 * uBar) * (uBar >= 0.92 && uBar <= 1.05 ? 1.5 : 1.0));
-    ctx.beginPath();
-    ctx.moveTo(bL.x, bL.y);
-    ctx.lineTo(bR.x, bR.y);
-    ctx.strokeStyle = rgba([226, 232, 240], barAlpha);
-    ctx.lineWidth = 1.3 + uBar * 1.6;
-    ctx.stroke();
-  }
 
   // Ethereal "Ooh / Aaah" Vocal Aurora Borealis Curtains & Harmonic Halos during long flowy vocal swells!
   const vLevel = multiBand && typeof multiBand.vocal === "number" ? multiBand.vocal : 0;
@@ -376,76 +353,167 @@ function drawPowerUps(ctx, powerUps, playerX, playerY, time, trackSec, beatPulse
     ctx.restore();
   }
 
-  // 4 Perspective Fret Lane Strings
-  for (let lane = 0; lane < 4; lane++) {
-    const lTop = computeHighwayPoint(lane, 0, w, h);
-    const lBot = computeHighwayPoint(lane, 1.16, w, h);
-    const lCol = HIGHWAY_LANE_COLORS[lane];
-    const lGrad = ctx.createLinearGradient(0, lTop.y, 0, lBot.y);
-    lGrad.addColorStop(0, rgba(lCol, 0.14));
-    lGrad.addColorStop(0.65, rgba(lCol, 0.45 + beatPulse * 0.18));
-    lGrad.addColorStop(1, rgba(lCol, 0.72));
-    ctx.beginPath();
-    ctx.moveTo(lTop.x, lTop.y);
-    ctx.lineTo(lBot.x, lBot.y);
-    ctx.strokeStyle = lGrad;
-    ctx.lineWidth = 2.4;
-    ctx.stroke();
-  }
+  // =========================================================================
+  // 1. 3D PERSPECTIVE BAND-HERO / GUITAR-HERO RHYTHM HIGHWAY & BEAT STRIKE LINE (Band Hero Mode ONLY!)
+  // =========================================================================
+  if (isBandHeroMode) {
+    const topL = computeHighwayPoint(-0.45, 0, w, h);
+    const topR = computeHighwayPoint(3.45, 0, w, h);
+    const strikeL = computeHighwayPoint(-0.45, 1.0, w, h);
+    const strikeR = computeHighwayPoint(3.45, 1.0, w, h);
+    const botL = computeHighwayPoint(-0.45, 1.18, w, h);
+    const botR = computeHighwayPoint(3.45, 1.18, w, h);
 
-  // GLOWING BEAT STRIKE LINE at u = 1.0 (Y = 74%)
-  ctx.beginPath();
-  ctx.moveTo(strikeL.x - 10, strikeL.y);
-  ctx.lineTo(strikeR.x + 10, strikeR.y);
-  ctx.strokeStyle = rgba(railCol, 0.30 + beatPulse * 0.25);
-  ctx.lineWidth = 14 + beatPulse * 6;
-  ctx.stroke();
-
-  ctx.beginPath();
-  ctx.moveTo(strikeL.x, strikeL.y);
-  ctx.lineTo(strikeR.x, strikeR.y);
-  ctx.strokeStyle = rgba([255, 255, 255], 0.85 + beatPulse * 0.15);
-  ctx.lineWidth = 3.2;
-  ctx.stroke();
-
-  // 4 Fret Receptor Rings on the Beat Strike Line
-  for (let lane = 0; lane < 4; lane++) {
-    const recPt = computeHighwayPoint(lane, 1.0, w, h);
-    const lCol = HIGHWAY_LANE_COLORS[lane];
-    const hasNoteOnLine = powerUps && powerUps.some((it) => {
-      const lead = Math.max(0.45, (it.targetBeatSec || trackSec) - (it.spawnBeatSec || (trackSec - 1.8)));
-      const uNote = (trackSec - (it.spawnBeatSec || 0)) / lead;
-      return ((it.phraseBeatNum || 1) - 1) === lane && uNote >= 0.85 && uNote <= 1.14;
-    });
-    const recR = hasNoteOnLine ? (26 + beatPulse * 5) : (20 + beatPulse * 2);
+    ctx.save();
+    const deckGrad = ctx.createLinearGradient(0, topL.y, 0, botL.y);
+    deckGrad.addColorStop(0, "rgba(7, 10, 22, 0.22)");
+    deckGrad.addColorStop(0.5, "rgba(10, 16, 34, 0.64)");
+    deckGrad.addColorStop(0.85, "rgba(17, 24, 50, 0.78)");
+    deckGrad.addColorStop(1, "rgba(7, 10, 22, 0.30)");
 
     ctx.beginPath();
-    ctx.arc(recPt.x, recPt.y, recR * 1.35, 0, Math.PI * 2);
-    ctx.fillStyle = rgba(lCol, hasNoteOnLine ? 0.52 : 0.20);
+    ctx.moveTo(topL.x, topL.y);
+    ctx.lineTo(topR.x, topR.y);
+    ctx.lineTo(botR.x, botR.y);
+    ctx.lineTo(botL.x, botL.y);
+    ctx.closePath();
+    ctx.fillStyle = deckGrad;
     ctx.fill();
 
+    const railCol = isConstellationActive ? [250, 204, 21] : [56, 189, 248];
+    ctx.strokeStyle = rgba(railCol, 0.45 + beatPulse * 0.25);
+    ctx.lineWidth = 3;
+    ctx.lineCap = "round";
     ctx.beginPath();
-    ctx.arc(recPt.x, recPt.y, recR, 0, Math.PI * 2);
-    ctx.fillStyle = "rgba(9, 13, 26, 0.90)";
-    ctx.fill();
-    ctx.strokeStyle = hasNoteOnLine ? "#FFFFFF" : rgba(lCol, 0.86);
-    ctx.lineWidth = hasNoteOnLine ? 4.0 : 2.5;
+    ctx.moveTo(topL.x, topL.y);
+    ctx.lineTo(botL.x, botL.y);
+    ctx.moveTo(topR.x, topR.y);
+    ctx.lineTo(botR.x, botR.y);
     ctx.stroke();
 
-    ctx.beginPath();
-    ctx.arc(recPt.x, recPt.y, recR * 0.38, 0, Math.PI * 2);
-    ctx.fillStyle = rgba(lCol, hasNoteOnLine ? 0.96 : 0.45);
-    ctx.fill();
-  }
+    // Scrolling horizontal beat-measure bars synced to trackSec
+    const phaseFrac = trackSec > 0 ? ((trackSec / 0.48387) % 1) : ((time * 2.06) % 1);
+    for (let bIdx = 0; bIdx < 4; bIdx++) {
+      const uBar = Math.max(0.02, Math.min(1.12, (bIdx + phaseFrac) / 4));
+      const bL = computeHighwayPoint(-0.42, uBar, w, h);
+      const bR = computeHighwayPoint(3.42, uBar, w, h);
+      const barAlpha = Math.min(0.46, (0.10 + 0.26 * uBar) * (uBar >= 0.92 && uBar <= 1.05 ? 1.5 : 1.0));
+      ctx.beginPath();
+      ctx.moveTo(bL.x, bL.y);
+      ctx.lineTo(bR.x, bR.y);
+      ctx.strokeStyle = rgba([226, 232, 240], barAlpha);
+      ctx.lineWidth = 1.3 + uBar * 1.6;
+      ctx.stroke();
+    }
 
-  ctx.font = "900 11px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
-  ctx.textAlign = "center";
-  ctx.fillStyle = "rgba(250, 204, 21, 0.82)";
-  ctx.fillText("★ BEAT STRIKE LINE • CATCH NOTES HERE ON TIME ★", w * 0.5, strikeL.y + 34);
-  ctx.restore();
+    // 4 Perspective Fret Lane Strings
+    for (let lane = 0; lane < 4; lane++) {
+      const lTop = computeHighwayPoint(lane, 0, w, h);
+      const lBot = computeHighwayPoint(lane, 1.16, w, h);
+      const lCol = HIGHWAY_LANE_COLORS[lane];
+      const lGrad = ctx.createLinearGradient(0, lTop.y, 0, lBot.y);
+      lGrad.addColorStop(0, rgba(lCol, 0.14));
+      lGrad.addColorStop(0.65, rgba(lCol, 0.45 + beatPulse * 0.18));
+      lGrad.addColorStop(1, rgba(lCol, 0.72));
+      ctx.beginPath();
+      ctx.moveTo(lTop.x, lTop.y);
+      ctx.lineTo(lBot.x, lBot.y);
+      ctx.strokeStyle = lGrad;
+      ctx.lineWidth = 2.4;
+      ctx.stroke();
+    }
+
+    // GLOWING BEAT STRIKE LINE at u = 1.0 (Y = 65%)
+    ctx.beginPath();
+    ctx.moveTo(strikeL.x - 10, strikeL.y);
+    ctx.lineTo(strikeR.x + 10, strikeR.y);
+    ctx.strokeStyle = rgba(railCol, 0.30 + beatPulse * 0.25);
+    ctx.lineWidth = 14 + beatPulse * 6;
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(strikeL.x, strikeL.y);
+    ctx.lineTo(strikeR.x, strikeR.y);
+    ctx.strokeStyle = rgba([255, 255, 255], 0.85 + beatPulse * 0.15);
+    ctx.lineWidth = 3.2;
+    ctx.stroke();
+
+    // 4 Fret Receptor Rings on the Beat Strike Line
+    for (let lane = 0; lane < 4; lane++) {
+      const recPt = computeHighwayPoint(lane, 1.0, w, h);
+      const lCol = HIGHWAY_LANE_COLORS[lane];
+      const hasNoteOnLine = powerUps && powerUps.some((it) => {
+        const lead = Math.max(0.45, (it.targetBeatSec || trackSec) - (it.spawnBeatSec || (trackSec - 1.8)));
+        const uNote = (trackSec - (it.spawnBeatSec || 0)) / lead;
+        return ((it.phraseBeatNum || 1) - 1) === lane && uNote >= 0.85 && uNote <= 1.14;
+      });
+      const recR = hasNoteOnLine ? (26 + beatPulse * 5) : (20 + beatPulse * 2);
+
+      ctx.beginPath();
+      ctx.arc(recPt.x, recPt.y, recR * 1.35, 0, Math.PI * 2);
+      ctx.fillStyle = rgba(lCol, hasNoteOnLine ? 0.52 : 0.20);
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.arc(recPt.x, recPt.y, recR, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(9, 13, 26, 0.90)";
+      ctx.fill();
+      ctx.strokeStyle = hasNoteOnLine ? "#FFFFFF" : rgba(lCol, 0.86);
+      ctx.lineWidth = hasNoteOnLine ? 4.0 : 2.5;
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(recPt.x, recPt.y, recR * 0.38, 0, Math.PI * 2);
+      ctx.fillStyle = rgba(lCol, hasNoteOnLine ? 0.96 : 0.45);
+      ctx.fill();
+    }
+
+    ctx.font = "900 11px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillStyle = "rgba(250, 204, 21, 0.82)";
+    ctx.fillText("★ BEAT STRIKE LINE • CATCH NOTES HERE ON TIME ★", w * 0.5, strikeL.y + 34);
+    ctx.restore();
+  }
 
   if (!powerUps || powerUps.length === 0) return;
   const sorted = powerUps.slice().sort((a, b) => (a.sequenceIndex || 0) - (b.sequenceIndex || 0));
+
+  // =========================================================================
+  // 1B. ORIGINAL FREE-ROAM MODE: GLOWING NEON CONTRAIL STREAM RIBBON BETWEEN ORBS!
+  // =========================================================================
+  if (!isBandHeroMode && sorted.length >= 2) {
+    ctx.save();
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    for (let i = 0; i < sorted.length - 1; i++) {
+      const a = sorted[i];
+      const b = sorted[i + 1];
+      const isStreamPair = a.isVocalStream || b.isVocalStream || vocalGlow > 0.10;
+      const dx = b.x - a.x;
+      const dy = b.y - a.y;
+      const dist = Math.hypot(dx, dy);
+      if (dist <= w * 0.68) {
+        const midX = (a.x + b.x) * 0.5 - (dy * 0.14);
+        const midY = (a.y + b.y) * 0.5 + (dx * 0.14);
+        ctx.beginPath();
+        ctx.moveTo(a.x, a.y);
+        ctx.quadraticCurveTo(midX, midY, b.x, b.y);
+        ctx.strokeStyle = rgba(isStreamPair ? [236, 72, 153] : [56, 189, 248], isStreamPair ? (0.48 + beatPulse * 0.25) : 0.20);
+        ctx.lineWidth = isStreamPair ? (11 + beatPulse * 4) : 3.5;
+        ctx.stroke();
+
+        if (isStreamPair) {
+          ctx.beginPath();
+          ctx.moveTo(a.x, a.y);
+          ctx.quadraticCurveTo(midX, midY, b.x, b.y);
+          ctx.strokeStyle = rgba([255, 255, 255], 0.78);
+          ctx.lineWidth = 2.6;
+          ctx.stroke();
+        }
+      }
+    }
+    ctx.restore();
+  }
 
   // =========================================================================
   // 2. RENDER EACH SCROLLING HIGHWAY BEAT NOTE & LABELED PICKUP (BOMB / SHIELD)
@@ -454,7 +522,7 @@ function drawPowerUps(ctx, powerUps, playerX, playerY, time, trackSec, beatPulse
     const pu = sorted[idx];
     const leadDur = Math.max(0.45, (pu.targetBeatSec || trackSec) - (pu.spawnBeatSec || (trackSec - 1.8)));
     const u = Math.max(0, Math.min(1.25, (trackSec - (pu.spawnBeatSec || 0)) / leadDur));
-    const perspScale = computeHighwayScale(u);
+    const perspScale = isBandHeroMode ? computeHighwayScale(u) : 0.95;
 
     const remTtl = pu.expireBeatSec > 0 ? Math.max(0, pu.expireBeatSec - trackSec) : (pu.maxLifetime - pu.age);
     const puAlpha = Math.max(0.20, Math.min(1, remTtl / 0.22));
@@ -471,16 +539,25 @@ function drawPowerUps(ctx, powerUps, playerX, playerY, time, trackSec, beatPulse
       ? [250, 204, 21]
       : HIGHWAY_LANE_COLORS[laneIdx];
 
-    const isOnStrikeLine = u >= 0.86 && u <= 1.14;
+    const isOnStrikeLine = isBandHeroMode ? (u >= 0.86 && u <= 1.14) : (beatPulse >= 0.45);
     const beatPulseScale = 1.0 + (isOnStrikeLine ? 0.30 : 0.16) * beatPulse;
     const coreRad = (pu.radius || 32) * perspScale * beatPulseScale;
 
-    // 3D Vertical Beat-Bounce: orbs physically lift off the highway deck on every beat!
+    // 3D Vertical Beat-Bounce: orbs physically lift off the stage on every beat!
     const bounceOffsetY = -beatPulse * 11 * perspScale;
     const cx = pu.x;
     const cy = pu.y + bounceOffsetY;
 
     ctx.save();
+    // In Original Free-Roam 8-Beat Mode: draw a contracting Beat-Sync Ring on EVERY beat!
+    if (!isBandHeroMode) {
+      const ringRadius = coreRad * (1.05 + 0.95 * (1 - beatPulse));
+      ctx.beginPath();
+      ctx.arc(cx, cy, ringRadius, 0, Math.PI * 2);
+      ctx.strokeStyle = rgba(beatPulse > 0.55 ? [255, 255, 255] : effectCol, (0.35 + 0.55 * beatPulse) * puAlpha);
+      ctx.lineWidth = beatPulse > 0.55 ? 3.5 : 2.0;
+      ctx.stroke();
+    }
     // 1. 3D Perspective Ground Drop-Shadow Ellipse on the Highway Deck beneath the floating 3D sphere
     ctx.beginPath();
     ctx.ellipse(

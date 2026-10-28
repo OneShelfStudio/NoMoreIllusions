@@ -56,11 +56,13 @@ fun DrawScope.drawPlayerTrail(
     isGoldenOverdrive: Boolean = false
 ) {
     if (trail.size < 2) return
+    val isStreamContrail = trail.size > 24
     val baseColor = when {
         isGoldenOverdrive -> Color(0xFFFACC15L)
         isFocus -> applyCB(Color(0xFF4ADE80L))
         else -> applyCB(color)
     }
+    val streamAccent = Color(0xFFE879F9L)
     for (i in 0 until trail.size - 1) {
         val progress = i.toFloat() / trail.size
         val p0 = trail[i]
@@ -78,15 +80,35 @@ fun DrawScope.drawPlayerTrail(
                 quadraticTo(p1.x, p1.y, mid2.x, mid2.y)
             }
         }
-        drawPath(
-            path = segPath,
-            color = baseColor.copy(alpha = progress * 0.42f),
-            style = Stroke(width = (progress * 18f).coerceAtLeast(1.5f), cap = StrokeCap.Round, join = StrokeJoin.Round)
-        )
-        if (i % 3 == 0) {
+        if (isStreamContrail) {
+            // Super-thick, long Neon Contrail during Vocal Note Streams!
+            drawPath(
+                path = segPath,
+                color = (if (i % 2 == 0) baseColor else streamAccent).copy(alpha = progress * 0.34f),
+                style = Stroke(width = (progress * 44f).coerceAtLeast(3f), cap = StrokeCap.Round, join = StrokeJoin.Round),
+                blendMode = BlendMode.Screen
+            )
+            drawPath(
+                path = segPath,
+                color = baseColor.copy(alpha = progress * 0.68f),
+                style = Stroke(width = (progress * 24f).coerceAtLeast(2f), cap = StrokeCap.Round, join = StrokeJoin.Round)
+            )
+            drawPath(
+                path = segPath,
+                color = Color.White.copy(alpha = progress * 0.85f),
+                style = Stroke(width = (progress * 7.5f).coerceAtLeast(1.2f), cap = StrokeCap.Round, join = StrokeJoin.Round)
+            )
+        } else {
+            drawPath(
+                path = segPath,
+                color = baseColor.copy(alpha = progress * 0.42f),
+                style = Stroke(width = (progress * 18f).coerceAtLeast(1.5f), cap = StrokeCap.Round, join = StrokeJoin.Round)
+            )
+        }
+        if (i % (if (isStreamContrail) 2 else 3) == 0) {
             drawCircle(
-                color = Color.White.copy(alpha = progress * 0.36f),
-                radius = (progress * 4.5f).coerceAtLeast(1.2f),
+                color = Color.White.copy(alpha = progress * (if (isStreamContrail) 0.65f else 0.36f)),
+                radius = (progress * (if (isStreamContrail) 6.5f else 4.5f)).coerceAtLeast(1.2f),
                 center = p1
             )
         }

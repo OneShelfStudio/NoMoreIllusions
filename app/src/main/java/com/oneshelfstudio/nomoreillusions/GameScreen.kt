@@ -397,6 +397,8 @@ fun GameScreen(
     var nextOrbCueIdx by remember { mutableIntStateOf(0) }
     var liveTrackSec by remember { mutableFloatStateOf(0f) }
     var liveBeatPhase by remember { mutableFloatStateOf(0f) }
+    var isBandHeroMode by remember { mutableStateOf(false) }
+    var vocalStreamContrailTimer by remember { mutableFloatStateOf(0f) }
 
     val difficultyScoreMultiplier = getDifficultyScoreMultiplier(gameDifficulty, selectedRemixMode)
     val trackDifficultyBoost = getTrackDifficultyBoost(selectedTrackIndex)
@@ -454,6 +456,7 @@ fun GameScreen(
         activeStageMode = StageMode.ABYSSAL_WAVE
         juiceIntensity = 0f
         nextOrbCueIdx = 0
+        vocalStreamContrailTimer = 0f
         activePhenomenon = null
         activeWormholeSlide = null
         liveMultiBand = MultiBandAudioState()
@@ -576,6 +579,9 @@ fun GameScreen(
                 if (magnetTime > 0f) {
                     magnetTime = (magnetTime - 0.016f).coerceAtLeast(0f)
                 }
+                if (vocalStreamContrailTimer > 0f) {
+                    vocalStreamContrailTimer = (vocalStreamContrailTimer - 0.016f * currentScale).coerceAtLeast(0f)
+                }
                 val curToast = activePowerUpToast
                 if (curToast != null) {
                     val nextToastTime = curToast.timer - 0.016f
@@ -683,8 +689,9 @@ fun GameScreen(
                         enemies.clear()
                     }
 
-                    // Guarantee a 2-Finger Vocal Sustain Hold spawns when entering long flowy Vocal Float / Swell sections ("ooh / aaah" moments)!
+                    // Guarantee a 2-Finger Vocal Sustain Hold spawns in Band Hero mode when entering long flowy Vocal Float / Swell sections ("ooh / aaah" moments)!
                     if (
+                        isBandHeroMode &&
                         wormholes.isEmpty() &&
                         currentSecObj.timestampSec > 20f &&
                         (currentSecObj.label.contains("VOCAL") || currentSecObj.label.contains("SWELL") || currentSecObj.label.contains("BREATHER"))
@@ -802,10 +809,12 @@ fun GameScreen(
                     shockwaves = shockwaves,
                     hasActiveSustainRibbon = wormholes.isNotEmpty(),
                     isTrainingMode = (gameDifficulty == GameDifficulty.EASY || selectedRemixMode == TrackRemixMode.SLOWED),
-                    beatDurationSec = beatDurationSec
+                    beatDurationSec = beatDurationSec,
+                    isBandHeroMode = isBandHeroMode,
+                    multiBand = mb
                 )
 
-                // Step Scrolling Highway Beat Notes + Expiration Check (Miss resets combo only, never health!)
+                // Step Beat Orbs + Expiration Check (Miss resets combo only, never health!)
                 stepNebulousBeatOrbs(
                     powerUps = powerUps,
                     player = player,
@@ -817,7 +826,8 @@ fun GameScreen(
                     activePhenomenon = activePhenomenon,
                     currentScale = currentScale,
                     beatPhase = liveBeatPhase,
-                    magnetActive = false,
+                    magnetActive = magnetTime > 0f && !isBandHeroMode,
+                    isBandHeroMode = isBandHeroMode,
                     onBeatMissed = { missedOrb ->
                         val prevCombo = rhythmCombo
                         rhythmCombo = 0
@@ -887,7 +897,8 @@ fun GameScreen(
                     beatPhase = liveBeatPhase,
                     remixMode = selectedRemixMode,
                     allowAnomalies = currentSecObj.allowAnomalies,
-                    powerUps = powerUps
+                    powerUps = powerUps,
+                    isBandHeroMode = isBandHeroMode
                 )
 
                 // Smoothly decay juiceIntensity, cameraPunch & beatFlashIntensity
@@ -962,13 +973,27 @@ fun GameScreen(
                         rhythmCombo++
                         if (rhythmCombo > maxComboThisRun) maxComboThisRun = rhythmCombo
                         val isSupernovaOrb = p.keyWordEffect != KeyWordEffect.NONE
+                        // Streaming notes together during vocal swells charges the thick, long Neon Contrail!
+                        vocalStreamContrailTimer = if (p.orbitRadius > 50f || mb.vocal >= 0.42f) {
+                            4.0f
+                        } else {
+                            maxOf(vocalStreamContrailTimer, 2.0f)
+                        }
                         val leadDur = (p.targetBeatSec - p.spawnBeatSec).coerceAtLeast(0.45f)
                         val uHit = (trackSec - p.spawnBeatSec) / leadDur
-                        val isCaughtOnBeat = uHit in 0.78f..1.18f ||
-                            abs(p.y - screenHeight * 0.65f) <= 74f ||
-                            abs(trackSec - p.targetBeatSec) <= 0.25f ||
-                            isSupernovaOrb ||
-                            p.powerUpType != PowerUpType.NONE
+                        val isCaughtOnBeat = if (isBandHeroMode) {
+                            uHit in 0.78f..1.18f ||
+                                abs(p.y - screenHeight * 0.65f) <= 74f ||
+                                abs(trackSec - p.targetBeatSec) <= 0.25f ||
+                                isSupernovaOrb ||
+                                p.powerUpType != PowerUpType.NONE
+                        } else {
+                            // Original Free-Roam Stage: Orbs stay on screen for 8 beats and pulse on every beat!
+                            liveBeatPhase <= 0.34f ||
+                                liveBeatPhase >= 0.74f ||
+                                isSupernovaOrb ||
+                                p.powerUpType != PowerUpType.NONE
+                        }
                         if (isCaughtOnBeat) {
                             onBeatHitsThisRun++
                         }
@@ -1255,7 +1280,8 @@ fun GameScreen(
                     isPlaying = gameState == GameState.PLAYING,
                     currentScale = currentScale,
                     screenWidth = screenWidth,
-                    screenHeight = screenHeight
+                    screenHeight = screenHeight,
+                    isContrailBoosted = (vocalStreamContrailTimer > 0f || mb.vocal >= 0.44f || (mb.bassDropOut && mb.vocal >= 0.32f))
                 )
 
                 if (nearMissCount > 0) {
@@ -1316,6 +1342,7 @@ fun GameScreen(
             tetheredSatellites = tetheredSatellites,
             enemyTelegraphs = enemyTelegraphs,
             wormholes = wormholes,
+            isBandHeroMode = isBandHeroMode,
             player = player,
             secondTouchPos = secondTouchPos,
             motes = motes,
@@ -1406,6 +1433,11 @@ fun GameScreen(
                 onSelectRemixMode = { mode ->
                     selectedRemixMode = mode
                     audioEngine.setLobbyRemixMode(mode, playFeedback = true)
+                },
+                isBandHeroMode = isBandHeroMode,
+                onToggleBandHeroMode = { enabled ->
+                    audioEngine.playMenuNote()
+                    isBandHeroMode = enabled
                 },
                 pulsePoints = pulsePoints,
                 highScore = highScore,
@@ -1570,6 +1602,13 @@ fun GameScreen(
                     audioEngine.playMenuNote()
                     adManager.showInterstitialIfReady(context as Activity) {
                         gameState = GameState.MENU
+                    }
+                },
+                onPlayBandHeroStyle = {
+                    audioEngine.playMenuNote()
+                    isBandHeroMode = true
+                    adManager.showInterstitialIfReady(context as Activity) {
+                        startFreshLevelRun(selectedTrackIndex)
                     }
                 }
             )

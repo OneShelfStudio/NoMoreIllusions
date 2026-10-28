@@ -420,6 +420,7 @@ fun stepNebulousBeatOrbs(
     currentScale: Float = 1f,
     beatPhase: Float = 0f,
     magnetActive: Boolean = false,
+    isBandHeroMode: Boolean = false,
     onBeatMissed: (GameObject) -> Unit = {}
 ) {
     if (screenWidth <= 0f || screenHeight <= 0f) return
@@ -430,18 +431,28 @@ fun stepNebulousBeatOrbs(
         val leadDur = (orb.targetBeatSec - orb.spawnBeatSec).coerceAtLeast(0.45f)
         val u = (trackSec - orb.spawnBeatSec) / leadDur
         val expireSec = if (orb.expireBeatSec > 0f) orb.expireBeatSec else (orb.targetBeatSec + 0.45f)
-        if (trackSec > expireSec || u > 1.22f) {
-            onBeatMissed(orb)
-            iter.remove()
-            continue
-        }
 
-        val laneIdx = (orb.phraseBeatNum - 1).coerceIn(0, 3).toFloat()
-        val pt = computeHighwayPoint(laneIdx, u, screenWidth, screenHeight)
-        orb.anchorX = pt.x
-        orb.anchorY = pt.y
-        orb.x = pt.x
-        orb.y = pt.y
+        if (isBandHeroMode) {
+            if (trackSec > expireSec || u > 1.22f) {
+                onBeatMissed(orb)
+                iter.remove()
+                continue
+            }
+            val laneIdx = (orb.phraseBeatNum - 1).coerceIn(0, 3).toFloat()
+            val pt = computeHighwayPoint(laneIdx, u, screenWidth, screenHeight)
+            orb.anchorX = pt.x
+            orb.anchorY = pt.y
+            orb.x = pt.x
+            orb.y = pt.y
+        } else {
+            // Original Free-Roam Cosmic Stage: Orbs remain on screen for a full 8 BEATS so you can hit them on any beat!
+            if (trackSec > expireSec) {
+                iter.remove()
+                continue
+            }
+            orb.x = orb.anchorX + cos(gameTime * 2.1f + orb.phase) * 5.5f
+            orb.y = orb.anchorY + sin(gameTime * 2.5f + orb.phase) * 5.5f
+        }
     }
 }
 
@@ -458,9 +469,14 @@ fun stepAndSpawnWormholes(
     beatPhase: Float,
     remixMode: TrackRemixMode = TrackRemixMode.ORIGINAL,
     allowAnomalies: Boolean = false,
-    powerUps: MutableList<GameObject>? = null
+    powerUps: MutableList<GameObject>? = null,
+    isBandHeroMode: Boolean = false
 ) {
     if (screenWidth <= 0f || screenHeight <= 0f) return
+    if (!isBandHeroMode) {
+        if (wormholes.isNotEmpty()) wormholes.clear()
+        return
+    }
 
     val wIter = wormholes.iterator()
     while (wIter.hasNext()) {
@@ -538,7 +554,8 @@ fun updateAmbientEntities(
     isPlaying: Boolean,
     currentScale: Float,
     screenWidth: Float,
-    screenHeight: Float
+    screenHeight: Float,
+    isContrailBoosted: Boolean = false
 ) {
     if (motes.size < 34 && screenWidth > 0f && screenHeight > 0f) {
         val mColor = when (Random.nextInt(3)) {
@@ -601,6 +618,9 @@ fun updateAmbientEntities(
 
     if (isPlaying) {
         playerTrail.add(Offset(player.x, player.y))
-        if (playerTrail.size > 20) playerTrail.removeAt(0)
+        val maxTrailPoints = if (isContrailBoosted) 58 else 22
+        while (playerTrail.size > maxTrailPoints) {
+            playerTrail.removeAt(0)
+        }
     }
 }

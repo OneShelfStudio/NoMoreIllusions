@@ -295,11 +295,12 @@ internal fun spawnStationaryBeatOrbsForFrame(
     shockwaves: MutableList<Shockwave>,
     hasActiveSustainRibbon: Boolean = false,
     isTrainingMode: Boolean = false,
-    beatDurationSec: Float = 0.48387f
+    beatDurationSec: Float = 0.48387f,
+    isBandHeroMode: Boolean = false,
+    multiBand: MultiBandAudioState = MultiBandAudioState()
 ): Int {
     var nextOrbCueIdx = startCueIdx
-    // While a 2-Finger Vocal Sustain Hold is active on the stage, pause NEW peg spawns at the horizon
-    // but NEVER delete pegs that are already scrolling down the highway!
+    // While a 2-Finger Vocal Sustain Hold is active, preserve mid-flight pegs and pause new spawns at the horizon
     if (hasActiveSustainRibbon) {
         while (nextOrbCueIdx < chart.size && chart[nextOrbCueIdx].timestampSec <= trackSec + spawnLeadTime * 0.5f) {
             nextOrbCueIdx++
@@ -308,20 +309,24 @@ internal fun spawnStationaryBeatOrbsForFrame(
     }
 
     val laneColors = listOf(
-        Color(0xFF22C55EL), // Lane 1: Emerald Fret
-        Color(0xFFFB7185L), // Lane 2: Crimson Fret
-        Color(0xFFFACC15L), // Lane 3: Gold Fret
-        Color(0xFF38BDF8L)  // Lane 4: Cyan Fret
+        Color(0xFF22C55EL), // Emerald Resonance
+        Color(0xFFFB7185L), // Crimson Resonance
+        Color(0xFFFACC15L), // 24K Gold Resonance
+        Color(0xFF38BDF8L)  // Electric Cyan Resonance
     )
 
-    // Quantize every beat peg to the exact whole quarter-note beat grid (`beatDurationSec`) and use a strictly constant scroll duration
-    // (`spawnBeatSec = quantizedBeatSec - spawnLeadTime`) so 100% of pegs travel at uniform speed and cross the Beat Strike Line on the downbeat!
     val beatGridStep = beatDurationSec.coerceIn(0.35f, 0.75f) // Exact quarter-note downbeat grid
+    // In Original Free-Roam Stage mode, each orb stays on screen for a full 8 BEATS so you can hit it on any of the 8 beats,
+    // and more notes populate the stage simultaneously!
+    val maxActiveOrbs = if (isBandHeroMode) 16 else 22
+    val effectiveLeadTime = if (isBandHeroMode) spawnLeadTime else maxOf(spawnLeadTime, beatGridStep * 3.0f)
+    val effectiveHoldWindow = if (isBandHeroMode) ttlGraceSec else (beatGridStep * 6.0f) // 2 beats lead + 6 beats hold = 8 full beats on screen!
+    val isVocalFlow = multiBand.vocal >= 0.44f || (multiBand.bassDropOut && multiBand.vocal >= 0.32f)
 
     while (
         nextOrbCueIdx < chart.size &&
-        powerUps.size < 16 &&
-        (trackSec >= chart[nextOrbCueIdx].timestampSec - spawnLeadTime || (powerUps.isEmpty() && trackSec + spawnLeadTime * 1.35f >= chart[nextOrbCueIdx].timestampSec))
+        powerUps.size < maxActiveOrbs &&
+        (trackSec >= chart[nextOrbCueIdx].timestampSec - effectiveLeadTime || (powerUps.isEmpty() && trackSec + effectiveLeadTime * 1.45f >= chart[nextOrbCueIdx].timestampSec))
     ) {
         val prevCueSec = if (nextOrbCueIdx > 0) chart[nextOrbCueIdx - 1].timestampSec else 0f
         val cue = chart[nextOrbCueIdx]
@@ -333,19 +338,27 @@ internal fun spawnStationaryBeatOrbsForFrame(
         }
 
         val quantizedBeatSec = (cue.timestampSec / beatGridStep).roundToInt() * beatGridStep
-        if (trackSec <= quantizedBeatSec + ttlGraceSec && screenWidth > 0f && screenHeight > 0f) {
+        if (trackSec <= quantizedBeatSec + effectiveHoldWindow && screenWidth > 0f && screenHeight > 0f) {
             val laneIdx = (((cue.normX - 0.16f) / 0.68f * 4f).toInt() + cue.sequenceIndex) % 4
             val clampedLane = laneIdx.coerceIn(0, 3)
 
-            // In Normal & Hard/Fast modes, if there is a wide gap (>= 2 beats) before this cue, inject a bonus quarter-note downbeat peg!
+            // Inject extra on-beat notes to keep the stage rich with beats (and create flowing connected streams during "ooooh" vocal swells!)
             val gapSec = quantizedBeatSec - prevCueSec
-            if (!isTrainingMode && prevCueSec > 0.5f && gapSec in (beatGridStep * 1.85f)..2.80f && powerUps.size < 14) {
+            val minGapForBonus = if (isBandHeroMode) (beatGridStep * 1.85f) else (beatGridStep * 1.25f)
+            if (!isTrainingMode && prevCueSec > 0.5f && gapSec in minGapForBonus..3.20f && powerUps.size < maxActiveOrbs - 2) {
                 val rawMidSec = prevCueSec + gapSec * 0.5f
                 val midBeatSec = (rawMidSec / beatGridStep).roundToInt() * beatGridStep
-                if (midBeatSec > trackSec + 0.45f && abs(midBeatSec - quantizedBeatSec) >= beatGridStep * 0.85f && abs(midBeatSec - prevCueSec) >= beatGridStep * 0.85f) {
+                if (midBeatSec > trackSec + 0.25f && abs(midBeatSec - quantizedBeatSec) >= beatGridStep * 0.75f && abs(midBeatSec - prevCueSec) >= beatGridStep * 0.75f) {
                     val midLane = (clampedLane + 2) % 4
-                    val midStartPt = computeHighwayPoint(midLane.toFloat(), 0f, screenWidth, screenHeight)
-                    val midSpawnSec = midBeatSec - spawnLeadTime
+                    val midStartPt = if (isBandHeroMode) {
+                        computeHighwayPoint(midLane.toFloat(), 0f, screenWidth, screenHeight)
+                    } else {
+                        val streamPhase = (cue.sequenceIndex * 0.55f)
+                        val sx = (0.50f + 0.30f * sin(streamPhase)).coerceIn(0.16f, 0.84f) * screenWidth
+                        val sy = (0.44f + 0.22f * cos(streamPhase * 0.8f)).coerceIn(0.18f, 0.74f) * screenHeight
+                        Offset(sx, sy)
+                    }
+                    val midSpawnSec = midBeatSec - effectiveLeadTime
                     powerUps.add(
                         GameObject(
                             x = midStartPt.x,
@@ -360,17 +373,30 @@ internal fun spawnStationaryBeatOrbsForFrame(
                             anchorY = midStartPt.y,
                             spawnBeatSec = midSpawnSec,
                             targetBeatSec = midBeatSec,
-                            expireBeatSec = midBeatSec + ttlGraceSec,
+                            expireBeatSec = midBeatSec + effectiveHoldWindow,
                             phraseBeatNum = midLane + 1,
                             sequenceIndex = cue.sequenceIndex * 2,
                             isGoldenOrb = isGoldenActive,
-                            keyWordEffect = KeyWordEffect.NONE
+                            keyWordEffect = KeyWordEffect.NONE,
+                            orbitRadius = if (!isBandHeroMode && isVocalFlow) 77f else 0f
                         )
                     )
                 }
             }
 
-            val startPt = computeHighwayPoint(clampedLane.toFloat(), 0f, screenWidth, screenHeight)
+            val startPt = if (isBandHeroMode) {
+                computeHighwayPoint(clampedLane.toFloat(), 0f, screenWidth, screenHeight)
+            } else if (isVocalFlow) {
+                // During "ooooh / aaaah" vocal swells, arrange notes in a smooth, flowing S-curve stream so the player can stream them together!
+                val streamAngle = cue.sequenceIndex * 0.48f
+                val sx = (0.50f + 0.32f * sin(streamAngle)).coerceIn(0.15f, 0.85f) * screenWidth
+                val sy = (0.45f + 0.24f * sin(streamAngle * 0.65f + 0.8f)).coerceIn(0.18f, 0.74f) * screenHeight
+                Offset(sx, sy)
+            } else {
+                val ox = cue.normX.coerceIn(0.15f, 0.85f) * screenWidth
+                val oy = cue.normY.coerceIn(0.18f, 0.75f) * screenHeight
+                Offset(ox, oy)
+            }
             val mappedPowerUpType = when (cue.powerUpType) {
                 PowerUpType.BLAST, PowerUpType.MAGNET -> PowerUpType.BLAST
                 PowerUpType.SHIELD, PowerUpType.SLOW_MO -> PowerUpType.SHIELD
@@ -396,8 +422,7 @@ internal fun spawnStationaryBeatOrbsForFrame(
                 else -> laneColors[clampedLane]
             }
 
-            // Strictly constant scroll speed (`quantizedBeatSec - spawnLeadTime`) so every peg crosses u=1.0 on the exact beat!
-            val spawnSec = quantizedBeatSec - spawnLeadTime
+            val spawnSec = quantizedBeatSec - effectiveLeadTime
             powerUps.add(
                 GameObject(
                     x = startPt.x,
@@ -412,11 +437,12 @@ internal fun spawnStationaryBeatOrbsForFrame(
                     anchorY = startPt.y,
                     spawnBeatSec = spawnSec,
                     targetBeatSec = quantizedBeatSec,
-                    expireBeatSec = quantizedBeatSec + ttlGraceSec,
+                    expireBeatSec = quantizedBeatSec + effectiveHoldWindow,
                     phraseBeatNum = clampedLane + 1,
                     sequenceIndex = cue.sequenceIndex * 2 + 1,
                     isGoldenOrb = isOrbGolden,
-                    keyWordEffect = mappedKeyWord
+                    keyWordEffect = mappedKeyWord,
+                    orbitRadius = if (!isBandHeroMode && isVocalFlow) 77f else 0f
                 )
             )
         }

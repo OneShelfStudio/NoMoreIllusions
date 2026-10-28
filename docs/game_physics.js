@@ -55,6 +55,7 @@ Object.assign(NoMoreIllusionsApp.prototype, {
     if (this.eclipseModeTimer > 0) this.eclipseModeTimer = Math.max(0, this.eclipseModeTimer - dt);
     if (this.constellationRushTimer > 0) this.constellationRushTimer = Math.max(0, this.constellationRushTimer - dt);
     if (this.choreoBannerTimer > 0) this.choreoBannerTimer = Math.max(0, this.choreoBannerTimer - dt);
+    if (this.vocalStreamContrailTimer > 0) this.vocalStreamContrailTimer = Math.max(0, this.vocalStreamContrailTimer - dt);
     if (this.screenShake > 0) this.screenShake = Math.max(0, this.screenShake - dt * 32);
 
     if (this.comboTimer > 0) {
@@ -94,19 +95,28 @@ Object.assign(NoMoreIllusionsApp.prototype, {
     this.playerX += (this.targetX - this.playerX) * followFactor;
     this.playerY += (this.targetY - this.playerY) * followFactor;
 
-    // Update Player Trail
+    // Update Player Trail (Expands up to 58 points for a thick, long Neon Contrail during vocal streams!)
+    const isStreamContrail = this.vocalStreamContrailTimer > 0 ||
+      this.multiBandState.vocal >= 0.44 ||
+      (this.multiBandState.bassDropOut && this.multiBandState.vocal >= 0.32);
+    const maxTrailCap = isStreamContrail ? this.trailPoints.length : Math.min(24, this.trailPoints.length);
     for (let i = this.trailPoints.length - 1; i > 0; i--) {
       this.trailPoints[i].x = this.trailPoints[i - 1].x;
       this.trailPoints[i].y = this.trailPoints[i - 1].y;
     }
     this.trailPoints[0].x = this.playerX;
     this.trailPoints[0].y = this.playerY;
-    if (this.trailLength < this.trailPoints.length) this.trailLength++;
+    if (this.trailLength < maxTrailCap) this.trailLength++;
+    else if (this.trailLength > maxTrailCap) this.trailLength = Math.max(maxTrailCap, this.trailLength - 1);
 
-    // 1. Band Hero / Guitar Hero Scrolling Highway Note Spawner
+    // 1. Dual-Mode Note Spawner: Original Free-Roam Cosmic Stage (Default, 8-Beat Window + Vocal Streams) OR Band Hero Highway!
     const chart = stage.orbChart;
-    const spawnLeadTime = Math.max(1.75, Math.min(2.35, beatPeriod * 3.8));
-    if (this.wormholes && this.wormholes.length > 0) {
+    const isBandHero = Boolean(this.isBandHeroMode);
+    const maxActiveOrbs = isBandHero ? 16 : 22;
+    const spawnLeadTime = isBandHero
+      ? Math.max(1.75, Math.min(2.35, beatPeriod * 3.8))
+      : Math.max(0.85, Math.min(1.65, beatPeriod * 3.0));
+    if (isBandHero && this.wormholes && this.wormholes.length > 0) {
       // Preserve mid-flight highway pegs so notes NEVER vanish on the way down; only pause new spawns at the horizon!
       while (
         this.nextBeatCueIndex < chart.length &&
@@ -115,27 +125,57 @@ Object.assign(NoMoreIllusionsApp.prototype, {
         this.nextBeatCueIndex++;
       }
     } else {
-      const isTrainingEasy = mode.id === "CHILL" || this.prefs.difficulty === "EASY";
+      const isTrainingEasy = mode.id === "CHILL" || mode.id === "SLOWED" || this.prefs.difficulty === "EASY";
       while (
         this.nextBeatCueIndex < chart.length &&
-        this.powerUps.length < 16 &&
+        this.powerUps.length < maxActiveOrbs &&
         (chart[this.nextBeatCueIndex].timestampSec || chart[this.nextBeatCueIndex].timeSec) <= this.trackElapsedSec + spawnLeadTime
       ) {
         const cue = chart[this.nextBeatCueIndex];
         this.nextBeatCueIndex++;
-        if (isTrainingEasy && cue.sequenceIndex % 3 === 2 && !cue.isGoldenCue && (!cue.powerUpType || cue.powerUpType === "SCORE_ORB")) {
+        if (isTrainingEasy && isBandHero && cue.sequenceIndex % 3 === 2 && !cue.isGoldenCue && (!cue.powerUpType || cue.powerUpType === "SCORE_ORB")) {
           continue;
         }
         this.spawnChartedOrb(cue, beatPeriod);
 
-        // Band-Hero Highway Density Boost: fill wide gaps (>= 2 beats) on Normal & Hard/Fast modes with an extra quarter-note downbeat peg!
-        if (!isTrainingEasy && this.nextBeatCueIndex < chart.length && this.powerUps.length < 15) {
+        // Density Boost: in Original mode, fill gaps >= 1.15 beats with extra on-beat orbs (and flowing vocal stream notes!);
+        // in Band Hero mode, fill wide gaps >= 1.85 beats on Normal/Fast.
+        if (this.nextBeatCueIndex < chart.length && this.powerUps.length < maxActiveOrbs - 1) {
           const nextCue = chart[this.nextBeatCueIndex];
           const curT = cue.timestampSec || cue.timeSec || this.trackElapsedSec;
           const nextT = nextCue.timestampSec || nextCue.timeSec || (curT + 1.0);
           const gapSec = nextT - curT;
           const fullBeat = Math.max(0.35, beatPeriod);
-          if (gapSec >= fullBeat * 1.85 && gapSec <= 2.80) {
+          const isVocalSwellNow = (this.multiBandState.vocal >= 0.44) ||
+            (this.multiBandState.bassDropOut && this.multiBandState.vocal >= 0.30);
+
+          if (!isBandHero && gapSec >= fullBeat * 1.15 && gapSec <= 3.60) {
+            const extraCount = (isVocalSwellNow && gapSec >= fullBeat * 1.75) ? 2 : 1;
+            for (let step = 1; step <= extraCount; step++) {
+              if (this.powerUps.length >= maxActiveOrbs) break;
+              const frac = step / (extraCount + 1);
+              const snappedMidT = Math.round((curT + gapSec * frac) / fullBeat) * fullBeat;
+              if (Math.abs(snappedMidT - curT) >= fullBeat * 0.42 && Math.abs(snappedMidT - nextT) >= fullBeat * 0.42) {
+                const cNormX = cue.normX || 0.5;
+                const nNormX = nextCue.normX || 0.5;
+                const cNormY = cue.normY || 0.45;
+                const nNormY = nextCue.normY || 0.45;
+                const interpX = Math.max(0.14, Math.min(0.86, cNormX + (nNormX - cNormX) * frac + Math.sin((cue.sequenceIndex || 1) + step) * 0.08));
+                const interpY = Math.max(0.18, Math.min(0.76, cNormY + (nNormY - cNormY) * frac + Math.cos((cue.sequenceIndex || 1) + step) * 0.06));
+                this.spawnChartedOrb({
+                  timestampSec: snappedMidT,
+                  normX: interpX,
+                  normY: interpY,
+                  sequenceIndex: (cue.sequenceIndex || 1) * 10 + step,
+                  phraseBeatNum: ((cue.phraseBeatNum || 1) + step - 1) % 4 + 1,
+                  powerUpType: "SCORE_ORB",
+                  keyWordEffect: "NONE",
+                  isGoldenCue: false,
+                  isVocalStream: isVocalSwellNow
+                }, beatPeriod);
+              }
+            }
+          } else if (isBandHero && !isTrainingEasy && gapSec >= fullBeat * 1.85 && gapSec <= 2.80) {
             const snappedMidT = Math.round((curT + gapSec * 0.5) / fullBeat) * fullBeat;
             if (Math.abs(snappedMidT - curT) >= fullBeat * 0.85 && Math.abs(snappedMidT - nextT) >= fullBeat * 0.85) {
               const curLane = Math.max(0, Math.min(3, Math.floor(((cue.normX || 0.5) - 0.14) / 0.18 + 0.5)));
@@ -192,9 +232,10 @@ Object.assign(NoMoreIllusionsApp.prototype, {
         this.enemies = [];
       }
 
-      // Guarantee a 2-Finger Vocal Sustain Hold spawns when entering long flowy Vocal Float / Swell sections ("ooh / aaah" moments)!
+      // Guarantee a 2-Finger Vocal Sustain Hold spawns in Band Hero mode when entering long flowy Vocal Float / Swell sections!
       const secTitleUpper = ((activeSec.title || "") + " " + (activeSec.subtitle || "")).toUpperCase();
       if (
+        this.isBandHeroMode &&
         this.wormholes.length === 0 &&
         activeSecTime > 20 &&
         (secTitleUpper.includes("VOCAL") || secTitleUpper.includes("SWELL") || secTitleUpper.includes("BREATHER"))
@@ -249,9 +290,8 @@ Object.assign(NoMoreIllusionsApp.prototype, {
 
     // 3. Simplified Pickups (Fret Beat Notes, ★ 4X STAR, 💥 BOMB, 🛡️ SHIELD) arrive via the beat highway chart
 
-    // 4. 2-Finger Stationary Vocal Sustain Hold Spawner (Triggered ONLY on Long Flowy Vocal "Ooh / Aaah" Swells!)
-    // Preserves mid-flight highway pegs while pausing new spawns at the horizon.
-    if (activeSec.allowAnomalies) {
+    // 4. 2-Finger Stationary Vocal Sustain Hold Spawner (Band Hero Mode ONLY!)
+    if (this.isBandHeroMode && activeSec.allowAnomalies) {
       this.wormholeSpawnTimer += dt;
       const isVocalSwellMoment = (this.multiBandState.vocal >= 0.48) || (this.multiBandState.swellDelta >= 0.14);
       if (this.wormholeSpawnTimer >= 16.5 && this.wormholes.length === 0 && isVocalSwellMoment) {
@@ -449,7 +489,7 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       }
     }
 
-    // 8. Update Scrolling Guitar-Hero Beat Notes Down the 4-Lane Rhythm Highway
+    // 8. Update Beat Notes (Original Free-Roam 8-Beat Stage OR Band-Hero 4-Lane Highway)
     for (let i = this.powerUps.length - 1; i >= 0; i--) {
       const pu = this.powerUps[i];
       pu.age += worldDt;
@@ -458,16 +498,21 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       const u = (this.trackElapsedSec - (pu.spawnBeatSec || 0)) / leadTime;
       const laneIdx = Math.max(0, Math.min(3, (pu.phraseBeatNum || 1) - 1));
 
-      if (typeof this.computeHighwayPoint === "function") {
+      if (this.isBandHeroMode && typeof this.computeHighwayPoint === "function") {
         const pt = this.computeHighwayPoint(laneIdx, u, this.W, this.H);
         pu.x = pt.x;
         pu.y = pt.y;
         pu.targetX = pt.x;
         pu.targetY = this.H * 0.65;
+      } else {
+        // Original Free-Roam Stage: Orbs hover around their open-stage coordinates for 8 full beats!
+        const hoverPhase = this.time * 2.2 + (pu.sequenceIndex || 0) * 0.55;
+        pu.x = Math.max(36, Math.min(this.W - 36, (pu.targetX || pu.x) + Math.cos(hoverPhase) * 6.5));
+        pu.y = Math.max(54, Math.min(this.H * 0.84, (pu.targetY || pu.y) + Math.sin(hoverPhase * 1.15) * 6.5));
       }
 
-      // Check expiration once note scrolls past the bottom of the Beat Strike Line (u > 1.24)
-      const isExpiredByTtl = u > 1.24 || (pu.expireBeatSec > 0 && this.trackElapsedSec > pu.expireBeatSec);
+      // Check expiration: in Band Hero mode when u > 1.24; in Original mode after the 8-beat window (expireBeatSec)
+      const isExpiredByTtl = (this.isBandHeroMode && u > 1.24) || (pu.expireBeatSec > 0 && this.trackElapsedSec > pu.expireBeatSec);
       if (isExpiredByTtl || pu.age >= pu.maxLifetime) {
         if (isExpiredByTtl) {
           // Missed beat note past the Strike Line: ONLY reset combo (never damages player or ends run!)
@@ -716,34 +761,58 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       isSupernova = true;
     }
 
-    // ZERO OVERLAP RULE: while a Sustain Slide Ribbon is active on the highway, skip ALL beat pegs!
-    if (this.wormholes && this.wormholes.length > 0) {
+    // ZERO OVERLAP RULE in Band Hero mode: while a Sustain Slide Ribbon is active on the highway, skip beat pegs
+    if (this.isBandHeroMode && this.wormholes && this.wormholes.length > 0) {
       return;
     }
 
-    const startPt = typeof this.computeHighwayPoint === "function"
-      ? this.computeHighwayPoint(laneIdx, 0, this.W, this.H)
-      : { x: (0.14 + laneIdx * 0.24) * this.W, y: this.H * 0.15 };
-    const receptorPt = typeof this.computeHighwayPoint === "function"
-      ? this.computeHighwayPoint(laneIdx, 1.0, this.W, this.H)
-      : { x: (0.14 + laneIdx * 0.24) * this.W, y: this.H * 0.65 };
-
-    // Quantize every peg's targetBeatSec to the exact whole quarter-note beat grid and enforce constant scroll lead time
-    // so 100% of pegs travel at uniform speed and cross the Beat Strike Line (u = 1.0) dead-on the downbeat!
     const rawTargetSec = cue.timestampSec || cue.timeSec || (this.trackElapsedSec + 1.9);
     const beatGridStep = Math.max(0.35, beatPeriod);
     const targetBeatSec = Math.round(rawTargetSec / beatGridStep) * beatGridStep;
-    const spawnLeadTime = Math.max(1.75, Math.min(2.35, beatPeriod * 3.8));
-    const spawnBeatSec = targetBeatSec - spawnLeadTime;
-    const ttlGraceSec = Math.max(0.45, beatPeriod * 0.92);
-    const expireBeatSec = targetBeatSec + ttlGraceSec;
     const seqIdx = cue.sequenceIndex || (this.powerUps.length + 1);
+    const isVocalStream = Boolean(cue.isVocalStream) ||
+      (this.multiBandState && (this.multiBandState.vocal >= 0.44 || (this.multiBandState.bassDropOut && this.multiBandState.vocal >= 0.30)));
+
+    let startX, startY, receptorX, receptorY, spawnBeatSec, expireBeatSec;
+    if (this.isBandHeroMode) {
+      const startPt = typeof this.computeHighwayPoint === "function"
+        ? this.computeHighwayPoint(laneIdx, 0, this.W, this.H)
+        : { x: (0.14 + laneIdx * 0.24) * this.W, y: this.H * 0.15 };
+      const receptorPt = typeof this.computeHighwayPoint === "function"
+        ? this.computeHighwayPoint(laneIdx, 1.0, this.W, this.H)
+        : { x: (0.14 + laneIdx * 0.24) * this.W, y: this.H * 0.65 };
+      startX = startPt.x;
+      startY = startPt.y;
+      receptorX = receptorPt.x;
+      receptorY = receptorPt.y;
+      const spawnLeadTime = Math.max(1.75, Math.min(2.35, beatPeriod * 3.8));
+      spawnBeatSec = targetBeatSec - spawnLeadTime;
+      const ttlGraceSec = Math.max(0.45, beatPeriod * 0.92);
+      expireBeatSec = targetBeatSec + ttlGraceSec;
+    } else {
+      // Original Free-Roam Cosmic Stage: Orbs spawn across the open playfield (or in flowing S-curve streams during "ooooh" vocal parts)
+      // and stay on screen for a full 8 BEATS!
+      let normX = Math.max(0.13, Math.min(0.87, cue.normX || 0.5));
+      let normY = Math.max(0.18, Math.min(0.76, cue.normY || 0.45));
+      if (isVocalStream) {
+        const streamPhase = seqIdx * 0.52;
+        normX = Math.max(0.15, Math.min(0.85, 0.5 + 0.32 * Math.sin(streamPhase)));
+        normY = Math.max(0.20, Math.min(0.74, 0.44 + 0.22 * Math.cos(streamPhase * 0.75)));
+      }
+      startX = normX * this.W;
+      startY = normY * this.H;
+      receptorX = startX;
+      receptorY = startY;
+      // 8-Beat total on-screen window (2 beats lead + 6 beats hold = 8 beats!)
+      spawnBeatSec = targetBeatSec - beatGridStep * 2.0;
+      expireBeatSec = targetBeatSec + beatGridStep * 6.0;
+    }
 
     this.powerUps.push({
-      x: startPt.x,
-      y: startPt.y,
-      targetX: receptorPt.x,
-      targetY: receptorPt.y,
+      x: startX,
+      y: startY,
+      targetX: receptorX,
+      targetY: receptorY,
       vx: 0,
       vy: 0,
       speed: 0,
@@ -752,6 +821,7 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       type: cueType,
       keyWordEffect,
       isSupernova,
+      isVocalStream,
       sequenceIndex: seqIdx,
       phraseBeatNum,
       targetBeatSec,
@@ -813,10 +883,18 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       }
       this.comboTimer = 4.5;
 
-      // Timing Accuracy Check: compare highway position against the Raised Glowing Beat Strike Line (Y = 65% / u = 1.0)!
+      // Streaming notes together charges the thick, long Neon Contrail!
+      this.vocalStreamContrailTimer = (pu.isVocalStream || (this.multiBandState && this.multiBandState.vocal >= 0.42))
+        ? 4.0
+        : Math.max(this.vocalStreamContrailTimer || 0, 2.0);
+
+      // Timing Accuracy Check: in Band Hero mode compare against the 65% Strike Line;
+      // in Original 8-Beat mode, hitting on ANY beat pulse triggers ★ PERFECT ON-BEAT!
       const beatDiff = Math.abs(this.trackElapsedSec - (pu.targetBeatSec || this.trackElapsedSec));
       const strikeY = this.H * 0.65;
-      const isAtStrikeLine = (uHit >= 0.78 && uHit <= 1.18) || Math.abs(pu.y - strikeY) <= 74 || beatDiff <= 0.24;
+      const isAtStrikeLine = this.isBandHeroMode
+        ? ((uHit >= 0.78 && uHit <= 1.18) || Math.abs(pu.y - strikeY) <= 74 || beatDiff <= 0.24)
+        : (this.beatPulse >= 0.25 || pu.isSupernova);
       const mode = this.getRemixMode();
       const diffMult = (mode.scoreMult || 1.0) * (this.prefs.difficulty === "EASY" ? 0.55 : (this.prefs.difficulty === "HARD" ? 1.35 : 1.0));
       const basePts = isAtStrikeLine ? 120 : 60;

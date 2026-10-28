@@ -17,7 +17,8 @@ fun DrawScope.drawPowerUps(
     trackSec: Float = 0f,
     beatPhase: Float = 0f,
     goldenOverdriveIntensity: Float = 0f,
-    multiBand: MultiBandAudioState = MultiBandAudioState()
+    multiBand: MultiBandAudioState = MultiBandAudioState(),
+    isBandHeroMode: Boolean = false
 ) {
     val w = size.width
     val h = size.height
@@ -32,74 +33,11 @@ fun DrawScope.drawPowerUps(
         Color(0xFF38BDF8L)  // Lane 4: Cyan Fret
     )
 
-    // =========================================================================
-    // 1. 3D PERSPECTIVE BAND-HERO / GUITAR-HERO RHYTHM HIGHWAY & BEAT STRIKE LINE
-    // =========================================================================
-    val topL = computeHighwayPoint(-0.45f, 0f, w, h)
-    val topR = computeHighwayPoint(3.45f, 0f, w, h)
-    val strikeL = computeHighwayPoint(-0.45f, 1.0f, w, h)
-    val strikeR = computeHighwayPoint(3.45f, 1.0f, w, h)
-    val botL = computeHighwayPoint(-0.45f, 1.18f, w, h)
-    val botR = computeHighwayPoint(3.45f, 1.18f, w, h)
-
-    val deckPath = Path().apply {
-        moveTo(topL.x, topL.y)
-        lineTo(topR.x, topR.y)
-        lineTo(botR.x, botR.y)
-        lineTo(botL.x, botL.y)
-        close()
-    }
-    drawPath(
-        path = deckPath,
-        brush = Brush.verticalGradient(
-            colors = listOf(
-                Color(0xFF070A16L).copy(alpha = 0.22f),
-                Color(0xFF0A1022L).copy(alpha = 0.62f),
-                Color(0xFF111832L).copy(alpha = 0.76f),
-                Color(0xFF070A16L).copy(alpha = 0.30f)
-            ),
-            startY = topL.y,
-            endY = botL.y
-        )
-    )
-
-    // Highway outer side rails
-    val railColor = if (isGoldStage) Color(0xFFFACC15L) else Color(0xFF38BDF8L)
-    drawLine(
-        color = railColor.copy(alpha = 0.42f + beatKick * 0.25f),
-        start = topL,
-        end = botL,
-        strokeWidth = 3.2f,
-        cap = StrokeCap.Round
-    )
-    drawLine(
-        color = railColor.copy(alpha = 0.42f + beatKick * 0.25f),
-        start = topR,
-        end = botR,
-        strokeWidth = 3.2f,
-        cap = StrokeCap.Round
-    )
-
-    // Scrolling horizontal beat-measure bars synced to the quarter-note beatPhase (scrolling downward toward the Strike Line)!
-    val phaseFrac = if (beatPhase >= 0f) beatPhase.coerceIn(0f, 1f) else ((time * 2f) % 1f)
-    for (barIdx in 0..3) {
-        val uBar = ((barIdx + phaseFrac) / 4f).coerceIn(0.02f, 1.12f)
-        val bL = computeHighwayPoint(-0.42f, uBar, w, h)
-        val bR = computeHighwayPoint(3.42f, uBar, w, h)
-        val barAlpha = (0.10f + 0.26f * uBar) * (if (uBar in 0.92f..1.05f) 1.5f else 1.0f)
-        drawLine(
-            color = Color(0xFFE2E8F0L).copy(alpha = barAlpha.coerceIn(0.05f, 0.48f)),
-            start = bL,
-            end = bR,
-            strokeWidth = 1.4f + uBar * 1.8f
-        )
-    }
-
     // Ethereal "Ooh / Aaah" Vocal Aurora Borealis Curtains & Harmonic Halos during long flowy vocal swells!
     val vocalGlow = if (multiBand.bassDropOut && multiBand.vocal >= 0.34f) {
         ((multiBand.vocal - 0.28f) * 1.6f).coerceIn(0.25f, 1f)
     } else {
-        ((multiBand.vocal - 0.50f) * 2.2f).coerceIn(0f, 1f)
+        ((multiBand.vocal - 0.45f) * 2.2f).coerceIn(0f, 1f)
     }
     if (vocalGlow > 0.04f) {
         for (curtain in 0..3) {
@@ -132,97 +70,186 @@ fun DrawScope.drawPowerUps(
         )
     }
 
-    // 4 Perspective Fret Lane Strings
-    for (lane in 0..3) {
-        val lTop = computeHighwayPoint(lane.toFloat(), 0f, w, h)
-        val lBot = computeHighwayPoint(lane.toFloat(), 1.16f, w, h)
-        val lCol = laneColors[lane]
-        drawLine(
+    if (isBandHeroMode) {
+        // =========================================================================
+        // 1A. BAND HERO ALTERNATE MODE: 3D PERSPECTIVE 4-LANE HIGHWAY & STRIKE LINE
+        // =========================================================================
+        val topL = computeHighwayPoint(-0.45f, 0f, w, h)
+        val topR = computeHighwayPoint(3.45f, 0f, w, h)
+        val strikeL = computeHighwayPoint(-0.45f, 1.0f, w, h)
+        val strikeR = computeHighwayPoint(3.45f, 1.0f, w, h)
+        val botL = computeHighwayPoint(-0.45f, 1.18f, w, h)
+        val botR = computeHighwayPoint(3.45f, 1.18f, w, h)
+
+        val deckPath = Path().apply {
+            moveTo(topL.x, topL.y)
+            lineTo(topR.x, topR.y)
+            lineTo(botR.x, botR.y)
+            lineTo(botL.x, botL.y)
+            close()
+        }
+        drawPath(
+            path = deckPath,
             brush = Brush.verticalGradient(
                 colors = listOf(
-                    lCol.copy(alpha = 0.12f),
-                    lCol.copy(alpha = 0.42f + beatKick * 0.18f),
-                    lCol.copy(alpha = 0.72f)
+                    Color(0xFF070A16L).copy(alpha = 0.22f),
+                    Color(0xFF0A1022L).copy(alpha = 0.62f),
+                    Color(0xFF111832L).copy(alpha = 0.76f),
+                    Color(0xFF070A16L).copy(alpha = 0.30f)
                 ),
-                startY = lTop.y,
-                endY = lBot.y
-            ),
-            start = lTop,
-            end = lBot,
-            strokeWidth = 2.4f,
+                startY = topL.y,
+                endY = botL.y
+            )
+        )
+
+        val railColor = if (isGoldStage) Color(0xFFFACC15L) else Color(0xFF38BDF8L)
+        drawLine(
+            color = railColor.copy(alpha = 0.42f + beatKick * 0.25f),
+            start = topL,
+            end = botL,
+            strokeWidth = 3.2f,
             cap = StrokeCap.Round
         )
-    }
+        drawLine(
+            color = railColor.copy(alpha = 0.42f + beatKick * 0.25f),
+            start = topR,
+            end = botR,
+            strokeWidth = 3.2f,
+            cap = StrokeCap.Round
+        )
 
-    // GLOWING BEAT STRIKE LINE at u = 1.0 (Raised to Y = 65% of screen height for Thumb Steering!)
-    val strikeGlowCol = if (isGoldStage) Color(0xFFFACC15L) else Color(0xFF38BDF8L)
-    drawLine(
-        color = strikeGlowCol.copy(alpha = 0.28f + beatKick * 0.24f),
-        start = Offset(strikeL.x - 10f, strikeL.y),
-        end = Offset(strikeR.x + 10f, strikeR.y),
-        strokeWidth = 14f + beatKick * 6f,
-        cap = StrokeCap.Round
-    )
-    drawLine(
-        color = Color.White.copy(alpha = 0.82f + beatKick * 0.18f),
-        start = strikeL,
-        end = strikeR,
-        strokeWidth = 3.2f,
-        cap = StrokeCap.Round
-    )
-
-    // 4 Guitar-Hero Fret Receptors along the Beat Strike Line
-    for (lane in 0..3) {
-        val recPt = computeHighwayPoint(lane.toFloat(), 1.0f, w, h)
-        val lCol = laneColors[lane]
-        val hasNoteOnLine = powerUps.any {
-            val lead = (it.targetBeatSec - it.spawnBeatSec).coerceAtLeast(0.45f)
-            val uNote = (trackSec - it.spawnBeatSec) / lead
-            (it.phraseBeatNum - 1) == lane && uNote in 0.85f..1.14f
+        val phaseFrac = if (beatPhase >= 0f) beatPhase.coerceIn(0f, 1f) else ((time * 2f) % 1f)
+        for (barIdx in 0..3) {
+            val uBar = ((barIdx + phaseFrac) / 4f).coerceIn(0.02f, 1.12f)
+            val bL = computeHighwayPoint(-0.42f, uBar, w, h)
+            val bR = computeHighwayPoint(3.42f, uBar, w, h)
+            val barAlpha = (0.10f + 0.26f * uBar) * (if (uBar in 0.92f..1.05f) 1.5f else 1.0f)
+            drawLine(
+                color = Color(0xFFE2E8F0L).copy(alpha = barAlpha.coerceIn(0.05f, 0.48f)),
+                start = bL,
+                end = bR,
+                strokeWidth = 1.4f + uBar * 1.8f
+            )
         }
-        val recR = if (hasNoteOnLine) 28f + beatKick * 6f else 22f + beatKick * 2.5f
-        drawCircle(
-            color = lCol.copy(alpha = if (hasNoteOnLine) 0.52f else 0.20f),
-            radius = recR * 1.35f,
-            center = recPt
-        )
-        drawCircle(
-            color = Color(0xFF090D1AL).copy(alpha = 0.88f),
-            radius = recR,
-            center = recPt
-        )
-        drawCircle(
-            color = if (hasNoteOnLine) Color.White else lCol.copy(alpha = 0.85f),
-            radius = recR,
-            center = recPt,
-            style = Stroke(width = if (hasNoteOnLine) 4.2f else 2.6f)
-        )
-        drawCircle(
-            color = lCol.copy(alpha = if (hasNoteOnLine) 0.95f else 0.45f),
-            radius = recR * 0.38f,
-            center = recPt
-        )
-    }
 
-    drawIntoCanvas { canvas ->
-        cachedSubPaint.textSize = 15.0f
-        cachedSubPaint.color = android.graphics.Color.argb(185, 250, 204, 21)
-        canvas.nativeCanvas.drawText(
-            "★ BEAT STRIKE LINE • STEER THUMB BELOW ★",
-            w * 0.5f,
-            strikeL.y + 38f,
-            cachedSubPaint
+        for (lane in 0..3) {
+            val lTop = computeHighwayPoint(lane.toFloat(), 0f, w, h)
+            val lBot = computeHighwayPoint(lane.toFloat(), 1.16f, w, h)
+            val lCol = laneColors[lane]
+            drawLine(
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        lCol.copy(alpha = 0.12f),
+                        lCol.copy(alpha = 0.42f + beatKick * 0.18f),
+                        lCol.copy(alpha = 0.72f)
+                    ),
+                    startY = lTop.y,
+                    endY = lBot.y
+                ),
+                start = lTop,
+                end = lBot,
+                strokeWidth = 2.4f,
+                cap = StrokeCap.Round
+            )
+        }
+
+        val strikeGlowCol = if (isGoldStage) Color(0xFFFACC15L) else Color(0xFF38BDF8L)
+        drawLine(
+            color = strikeGlowCol.copy(alpha = 0.28f + beatKick * 0.24f),
+            start = Offset(strikeL.x - 10f, strikeL.y),
+            end = Offset(strikeR.x + 10f, strikeR.y),
+            strokeWidth = 14f + beatKick * 6f,
+            cap = StrokeCap.Round
         )
+        drawLine(
+            color = Color.White.copy(alpha = 0.82f + beatKick * 0.18f),
+            start = strikeL,
+            end = strikeR,
+            strokeWidth = 3.2f,
+            cap = StrokeCap.Round
+        )
+
+        for (lane in 0..3) {
+            val recPt = computeHighwayPoint(lane.toFloat(), 1.0f, w, h)
+            val lCol = laneColors[lane]
+            val hasNoteOnLine = powerUps.any {
+                val lead = (it.targetBeatSec - it.spawnBeatSec).coerceAtLeast(0.45f)
+                val uNote = (trackSec - it.spawnBeatSec) / lead
+                (it.phraseBeatNum - 1) == lane && uNote in 0.85f..1.14f
+            }
+            val recR = if (hasNoteOnLine) 28f + beatKick * 6f else 22f + beatKick * 2.5f
+            drawCircle(
+                color = lCol.copy(alpha = if (hasNoteOnLine) 0.52f else 0.20f),
+                radius = recR * 1.35f,
+                center = recPt
+            )
+            drawCircle(
+                color = Color(0xFF090D1AL).copy(alpha = 0.88f),
+                radius = recR,
+                center = recPt
+            )
+            drawCircle(
+                color = if (hasNoteOnLine) Color.White else lCol.copy(alpha = 0.85f),
+                radius = recR,
+                center = recPt,
+                style = Stroke(width = if (hasNoteOnLine) 4.2f else 2.6f)
+            )
+            drawCircle(
+                color = lCol.copy(alpha = if (hasNoteOnLine) 0.95f else 0.45f),
+                radius = recR * 0.38f,
+                center = recPt
+            )
+        }
+
+        drawIntoCanvas { canvas ->
+            cachedSubPaint.textSize = 15.0f
+            cachedSubPaint.color = android.graphics.Color.argb(185, 250, 204, 21)
+            canvas.nativeCanvas.drawText(
+                "🎸 BAND HERO HIGHWAY • STEER THUMB BELOW ★",
+                w * 0.5f,
+                strikeL.y + 38f,
+                cachedSubPaint
+            )
+        }
     }
 
     if (powerUps.isEmpty()) return
     val sorted = if (powerUps.size >= 2) powerUps.sortedBy { it.sequenceIndex } else powerUps
 
-    // 2. Render each Scrolling Highway Beat Note & Labeled Power-Up (BOMB / SHIELD / 4X STAR)
+    // 1B. ORIGINAL FREE-ROAM STAGE: Draw Flowing Neon Contrail Stream Ribbon connecting consecutive notes!
+    if (!isBandHeroMode && sorted.size >= 2) {
+        val isVocalStreamActive = vocalGlow > 0.04f || sorted.any { it.orbitRadius > 50f }
+        for (i in 0 until sorted.size - 1) {
+            val a = sorted[i]
+            val b = sorted[i + 1]
+            val d = hypot(b.x - a.x, b.y - a.y)
+            if (d > w * 0.72f) continue
+            val streamCol = if (isVocalStreamActive) Color(0xFFE879F9L) else Color(0xFF38BDF8L)
+            drawLine(
+                color = streamCol.copy(alpha = if (isVocalStreamActive) 0.46f + beatKick * 0.25f else 0.20f + beatKick * 0.14f),
+                start = Offset(a.x, a.y),
+                end = Offset(b.x, b.y),
+                strokeWidth = if (isVocalStreamActive) 8.5f + beatKick * 4f else 3.2f,
+                cap = StrokeCap.Round,
+                blendMode = BlendMode.Screen
+            )
+            if (isVocalStreamActive) {
+                drawLine(
+                    color = Color.White.copy(alpha = 0.65f),
+                    start = Offset(a.x, a.y),
+                    end = Offset(b.x, b.y),
+                    strokeWidth = 2.4f,
+                    cap = StrokeCap.Round
+                )
+            }
+        }
+    }
+
+    // 2. Render each 3D Volumetric Pulsing Beat Orb & Labeled Power-Up (BOMB / SHIELD / 4X STAR)
     sorted.forEach { p ->
         val leadDur = (p.targetBeatSec - p.spawnBeatSec).coerceAtLeast(0.45f)
         val u = ((trackSec - p.spawnBeatSec) / leadDur).coerceIn(0f, 1.25f)
-        val perspScale = computeHighwayScale(u)
+        val perspScale = if (isBandHeroMode) computeHighwayScale(u) else 1.0f
         val center = Offset(p.x, p.y)
         val isSupernova = p.keyWordEffect == KeyWordEffect.CONSTELLATION_STAR
         val isBomb = p.powerUpType == PowerUpType.BLAST
@@ -230,13 +257,14 @@ fun DrawScope.drawPowerUps(
 
         val expireSec = if (p.expireBeatSec > 0f) p.expireBeatSec else (p.targetBeatSec + 0.45f)
         val ttlRemaining = (expireSec - trackSec).coerceAtLeast(0f)
-        val ttlAlpha = (ttlRemaining / 0.22f).coerceIn(0.20f, 1.0f)
+        val ttlAlpha = (ttlRemaining / 0.35f).coerceIn(0.20f, 1.0f)
 
-        val isOnStrikeLine = u in 0.86f..1.14f
-        val beatPulseScale = 1.0f + (if (isOnStrikeLine) 0.28f else 0.16f) * beatKick
+        val isOnBeatNow = if (isBandHeroMode) (u in 0.86f..1.14f) else (beatPhase in 0f..0.28f || beatPhase >= 0.80f)
+        val isOnStrikeLine = isOnBeatNow
+        val beatPulseScale = 1.0f + (if (isOnBeatNow) 0.28f else 0.16f) * beatKick
         val coreRad = p.radius * perspScale * beatPulseScale
         // True 3D physical vertical bounce on the beat so orbs leap toward the camera in 3D space!
-        val bounceOffsetY = -beatKick * (if (isOnStrikeLine) 13f else 7.5f) * perspScale
+        val bounceOffsetY = -beatKick * (if (isOnBeatNow) 13f else 7.5f) * perspScale
         val center3D = Offset(center.x, center.y + bounceOffsetY)
         val lightOrigin = Offset(center3D.x - coreRad * 0.34f, center3D.y - coreRad * 0.36f)
 
@@ -246,6 +274,18 @@ fun DrawScope.drawPowerUps(
             isShield -> Color(0xFF38BDF8L)
             isSupernova -> Color(0xFFFACC15L)
             else -> laneColors[laneIdx]
+        }
+
+        // In Original Free-Roam Stage mode, draw the 8-Beat Contracting On-Beat Pulse Ring on EVERY beat!
+        if (!isBandHeroMode && !isBomb && !isShield) {
+            val beatRingFrac = if (beatPhase >= 0f) (1f - beatPhase.coerceIn(0f, 1f)) else 0.5f
+            val beatRingR = coreRad * (1.06f + beatRingFrac * 0.72f)
+            drawCircle(
+                color = (if (isOnBeatNow) Color.White else effectColor).copy(alpha = (0.35f + 0.50f * beatKick) * ttlAlpha),
+                radius = beatRingR,
+                center = center3D,
+                style = Stroke(width = if (isOnBeatNow) 3.4f else 1.8f)
+            )
         }
 
         // 0. 3D Perspective Ground Drop-Shadow on the Highway Deck underneath the floating orb
