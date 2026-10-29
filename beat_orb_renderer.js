@@ -169,7 +169,7 @@ const HIGHWAY_LANE_COLORS = [
   [56, 189, 248]   // Lane 4: Cyan Fret
 ];
 
-function drawWormholes(ctx, wormholes, time, beatPulse = 0) {
+function drawWormholes(ctx, wormholes, time, beatPulse = 0, isBandHeroMode = false) {
   if (!wormholes || wormholes.length === 0) return;
   const w = window.innerWidth || ctx.canvas.width;
   const h = window.innerHeight || ctx.canvas.height;
@@ -177,140 +177,140 @@ function drawWormholes(ctx, wormholes, time, beatPulse = 0) {
     const wh = wormholes[i];
     if (wh.age >= wh.maxLifetime) continue;
 
-    const travelU = Math.min(1.0, wh.age / 1.8);
+    const travelU = Math.min(1.0, wh.age / 1.5);
     if (travelU <= 0.02) continue;
 
-    const startLane = Math.max(0, Math.min(3, typeof wh.startLane === "number" ? wh.startLane : 0));
-    const endLane = Math.max(0, Math.min(3, typeof wh.endLane === "number" ? wh.endLane : 3));
-    const leftPt = computeHighwayPoint(startLane, travelU, w, h);
-    const rightPt = computeHighwayPoint(endLane, travelU, w, h);
-    const scale = computeHighwayScale(travelU);
+    let leftPt, rightPt, scale;
+    if (isBandHeroMode) {
+      const startLane = Math.max(0, Math.min(3, typeof wh.startLane === "number" ? wh.startLane : 0));
+      const endLane = Math.max(0, Math.min(3, typeof wh.endLane === "number" ? wh.endLane : 3));
+      leftPt = computeHighwayPoint(startLane, travelU, w, h);
+      rightPt = computeHighwayPoint(endLane, travelU, w, h);
+      scale = computeHighwayScale(travelU);
+    } else {
+      leftPt = { x: w * 0.20, y: h * 0.50 };
+      rightPt = { x: w * 0.80, y: h * 0.42 };
+      scale = 1.0;
+    }
     const holdProgress = Math.max(0, Math.min(1, wh.holdProgress || 0));
-    const isHolding = holdProgress > 0.02;
+    const isActivated = Boolean(wh.activated) || holdProgress > 0.02;
 
     ctx.save();
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
 
-    // 1. "Ooh / Aaah" Vocal Aurora Borealis Curtains across the upper stage while holding!
-    if (isHolding) {
-      const auroraAlpha = Math.max(0.18, Math.min(0.68, holdProgress * 0.65));
+    // 1. "OOOOOH / AAAAH" 5-STAR VOCAL STAR POWER AURORA CURTAINS across the upper stage when activated!
+    if (isActivated) {
+      const auroraAlpha = Math.max(0.24, Math.min(0.72, 0.30 + holdProgress * 0.42));
       for (let band = 0; band < 5; band++) {
         const bx = w * (0.15 + band * 0.175 + Math.sin(time * 2.2 + band) * 0.04);
         const bw = w * 0.13;
-        const bh = h * (0.38 + holdProgress * 0.24);
-        const bCol = band % 2 === 0 ? [56, 189, 248] : (band % 3 === 0 ? [250, 204, 21] : [236, 72, 153]);
+        const bh = h * (0.36 + holdProgress * 0.22);
+        const bCol = band % 2 === 0 ? [250, 204, 21] : (band % 3 === 0 ? [56, 189, 248] : [236, 72, 153]);
         const aGrad = ctx.createLinearGradient(0, 0, 0, bh);
         aGrad.addColorStop(0, rgba(bCol, auroraAlpha));
-        aGrad.addColorStop(0.6, rgba([168, 85, 247], auroraAlpha * 0.45));
+        aGrad.addColorStop(0.6, rgba([250, 204, 21], auroraAlpha * 0.45));
         aGrad.addColorStop(1, "rgba(0,0,0,0)");
         ctx.fillStyle = aGrad;
         ctx.fillRect(bx - bw * 0.5, 0, bw, bh);
       }
     }
 
-    // 2. Electric / Liquid Plasma Bridge connecting the Left & Right Sustain Pegs
-    const segments = 18;
-    for (let strand = 0; strand < 3; strand++) {
-      ctx.beginPath();
-      const freq = strand === 0 ? 3.0 : (strand === 1 ? 5.0 : 7.0);
-      const amp = (strand === 0 ? 14 : (strand === 1 ? 22 : 10)) * scale * (isHolding ? 1.55 : 0.85);
-      const speed = strand === 0 ? 8.5 : (strand === 1 ? -11.2 : 14.8);
-      for (let s = 0; s <= segments; s++) {
-        const frac = s / segments;
-        const bx = leftPt.x + (rightPt.x - leftPt.x) * frac;
-        const by = leftPt.y + (rightPt.y - leftPt.y) * frac;
-        const env = Math.sin(frac * Math.PI);
-        const waveY = Math.sin(frac * Math.PI * freq + time * speed + strand * 2.1) * amp * env;
-        if (s === 0) ctx.moveTo(bx, by + waveY);
-        else ctx.lineTo(bx, by + waveY);
-      }
-      const strandCol = strand === 0 ? [236, 72, 153] : (strand === 1 ? [56, 189, 248] : [255, 255, 255]);
-      const strandW = (strand === 0 ? 22 : (strand === 1 ? 12 : 4.5)) * scale * (1 + holdProgress * 0.35);
-      ctx.strokeStyle = rgba(strandCol, strand === 2 ? 0.96 : (0.55 + holdProgress * 0.35));
-      ctx.lineWidth = strandW;
-      ctx.stroke();
+    // 2. ONE Single Continuous, Sweeping Golden-Cyan Star-Power Long Note Wave (leftPt -> rightPt)
+    const segments = 28;
+    const litLimit = isActivated ? Math.max(0.08, holdProgress) : 0.18;
+    let headPt = { x: leftPt.x, y: leftPt.y };
+
+    // Underlying guide ribbon
+    ctx.beginPath();
+    for (let s = 0; s <= segments; s++) {
+      const t = s / segments;
+      const bx = leftPt.x + (rightPt.x - leftPt.x) * t;
+      const archY = isBandHeroMode ? 0 : -Math.sin(t * Math.PI) * 52;
+      const waveY = Math.sin(t * Math.PI * 2.0 - time * 5.5) * (10 + 10 * holdProgress) * scale * Math.sin(t * Math.PI);
+      const by = leftPt.y + (rightPt.y - leftPt.y) * t + archY + waveY;
+      if (s === 0) ctx.moveTo(bx, by);
+      else ctx.lineTo(bx, by);
     }
+    ctx.strokeStyle = rgba([56, 189, 248], 0.34 + beatPulse * 0.18);
+    ctx.lineWidth = 15 * scale;
+    ctx.stroke();
 
-    // 3. Flowing Plasma Energy Pearls racing back and forth between the two Sustain Pegs
-    const numPearls = 6;
-    for (let pIdx = 0; pIdx < numPearls; pIdx++) {
-      const f = ((pIdx / numPearls) + time * (isHolding ? 2.2 : 1.1)) % 1.0;
-      const px = leftPt.x + (rightPt.x - leftPt.x) * f;
-      const py = leftPt.y + (rightPt.y - leftPt.y) * f + Math.sin(f * Math.PI * 4 + time * 10) * 10 * scale * Math.sin(f * Math.PI);
-      const pr = (7.5 + beatPulse * 3 + holdProgress * 4) * scale;
-      ctx.beginPath();
-      ctx.arc(px, py, pr * 1.7, 0, Math.PI * 2);
-      ctx.fillStyle = rgba([56, 189, 248], 0.72);
-      ctx.fill();
-      ctx.beginPath();
-      ctx.arc(px, py, pr * 0.85, 0, Math.PI * 2);
-      ctx.fillStyle = "#FFFFFF";
-      ctx.fill();
+    // Lit 24K Gold + Electric Cyan Star-Power Wave
+    ctx.beginPath();
+    for (let s = 0; s <= segments; s++) {
+      const t = s / segments;
+      if (t > litLimit && s > 1) break;
+      const bx = leftPt.x + (rightPt.x - leftPt.x) * t;
+      const archY = isBandHeroMode ? 0 : -Math.sin(t * Math.PI) * 52;
+      const waveY = Math.sin(t * Math.PI * 2.0 - time * 5.5) * (10 + 10 * holdProgress) * scale * Math.sin(t * Math.PI);
+      const by = leftPt.y + (rightPt.y - leftPt.y) * t + archY + waveY;
+      if (s === 0) ctx.moveTo(bx, by);
+      else ctx.lineTo(bx, by);
+      headPt = { x: bx, y: by };
     }
+    const waveGrad = ctx.createLinearGradient(leftPt.x, leftPt.y, rightPt.x, rightPt.y);
+    waveGrad.addColorStop(0, "#FACC15");
+    waveGrad.addColorStop(0.5, "#38BDF8");
+    waveGrad.addColorStop(1, "#E879F9");
+    ctx.strokeStyle = waveGrad;
+    ctx.lineWidth = (22 + beatPulse * 8) * scale;
+    ctx.stroke();
 
-    // 4. Render Both Paired 3D Sustain Hold Pegs (Left Anchor & Right Anchor)
-    const anchors = [
-      { pt: leftPt, col: [56, 189, 248] },
-      { pt: rightPt, col: [250, 204, 21] }
-    ];
-    const pegR = 32 * scale * (1 + beatPulse * 0.18 + holdProgress * 0.22);
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.92)";
+    ctx.lineWidth = 6 * scale;
+    ctx.stroke();
 
-    for (let aIdx = 0; aIdx < anchors.length; aIdx++) {
-      const anchor = anchors[aIdx];
-      const pt = anchor.pt;
-      const col = anchor.col;
+    // 3. Target Finale Ring at rightPt & Glowing 5-Star Activation Orb at headPt
+    const starR = 34 * scale * (1 + beatPulse * 0.16);
+    ctx.beginPath();
+    ctx.arc(rightPt.x, rightPt.y, starR * 0.88, 0, Math.PI * 2);
+    ctx.strokeStyle = "rgba(250, 204, 21, 0.48)";
+    ctx.lineWidth = 3.2 * scale;
+    ctx.stroke();
 
-      // Special Effect on Held Pegs: Spinning Liquid-Plasma Vortex Rings
-      const vortexRings = isHolding ? 3 : 1;
-      for (let v = 0; v < vortexRings; v++) {
-        const vr = pegR * (1.35 + v * 0.34 + 0.12 * Math.sin(time * 9 + v));
-        const spinA = ((time * (v % 2 === 0 ? 220 : -260) + v * 90) % 360) * Math.PI / 180;
-        ctx.beginPath();
-        ctx.arc(pt.x, pt.y, vr, spinA, spinA + (isHolding ? 230 : 160) * Math.PI / 180);
-        ctx.strokeStyle = rgba(v % 2 === 0 ? col : [236, 72, 153], isHolding ? 0.88 - v * 0.2 : 0.55);
-        ctx.lineWidth = (isHolding ? 5.0 : 3.0) * scale;
-        ctx.stroke();
-      }
+    const haloGrad = ctx.createRadialGradient(headPt.x, headPt.y, 4, headPt.x, headPt.y, starR * 2.3);
+    haloGrad.addColorStop(0, "rgba(250, 204, 21, 0.85)");
+    haloGrad.addColorStop(0.5, "rgba(56, 189, 248, 0.42)");
+    haloGrad.addColorStop(1, "rgba(0, 0, 0, 0)");
+    ctx.beginPath();
+    ctx.arc(headPt.x, headPt.y, starR * 2.3, 0, Math.PI * 2);
+    ctx.fillStyle = haloGrad;
+    ctx.fill();
 
-      // Radial Hold Progress Gauge (0% -> 100% ring around each peg)
-      if (holdProgress > 0.01) {
-        ctx.beginPath();
-        ctx.arc(pt.x, pt.y, pegR * 1.55, -Math.PI / 2, -Math.PI / 2 + holdProgress * Math.PI * 2);
-        ctx.strokeStyle = "#4ADE80";
-        ctx.lineWidth = 6.5 * scale;
-        ctx.stroke();
-      }
+    const sphereGrad = ctx.createRadialGradient(
+      headPt.x - starR * 0.28, headPt.y - starR * 0.28, starR * 0.08,
+      headPt.x, headPt.y, starR
+    );
+    sphereGrad.addColorStop(0, "#FFFFFF");
+    sphereGrad.addColorStop(0.45, "#FACC15");
+    sphereGrad.addColorStop(1, "#38BDF8");
+    ctx.beginPath();
+    ctx.arc(headPt.x, headPt.y, starR, 0, Math.PI * 2);
+    ctx.fillStyle = sphereGrad;
+    ctx.fill();
+    ctx.strokeStyle = "#FFFFFF";
+    ctx.lineWidth = 3.5 * scale;
+    ctx.stroke();
 
-      // 3D Volumetric Sustain Sphere
-      const sphereGrad = ctx.createRadialGradient(
-        pt.x - pegR * 0.32, pt.y - pegR * 0.32, pegR * 0.08,
-        pt.x, pt.y, pegR
-      );
-      sphereGrad.addColorStop(0, "#FFFFFF");
-      sphereGrad.addColorStop(0.45, rgba(col, 1));
-      sphereGrad.addColorStop(0.85, "#EC4899");
-      sphereGrad.addColorStop(1, "#0F172A");
-      ctx.beginPath();
-      ctx.arc(pt.x, pt.y, pegR, 0, Math.PI * 2);
-      ctx.fillStyle = sphereGrad;
-      ctx.fill();
-      ctx.strokeStyle = "#FFFFFF";
-      ctx.lineWidth = 3.2 * scale;
-      ctx.stroke();
-    }
-
-    // 5. Clear Center Callout & Live Hold Percentage
-    const midX = (leftPt.x + rightPt.x) * 0.5;
-    const midY = Math.min(leftPt.y, rightPt.y) - pegR * 1.45;
-    const pctInt = Math.round(holdProgress * 100);
-    const labelText = isHolding
-      ? `⚡ SUSTAIN CHARGING: ${pctInt}% ⚡`
-      : "⚡ HOLD 2 FINGERS ON VOCAL CHORD ⚡";
-
-    ctx.font = `900 ${Math.max(12, Math.round(14 * scale))}px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
+    ctx.font = `900 ${Math.round(starR * 0.82)}px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
     ctx.textAlign = "center";
-    ctx.fillStyle = isHolding ? "#4ADE80" : "#FEF08A";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = "#0F172A";
+    ctx.fillText("★", headPt.x, headPt.y + 2);
+    ctx.textBaseline = "alphabetic";
+
+    // 4. Clear Center Star-Power Callout Banner
+    const midX = (leftPt.x + rightPt.x) * 0.5;
+    const midY = isBandHeroMode ? (Math.min(leftPt.y, rightPt.y) - starR * 1.55) : ((leftPt.y + rightPt.y) * 0.5 - 74);
+    const pctInt = Math.round(holdProgress * 100);
+    const labelText = isActivated
+      ? `★ ★ ★ ★ ★  STAR POWER LONG NOTE • ${pctInt}%  ★ ★ ★ ★ ★`
+      : "★ 5-STAR VOCAL SWELL — TOUCH STAR NOTE TO UNLEASH! ★";
+
+    ctx.font = `900 ${Math.max(12, Math.round(14.5 * scale))}px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#FACC15";
     ctx.fillText(labelText, midX, midY);
     ctx.restore();
   }
@@ -475,48 +475,28 @@ function drawPowerUps(ctx, powerUps, playerX, playerY, time, trackSec, beatPulse
     ctx.restore();
   }
 
+  // 1B. BAND-HERO 5-STAR POWER METER (Top-Center of Stage — lights up ★ ★ ★ ★ ★ and blazes during Vocal Star Power!)
+  {
+    const isVocalStarActive = Boolean(isConstellationActive) || vocalGlow > 0.06;
+    const litStars = isVocalStarActive ? 5 : Math.max(1, Math.min(5, (Math.floor((trackSec || 0) * 0.65) % 5) + 1));
+    let starsStr = "";
+    for (let s = 1; s <= 5; s++) {
+      starsStr += s <= litStars ? "★ " : "☆ ";
+    }
+    starsStr += isVocalStarActive ? " STAR POWER OVERDRIVE!" : " STAR POWER";
+    ctx.save();
+    ctx.font = `900 ${isVocalStarActive ? 13 : 11.5}px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
+    ctx.textAlign = "center";
+    ctx.fillStyle = isVocalStarActive ? "#FACC15" : "rgba(148, 163, 184, 0.85)";
+    ctx.fillText(starsStr, w * 0.5, h * 0.118);
+    ctx.restore();
+  }
+
   if (!powerUps || powerUps.length === 0) return;
   const sorted = powerUps.slice().sort((a, b) => (a.sequenceIndex || 0) - (b.sequenceIndex || 0));
 
   // =========================================================================
-  // 1B. ORIGINAL FREE-ROAM MODE: GLOWING NEON CONTRAIL STREAM RIBBON BETWEEN ORBS!
-  // =========================================================================
-  if (!isBandHeroMode && sorted.length >= 2) {
-    ctx.save();
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
-    for (let i = 0; i < sorted.length - 1; i++) {
-      const a = sorted[i];
-      const b = sorted[i + 1];
-      const isStreamPair = a.isVocalStream || b.isVocalStream || vocalGlow > 0.10;
-      const dx = b.x - a.x;
-      const dy = b.y - a.y;
-      const dist = Math.hypot(dx, dy);
-      if (dist <= w * 0.68) {
-        const midX = (a.x + b.x) * 0.5 - (dy * 0.14);
-        const midY = (a.y + b.y) * 0.5 + (dx * 0.14);
-        ctx.beginPath();
-        ctx.moveTo(a.x, a.y);
-        ctx.quadraticCurveTo(midX, midY, b.x, b.y);
-        ctx.strokeStyle = rgba(isStreamPair ? [236, 72, 153] : [56, 189, 248], isStreamPair ? (0.48 + beatPulse * 0.25) : 0.20);
-        ctx.lineWidth = isStreamPair ? (11 + beatPulse * 4) : 3.5;
-        ctx.stroke();
-
-        if (isStreamPair) {
-          ctx.beginPath();
-          ctx.moveTo(a.x, a.y);
-          ctx.quadraticCurveTo(midX, midY, b.x, b.y);
-          ctx.strokeStyle = rgba([255, 255, 255], 0.78);
-          ctx.lineWidth = 2.6;
-          ctx.stroke();
-        }
-      }
-    }
-    ctx.restore();
-  }
-
-  // =========================================================================
-  // 2. RENDER EACH SCROLLING HIGHWAY BEAT NOTE & LABELED PICKUP (BOMB / SHIELD)
+  // 2. RENDER EACH STANDALONE 3D PULSING BEAT NOTE & LABELED PICKUP (Zero clutter lines!)
   // =========================================================================
   for (let idx = 0; idx < sorted.length; idx++) {
     const pu = sorted[idx];
