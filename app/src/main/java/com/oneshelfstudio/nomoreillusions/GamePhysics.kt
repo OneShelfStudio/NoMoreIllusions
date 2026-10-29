@@ -445,13 +445,78 @@ fun stepNebulousBeatOrbs(
             orb.x = pt.x
             orb.y = pt.y
         } else {
-            // Original Free-Roam Cosmic Stage: Orbs remain on screen for a full 8 BEATS so you can hit them on any beat!
             if (trackSec > expireSec) {
                 iter.remove()
                 continue
             }
-            orb.x = orb.anchorX + cos(gameTime * 2.1f + orb.phase) * 5.5f
-            orb.y = orb.anchorY + sin(gameTime * 2.5f + orb.phase) * 5.5f
+        }
+    }
+
+    if (!isBandHeroMode && powerUps.isNotEmpty()) {
+        val total = powerUps.size.coerceAtLeast(1)
+        val minDim = minOf(screenWidth, screenHeight)
+        val dominantFluidMode = powerUps.maxOfOrNull { it.orbitRadius } ?: 0f
+
+        powerUps.forEachIndexed { idx, orb ->
+            val modeTag = if (dominantFluidMode >= 101f) dominantFluidMode else orb.orbitRadius
+            when (modeTag) {
+                102f -> {
+                    // Slow Galactic Spiral: all pegs smoothly converge and slowly revolve around open stage center!
+                    val theta = gameTime * 0.62f + (idx.toFloat() / total) * (2f * PI.toFloat())
+                    val ringR = minDim * (0.26f + 0.04f * sin(gameTime * 0.85f + idx * 0.7f))
+                    val goalX = screenWidth * 0.50f + cos(theta) * ringR
+                    val goalY = screenHeight * 0.48f + sin(theta) * ringR
+                    val blend = (0.055f * currentScale).coerceIn(0.01f, 0.18f)
+                    orb.x += (goalX - orb.x) * blend
+                    orb.y += (goalY - orb.y) * blend
+                }
+                103f -> {
+                    // Flowing Liquid Sine Wave: pegs drift smoothly in a spaced undulating ribbon across the open stage!
+                    val slotFrac = (idx + 0.5f) / total.toFloat()
+                    val goalX = screenWidth * (0.16f + 0.68f * slotFrac) + sin(gameTime * 1.1f + idx) * 18f
+                    val goalY = screenHeight * 0.48f + sin(gameTime * 1.55f + slotFrac * PI.toFloat() * 1.8f) * (screenHeight * 0.15f)
+                    val blend = (0.060f * currentScale).coerceIn(0.01f, 0.18f)
+                    orb.x += (goalX - orb.x) * blend
+                    orb.y += (goalY - orb.y) * blend
+                }
+                101f -> {
+                    // Outward-Inward Sweeping Glide: pegs glide smoothly inward from the outer screen edge along a graceful curve!
+                    val goalX = orb.anchorX + cos(gameTime * 1.6f + orb.phase) * 16f
+                    val goalY = orb.anchorY + sin(gameTime * 1.9f + orb.phase) * 16f
+                    val blend = (0.068f * currentScale).coerceIn(0.01f, 0.20f)
+                    orb.x += (goalX - orb.x) * blend
+                    orb.y += (goalY - orb.y) * blend
+                }
+                else -> {
+                    // Calm Open-Stage Groove: gentle breathing hover around non-overlapping anchor
+                    val goalX = orb.anchorX + cos(gameTime * 1.8f + orb.phase) * 4.5f
+                    val goalY = orb.anchorY + sin(gameTime * 2.1f + orb.phase) * 4.5f
+                    orb.x += (goalX - orb.x) * 0.16f
+                    orb.y += (goalY - orb.y) * 0.16f
+                }
+            }
+        }
+
+        // Continuous Soft Anti-Overlap Repulsion Pass: guarantees two pegs NEVER stack or overlap!
+        val minSep = (minDim * 0.19f).coerceIn(92f, 118f)
+        for (i in 0 until powerUps.size) {
+            for (j in i + 1 until powerUps.size) {
+                val a = powerUps[i]
+                val b = powerUps[j]
+                val dx = b.x - a.x
+                val dy = b.y - a.y
+                val dist = hypot(dx, dy)
+                if (dist < minSep) {
+                    val safeD = dist.coerceAtLeast(1f)
+                    val push = (minSep - safeD) * 0.35f
+                    val nx = if (dist < 1f) cos((i + j).toFloat()) else dx / safeD
+                    val ny = if (dist < 1f) sin((i + j).toFloat()) else dy / safeD
+                    a.x = (a.x - nx * push).coerceIn(screenWidth * 0.12f, screenWidth * 0.88f)
+                    a.y = (a.y - ny * push).coerceIn(screenHeight * 0.12f, screenHeight * 0.85f)
+                    b.x = (b.x + nx * push).coerceIn(screenWidth * 0.12f, screenWidth * 0.88f)
+                    b.y = (b.y + ny * push).coerceIn(screenHeight * 0.12f, screenHeight * 0.85f)
+                }
+            }
         }
     }
 }
@@ -472,51 +537,8 @@ fun stepAndSpawnWormholes(
     powerUps: MutableList<GameObject>? = null,
     isBandHeroMode: Boolean = false
 ) {
-    if (screenWidth <= 0f || screenHeight <= 0f) return
-
-    val wIter = wormholes.iterator()
-    while (wIter.hasNext()) {
-        val w = wIter.next()
-        w.ageSec += 0.016f * currentScale
-        if (w.slideCooldownSec in 0.001f..0.49f) {
-            w.slideCooldownSec = (w.slideCooldownSec - 0.016f * currentScale).coerceAtLeast(0f)
-        }
-        val maxLife = if (w.slideCooldownSec >= 0.5f) 7.5f else 6.0f
-        if (w.ageSec >= maxLife || w.angle >= 90f) {
-            wIter.remove()
-        }
-    }
-
-    // Allow the One Single Band-Hero 5-Star Vocal Power Long Note during both `allowAnomalies` sections AND ethereal vocal-float breakdowns ("ooooh / aaaah" swells) in BOTH Original & Band Hero modes!
-    val canSpawnVocalHold = allowAnomalies || (multiBand.bassDropOut && multiBand.vocal >= 0.36f) || multiBand.vocal >= 0.48f
-    if (!canSpawnVocalHold) return
-    if (wormholes.isNotEmpty()) return
-
-    val isBeatOnset = beatPhase in 0f..0.24f
-    if (!isBeatOnset) return
-
-    // Trigger One Long Star-Power Note during long, flowy vocal/harmonic swells ("ooh / aaah" moments)!
-    val vocalSwellTrigger = (multiBand.vocal >= 0.45f && (multiBand.rms > 0.38f || multiBand.swellDelta > 0.02f)) ||
-        (multiBand.bassDropOut && multiBand.vocal >= 0.36f)
-    if (!vocalSwellTrigger) return
-
-    if (Random.nextFloat() < 0.22f) {
-        wormholes.add(
-            SingularityWormhole(
-                x = 0f,
-                y = 0f,
-                radius = 38f,
-                kind = AnomalyKind.WORMHOLE_VORTEX,
-                angle = 0f,
-                length = 1f,
-                color = Color(0xFFFACC15L),
-                exitX = 3f,
-                exitY = 1f,
-                ctrlX = 1.5f,
-                ctrlY = 0f
-            )
-        )
-    }
+    // Swooping slide ribbons removed in v11 — replaced by clean choreographed fluid peg formations!
+    if (wormholes.isNotEmpty()) wormholes.clear()
 }
 
 fun stepTetheredSatellites(

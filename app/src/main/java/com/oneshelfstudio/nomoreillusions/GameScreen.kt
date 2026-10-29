@@ -689,29 +689,6 @@ fun GameScreen(
                         enemies.clear()
                     }
 
-                    // Guarantee ONE Band-Hero 5-Star Vocal Power Long Note spawns when entering long flowy Vocal Float / Swell sections ("ooh / aaah" moments)!
-                    if (
-                        wormholes.isEmpty() &&
-                        currentSecObj.timestampSec > 18f &&
-                        (currentSecObj.label.contains("VOCAL") || currentSecObj.label.contains("SWELL") || currentSecObj.label.contains("BREATHER"))
-                    ) {
-                        wormholes.add(
-                            SingularityWormhole(
-                                x = 0f,
-                                y = 0f,
-                                radius = 38f,
-                                kind = AnomalyKind.WORMHOLE_VORTEX,
-                                angle = 0f,
-                                length = 1f,
-                                color = Color(0xFFFACC15L),
-                                exitX = 3f,
-                                exitY = 1f,
-                                ctrlX = 1.5f,
-                                ctrlY = 0f
-                            )
-                        )
-                    }
-
                     if (currentSecObj.isGoldenOverdrive || currentSecObj.stageMode == StageMode.GOLDEN_OVERDRIVE) {
                         goldenOverdriveIntensity = 1.0f
                         beatFlashIntensity = 0.70f
@@ -827,56 +804,8 @@ fun GameScreen(
                     beatPhase = liveBeatPhase,
                     magnetActive = magnetTime > 0f && !isBandHeroMode,
                     isBandHeroMode = isBandHeroMode,
-                    onBeatMissed = { missedOrb ->
-                        val prevCombo = rhythmCombo
+                    onBeatMissed = {
                         rhythmCombo = 0
-                        if (prevCombo >= 3) {
-                            // Visceral Combo-Break Shatter when losing a 3x+ streak!
-                            shakeAmount = maxOf(shakeAmount, 7f)
-                            chromaticAmount = maxOf(chromaticAmount, 2.2f)
-                            triggerHaptic(32L)
-                            shockwaves.add(
-                                Shockwave(
-                                    x = screenWidth * 0.5f,
-                                    y = screenHeight * 0.65f,
-                                    radius = 12f,
-                                    maxRadius = screenWidth * 0.48f,
-                                    color = Color(0xFFF43F5EL),
-                                    life = 0.75f
-                                )
-                            )
-                            floatingTexts.add(
-                                FloatingText(
-                                    x = missedOrb.x,
-                                    y = screenHeight * 0.63f,
-                                    text = "💔 STREAK BROKEN! (WAS x$prevCombo)",
-                                    life = 1.05f,
-                                    color = Color(0xFFF43F5EL),
-                                    isLarge = true
-                                )
-                            )
-                        } else {
-                            floatingTexts.add(
-                                FloatingText(
-                                    x = missedOrb.x,
-                                    y = missedOrb.y - 14f,
-                                    text = if (prevCombo > 0) "MISS • COMBO RESET" else "MISS",
-                                    life = 0.80f,
-                                    color = Color(0xFFFB7185L),
-                                    isLarge = false
-                                )
-                            )
-                        }
-                        shockwaves.add(
-                            Shockwave(
-                                x = missedOrb.x,
-                                y = missedOrb.y,
-                                radius = missedOrb.radius * 0.8f,
-                                maxRadius = missedOrb.radius * 2.4f,
-                                color = Color(0xFFFB7185L),
-                                life = 0.50f
-                            )
-                        )
                     }
                 )
                 stepTetheredSatellites(
@@ -1005,33 +934,28 @@ fun GameScreen(
                             isKeyWordPeg = isSupernovaOrb || isCaughtOnBeat
                         )
 
-                        // Guaranteed ON-BEAT visual transformation (Fret Flame + Concert Lasers + Melodic Starfall on Streak Climaxes!)
                         if (isCaughtOnBeat) {
-                            beatFlashIntensity = maxOf(beatFlashIntensity, if (isSupernovaOrb) 0.85f else 0.65f)
-                            goldenOverdriveIntensity = maxOf(goldenOverdriveIntensity, if (isSupernovaOrb) 1.0f else 0.70f)
-                            cameraPunch = maxOf(cameraPunch, if (isSupernovaOrb) 0.042f else 0.028f)
+                            beatFlashIntensity = maxOf(beatFlashIntensity, if (isSupernovaOrb) 0.45f else 0.25f)
+                            goldenOverdriveIntensity = maxOf(goldenOverdriveIntensity, if (isSupernovaOrb) 0.90f else 0.45f)
+                            cameraPunch = maxOf(cameraPunch, if (isSupernovaOrb) 0.025f else 0.014f)
                             scoreMultiplier = maxOf(scoreMultiplier, if (isSupernovaOrb || rhythmCombo >= 12) 4 else 2)
                             multiplierTime = maxOf(multiplierTime, 6.5f)
-                            shockwaves.add(Shockwave(p.x, p.y, 0f, 310f, Color(0xFFFACC15L), 0.95f))
-                            if (rhythmCombo >= 6 && rhythmCombo % 6 == 0) {
-                                spawnMelodicStarfallCascade(particles, screenWidth, screenHeight)
-                            }
+                            shockwaves.add(Shockwave(p.x, p.y, 0f, 130f, Color(0xFFFACC15L), 0.55f))
                         }
 
                         if (!isSupernovaOrb) {
-                            triggerHaptic(if (isCaughtOnBeat) 28L else 14L)
+                            triggerHaptic(if (isCaughtOnBeat) 24L else 12L)
                             val mult = if (isGoldenActive) maxOf(scoreMultiplier, 4) else scoreMultiplier
                             val gainedPts = ((if (isCaughtOnBeat) 100 else 45) * mult * (1f + (rhythmCombo.coerceAtMost(12) * 0.10f)) * difficultyScoreMultiplier).toInt()
                             score += gainedPts
-                            val streakTag = if (rhythmCombo >= 4) " 🔥STREAK x$rhythmCombo" else " (x$rhythmCombo)"
                             floatingTexts.add(
                                 FloatingText(
                                     x = p.x,
-                                    y = p.y - 24f,
-                                    text = if (isCaughtOnBeat) "★ PERFECT!$streakTag +$gainedPts" else "EARLY +$gainedPts",
-                                    life = 0.95f,
-                                    color = if (isCaughtOnBeat && rhythmCombo >= 4) Color(0xFFFACC15L) else if (isCaughtOnBeat) Color(0xFF4ADE80L) else Color(0xFF38BDF8L),
-                                    isLarge = isCaughtOnBeat
+                                    y = p.y - 20f,
+                                    text = "+$gainedPts",
+                                    life = 0.58f,
+                                    color = if (isCaughtOnBeat) Color(0xFF4ADE80L) else Color(0xFF38BDF8L),
+                                    isLarge = false
                                 )
                             )
 
@@ -1408,7 +1332,7 @@ fun GameScreen(
 
 
 
-        if (gameState != GameState.MUSIC_DEMO) {
+        if (gameState != GameState.MUSIC_DEMO && gameState != GameState.PLAYING && gameState != GameState.COUNTDOWN) {
             Box(modifier = Modifier.align(Alignment.TopCenter).statusBarsPadding()) {
                 AndroidView(
                     factory = { ctx ->

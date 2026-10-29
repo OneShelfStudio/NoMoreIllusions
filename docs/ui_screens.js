@@ -127,110 +127,35 @@ Object.assign(NoMoreIllusionsApp.prototype, {
   },
 
   updateLiveHUD() {
-    const stage = OFFICIAL_TRACKS[this.selectedStageIndex] || OFFICIAL_TRACKS[0];
     const progress = Math.max(0, Math.min(1, this.trackElapsedSec / Math.max(1, this.activeTrackDurationSec)));
 
-    const scoreEl = document.getElementById("hud-score-val");
-    if (scoreEl) scoreEl.textContent = String(this.score);
+    const progFill = document.getElementById("hud-top-progress-fill");
+    if (progFill) progFill.style.width = `${(progress * 100).toFixed(1)}%`;
 
-    const phaseEl = document.getElementById("hud-phase-val");
-    if (phaseEl) phaseEl.textContent = `PHASE ${this.level}`;
+    const scoreEl = document.getElementById("hud-score-val");
+    if (scoreEl) scoreEl.textContent = Number(this.score || 0).toLocaleString();
 
     const comboChip = document.getElementById("hud-combo-chip");
     const comboVal = document.getElementById("hud-combo-val");
     if (comboChip && comboVal) {
       if (this.combo > 1 || this.constellationRushTimer > 0) {
-        comboChip.style.display = "inline-flex";
+        comboChip.style.display = "inline";
         const effMult = this.combo * (this.constellationRushTimer > 0 ? 2 : 1);
-        comboVal.textContent = this.constellationRushTimer > 0 ? `★ RUSH x${effMult}` : `COMBO x${this.combo}`;
+        comboVal.textContent = `x${effMult}`;
       } else {
         comboChip.style.display = "none";
       }
     }
 
-    // Power-up status badges (1:1 with Android ActiveBuffChip)
     const badgesEl = document.getElementById("hud-powerup-badges");
     if (badgesEl) {
       let html = "";
-      if (this.overdriveTimer > 0) html += `<div class="pu-pill" style="border-color:#F97316;color:#F97316;">💥 OVERDRIVE ${this.overdriveTimer.toFixed(1)}s</div>`;
-      if (this.shieldTimer > 0) html += `<div class="pu-pill" style="border-color:#38BDF8;color:#38BDF8;">🛡️ SHIELD ${this.shieldTimer.toFixed(1)}s</div>`;
-      if (this.slowMoTimer > 0) html += `<div class="pu-pill" style="border-color:#A855F7;color:#A855F7;">⏳ SLOW-MO ${this.slowMoTimer.toFixed(1)}s</div>`;
-      if (this.magnetTimer > 0) html += `<div class="pu-pill" style="border-color:#10B981;color:#10B981;">🧲 MAGNET ${this.magnetTimer.toFixed(1)}s</div>`;
-      if (this.endlessLoopCount > 0) html += `<div class="pu-pill" style="border-color:#FACC15;color:#FACC15;">∞ LOOP #${this.endlessLoopCount + 1} (${Math.min(1.65, 1 + this.endlessLoopCount * 0.08).toFixed(2)}x)</div>`;
+      if (this.shieldTimer > 0) html += `<span title="Shield">🛡️</span>`;
+      if (this.overdriveTimer > 0 || this.constellationRushTimer > 0) html += `<span style="color:#FACC15;font-weight:900;">★</span>`;
       if (badgesEl.dataset.last !== html) {
         badgesEl.innerHTML = html;
         badgesEl.dataset.last = html;
       }
-    }
-
-    // Candy-Catcher-Style Top-Center Pickup Toast
-    const toastEl = document.getElementById("hud-pickup-toast");
-    if (toastEl) {
-      const t = this.activeToast;
-      if (t && t.timer > 0) {
-        if (toastEl.dataset.key !== t.title) {
-          toastEl.dataset.key = t.title;
-          document.getElementById("hud-toast-icon").textContent = t.icon;
-          document.getElementById("hud-toast-title").textContent = t.title;
-          const sub = document.getElementById("hud-toast-sub");
-          sub.textContent = t.subtitle;
-          sub.style.color = t.accent;
-          toastEl.style.borderColor = t.accent;
-          toastEl.style.boxShadow = `0 0 24px ${t.accent}55`;
-          document.getElementById("hud-toast-icon").style.borderColor = t.accent;
-          document.getElementById("hud-toast-bar").style.background = t.accent;
-        }
-        toastEl.style.display = "flex";
-        document.getElementById("hud-toast-bar").style.width = `${Math.round((t.timer / t.maxTimer) * 100)}%`;
-      } else {
-        toastEl.style.display = "none";
-        toastEl.dataset.key = "";
-      }
-    }
-
-    // Track Reveal Overlay Card
-    if (this.hudRevealCtx) {
-      drawTrackRevealCanvas(this.hudRevealCtx, this.images.logo, progress, this.beatPulse, this.constellationRushTimer > 0);
-    }
-    const pctBadge = document.getElementById("hud-reveal-pct");
-    if (pctBadge) {
-      pctBadge.textContent = `${Math.round(progress * 100)}%`;
-      pctBadge.style.color = (this.constellationRushTimer > 0 || progress >= 0.99) ? "#FACC15" : "#38BDF8";
-    }
-    const trackTitleHud = document.getElementById("hud-track-title");
-    if (trackTitleHud) trackTitleHud.textContent = stage.title.toUpperCase();
-
-    const remSec = Math.max(0, Math.round(this.activeTrackDurationSec - this.trackElapsedSec));
-    const remMin = Math.floor(remSec / 60);
-    const remS = String(remSec % 60).padStart(2, "0");
-    const remEl = document.getElementById("hud-track-rem");
-    if (remEl) {
-      remEl.textContent = progress >= 0.99 ? "UNLOCKED!" : `-${remMin}:${remS} LEFT`;
-      remEl.style.color = progress >= 0.99 ? "#4ADE80" : "#94A3B8";
-    }
-
-    // Choreographed Section Banner
-    const bannerEl = document.getElementById("hud-choreo-banner");
-    if (bannerEl) {
-      if (this.choreoBannerTimer > 0 && this.choreoBannerText) {
-        bannerEl.style.display = "block";
-        document.getElementById("hud-choreo-title").textContent = this.choreoBannerText;
-        document.getElementById("hud-choreo-sub").textContent = this.choreoBannerSubtext;
-      } else {
-        bannerEl.style.display = "none";
-      }
-    }
-
-    // Focus Charge Bar
-    const focusFill = document.getElementById("hud-focus-fill");
-    const focusBtn = document.getElementById("btn-focus-hold");
-    if (focusFill) {
-      focusFill.style.width = `${Math.round(this.focusCharge * 100)}%`;
-      focusFill.style.background = this.isFocusHolding ? "#FACC15" : "#C084FC";
-    }
-    if (focusBtn) {
-      focusBtn.style.borderColor = this.isFocusHolding ? "#FACC15" : "rgba(192,132,252,0.75)";
-      focusBtn.style.color = this.isFocusHolding ? "#FACC15" : "#E9D5FF";
     }
   },
 

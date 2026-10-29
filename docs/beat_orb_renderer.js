@@ -170,188 +170,13 @@ const HIGHWAY_LANE_COLORS = [
 ];
 
 function drawWormholes(ctx, wormholes, time, beatPulse = 0, isBandHeroMode = false) {
-  if (!wormholes || wormholes.length === 0) return;
-  const w = window.innerWidth || ctx.canvas.width;
-  const h = window.innerHeight || ctx.canvas.height;
-  for (let i = 0; i < wormholes.length; i++) {
-    const wh = wormholes[i];
-    if (wh.age >= wh.maxLifetime) continue;
-
-    const travelU = Math.min(1.0, wh.age / 1.5);
-    if (travelU <= 0.02) continue;
-
-    let leftPt, rightPt, scale;
-    if (isBandHeroMode) {
-      const startLane = Math.max(0, Math.min(3, typeof wh.startLane === "number" ? wh.startLane : 0));
-      const endLane = Math.max(0, Math.min(3, typeof wh.endLane === "number" ? wh.endLane : 3));
-      leftPt = computeHighwayPoint(startLane, travelU, w, h);
-      rightPt = computeHighwayPoint(endLane, travelU, w, h);
-      scale = computeHighwayScale(travelU);
-    } else {
-      leftPt = { x: w * 0.20, y: h * 0.50 };
-      rightPt = { x: w * 0.80, y: h * 0.42 };
-      scale = 1.0;
-    }
-    const holdProgress = Math.max(0, Math.min(1, wh.holdProgress || 0));
-    const isActivated = Boolean(wh.activated) || holdProgress > 0.02;
-
-    ctx.save();
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
-
-    // 1. "OOOOOH / AAAAH" 5-STAR VOCAL STAR POWER AURORA CURTAINS across the upper stage when activated!
-    if (isActivated) {
-      const auroraAlpha = Math.max(0.24, Math.min(0.72, 0.30 + holdProgress * 0.42));
-      for (let band = 0; band < 5; band++) {
-        const bx = w * (0.15 + band * 0.175 + Math.sin(time * 2.2 + band) * 0.04);
-        const bw = w * 0.13;
-        const bh = h * (0.36 + holdProgress * 0.22);
-        const bCol = band % 2 === 0 ? [250, 204, 21] : (band % 3 === 0 ? [56, 189, 248] : [236, 72, 153]);
-        const aGrad = ctx.createLinearGradient(0, 0, 0, bh);
-        aGrad.addColorStop(0, rgba(bCol, auroraAlpha));
-        aGrad.addColorStop(0.6, rgba([250, 204, 21], auroraAlpha * 0.45));
-        aGrad.addColorStop(1, "rgba(0,0,0,0)");
-        ctx.fillStyle = aGrad;
-        ctx.fillRect(bx - bw * 0.5, 0, bw, bh);
-      }
-    }
-
-    // 2. ONE Single Continuous, Sweeping Golden-Cyan Star-Power Long Note Wave (leftPt -> rightPt)
-    const segments = 28;
-    const litLimit = isActivated ? Math.max(0.08, holdProgress) : 0.18;
-    let headPt = { x: leftPt.x, y: leftPt.y };
-
-    // Underlying guide ribbon
-    ctx.beginPath();
-    for (let s = 0; s <= segments; s++) {
-      const t = s / segments;
-      const bx = leftPt.x + (rightPt.x - leftPt.x) * t;
-      const archY = isBandHeroMode ? 0 : -Math.sin(t * Math.PI) * 52;
-      const waveY = Math.sin(t * Math.PI * 2.0 - time * 5.5) * (10 + 10 * holdProgress) * scale * Math.sin(t * Math.PI);
-      const by = leftPt.y + (rightPt.y - leftPt.y) * t + archY + waveY;
-      if (s === 0) ctx.moveTo(bx, by);
-      else ctx.lineTo(bx, by);
-    }
-    ctx.strokeStyle = rgba([56, 189, 248], 0.34 + beatPulse * 0.18);
-    ctx.lineWidth = 15 * scale;
-    ctx.stroke();
-
-    // Lit 24K Gold + Electric Cyan Star-Power Wave
-    ctx.beginPath();
-    for (let s = 0; s <= segments; s++) {
-      const t = s / segments;
-      if (t > litLimit && s > 1) break;
-      const bx = leftPt.x + (rightPt.x - leftPt.x) * t;
-      const archY = isBandHeroMode ? 0 : -Math.sin(t * Math.PI) * 52;
-      const waveY = Math.sin(t * Math.PI * 2.0 - time * 5.5) * (10 + 10 * holdProgress) * scale * Math.sin(t * Math.PI);
-      const by = leftPt.y + (rightPt.y - leftPt.y) * t + archY + waveY;
-      if (s === 0) ctx.moveTo(bx, by);
-      else ctx.lineTo(bx, by);
-      headPt = { x: bx, y: by };
-    }
-    const waveGrad = ctx.createLinearGradient(leftPt.x, leftPt.y, rightPt.x, rightPt.y);
-    waveGrad.addColorStop(0, "#FACC15");
-    waveGrad.addColorStop(0.5, "#38BDF8");
-    waveGrad.addColorStop(1, "#E879F9");
-    ctx.strokeStyle = waveGrad;
-    ctx.lineWidth = (22 + beatPulse * 8) * scale;
-    ctx.stroke();
-
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.92)";
-    ctx.lineWidth = 6 * scale;
-    ctx.stroke();
-
-    // 3. Target Finale Ring at rightPt & Glowing 5-Star Activation Orb at headPt
-    const starR = 34 * scale * (1 + beatPulse * 0.16);
-    ctx.beginPath();
-    ctx.arc(rightPt.x, rightPt.y, starR * 0.88, 0, Math.PI * 2);
-    ctx.strokeStyle = "rgba(250, 204, 21, 0.48)";
-    ctx.lineWidth = 3.2 * scale;
-    ctx.stroke();
-
-    const haloGrad = ctx.createRadialGradient(headPt.x, headPt.y, 4, headPt.x, headPt.y, starR * 2.3);
-    haloGrad.addColorStop(0, "rgba(250, 204, 21, 0.85)");
-    haloGrad.addColorStop(0.5, "rgba(56, 189, 248, 0.42)");
-    haloGrad.addColorStop(1, "rgba(0, 0, 0, 0)");
-    ctx.beginPath();
-    ctx.arc(headPt.x, headPt.y, starR * 2.3, 0, Math.PI * 2);
-    ctx.fillStyle = haloGrad;
-    ctx.fill();
-
-    const sphereGrad = ctx.createRadialGradient(
-      headPt.x - starR * 0.28, headPt.y - starR * 0.28, starR * 0.08,
-      headPt.x, headPt.y, starR
-    );
-    sphereGrad.addColorStop(0, "#FFFFFF");
-    sphereGrad.addColorStop(0.45, "#FACC15");
-    sphereGrad.addColorStop(1, "#38BDF8");
-    ctx.beginPath();
-    ctx.arc(headPt.x, headPt.y, starR, 0, Math.PI * 2);
-    ctx.fillStyle = sphereGrad;
-    ctx.fill();
-    ctx.strokeStyle = "#FFFFFF";
-    ctx.lineWidth = 3.5 * scale;
-    ctx.stroke();
-
-    ctx.font = `900 ${Math.round(starR * 0.82)}px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillStyle = "#0F172A";
-    ctx.fillText("★", headPt.x, headPt.y + 2);
-    ctx.textBaseline = "alphabetic";
-
-    // 4. Clear Center Star-Power Callout Banner
-    const midX = (leftPt.x + rightPt.x) * 0.5;
-    const midY = isBandHeroMode ? (Math.min(leftPt.y, rightPt.y) - starR * 1.55) : ((leftPt.y + rightPt.y) * 0.5 - 74);
-    const pctInt = Math.round(holdProgress * 100);
-    const labelText = isActivated
-      ? `★ ★ ★ ★ ★  STAR POWER LONG NOTE • ${pctInt}%  ★ ★ ★ ★ ★`
-      : "★ 5-STAR VOCAL SWELL — TOUCH STAR NOTE TO UNLEASH! ★";
-
-    ctx.font = `900 ${Math.max(12, Math.round(14.5 * scale))}px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`;
-    ctx.textAlign = "center";
-    ctx.fillStyle = "#FACC15";
-    ctx.fillText(labelText, midX, midY);
-    ctx.restore();
-  }
+  // Swooping slide ribbons removed in v11 — replaced by clean choreographed fluid peg formations!
 }
 
 function drawPowerUps(ctx, powerUps, playerX, playerY, time, trackSec, beatPulse, isConstellationActive, multiBand, isBandHeroMode = false) {
   const w = window.innerWidth || ctx.canvas.width;
   const h = window.innerHeight || ctx.canvas.height;
   if (w <= 0 || h <= 0) return;
-
-  // Ethereal "Ooh / Aaah" Vocal Aurora Borealis Curtains & Harmonic Halos during long flowy vocal swells!
-  const vLevel = multiBand && typeof multiBand.vocal === "number" ? multiBand.vocal : 0;
-  const bLevel = multiBand && typeof multiBand.bass === "number" ? multiBand.bass : 0.4;
-  const vocalGlow = (bLevel < 0.22 && vLevel >= 0.34)
-    ? Math.min(1, Math.max(0.25, (vLevel - 0.28) * 1.6))
-    : Math.min(1, Math.max(0, (vLevel - 0.50) * 2.2));
-  if (vocalGlow > 0.04) {
-    ctx.save();
-    ctx.globalCompositeOperation = "lighter";
-    const curtainCols = [[56, 189, 248], [192, 132, 252], [253, 224, 71]];
-    for (let c = 0; c < 4; c++) {
-      const baseY = h * (0.11 + c * 0.045);
-      ctx.beginPath();
-      ctx.moveTo(0, baseY);
-      for (let step = 1; step <= 12; step++) {
-        const xPt = w * (step / 12);
-        const yWave = baseY + Math.sin(time * (1.8 + c * 0.35) + step * 0.65 + c) * (18 + 16 * vocalGlow);
-        ctx.lineTo(xPt, yWave);
-      }
-      ctx.strokeStyle = rgba(curtainCols[c % 3], (0.16 + 0.26 * vocalGlow) * (1 - c * 0.16));
-      ctx.lineWidth = 5 + (3 - c) * 3.5;
-      ctx.lineCap = "round";
-      ctx.stroke();
-    }
-    ctx.beginPath();
-    ctx.arc(w * 0.5, h * 0.20, w * (0.24 + 0.06 * Math.sin(time * 2.4)), 0, Math.PI * 2);
-    ctx.strokeStyle = rgba([192, 132, 252], 0.22 * vocalGlow);
-    ctx.lineWidth = 2.4;
-    ctx.stroke();
-    ctx.restore();
-  }
 
   // =========================================================================
   // 1. 3D PERSPECTIVE BAND-HERO / GUITAR-HERO RHYTHM HIGHWAY & BEAT STRIKE LINE (Band Hero Mode ONLY!)
@@ -475,34 +300,17 @@ function drawPowerUps(ctx, powerUps, playerX, playerY, time, trackSec, beatPulse
     ctx.restore();
   }
 
-  // 1B. BAND-HERO 5-STAR POWER METER (Top-Center of Stage — lights up ★ ★ ★ ★ ★ and blazes during Vocal Star Power!)
-  {
-    const isVocalStarActive = Boolean(isConstellationActive) || vocalGlow > 0.06;
-    const litStars = isVocalStarActive ? 5 : Math.max(1, Math.min(5, (Math.floor((trackSec || 0) * 0.65) % 5) + 1));
-    let starsStr = "";
-    for (let s = 1; s <= 5; s++) {
-      starsStr += s <= litStars ? "★ " : "☆ ";
-    }
-    starsStr += isVocalStarActive ? " STAR POWER OVERDRIVE!" : " STAR POWER";
-    ctx.save();
-    ctx.font = `900 ${isVocalStarActive ? 13 : 11.5}px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
-    ctx.textAlign = "center";
-    ctx.fillStyle = isVocalStarActive ? "#FACC15" : "rgba(148, 163, 184, 0.85)";
-    ctx.fillText(starsStr, w * 0.5, h * 0.118);
-    ctx.restore();
-  }
-
   if (!powerUps || powerUps.length === 0) return;
   const sorted = powerUps.slice().sort((a, b) => (a.sequenceIndex || 0) - (b.sequenceIndex || 0));
 
   // =========================================================================
-  // 2. RENDER EACH STANDALONE 3D PULSING BEAT NOTE & LABELED PICKUP (Zero clutter lines!)
+  // 2. RENDER EACH STANDALONE 3D PULSING BEAT NOTE & LABELED PICKUP (Zero clutter!)
   // =========================================================================
   for (let idx = 0; idx < sorted.length; idx++) {
     const pu = sorted[idx];
     const leadDur = Math.max(0.45, (pu.targetBeatSec || trackSec) - (pu.spawnBeatSec || (trackSec - 1.8)));
     const u = Math.max(0, Math.min(1.25, (trackSec - (pu.spawnBeatSec || 0)) / leadDur));
-    const perspScale = isBandHeroMode ? computeHighwayScale(u) : 0.95;
+    const perspScale = isBandHeroMode ? computeHighwayScale(u) : 0.92;
 
     const remTtl = pu.expireBeatSec > 0 ? Math.max(0, pu.expireBeatSec - trackSec) : (pu.maxLifetime - pu.age);
     const puAlpha = Math.max(0.20, Math.min(1, remTtl / 0.22));
@@ -519,59 +327,43 @@ function drawPowerUps(ctx, powerUps, playerX, playerY, time, trackSec, beatPulse
       ? [250, 204, 21]
       : HIGHWAY_LANE_COLORS[laneIdx];
 
-    const isOnStrikeLine = isBandHeroMode ? (u >= 0.86 && u <= 1.14) : (beatPulse >= 0.45);
-    const beatPulseScale = 1.0 + (isOnStrikeLine ? 0.30 : 0.16) * beatPulse;
+    const isOnStrikeLine = isBandHeroMode ? (u >= 0.86 && u <= 1.14) : (beatPulse >= 0.52);
+    const beatPulseScale = 1.0 + (isOnStrikeLine ? 0.18 : 0.10) * beatPulse;
     const coreRad = (pu.radius || 32) * perspScale * beatPulseScale;
 
-    // 3D Vertical Beat-Bounce: orbs physically lift off the stage on every beat!
-    const bounceOffsetY = -beatPulse * 11 * perspScale;
+    const bounceOffsetY = -beatPulse * 6 * perspScale;
     const cx = pu.x;
     const cy = pu.y + bounceOffsetY;
 
     ctx.save();
-    // In Original Free-Roam 8-Beat Mode: draw a contracting Beat-Sync Ring on EVERY beat!
-    if (!isBandHeroMode) {
-      const ringRadius = coreRad * (1.05 + 0.95 * (1 - beatPulse));
+    // Subtle, clean contracting beat ring in Original mode (zero giant vertical flame columns!)
+    if (!isBandHeroMode && !isBomb && !isShield) {
+      const ringRadius = coreRad * (1.06 + 0.52 * (1 - beatPulse));
       ctx.beginPath();
       ctx.arc(cx, cy, ringRadius, 0, Math.PI * 2);
-      ctx.strokeStyle = rgba(beatPulse > 0.55 ? [255, 255, 255] : effectCol, (0.35 + 0.55 * beatPulse) * puAlpha);
-      ctx.lineWidth = beatPulse > 0.55 ? 3.5 : 2.0;
+      ctx.strokeStyle = rgba(beatPulse > 0.58 ? [255, 255, 255] : effectCol, (0.28 + 0.38 * beatPulse) * puAlpha);
+      ctx.lineWidth = beatPulse > 0.58 ? 2.6 : 1.5;
+      ctx.stroke();
+    } else if (isBandHeroMode && isOnStrikeLine) {
+      ctx.beginPath();
+      ctx.arc(cx, cy, coreRad * 1.38, 0, Math.PI * 2);
+      ctx.strokeStyle = rgba([250, 204, 21], 0.82 * puAlpha);
+      ctx.lineWidth = 3.0;
       ctx.stroke();
     }
-    // 1. 3D Perspective Ground Drop-Shadow Ellipse on the Highway Deck beneath the floating 3D sphere
+
     ctx.beginPath();
     ctx.ellipse(
       pu.x,
-      pu.y + coreRad * 0.65,
-      coreRad * (0.92 - beatPulse * 0.14),
-      coreRad * 0.34,
+      pu.y + coreRad * 0.62,
+      coreRad * 0.82,
+      coreRad * 0.28,
       0,
       0,
       Math.PI * 2
     );
-    ctx.fillStyle = `rgba(0, 0, 0, ${(0.52 * puAlpha).toFixed(3)})`;
+    ctx.fillStyle = `rgba(0, 0, 0, ${(0.42 * puAlpha).toFixed(3)})`;
     ctx.fill();
-
-    // Vertical Fret Flame Column when crossing the Beat Strike Line!
-    if (isOnStrikeLine) {
-      ctx.beginPath();
-      ctx.arc(cx, cy, coreRad * 1.48, 0, Math.PI * 2);
-      ctx.strokeStyle = rgba([250, 204, 21], 0.90 * puAlpha);
-      ctx.lineWidth = 3.6;
-      ctx.stroke();
-
-      const flameGrad = ctx.createLinearGradient(cx, cy - coreRad * 2.8, cx, cy);
-      flameGrad.addColorStop(0, "rgba(0,0,0,0)");
-      flameGrad.addColorStop(0.55, rgba(effectCol, 0.68 * puAlpha));
-      flameGrad.addColorStop(1, rgba([255, 255, 255], 0.94 * puAlpha));
-      ctx.beginPath();
-      ctx.moveTo(cx, cy - coreRad * 2.8);
-      ctx.lineTo(cx, cy);
-      ctx.strokeStyle = flameGrad;
-      ctx.lineWidth = coreRad * 0.84;
-      ctx.lineCap = "round";
-      ctx.stroke();
-    }
 
     if (isBomb) {
       // 💥 3D VOLUMETRIC BOMB SPHERE (LABELED ENEMY-DESTROYER ORDNANCE)

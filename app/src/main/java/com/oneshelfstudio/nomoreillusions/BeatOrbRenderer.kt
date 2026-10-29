@@ -33,43 +33,6 @@ fun DrawScope.drawPowerUps(
         Color(0xFF38BDF8L)  // Lane 4: Cyan Fret
     )
 
-    // Ethereal "Ooh / Aaah" Vocal Aurora Borealis Curtains & Harmonic Halos during long flowy vocal swells!
-    val vocalGlow = if (multiBand.bassDropOut && multiBand.vocal >= 0.34f) {
-        ((multiBand.vocal - 0.28f) * 1.6f).coerceIn(0.25f, 1f)
-    } else {
-        ((multiBand.vocal - 0.45f) * 2.2f).coerceIn(0f, 1f)
-    }
-    if (vocalGlow > 0.04f) {
-        for (curtain in 0..3) {
-            val auroraPath = Path()
-            val baseY = h * (0.11f + curtain * 0.045f)
-            auroraPath.moveTo(0f, baseY)
-            for (step in 1..12) {
-                val xPt = w * (step / 12f)
-                val yWave = baseY + sin(time * (1.8f + curtain * 0.35f) + step * 0.65f + curtain) * (18f + 16f * vocalGlow)
-                auroraPath.lineTo(xPt, yWave)
-            }
-            val cCol = when (curtain % 3) {
-                0 -> Color(0xFF38BDF8L)
-                1 -> Color(0xFFC084FCL)
-                else -> Color(0xFFFDE047L)
-            }
-            drawPath(
-                path = auroraPath,
-                color = cCol.copy(alpha = (0.18f + 0.28f * vocalGlow) * (1f - curtain * 0.16f)),
-                style = Stroke(width = 6f + (3 - curtain) * 4f, cap = StrokeCap.Round),
-                blendMode = BlendMode.Screen
-            )
-        }
-        drawCircle(
-            color = Color(0xFFC084FCL).copy(alpha = 0.22f * vocalGlow),
-            radius = w * (0.24f + 0.06f * sin(time * 2.4f)),
-            center = Offset(w * 0.5f, h * 0.20f),
-            style = Stroke(width = 2.6f),
-            blendMode = BlendMode.Screen
-        )
-    }
-
     if (isBandHeroMode) {
         // =========================================================================
         // 1A. BAND HERO ALTERNATE MODE: 3D PERSPECTIVE 4-LANE HIGHWAY & STRIKE LINE
@@ -213,29 +176,10 @@ fun DrawScope.drawPowerUps(
         }
     }
 
-    // 1B. BAND-HERO 5-STAR POWER METER (Top-Center of Stage — lights up ★ ★ ★ ★ ★ and blazes during Vocal Star Power!)
-    val isVocalStarActive = isGoldStage || vocalGlow > 0.06f
-    val litStars = if (isVocalStarActive) 5 else (((trackSec * 0.65f).toInt() % 5) + 1).coerceIn(1, 5)
-    drawIntoCanvas { canvas ->
-        cachedSubPaint.textSize = if (isVocalStarActive) 18.5f + beatKick * 2.5f else 15.5f
-        cachedSubPaint.color = if (isVocalStarActive) {
-            android.graphics.Color.rgb(250, 204, 21)
-        } else {
-            android.graphics.Color.argb(210, 148, 163, 184)
-        }
-        val starsStr = buildString {
-            for (s in 1..5) {
-                append(if (s <= litStars) "★ " else "☆ ")
-            }
-            if (isVocalStarActive) append(" STAR POWER OVERDRIVE!") else append(" STAR POWER")
-        }
-        canvas.nativeCanvas.drawText(starsStr, w * 0.5f, h * 0.118f, cachedSubPaint)
-    }
-
     if (powerUps.isEmpty()) return
     val sorted = if (powerUps.size >= 2) powerUps.sortedBy { it.sequenceIndex } else powerUps
 
-    // 2. Render each standalone 3D Volumetric Pulsing Beat Orb & Labeled Power-Up (Zero connecting clutter lines!)
+    // 2. Render each standalone 3D Volumetric Pulsing Beat Orb & Labeled Power-Up (Zero clutter!)
     sorted.forEach { p ->
         val leadDur = (p.targetBeatSec - p.spawnBeatSec).coerceAtLeast(0.45f)
         val u = ((trackSec - p.spawnBeatSec) / leadDur).coerceIn(0f, 1.25f)
@@ -249,12 +193,10 @@ fun DrawScope.drawPowerUps(
         val ttlRemaining = (expireSec - trackSec).coerceAtLeast(0f)
         val ttlAlpha = (ttlRemaining / 0.35f).coerceIn(0.20f, 1.0f)
 
-        val isOnBeatNow = if (isBandHeroMode) (u in 0.86f..1.14f) else (beatPhase in 0f..0.28f || beatPhase >= 0.80f)
-        val isOnStrikeLine = isOnBeatNow
-        val beatPulseScale = 1.0f + (if (isOnBeatNow) 0.28f else 0.16f) * beatKick
+        val isOnBeatNow = if (isBandHeroMode) (u in 0.86f..1.14f) else (beatPhase in 0f..0.24f || beatPhase >= 0.84f)
+        val beatPulseScale = 1.0f + (if (isOnBeatNow) 0.18f else 0.10f) * beatKick
         val coreRad = p.radius * perspScale * beatPulseScale
-        // True 3D physical vertical bounce on the beat so orbs leap toward the camera in 3D space!
-        val bounceOffsetY = -beatKick * (if (isOnBeatNow) 13f else 7.5f) * perspScale
+        val bounceOffsetY = -beatKick * (if (isOnBeatNow) 7f else 4f) * perspScale
         val center3D = Offset(center.x, center.y + bounceOffsetY)
         val lightOrigin = Offset(center3D.x - coreRad * 0.34f, center3D.y - coreRad * 0.36f)
 
@@ -266,55 +208,31 @@ fun DrawScope.drawPowerUps(
             else -> laneColors[laneIdx]
         }
 
-        // In Original Free-Roam Stage mode, draw the 8-Beat Contracting On-Beat Pulse Ring on EVERY beat!
+        // Subtle, clean contracting beat ring in Original mode (zero giant vertical flame columns!)
         if (!isBandHeroMode && !isBomb && !isShield) {
             val beatRingFrac = if (beatPhase >= 0f) (1f - beatPhase.coerceIn(0f, 1f)) else 0.5f
-            val beatRingR = coreRad * (1.06f + beatRingFrac * 0.72f)
+            val beatRingR = coreRad * (1.06f + beatRingFrac * 0.50f)
             drawCircle(
-                color = (if (isOnBeatNow) Color.White else effectColor).copy(alpha = (0.35f + 0.50f * beatKick) * ttlAlpha),
+                color = (if (isOnBeatNow) Color.White else effectColor).copy(alpha = (0.28f + 0.38f * beatKick) * ttlAlpha),
                 radius = beatRingR,
                 center = center3D,
-                style = Stroke(width = if (isOnBeatNow) 3.4f else 1.8f)
+                style = Stroke(width = if (isOnBeatNow) 2.6f else 1.5f)
             )
-        }
-
-        // 0. 3D Perspective Ground Drop-Shadow on the Highway Deck underneath the floating orb
-        drawOval(
-            color = Color.Black.copy(alpha = 0.52f * ttlAlpha),
-            topLeft = Offset(center.x - coreRad * 0.92f, center.y + coreRad * 0.42f),
-            size = Size(coreRad * 1.84f, coreRad * 0.56f)
-        )
-        drawOval(
-            color = effectColor.copy(alpha = (0.28f + 0.24f * beatKick) * ttlAlpha),
-            topLeft = Offset(center.x - coreRad * 1.10f, center.y + coreRad * 0.36f),
-            size = Size(coreRad * 2.20f, coreRad * 0.68f),
-            style = Stroke(width = 2.2f * perspScale)
-        )
-
-        // Vertical Fret Flame Column when a note is crossing the Beat Strike Line!
-        if (isOnStrikeLine) {
+        } else if (isBandHeroMode && isOnBeatNow) {
             drawCircle(
-                color = Color(0xFFFACC15L).copy(alpha = 0.88f * ttlAlpha),
-                radius = coreRad * 1.45f,
+                color = Color(0xFFFACC15L).copy(alpha = 0.82f * ttlAlpha),
+                radius = coreRad * 1.38f,
                 center = center3D,
-                style = Stroke(width = 3.8f)
-            )
-            drawLine(
-                brush = Brush.verticalGradient(
-                    colors = listOf(
-                        Color.Transparent,
-                        effectColor.copy(alpha = 0.68f * ttlAlpha),
-                        Color.White.copy(alpha = 0.92f * ttlAlpha)
-                    ),
-                    startY = center3D.y - coreRad * 2.9f,
-                    endY = center3D.y
-                ),
-                start = Offset(center3D.x, center3D.y - coreRad * 2.9f),
-                end = center3D,
-                strokeWidth = coreRad * 0.88f,
-                cap = StrokeCap.Round
+                style = Stroke(width = 3.2f)
             )
         }
+
+        // Subtle soft ground shadow oval
+        drawOval(
+            color = Color.Black.copy(alpha = 0.42f * ttlAlpha),
+            topLeft = Offset(center.x - coreRad * 0.84f, center.y + coreRad * 0.42f),
+            size = Size(coreRad * 1.68f, coreRad * 0.48f)
+        )
 
         if (isBomb) {
             // =========================================================================
@@ -514,7 +432,7 @@ fun DrawScope.drawPowerUps(
                 rotate(degrees = -18f + sin(time * 3.2f + p.sequenceIndex) * 14f, pivot = center3D)
             }) {
                 drawOval(
-                    color = (if (isOnStrikeLine) Color.White else effectColor).copy(alpha = (0.62f + 0.34f * beatKick) * ttlAlpha),
+                    color = (if (isOnBeatNow) Color.White else effectColor).copy(alpha = (0.62f + 0.34f * beatKick) * ttlAlpha),
                     topLeft = Offset(center3D.x - coreRad * (1.22f + 0.14f * beatKick), center3D.y - coreRad * 0.42f),
                     size = Size(coreRad * (2.44f + 0.28f * beatKick), coreRad * 0.84f),
                     style = Stroke(width = (2.2f + beatKick * 1.6f) * perspScale)
@@ -544,10 +462,10 @@ fun DrawScope.drawPowerUps(
 
             // Outer 3D Chrome/Neon Rim
             drawCircle(
-                color = (if (isOnStrikeLine) Color.White else effectColor).copy(alpha = 0.98f * ttlAlpha),
+                color = (if (isOnBeatNow) Color.White else effectColor).copy(alpha = 0.98f * ttlAlpha),
                 radius = coreRad,
                 center = center3D,
-                style = Stroke(width = if (isOnStrikeLine) 4.0f else 2.8f)
+                style = Stroke(width = if (isOnBeatNow) 4.0f else 2.8f)
             )
 
             // 3D Glass Specular Crescent Glint (Top-Left Arc)
@@ -584,198 +502,12 @@ fun DrawScope.drawPowerUps(
  * - While held, concentric liquid-plasma vortex rings erupt around BOTH pegs and "Ooh / Aaah" Vocal Aurora
  *   curtains bloom across the upper stage!
  */
+@Suppress("UNUSED_PARAMETER")
 fun DrawScope.drawWormholes(
     wormholes: List<SingularityWormhole>,
     time: Float,
     beatPhase: Float,
     isBandHeroMode: Boolean = false
 ) {
-    if (wormholes.isEmpty()) return
-    val wScreen = size.width
-    val hScreen = size.height
-    if (wScreen <= 0f || hScreen <= 0f) return
-    val beatKick = if (beatPhase >= 0f) exp(-beatPhase * 5f).coerceIn(0f, 1f) else 0.25f
-
-    wormholes.forEach { w ->
-        if (w.angle >= 90f) return@forEach
-        val uAnchor = (w.ageSec / 1.5f).coerceIn(0f, 1.0f)
-        if (uAnchor <= 0.02f) return@forEach
-
-        val pt1: Offset
-        val pt2: Offset
-        val perspScale: Float
-        if (isBandHeroMode) {
-            val startLane = w.x.coerceIn(0f, 3f)
-            val endLane = w.exitX.coerceIn(0f, 3f)
-            pt1 = computeHighwayPoint(startLane, uAnchor, wScreen, hScreen)
-            pt2 = computeHighwayPoint(endLane, uAnchor, wScreen, hScreen)
-            perspScale = computeHighwayScale(uAnchor)
-        } else {
-            // Original Free-Roam Stage: ONE sweeping Golden-Cyan Star-Power Long Note Arc across the center stage!
-            pt1 = Offset(wScreen * 0.20f, hScreen * 0.50f)
-            pt2 = Offset(wScreen * 0.80f, hScreen * 0.42f)
-            perspScale = 1.0f
-        }
-        val midPt = Offset((pt1.x + pt2.x) * 0.5f, (pt1.y + pt2.y) * 0.5f)
-        val holdProg = w.ctrlY.coerceIn(0f, 1f)
-        val isActivated = w.slideCooldownSec >= 0.5f || holdProg > 0.02f
-
-        // 0. "OOOOOH / AAAAH" 5-STAR VOCAL STAR POWER AURORA CURTAINS across the upper stage when activated!
-        if (isActivated) {
-            for (cIdx in 0..5) {
-                val xFrac = 0.14f + (cIdx / 5f) * 0.72f + sin(time * 2.2f + cIdx) * 0.03f
-                val cx = wScreen * xFrac
-                val curtainH = hScreen * (0.30f + 0.18f * holdProg + 0.06f * sin(time * 4f + cIdx))
-                val cCol = when (cIdx % 3) {
-                    0 -> Color(0xFFFACC15L) // 24K Star Gold
-                    1 -> Color(0xFF38BDF8L) // Electric Star Power Cyan
-                    else -> Color(0xFFE879F9L) // Vocal Aurora Magenta
-                }
-                drawLine(
-                    brush = Brush.verticalGradient(
-                        colors = listOf(
-                            cCol.copy(alpha = (0.34f + 0.42f * holdProg)),
-                            Color(0xFFFACC15L).copy(alpha = 0.24f * holdProg),
-                            Color.Transparent
-                        ),
-                        startY = 0f,
-                        endY = curtainH
-                    ),
-                    start = Offset(cx, 0f),
-                    end = Offset(cx, curtainH),
-                    strokeWidth = 46f + 24f * holdProg,
-                    cap = StrokeCap.Round,
-                    blendMode = BlendMode.Screen
-                )
-            }
-        }
-
-        // 1. ONE Single Continuous, Sweeping Golden-Cyan Star-Power Long Note Wave (pt1 -> pt2)
-        val segs = 28
-        val fullTrackPath = Path()
-        val activeWavePath = Path()
-        val litLimit = if (isActivated) holdProg.coerceIn(0.08f, 1.0f) else 0.18f
-        var headPt = pt1
-
-        for (i in 0..segs) {
-            val t = i / segs.toFloat()
-            val bx = pt1.x + (pt2.x - pt1.x) * t
-            val archY = if (isBandHeroMode) 0f else -sin(t * PI.toFloat()) * 54f
-            val waveY = sin(t * 2.0f * PI.toFloat() - time * 5.5f) * (10f + 10f * holdProg) * perspScale * sin(t * PI.toFloat())
-            val by = pt1.y + (pt2.y - pt1.y) * t + archY + waveY
-            if (i == 0) {
-                fullTrackPath.moveTo(bx, by)
-                activeWavePath.moveTo(bx, by)
-            } else {
-                fullTrackPath.lineTo(bx, by)
-                if (t <= litLimit) {
-                    activeWavePath.lineTo(bx, by)
-                    headPt = Offset(bx, by)
-                }
-            }
-        }
-
-        // Underlying long-note guide ribbon
-        drawPath(
-            path = fullTrackPath,
-            color = Color(0xFF38BDF8L).copy(alpha = 0.32f + 0.18f * beatKick),
-            style = Stroke(
-                width = 16f * perspScale,
-                cap = StrokeCap.Round,
-                join = StrokeJoin.Round
-            ),
-            blendMode = BlendMode.Screen
-        )
-        // Lit 24K Gold + Electric Cyan Star-Power Wave
-        drawPath(
-            path = activeWavePath,
-            brush = Brush.horizontalGradient(
-                colors = listOf(
-                    Color(0xFFFACC15L),
-                    Color(0xFF38BDF8L),
-                    Color(0xFFE879F9L)
-                )
-            ),
-            style = Stroke(
-                width = (22f + 10f * beatKick) * perspScale,
-                cap = StrokeCap.Round,
-                join = StrokeJoin.Round
-            ),
-            blendMode = BlendMode.Screen
-        )
-        drawPath(
-            path = activeWavePath,
-            color = Color.White.copy(alpha = 0.90f),
-            style = Stroke(
-                width = 6.5f * perspScale,
-                cap = StrokeCap.Round,
-                join = StrokeJoin.Round
-            )
-        )
-
-        // 2. Render Start Star-Power Note (`headPt`) & Finale Target Note (`pt2`)
-        val starRadius = 38f * perspScale * (1f + 0.16f * beatKick)
-        // Target Finale Ring at pt2
-        drawCircle(
-            color = Color(0xFFFACC15L).copy(alpha = 0.45f),
-            radius = starRadius * 0.90f,
-            center = pt2,
-            style = Stroke(width = 3.5f * perspScale)
-        )
-
-        // Glowing 5-Star Activation Orb at headPt
-        drawCircle(
-            brush = Brush.radialGradient(
-                colors = listOf(
-                    Color(0xFFFACC15L).copy(alpha = 0.85f),
-                    Color(0xFF38BDF8L).copy(alpha = 0.45f),
-                    Color.Transparent
-                ),
-                center = headPt,
-                radius = starRadius * 2.4f
-            ),
-            radius = starRadius * 2.4f,
-            center = headPt,
-            blendMode = BlendMode.Screen
-        )
-        drawCircle(
-            brush = Brush.radialGradient(
-                colors = listOf(
-                    Color.White,
-                    Color(0xFFFACC15L),
-                    Color(0xFF38BDF8L)
-                ),
-                center = Offset(headPt.x - starRadius * 0.28f, headPt.y - starRadius * 0.28f),
-                radius = starRadius * 1.3f
-            ),
-            radius = starRadius,
-            center = headPt
-        )
-        drawCircle(
-            color = Color.White,
-            radius = starRadius,
-            center = headPt,
-            style = Stroke(width = 3.8f * perspScale)
-        )
-
-        drawIntoCanvas { canvas ->
-            cachedSubPaint.textSize = (starRadius * 0.82f).coerceAtLeast(16f)
-            cachedSubPaint.color = android.graphics.Color.rgb(15, 23, 42)
-            canvas.nativeCanvas.drawText("★", headPt.x, headPt.y + starRadius * 0.28f, cachedSubPaint)
-        }
-
-        // 3. Clear Center Star-Power Callout Banner
-        drawIntoCanvas { canvas ->
-            cachedSubPaint.textSize = (18.5f * perspScale).coerceAtLeast(14f)
-            cachedSubPaint.color = android.graphics.Color.rgb(250, 204, 21)
-            val pct = (holdProg * 100f).toInt().coerceIn(0, 100)
-            val label = if (isActivated) {
-                "★ ★ ★ ★ ★  STAR POWER LONG NOTE • $pct%  ★ ★ ★ ★ ★"
-            } else {
-                "★ 5-STAR VOCAL SWELL — TOUCH STAR NOTE TO UNLEASH! ★"
-            }
-            val bannerY = if (isBandHeroMode) midPt.y - starRadius * 1.55f else midPt.y - 78f
-            canvas.nativeCanvas.drawText(label, midPt.x, bannerY, cachedSubPaint)
-        }
-    }
+    // Swooping slide ribbons removed in v11 — replaced by clean choreographed fluid peg formations!
 }
