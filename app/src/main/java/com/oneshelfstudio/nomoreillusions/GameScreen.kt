@@ -689,22 +689,21 @@ fun GameScreen(
                         enemies.clear()
                     }
 
-                    // Guarantee a 2-Finger Vocal Sustain Hold spawns in Band Hero mode when entering long flowy Vocal Float / Swell sections ("ooh / aaah" moments)!
+                    // Guarantee ONE Band-Hero 5-Star Vocal Power Long Note spawns when entering long flowy Vocal Float / Swell sections ("ooh / aaah" moments)!
                     if (
-                        isBandHeroMode &&
                         wormholes.isEmpty() &&
-                        currentSecObj.timestampSec > 20f &&
+                        currentSecObj.timestampSec > 18f &&
                         (currentSecObj.label.contains("VOCAL") || currentSecObj.label.contains("SWELL") || currentSecObj.label.contains("BREATHER"))
                     ) {
                         wormholes.add(
                             SingularityWormhole(
                                 x = 0f,
                                 y = 0f,
-                                radius = 36f,
+                                radius = 38f,
                                 kind = AnomalyKind.WORMHOLE_VORTEX,
                                 angle = 0f,
                                 length = 1f,
-                                color = Color(0xFF38BDF8L),
+                                color = Color(0xFFFACC15L),
                                 exitX = 3f,
                                 exitY = 1f,
                                 ctrlX = 1.5f,
@@ -807,7 +806,7 @@ fun GameScreen(
                     applyColorBlind = applyColorBlind,
                     powerUps = powerUps,
                     shockwaves = shockwaves,
-                    hasActiveSustainRibbon = wormholes.isNotEmpty(),
+                    hasActiveSustainRibbon = isBandHeroMode && wormholes.isNotEmpty(),
                     isTrainingMode = (gameDifficulty == GameDifficulty.EASY || selectedRemixMode == TrackRemixMode.SLOWED),
                     beatDurationSec = beatDurationSec,
                     isBandHeroMode = isBandHeroMode,
@@ -1267,6 +1266,13 @@ fun GameScreen(
                 cameraPunch = surfRes.cameraPunch
                 beatFlashIntensity = surfRes.beatFlashIntensity
                 if (surfRes.toast != null) activePowerUpToast = surfRes.toast
+                if (surfRes.toast != null || wormholes.any { it.slideCooldownSec >= 0.5f }) {
+                    starPowerTime = maxOf(starPowerTime, 6.5f)
+                    goldenOverdriveIntensity = maxOf(goldenOverdriveIntensity, 1.0f)
+                    vocalStreamContrailTimer = maxOf(vocalStreamContrailTimer, 6.5f)
+                    scoreMultiplier = 4
+                    multiplierTime = maxOf(multiplierTime, 6.5f)
+                }
 
                 updateAmbientEntities(
                     motes = motes,

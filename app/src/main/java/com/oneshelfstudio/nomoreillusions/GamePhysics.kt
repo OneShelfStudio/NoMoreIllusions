@@ -473,51 +473,47 @@ fun stepAndSpawnWormholes(
     isBandHeroMode: Boolean = false
 ) {
     if (screenWidth <= 0f || screenHeight <= 0f) return
-    if (!isBandHeroMode) {
-        if (wormholes.isNotEmpty()) wormholes.clear()
-        return
-    }
 
     val wIter = wormholes.iterator()
     while (wIter.hasNext()) {
         val w = wIter.next()
         w.ageSec += 0.016f * currentScale
-        if (w.slideCooldownSec > 0f) {
+        if (w.slideCooldownSec in 0.001f..0.49f) {
             w.slideCooldownSec = (w.slideCooldownSec - 0.016f * currentScale).coerceAtLeast(0f)
         }
-        if (w.ageSec >= 4.4f) {
+        val maxLife = if (w.slideCooldownSec >= 0.5f) 7.5f else 6.0f
+        if (w.ageSec >= maxLife || w.angle >= 90f) {
             wIter.remove()
         }
     }
 
-    // Never clear active mid-flight beat pegs (`powerUps`) when a sustain hold spawns or is active!
-    // Allow 2-Finger Vocal Sustain Holds during both `allowAnomalies` sections AND ethereal vocal-float breakdowns (`bassDropOut && vocal >= 0.42f`)!
-    val canSpawnVocalHold = allowAnomalies || (multiBand.bassDropOut && multiBand.vocal >= 0.42f)
+    // Allow the One Single Band-Hero 5-Star Vocal Power Long Note during both `allowAnomalies` sections AND ethereal vocal-float breakdowns ("ooooh / aaaah" swells) in BOTH Original & Band Hero modes!
+    val canSpawnVocalHold = allowAnomalies || (multiBand.bassDropOut && multiBand.vocal >= 0.36f) || multiBand.vocal >= 0.48f
     if (!canSpawnVocalHold) return
     if (wormholes.isNotEmpty()) return
 
-    val isBeatOnset = beatPhase in 0f..0.22f
+    val isBeatOnset = beatPhase in 0f..0.24f
     if (!isBeatOnset) return
 
-    // Trigger 2-Finger Vocal Sustain Holds during long, flowy vocal/harmonic swells ("ooh / aaah" moments)!
-    val vocalSwellTrigger = (multiBand.vocal >= 0.46f && (multiBand.rms > 0.40f || multiBand.swellDelta > 0.03f)) ||
-        (multiBand.bassDropOut && multiBand.vocal >= 0.42f)
+    // Trigger One Long Star-Power Note during long, flowy vocal/harmonic swells ("ooh / aaah" moments)!
+    val vocalSwellTrigger = (multiBand.vocal >= 0.45f && (multiBand.rms > 0.38f || multiBand.swellDelta > 0.02f)) ||
+        (multiBand.bassDropOut && multiBand.vocal >= 0.36f)
     if (!vocalSwellTrigger) return
 
-    if (Random.nextFloat() < 0.16f) {
+    if (Random.nextFloat() < 0.22f) {
         wormholes.add(
             SingularityWormhole(
-                x = 0f, // Lane 1 Left Sustain Anchor Peg
+                x = 0f,
                 y = 0f,
-                radius = 36f,
+                radius = 38f,
                 kind = AnomalyKind.WORMHOLE_VORTEX,
                 angle = 0f,
                 length = 1f,
-                color = Color(0xFF38BDF8L),
-                exitX = 3f, // Lane 4 Right Sustain Anchor Peg
+                color = Color(0xFFFACC15L),
+                exitX = 3f,
                 exitY = 1f,
                 ctrlX = 1.5f,
-                ctrlY = 0f // 0.0 -> 1.0 Hold Progress Gauge!
+                ctrlY = 0f
             )
         )
     }

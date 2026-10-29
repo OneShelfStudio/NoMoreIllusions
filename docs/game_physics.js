@@ -109,13 +109,13 @@ Object.assign(NoMoreIllusionsApp.prototype, {
     if (this.trailLength < maxTrailCap) this.trailLength++;
     else if (this.trailLength > maxTrailCap) this.trailLength = Math.max(maxTrailCap, this.trailLength - 1);
 
-    // 1. Dual-Mode Note Spawner: Original Free-Roam Cosmic Stage (Default, 8-Beat Window + Vocal Streams) OR Band Hero Highway!
+    // 1. Dual-Mode Note Spawner: Clean Original Free-Roam Cosmic Stage (Max 7 standalone orbs, 8-Beat Window) OR Band Hero Highway!
     const chart = stage.orbChart;
     const isBandHero = Boolean(this.isBandHeroMode);
-    const maxActiveOrbs = isBandHero ? 16 : 22;
+    const maxActiveOrbs = isBandHero ? 10 : 7;
     const spawnLeadTime = isBandHero
       ? Math.max(1.75, Math.min(2.35, beatPeriod * 3.8))
-      : Math.max(0.85, Math.min(1.65, beatPeriod * 3.0));
+      : Math.max(0.85, Math.min(1.50, beatPeriod * 2.5));
     if (isBandHero && this.wormholes && this.wormholes.length > 0) {
       // Preserve mid-flight highway pegs so notes NEVER vanish on the way down; only pause new spawns at the horizon!
       while (
@@ -133,49 +133,20 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       ) {
         const cue = chart[this.nextBeatCueIndex];
         this.nextBeatCueIndex++;
-        if (isTrainingEasy && isBandHero && cue.sequenceIndex % 3 === 2 && !cue.isGoldenCue && (!cue.powerUpType || cue.powerUpType === "SCORE_ORB")) {
+        if (isTrainingEasy && cue.sequenceIndex % 3 === 2 && !cue.isGoldenCue && (!cue.powerUpType || cue.powerUpType === "SCORE_ORB")) {
           continue;
         }
         this.spawnChartedOrb(cue, beatPeriod);
 
-        // Density Boost: in Original mode, fill gaps >= 1.15 beats with extra on-beat orbs (and flowing vocal stream notes!);
-        // in Band Hero mode, fill wide gaps >= 1.85 beats on Normal/Fast.
-        if (this.nextBeatCueIndex < chart.length && this.powerUps.length < maxActiveOrbs - 1) {
+        // Only fill wide highway gaps in Band Hero mode so Original Free-Roam mode stays clean and uncluttered!
+        if (isBandHero && !isTrainingEasy && this.nextBeatCueIndex < chart.length && this.powerUps.length < maxActiveOrbs - 1) {
           const nextCue = chart[this.nextBeatCueIndex];
           const curT = cue.timestampSec || cue.timeSec || this.trackElapsedSec;
           const nextT = nextCue.timestampSec || nextCue.timeSec || (curT + 1.0);
           const gapSec = nextT - curT;
           const fullBeat = Math.max(0.35, beatPeriod);
-          const isVocalSwellNow = (this.multiBandState.vocal >= 0.44) ||
-            (this.multiBandState.bassDropOut && this.multiBandState.vocal >= 0.30);
 
-          if (!isBandHero && gapSec >= fullBeat * 1.15 && gapSec <= 3.60) {
-            const extraCount = (isVocalSwellNow && gapSec >= fullBeat * 1.75) ? 2 : 1;
-            for (let step = 1; step <= extraCount; step++) {
-              if (this.powerUps.length >= maxActiveOrbs) break;
-              const frac = step / (extraCount + 1);
-              const snappedMidT = Math.round((curT + gapSec * frac) / fullBeat) * fullBeat;
-              if (Math.abs(snappedMidT - curT) >= fullBeat * 0.42 && Math.abs(snappedMidT - nextT) >= fullBeat * 0.42) {
-                const cNormX = cue.normX || 0.5;
-                const nNormX = nextCue.normX || 0.5;
-                const cNormY = cue.normY || 0.45;
-                const nNormY = nextCue.normY || 0.45;
-                const interpX = Math.max(0.14, Math.min(0.86, cNormX + (nNormX - cNormX) * frac + Math.sin((cue.sequenceIndex || 1) + step) * 0.08));
-                const interpY = Math.max(0.18, Math.min(0.76, cNormY + (nNormY - cNormY) * frac + Math.cos((cue.sequenceIndex || 1) + step) * 0.06));
-                this.spawnChartedOrb({
-                  timestampSec: snappedMidT,
-                  normX: interpX,
-                  normY: interpY,
-                  sequenceIndex: (cue.sequenceIndex || 1) * 10 + step,
-                  phraseBeatNum: ((cue.phraseBeatNum || 1) + step - 1) % 4 + 1,
-                  powerUpType: "SCORE_ORB",
-                  keyWordEffect: "NONE",
-                  isGoldenCue: false,
-                  isVocalStream: isVocalSwellNow
-                }, beatPeriod);
-              }
-            }
-          } else if (isBandHero && !isTrainingEasy && gapSec >= fullBeat * 1.85 && gapSec <= 2.80) {
+          if (gapSec >= fullBeat * 1.85 && gapSec <= 2.80) {
             const snappedMidT = Math.round((curT + gapSec * 0.5) / fullBeat) * fullBeat;
             if (Math.abs(snappedMidT - curT) >= fullBeat * 0.85 && Math.abs(snappedMidT - nextT) >= fullBeat * 0.85) {
               const curLane = Math.max(0, Math.min(3, Math.floor(((cue.normX || 0.5) - 0.14) / 0.18 + 0.5)));
@@ -232,15 +203,30 @@ Object.assign(NoMoreIllusionsApp.prototype, {
         this.enemies = [];
       }
 
-      // Guarantee a 2-Finger Vocal Sustain Hold spawns in Band Hero mode when entering long flowy Vocal Float / Swell sections!
+      // Guarantee ONE Band-Hero 5-Star Vocal Power Long Note spawns when entering long flowy Vocal Float / Swell sections ("ooh / aaah" moments)!
       const secTitleUpper = ((activeSec.title || "") + " " + (activeSec.subtitle || "")).toUpperCase();
       if (
-        this.isBandHeroMode &&
         this.wormholes.length === 0 &&
-        activeSecTime > 20 &&
+        activeSecTime > 18 &&
         (secTitleUpper.includes("VOCAL") || secTitleUpper.includes("SWELL") || secTitleUpper.includes("BREATHER"))
       ) {
-        this.initiateWormholePair();
+        this.wormholes.push({
+          ax: this.W * 0.20,
+          ay: this.H * 0.50,
+          bx: this.W * 0.80,
+          by: this.H * 0.42,
+          ctrlX: this.W * 0.50,
+          ctrlY: this.H * 0.44,
+          startLane: 0,
+          endLane: 3,
+          holdProgress: 0,
+          activated: false,
+          radius: 42,
+          age: 0,
+          maxLifetime: 6.5,
+          teleportCooldown: 0,
+          tailCompleted: false
+        });
       }
 
       if (activeSec.effectType === "CONSTELLATION_RUSH") {
@@ -290,35 +276,29 @@ Object.assign(NoMoreIllusionsApp.prototype, {
 
     // 3. Simplified Pickups (Fret Beat Notes, ★ 4X STAR, 💥 BOMB, 🛡️ SHIELD) arrive via the beat highway chart
 
-    // 4. 2-Finger Stationary Vocal Sustain Hold Spawner (Band Hero Mode ONLY!)
-    if (this.isBandHeroMode && activeSec.allowAnomalies) {
+    // 4. One Single Band-Hero 5-Star Vocal Power Long Note Spawner (Both Original & Band Hero Modes on "Oooooh / Aaaah" Swells!)
+    if (activeSec.allowAnomalies || (this.multiBandState.bassDropOut && this.multiBandState.vocal >= 0.36) || this.multiBandState.vocal >= 0.48) {
       this.wormholeSpawnTimer += dt;
-      const isVocalSwellMoment = (this.multiBandState.vocal >= 0.48) || (this.multiBandState.swellDelta >= 0.14);
-      if (this.wormholeSpawnTimer >= 16.5 && this.wormholes.length === 0 && isVocalSwellMoment) {
+      const isVocalSwellMoment = (this.multiBandState.vocal >= 0.45) || (this.multiBandState.swellDelta >= 0.12) || (this.multiBandState.bassDropOut && this.multiBandState.vocal >= 0.36);
+      if (this.wormholeSpawnTimer >= 15.0 && this.wormholes.length === 0 && isVocalSwellMoment) {
         this.wormholeSpawnTimer = 0;
-        const startLane = 0; // Left Sustain Anchor (Lane 1)
-        const endLane = 3;   // Right Sustain Anchor (Lane 4)
-
-        const headPt = typeof this.computeHighwayPoint === "function"
-          ? this.computeHighwayPoint(startLane, 0, this.W, this.H)
-          : { x: this.W * 0.25, y: this.H * 0.15 };
-        const tailPt = typeof this.computeHighwayPoint === "function"
-          ? this.computeHighwayPoint(endLane, 0, this.W, this.H)
-          : { x: this.W * 0.75, y: this.H * 0.15 };
+        const startLane = 0;
+        const endLane = 3;
 
         this.wormholes.push({
-          ax: headPt.x,
-          ay: headPt.y,
-          bx: tailPt.x,
-          by: tailPt.y,
-          ctrlX: (headPt.x + tailPt.x) * 0.5,
-          ctrlY: (headPt.y + tailPt.y) * 0.5,
+          ax: this.W * 0.20,
+          ay: this.H * 0.50,
+          bx: this.W * 0.80,
+          by: this.H * 0.42,
+          ctrlX: this.W * 0.50,
+          ctrlY: this.H * 0.44,
           startLane,
           endLane,
           holdProgress: 0,
+          activated: false,
           radius: 42,
           age: 0,
-          maxLifetime: 4.5, // 1.8s scroll to Strike Line + 2.7s stationary hold window
+          maxLifetime: 6.5,
           teleportCooldown: 0,
           tailCompleted: false
         });
@@ -384,107 +364,118 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       }
     }
 
-    // 7. Update 2-Finger Stationary Vocal Sustain Hold Anchors (Scrolls to Strike Line in 1.8s, Locks & Charges 0% -> 100%!)
+    // 7. V10.1 One Single Band-Hero 5-Star Vocal Power Long Note Activation (Zero Repeated Buzzes!)
     this.activeWormholeSlide = null;
     for (let i = this.wormholes.length - 1; i >= 0; i--) {
       const wh = this.wormholes[i];
       wh.age += dt;
-      if (wh.teleportCooldown > 0) wh.teleportCooldown = Math.max(0, wh.teleportCooldown - dt);
-      if (wh.age >= wh.maxLifetime) {
+      if (wh.age >= (wh.activated ? 7.5 : wh.maxLifetime)) {
         this.wormholes.splice(i, 1);
         continue;
       }
 
-      const travelU = Math.min(1.0, wh.age / 1.8);
+      const travelU = Math.min(1.0, wh.age / 1.5);
+      if (travelU < 0.25) continue;
+
       const sLane = typeof wh.startLane === "number" ? wh.startLane : 0;
       const eLane = typeof wh.endLane === "number" ? wh.endLane : 3;
+      const leftPt = (this.isBandHeroMode && typeof this.computeHighwayPoint === "function")
+        ? this.computeHighwayPoint(sLane, travelU, this.W, this.H)
+        : { x: this.W * 0.20, y: this.H * 0.50 };
+      const rightPt = (this.isBandHeroMode && typeof this.computeHighwayPoint === "function")
+        ? this.computeHighwayPoint(eLane, travelU, this.W, this.H)
+        : { x: this.W * 0.80, y: this.H * 0.42 };
+      const midPt = { x: (leftPt.x + rightPt.x) * 0.5, y: (leftPt.y + rightPt.y) * 0.5 };
 
-      if (typeof this.computeHighwayPoint === "function") {
-        const leftPt = this.computeHighwayPoint(sLane, travelU, this.W, this.H);
-        const rightPt = this.computeHighwayPoint(eLane, travelU, this.W, this.H);
-        wh.ax = leftPt.x;
-        wh.ay = leftPt.y;
-        wh.bx = rightPt.x;
-        wh.by = rightPt.y;
-        wh.ctrlX = (leftPt.x + rightPt.x) * 0.5;
-        wh.ctrlY = (leftPt.y + rightPt.y) * 0.5;
+      wh.ax = leftPt.x;
+      wh.ay = leftPt.y;
+      wh.bx = rightPt.x;
+      wh.by = rightPt.y;
+      wh.ctrlX = midPt.x;
+      wh.ctrlY = midPt.y;
 
-        const isAtStrikeZone = travelU >= 0.72;
-        const p1DistLeft = Math.hypot(this.playerX - leftPt.x, this.playerY - leftPt.y);
-        const p1DistRight = Math.hypot(this.playerX - rightPt.x, this.playerY - rightPt.y);
-        const hasTwoFingers = Boolean(this.secondPlayerPos);
-        const isHoldingSingleAnchor = Math.min(p1DistLeft, p1DistRight) <= 105;
+      const dLeft = Math.hypot(this.playerX - leftPt.x, this.playerY - leftPt.y);
+      const dMid = Math.hypot(this.playerX - midPt.x, this.playerY - midPt.y);
+      const dRight = Math.hypot(this.playerX - rightPt.x, this.playerY - rightPt.y);
+      const hasTwoFingers = Boolean(this.secondPlayerPos);
+      const isTouchingStarNote = hasTwoFingers || Math.min(dLeft, dMid, dRight) <= 125;
 
-        if (isAtStrikeZone && (hasTwoFingers || isHoldingSingleAnchor)) {
-          const chargeRate = hasTwoFingers ? 0.85 : 0.65;
-          wh.holdProgress = Math.min(1.0, (wh.holdProgress || 0) + dt * chargeRate);
+      // 1. Single One-Shot Star Power Activation on Touch (Zero repeated buzzing!)
+      if (!wh.activated && isTouchingStarNote) {
+        wh.activated = true;
+        this.shieldTimer = Math.max(this.shieldTimer, 2.5);
+        this.overdriveTimer = Math.max(this.overdriveTimer, 6.5);
+        this.constellationRushTimer = Math.max(this.constellationRushTimer, 6.5);
+        this.vocalStreamContrailTimer = Math.max(this.vocalStreamContrailTimer || 0, 6.5);
+        this.playSfx("powerup", 0.82);
+        this.triggerHaptic([26]); // ONE single clean activation feel!
+        const actPts = Math.round(250 * Math.max(1, this.combo) * diffMult);
+        this.score += actPts;
+        this.comboTimer = 5.0;
+        this.spawnBurstMotes(leftPt.x, leftPt.y, [250, 204, 21], 14);
+        this.shockwaves.push({
+          x: this.playerX,
+          y: this.playerY,
+          radius: 12,
+          maxRadius: 260,
+          color: [250, 204, 21],
+          alpha: 1
+        });
+        this.floatingTexts.push({
+          x: midPt.x,
+          y: midPt.y - 40,
+          text: `★ 5-STAR VOCAL POWER ACTIVATED! +${actPts} ★`,
+          color: [250, 204, 21],
+          alpha: 1,
+          age: 0
+        });
+        this.showToast("★", "5-STAR VOCAL POWER!", "STAR POWER OVERDRIVE + NEON CONTRAIL ACTIVE", "#FACC15", 2.6);
+      }
 
-          if (wh.teleportCooldown <= 0) {
-            wh.teleportCooldown = 0.14;
-            this.shieldTimer = Math.max(this.shieldTimer, 0.55);
-            this.playSfx("orb", 0.58);
-            this.triggerHaptic([12]);
-            const holdPts = Math.round(85 * Math.max(1, this.combo) * diffMult);
-            this.score += holdPts;
-            this.comboTimer = 4.5;
-            this.spawnBurstMotes(leftPt.x, leftPt.y, [56, 189, 248], 5);
-            this.spawnBurstMotes(rightPt.x, rightPt.y, [250, 204, 21], 5);
-            this.shockwaves.push({
-              x: (leftPt.x + rightPt.x) * 0.5,
-              y: leftPt.y,
-              radius: 10,
-              maxRadius: 95,
-              color: [56, 189, 248],
-              alpha: 1
-            });
-            const pct = Math.round(wh.holdProgress * 100);
-            this.floatingTexts.push({
-              x: (leftPt.x + rightPt.x) * 0.5,
-              y: leftPt.y - 34,
-              text: `⚡ HARMONY HOLD ${pct}% (+${holdPts})`,
-              color: [56, 189, 248],
-              alpha: 1,
-              age: 0
-            });
-          }
+      // 2. Smooth Continuous Long-Note Wave Progression (Zero repeated buzzes!)
+      if (wh.activated || isTouchingStarNote) {
+        wh.activated = true;
+        this.shieldTimer = Math.max(this.shieldTimer, 0.55);
+        this.overdriveTimer = Math.max(this.overdriveTimer, 1.5);
+        this.vocalStreamContrailTimer = Math.max(this.vocalStreamContrailTimer || 0, 4.5);
+        const chargeRate = hasTwoFingers ? 0.55 : 0.45;
+        wh.holdProgress = Math.min(1.0, (wh.holdProgress || 0) + dt * chargeRate);
 
-          // 100% Hold Completion: Explosive Visual Flourish + Melodic Starfall Cascade & Instant Clear!
-          if (wh.holdProgress >= 1.0 && !wh.tailCompleted) {
-            wh.tailCompleted = true;
-            const bonusPts = Math.round(500 * Math.max(1, this.combo) * diffMult);
-            this.score += bonusPts;
-            this.combo = Math.min(8, this.combo + 1);
-            if (this.combo > this.maxComboRun) this.maxComboRun = this.combo;
-            this.screenShake = Math.max(this.screenShake, 12);
-            this.playSfx("powerup", 0.85);
-            this.triggerHaptic([35]);
-            this.spawnMelodicStarfallCascade();
-            this.shockwaves.push({
-              x: leftPt.x,
-              y: leftPt.y,
-              radius: 12,
-              maxRadius: 240,
-              color: [56, 189, 248],
-              alpha: 1
-            });
-            this.shockwaves.push({
-              x: rightPt.x,
-              y: rightPt.y,
-              radius: 12,
-              maxRadius: 240,
-              color: [250, 204, 21],
-              alpha: 1
-            });
-            this.floatingTexts.push({
-              x: (leftPt.x + rightPt.x) * 0.5,
-              y: leftPt.y - 52,
-              text: `★ VOCAL HARMONY MASTERED! +${bonusPts} ★`,
-              color: [250, 204, 21],
-              alpha: 1,
-              age: 0
-            });
-            this.wormholes.splice(i, 1);
-          }
+        if (wh.holdProgress >= 1.0 && !wh.tailCompleted) {
+          wh.tailCompleted = true;
+          const bonusPts = Math.round(500 * Math.max(1, this.combo) * diffMult);
+          this.score += bonusPts;
+          this.combo = Math.min(8, this.combo + 1);
+          if (this.combo > this.maxComboRun) this.maxComboRun = this.combo;
+          this.screenShake = Math.max(this.screenShake, 12);
+          this.playSfx("powerup", 0.88);
+          this.triggerHaptic([35]); // ONE single finale celebration feel!
+          this.spawnMelodicStarfallCascade();
+          this.shockwaves.push({
+            x: leftPt.x,
+            y: leftPt.y,
+            radius: 12,
+            maxRadius: 240,
+            color: [56, 189, 248],
+            alpha: 1
+          });
+          this.shockwaves.push({
+            x: rightPt.x,
+            y: rightPt.y,
+            radius: 12,
+            maxRadius: 240,
+            color: [250, 204, 21],
+            alpha: 1
+          });
+          this.floatingTexts.push({
+            x: midPt.x,
+            y: midPt.y - 52,
+            text: `★ 5-STAR VOCAL POWER MASTERED! +${bonusPts} ★`,
+            color: [250, 204, 21],
+            alpha: 1,
+            age: 0
+          });
+          this.wormholes.splice(i, 1);
         }
       }
     }
@@ -790,15 +781,9 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       const ttlGraceSec = Math.max(0.45, beatPeriod * 0.92);
       expireBeatSec = targetBeatSec + ttlGraceSec;
     } else {
-      // Original Free-Roam Cosmic Stage: Orbs spawn across the open playfield (or in flowing S-curve streams during "ooooh" vocal parts)
-      // and stay on screen for a full 8 BEATS!
-      let normX = Math.max(0.13, Math.min(0.87, cue.normX || 0.5));
-      let normY = Math.max(0.18, Math.min(0.76, cue.normY || 0.45));
-      if (isVocalStream) {
-        const streamPhase = seqIdx * 0.52;
-        normX = Math.max(0.15, Math.min(0.85, 0.5 + 0.32 * Math.sin(streamPhase)));
-        normY = Math.max(0.20, Math.min(0.74, 0.44 + 0.22 * Math.cos(streamPhase * 0.75)));
-      }
+      // Original Free-Roam Cosmic Stage: Clean standalone orbs at their natural stage positions for a full 8 BEATS!
+      const normX = Math.max(0.14, Math.min(0.86, cue.normX || 0.5));
+      const normY = Math.max(0.18, Math.min(0.75, cue.normY || 0.45));
       startX = normX * this.W;
       startY = normY * this.H;
       receptorX = startX;

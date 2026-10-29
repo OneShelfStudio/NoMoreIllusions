@@ -150,7 +150,8 @@ fun GamePlayfieldCanvas(
                 drawWormholes(
                     wormholes = wormholes,
                     time = gameTime,
-                    beatPhase = beatPhase
+                    beatPhase = beatPhase,
+                    isBandHeroMode = isBandHeroMode
                 )
                 drawOrbitalPhenomenonAndSatellites(
                     player = player,

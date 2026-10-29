@@ -1096,7 +1096,7 @@ class NoMoreIllusionsApp {
       const isStreamContrail = this.vocalStreamContrailTimer > 0 ||
         this.multiBandState.vocal >= 0.44 ||
         (this.multiBandState.bassDropOut && this.multiBandState.vocal >= 0.32);
-      drawWormholes(ctx, this.wormholes, this.time, this.beatPulse);
+      drawWormholes(ctx, this.wormholes, this.time, this.beatPulse, this.isBandHeroMode);
       drawOrbitalPhenomenonAndSatellites(ctx, this.orbitalPhenomenon, this.satellites, this.time, this.beatPulse, this.multiBandState.vocal);
       drawMotes(ctx, this.motes);
       drawPlayerTrail(ctx, this.trailPoints, this.trailLength, this.prefs.selectedTrail, isStreamContrail);
