@@ -10,7 +10,7 @@
   <title>No More Illusions — Interactive Album Experience</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="apple-touch-icon" href="assets/nmi_logo.png" />
-  <link rel="stylesheet" href="styles.css?v=28" />
+  <link rel="stylesheet" href="styles.css?v=29" />
   <meta name="google-adsense-account" content="ca-pub-7651037308656903" />
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7651037308656903" data-ad-client="ca-pub-7651037308656903" data-ad-frequency-hint="30s" crossorigin="anonymous"></script>
   <script>
@@ -113,53 +113,26 @@
   </div>
 
   <!-- ======================================================================
-       2. IN-GAME HUD OVERLAY (1:1 Port of GameHUD.kt & TrackRevealOverlay.kt)
+       2. ULTRA-CLEAN IN-GAME HUD OVERLAY (< 6% Screen Footprint — Zero Boxes & Zero Popups!)
        ====================================================================== -->
   <div id="screen-PLAYING" class="screen-overlay">
-    <div class="hud-top-row">
-      <div class="hud-left-stack">
-        <div class="hud-score-chip">
-          <span class="hud-chip-label">RESONANCE</span>
+    <div style="width:100%;display:flex;flex-direction:column;gap:6px;pointer-events:none;">
+      <div style="width:100%;height:3px;border-radius:4px;background:rgba(255,255,255,0.12);overflow:hidden;">
+        <div id="hud-top-progress-fill" style="width:0%;height:100%;background:linear-gradient(90deg,#38BDF8,#FACC15);"></div>
+      </div>
+      <div class="hud-top-row">
+        <div style="display:flex;align-items:baseline;gap:8px;pointer-events:none;">
           <span id="hud-score-val" class="hud-chip-val">0</span>
-        </div>
-        <div class="hud-sub-pills">
-          <div id="hud-phase-val" class="hud-phase-pill">PHASE 1</div>
-          <div id="hud-combo-chip" class="hud-combo-pill"><span id="hud-combo-val">COMBO x2</span></div>
-        </div>
-        <div id="hud-powerup-badges" class="hud-pu-row"></div>
-      </div>
-
-      <div class="hud-right-group">
-        <!-- Progressive 16-Tile Album Artwork Unveil Card -->
-        <div class="track-reveal-card">
-          <div class="reveal-canvas-wrap">
-            <canvas id="hud-reveal-canvas" width="76" height="76"></canvas>
-            <div id="hud-reveal-pct" class="reveal-pct-pill">0%</div>
-          </div>
-          <div id="hud-track-title" class="reveal-track-name">CONFIDE</div>
-          <div id="hud-track-rem" class="reveal-track-rem">-2:59 LEFT</div>
+          <span id="hud-combo-chip" style="display:none;font-size:14px;font-weight:900;color:#FACC15;text-shadow:0 2px 5px rgba(0,0,0,0.85);"><span id="hud-combo-val">x2</span></span>
+          <span id="hud-powerup-badges" style="display:inline-flex;align-items:center;gap:6px;font-size:13px;"></span>
         </div>
 
-        <button class="btn-pause-icon" onclick="window.app.pauseGame()" title="Pause">
-          <img src="assets/btn_icon_pause.png" alt="Pause" />
-        </button>
-      </div>
-    </div>
-
-    <div id="hud-choreo-banner">
-      <div id="hud-choreo-title">VERSE GROOVE</div>
-      <div id="hud-choreo-sub">126 BPM PULSE LOCK</div>
-    </div>
-
-    <div id="hud-pickup-toast">
-      <div class="toast-row">
-        <div id="hud-toast-icon">💥</div>
-        <div>
-          <div id="hud-toast-title">NOVA BLAST!</div>
-          <div id="hud-toast-sub" style="color:#F97316;">ENEMIES VAPORIZED</div>
+        <div class="hud-right-group">
+          <button class="btn-pause-icon" onclick="window.app.pauseGame()" title="Pause">
+            <img src="assets/btn_icon_pause.png" alt="Pause" />
+          </button>
         </div>
       </div>
-      <div class="toast-bar-bg"><div id="hud-toast-bar"></div></div>
     </div>
   </div>
 
@@ -578,19 +551,19 @@
     </div>
   </div>
 
-  <script src="multi_band_data.js?v=28"></script>
-  <script src="music_library.js?v=28"></script>
-  <script src="background_renderer.js?v=28"></script>
-  <script src="beat_orb_renderer.js?v=28"></script>
-  <script src="game_renderer.js?v=28"></script>
-  <script src="engine.js?v=28"></script>
-  <script src="audio_synth.js?v=28"></script>
-  <script src="game_physics.js?v=28"></script>
-  <script src="ui_screens.js?v=28"></script>
-  <script src="tutorial_overlay.js?v=28"></script>
+  <script src="multi_band_data.js?v=29"></script>
+  <script src="music_library.js?v=29"></script>
+  <script src="background_renderer.js?v=29"></script>
+  <script src="beat_orb_renderer.js?v=29"></script>
+  <script src="game_renderer.js?v=29"></script>
+  <script src="engine.js?v=29"></script>
+  <script src="audio_synth.js?v=29"></script>
+  <script src="game_physics.js?v=29"></script>
+  <script src="ui_screens.js?v=29"></script>
+  <script src="tutorial_overlay.js?v=29"></script>
   <script>
     (function () {
-      const CURRENT_WEB_BUILD = "nmi-v28-live";
+      const CURRENT_WEB_BUILD = "nmi-v29-live";
       if ("serviceWorker" in navigator) {
         let refreshing = false;
         navigator.serviceWorker.addEventListener("controllerchange", () => {

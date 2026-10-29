@@ -109,59 +109,54 @@ Object.assign(NoMoreIllusionsApp.prototype, {
     if (this.trailLength < maxTrailCap) this.trailLength++;
     else if (this.trailLength > maxTrailCap) this.trailLength = Math.max(maxTrailCap, this.trailLength - 1);
 
-    // 1. Dual-Mode Note Spawner: Clean Original Free-Roam Cosmic Stage (Max 7 standalone orbs, 8-Beat Window) OR Band Hero Highway!
+    // 1. Dual-Mode Note Spawner: Clean Open-Stage Flow (5–6 spaced pegs, 8-Beat Window + Fluid Choreography) OR Band Hero Highway!
     const chart = stage.orbChart;
     const isBandHero = Boolean(this.isBandHeroMode);
-    const maxActiveOrbs = isBandHero ? 10 : 7;
+    const isFluidMoment =
+      (this.multiBandState.vocal >= 0.43) ||
+      (this.multiBandState.bassDropOut && this.multiBandState.vocal >= 0.30) ||
+      Boolean(this.multiBandState.isClimax) ||
+      (this.multiBandState.swellDelta >= 0.08);
+    const maxActiveOrbs = isBandHero ? 9 : (isFluidMoment ? 6 : 5);
     const spawnLeadTime = isBandHero
       ? Math.max(1.75, Math.min(2.35, beatPeriod * 3.8))
       : Math.max(0.85, Math.min(1.50, beatPeriod * 2.5));
-    if (isBandHero && this.wormholes && this.wormholes.length > 0) {
-      // Preserve mid-flight highway pegs so notes NEVER vanish on the way down; only pause new spawns at the horizon!
-      while (
-        this.nextBeatCueIndex < chart.length &&
-        (chart[this.nextBeatCueIndex].timestampSec || chart[this.nextBeatCueIndex].timeSec) <= this.trackElapsedSec + spawnLeadTime
-      ) {
-        this.nextBeatCueIndex++;
+    const isTrainingEasy = mode.id === "CHILL" || mode.id === "SLOWED" || this.prefs.difficulty === "EASY";
+    while (
+      this.nextBeatCueIndex < chart.length &&
+      this.powerUps.length < maxActiveOrbs &&
+      (chart[this.nextBeatCueIndex].timestampSec || chart[this.nextBeatCueIndex].timeSec) <= this.trackElapsedSec + spawnLeadTime
+    ) {
+      const cue = chart[this.nextBeatCueIndex];
+      this.nextBeatCueIndex++;
+      if (isTrainingEasy && cue.sequenceIndex % 3 === 2 && !cue.isGoldenCue && (!cue.powerUpType || cue.powerUpType === "SCORE_ORB")) {
+        continue;
       }
-    } else {
-      const isTrainingEasy = mode.id === "CHILL" || mode.id === "SLOWED" || this.prefs.difficulty === "EASY";
-      while (
-        this.nextBeatCueIndex < chart.length &&
-        this.powerUps.length < maxActiveOrbs &&
-        (chart[this.nextBeatCueIndex].timestampSec || chart[this.nextBeatCueIndex].timeSec) <= this.trackElapsedSec + spawnLeadTime
-      ) {
-        const cue = chart[this.nextBeatCueIndex];
-        this.nextBeatCueIndex++;
-        if (isTrainingEasy && cue.sequenceIndex % 3 === 2 && !cue.isGoldenCue && (!cue.powerUpType || cue.powerUpType === "SCORE_ORB")) {
-          continue;
-        }
-        this.spawnChartedOrb(cue, beatPeriod);
+      this.spawnChartedOrb(cue, beatPeriod);
 
-        // Only fill wide highway gaps in Band Hero mode so Original Free-Roam mode stays clean and uncluttered!
-        if (isBandHero && !isTrainingEasy && this.nextBeatCueIndex < chart.length && this.powerUps.length < maxActiveOrbs - 1) {
-          const nextCue = chart[this.nextBeatCueIndex];
-          const curT = cue.timestampSec || cue.timeSec || this.trackElapsedSec;
-          const nextT = nextCue.timestampSec || nextCue.timeSec || (curT + 1.0);
-          const gapSec = nextT - curT;
-          const fullBeat = Math.max(0.35, beatPeriod);
+      // Only fill wide highway gaps in Band Hero mode so Original Free-Roam mode stays clean and uncluttered!
+      if (isBandHero && !isTrainingEasy && this.nextBeatCueIndex < chart.length && this.powerUps.length < maxActiveOrbs - 1) {
+        const nextCue = chart[this.nextBeatCueIndex];
+        const curT = cue.timestampSec || cue.timeSec || this.trackElapsedSec;
+        const nextT = nextCue.timestampSec || nextCue.timeSec || (curT + 1.0);
+        const gapSec = nextT - curT;
+        const fullBeat = Math.max(0.35, beatPeriod);
 
-          if (gapSec >= fullBeat * 1.85 && gapSec <= 2.80) {
-            const snappedMidT = Math.round((curT + gapSec * 0.5) / fullBeat) * fullBeat;
-            if (Math.abs(snappedMidT - curT) >= fullBeat * 0.85 && Math.abs(snappedMidT - nextT) >= fullBeat * 0.85) {
-              const curLane = Math.max(0, Math.min(3, Math.floor(((cue.normX || 0.5) - 0.14) / 0.18 + 0.5)));
-              const midLane = (curLane + 1) % 4;
-              this.spawnChartedOrb({
-                timestampSec: snappedMidT,
-                normX: 0.14 + midLane * 0.18,
-                normY: 0.65,
-                sequenceIndex: (cue.sequenceIndex || 1) + 1000,
-                phraseBeatNum: midLane + 1,
-                powerUpType: "SCORE_ORB",
-                keyWordEffect: "NONE",
-                isGoldenCue: false
-              }, beatPeriod);
-            }
+        if (gapSec >= fullBeat * 1.85 && gapSec <= 2.80) {
+          const snappedMidT = Math.round((curT + gapSec * 0.5) / fullBeat) * fullBeat;
+          if (Math.abs(snappedMidT - curT) >= fullBeat * 0.85 && Math.abs(snappedMidT - nextT) >= fullBeat * 0.85) {
+            const curLane = Math.max(0, Math.min(3, Math.floor(((cue.normX || 0.5) - 0.14) / 0.18 + 0.5)));
+            const midLane = (curLane + 1) % 4;
+            this.spawnChartedOrb({
+              timestampSec: snappedMidT,
+              normX: 0.14 + midLane * 0.18,
+              normY: 0.65,
+              sequenceIndex: (cue.sequenceIndex || 1) + 1000,
+              phraseBeatNum: midLane + 1,
+              powerUpType: "SCORE_ORB",
+              keyWordEffect: "NONE",
+              isGoldenCue: false
+            }, beatPeriod);
           }
         }
       }
@@ -178,55 +173,26 @@ Object.assign(NoMoreIllusionsApp.prototype, {
     const activeSecTime = activeSec.timeSec ?? activeSec.t ?? 0;
     if (activeSecTime !== this.lastTriggeredSectionTime) {
       this.lastTriggeredSectionTime = activeSecTime;
-      this.choreoBannerText = activeSec.title;
-      this.choreoBannerSubtext = activeSec.subtitle;
-      this.choreoBannerTimer = 2.8;
+      this.choreoBannerTimer = 0;
 
       // If entering a Hook Vocal Float, Pre-Drop Hush, or Victory Outro, dissolve all active enemies into stardust!
-      // Never clear `this.wormholes` here so active 2-Finger Vocal Sustain Holds remain intact during vocal floats!
       if (activeSec.clearEnemiesOnEnter) {
         this.telegraphs = [];
         this.orbitalPhenomenon = null;
         this.satellites = [];
         for (let eIdx = 0; eIdx < this.enemies.length; eIdx++) {
           const en = this.enemies[eIdx];
-          this.spawnBurstMotes(en.x, en.y, [56, 189, 248], 10);
+          this.spawnBurstMotes(en.x, en.y, [56, 189, 248], 8);
           this.shockwaves.push({
             x: en.x,
             y: en.y,
             radius: 6,
-            maxRadius: 90,
+            maxRadius: 80,
             color: [56, 189, 248],
             alpha: 1
           });
         }
         this.enemies = [];
-      }
-
-      // Guarantee ONE Band-Hero 5-Star Vocal Power Long Note spawns when entering long flowy Vocal Float / Swell sections ("ooh / aaah" moments)!
-      const secTitleUpper = ((activeSec.title || "") + " " + (activeSec.subtitle || "")).toUpperCase();
-      if (
-        this.wormholes.length === 0 &&
-        activeSecTime > 18 &&
-        (secTitleUpper.includes("VOCAL") || secTitleUpper.includes("SWELL") || secTitleUpper.includes("BREATHER"))
-      ) {
-        this.wormholes.push({
-          ax: this.W * 0.20,
-          ay: this.H * 0.50,
-          bx: this.W * 0.80,
-          by: this.H * 0.42,
-          ctrlX: this.W * 0.50,
-          ctrlY: this.H * 0.44,
-          startLane: 0,
-          endLane: 3,
-          holdProgress: 0,
-          activated: false,
-          radius: 42,
-          age: 0,
-          maxLifetime: 6.5,
-          teleportCooldown: 0,
-          tailCompleted: false
-        });
       }
 
       if (activeSec.effectType === "CONSTELLATION_RUSH") {
@@ -238,74 +204,25 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       } else if (activeSec.effectType === "OVERDRIVE_DROP") {
         this.overdriveTimer = Math.max(this.overdriveTimer, 4.5);
       }
-
-      if (activeSec.juiceTier === "EXTRA_JUICE") {
-        this.screenShake = Math.max(this.screenShake, 10);
-        this.shockwaves.push({
-          x: this.W / 2,
-          y: this.H / 2,
-          radius: 15,
-          maxRadius: Math.max(this.W, this.H) * 0.78,
-          color: [250, 204, 21],
-          alpha: 1
-        });
-      } else if (activeSecTime > 0) {
-        this.shockwaves.push({
-          x: this.W / 2,
-          y: this.H / 2,
-          radius: 12,
-          maxRadius: Math.max(this.W, this.H) * 0.45,
-          color: [56, 189, 248],
-          alpha: 1
-        });
-      }
     }
 
     // 808 Sub-Bass Heartbeat Pulse during Confide's 3:21–3:27.5 Breakdown
-    if (this.selectedStageIndex === 0 && this.trackElapsedSec >= 201.0 && this.trackElapsedSec <= 207.5 && beatPhase <= 0.14 && this.shockwaves.length < 6) {
-      this.screenShake = Math.max(this.screenShake, 5);
+    if (this.selectedStageIndex === 0 && this.trackElapsedSec >= 201.0 && this.trackElapsedSec <= 207.5 && beatPhase <= 0.14 && this.shockwaves.length < 4) {
       this.shockwaves.push({
         x: this.W / 2,
-        y: this.H * 0.46,
+        y: this.H * 0.48,
         radius: 14,
-        maxRadius: Math.max(this.W, this.H) * 0.62,
+        maxRadius: Math.max(this.W, this.H) * 0.45,
         color: [250, 204, 21],
         alpha: 1
       });
     }
 
-    // 3. Simplified Pickups (Fret Beat Notes, ★ 4X STAR, 💥 BOMB, 🛡️ SHIELD) arrive via the beat highway chart
+    // 3. Simplified Pickups (Beat Pegs, ★ 4X STAR, 💥 BOMB, 🛡️ SHIELD) arrive via the beat chart
 
-    // 4. One Single Band-Hero 5-Star Vocal Power Long Note Spawner (Both Original & Band Hero Modes on "Oooooh / Aaaah" Swells!)
-    if (activeSec.allowAnomalies || (this.multiBandState.bassDropOut && this.multiBandState.vocal >= 0.36) || this.multiBandState.vocal >= 0.48) {
-      this.wormholeSpawnTimer += dt;
-      const isVocalSwellMoment = (this.multiBandState.vocal >= 0.45) || (this.multiBandState.swellDelta >= 0.12) || (this.multiBandState.bassDropOut && this.multiBandState.vocal >= 0.36);
-      if (this.wormholeSpawnTimer >= 15.0 && this.wormholes.length === 0 && isVocalSwellMoment) {
-        this.wormholeSpawnTimer = 0;
-        const startLane = 0;
-        const endLane = 3;
-
-        this.wormholes.push({
-          ax: this.W * 0.20,
-          ay: this.H * 0.50,
-          bx: this.W * 0.80,
-          by: this.H * 0.42,
-          ctrlX: this.W * 0.50,
-          ctrlY: this.H * 0.44,
-          startLane,
-          endLane,
-          holdProgress: 0,
-          activated: false,
-          radius: 42,
-          age: 0,
-          maxLifetime: 6.5,
-          teleportCooldown: 0,
-          tailCompleted: false
-        });
-      }
-    }
-
-    // 5. Clear legacy hazardous satellites so rhythm stays front-and-center
+    // 4 & 5. Clear legacy hazardous satellites & stuck slide ribbons so open stage stays 100% clean
+    this.wormholes = [];
+    this.activeWormholeSlide = null;
     this.orbitalPhenomenon = null;
     this.satellites = [];
 
@@ -364,123 +281,11 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       }
     }
 
-    // 7. V10.1 One Single Band-Hero 5-Star Vocal Power Long Note Activation (Zero Repeated Buzzes!)
+    // 7. v11 Clean Open-Stage Flow: Swooping slide ribbons completely disabled so nothing ever gets stuck!
+    this.wormholes = [];
     this.activeWormholeSlide = null;
-    for (let i = this.wormholes.length - 1; i >= 0; i--) {
-      const wh = this.wormholes[i];
-      wh.age += dt;
-      if (wh.age >= (wh.activated ? 7.5 : wh.maxLifetime)) {
-        this.wormholes.splice(i, 1);
-        continue;
-      }
 
-      const travelU = Math.min(1.0, wh.age / 1.5);
-      if (travelU < 0.25) continue;
-
-      const sLane = typeof wh.startLane === "number" ? wh.startLane : 0;
-      const eLane = typeof wh.endLane === "number" ? wh.endLane : 3;
-      const leftPt = (this.isBandHeroMode && typeof this.computeHighwayPoint === "function")
-        ? this.computeHighwayPoint(sLane, travelU, this.W, this.H)
-        : { x: this.W * 0.20, y: this.H * 0.50 };
-      const rightPt = (this.isBandHeroMode && typeof this.computeHighwayPoint === "function")
-        ? this.computeHighwayPoint(eLane, travelU, this.W, this.H)
-        : { x: this.W * 0.80, y: this.H * 0.42 };
-      const midPt = { x: (leftPt.x + rightPt.x) * 0.5, y: (leftPt.y + rightPt.y) * 0.5 };
-
-      wh.ax = leftPt.x;
-      wh.ay = leftPt.y;
-      wh.bx = rightPt.x;
-      wh.by = rightPt.y;
-      wh.ctrlX = midPt.x;
-      wh.ctrlY = midPt.y;
-
-      const dLeft = Math.hypot(this.playerX - leftPt.x, this.playerY - leftPt.y);
-      const dMid = Math.hypot(this.playerX - midPt.x, this.playerY - midPt.y);
-      const dRight = Math.hypot(this.playerX - rightPt.x, this.playerY - rightPt.y);
-      const hasTwoFingers = Boolean(this.secondPlayerPos);
-      const isTouchingStarNote = hasTwoFingers || Math.min(dLeft, dMid, dRight) <= 125;
-
-      // 1. Single One-Shot Star Power Activation on Touch (Zero repeated buzzing!)
-      if (!wh.activated && isTouchingStarNote) {
-        wh.activated = true;
-        this.shieldTimer = Math.max(this.shieldTimer, 2.5);
-        this.overdriveTimer = Math.max(this.overdriveTimer, 6.5);
-        this.constellationRushTimer = Math.max(this.constellationRushTimer, 6.5);
-        this.vocalStreamContrailTimer = Math.max(this.vocalStreamContrailTimer || 0, 6.5);
-        this.playSfx("powerup", 0.82);
-        this.triggerHaptic([26]); // ONE single clean activation feel!
-        const actPts = Math.round(250 * Math.max(1, this.combo) * diffMult);
-        this.score += actPts;
-        this.comboTimer = 5.0;
-        this.spawnBurstMotes(leftPt.x, leftPt.y, [250, 204, 21], 14);
-        this.shockwaves.push({
-          x: this.playerX,
-          y: this.playerY,
-          radius: 12,
-          maxRadius: 260,
-          color: [250, 204, 21],
-          alpha: 1
-        });
-        this.floatingTexts.push({
-          x: midPt.x,
-          y: midPt.y - 40,
-          text: `★ 5-STAR VOCAL POWER ACTIVATED! +${actPts} ★`,
-          color: [250, 204, 21],
-          alpha: 1,
-          age: 0
-        });
-        this.showToast("★", "5-STAR VOCAL POWER!", "STAR POWER OVERDRIVE + NEON CONTRAIL ACTIVE", "#FACC15", 2.6);
-      }
-
-      // 2. Smooth Continuous Long-Note Wave Progression (Zero repeated buzzes!)
-      if (wh.activated || isTouchingStarNote) {
-        wh.activated = true;
-        this.shieldTimer = Math.max(this.shieldTimer, 0.55);
-        this.overdriveTimer = Math.max(this.overdriveTimer, 1.5);
-        this.vocalStreamContrailTimer = Math.max(this.vocalStreamContrailTimer || 0, 4.5);
-        const chargeRate = hasTwoFingers ? 0.55 : 0.45;
-        wh.holdProgress = Math.min(1.0, (wh.holdProgress || 0) + dt * chargeRate);
-
-        if (wh.holdProgress >= 1.0 && !wh.tailCompleted) {
-          wh.tailCompleted = true;
-          const bonusPts = Math.round(500 * Math.max(1, this.combo) * diffMult);
-          this.score += bonusPts;
-          this.combo = Math.min(8, this.combo + 1);
-          if (this.combo > this.maxComboRun) this.maxComboRun = this.combo;
-          this.screenShake = Math.max(this.screenShake, 12);
-          this.playSfx("powerup", 0.88);
-          this.triggerHaptic([35]); // ONE single finale celebration feel!
-          this.spawnMelodicStarfallCascade();
-          this.shockwaves.push({
-            x: leftPt.x,
-            y: leftPt.y,
-            radius: 12,
-            maxRadius: 240,
-            color: [56, 189, 248],
-            alpha: 1
-          });
-          this.shockwaves.push({
-            x: rightPt.x,
-            y: rightPt.y,
-            radius: 12,
-            maxRadius: 240,
-            color: [250, 204, 21],
-            alpha: 1
-          });
-          this.floatingTexts.push({
-            x: midPt.x,
-            y: midPt.y - 52,
-            text: `★ 5-STAR VOCAL POWER MASTERED! +${bonusPts} ★`,
-            color: [250, 204, 21],
-            alpha: 1,
-            age: 0
-          });
-          this.wormholes.splice(i, 1);
-        }
-      }
-    }
-
-    // 8. Update Beat Notes (Original Free-Roam 8-Beat Stage OR Band-Hero 4-Lane Highway)
+    // 8. Update Beat Notes (Original Open-Stage Flow + 3 Choreographed Fluid Peg Motions OR Band-Hero 4-Lane Highway)
     for (let i = this.powerUps.length - 1; i >= 0; i--) {
       const pu = this.powerUps[i];
       pu.age += worldDt;
@@ -495,47 +300,100 @@ Object.assign(NoMoreIllusionsApp.prototype, {
         pu.y = pt.y;
         pu.targetX = pt.x;
         pu.targetY = this.H * 0.65;
-      } else {
-        // Original Free-Roam Stage: Orbs hover around their open-stage coordinates for 8 full beats!
-        const hoverPhase = this.time * 2.2 + (pu.sequenceIndex || 0) * 0.55;
-        pu.x = Math.max(36, Math.min(this.W - 36, (pu.targetX || pu.x) + Math.cos(hoverPhase) * 6.5));
-        pu.y = Math.max(54, Math.min(this.H * 0.84, (pu.targetY || pu.y) + Math.sin(hoverPhase * 1.15) * 6.5));
       }
 
       // Check expiration: in Band Hero mode when u > 1.24; in Original mode after the 8-beat window (expireBeatSec)
       const isExpiredByTtl = (this.isBandHeroMode && u > 1.24) || (pu.expireBeatSec > 0 && this.trackElapsedSec > pu.expireBeatSec);
       if (isExpiredByTtl || pu.age >= pu.maxLifetime) {
-        if (isExpiredByTtl) {
-          // Missed beat note past the Strike Line: ONLY reset combo (never damages player or ends run!)
-          const prevCombo = this.combo;
+        if (isExpiredByTtl && this.isBandHeroMode) {
+          // Missed beat note past the Strike Line: ONLY quietly reset combo (zero screen clutter or popups!)
           if (this.combo > 1) this.combo = 1;
           this.comboTimer = 0;
-          const hadStreak = prevCombo >= 3;
-          if (hadStreak) {
-            this.screenShake = Math.max(this.screenShake, 8);
-            this.triggerHaptic([35]);
-          }
-          this.shockwaves.push({
-            x: pu.x,
-            y: Math.min(this.H * 0.72, pu.y),
-            radius: 8,
-            maxRadius: hadStreak ? 145 : 68,
-            color: [251, 113, 133],
-            alpha: 1
-          });
-          this.floatingTexts.push({
-            x: pu.x,
-            y: Math.min(this.H * 0.70, pu.y - 12),
-            text: hadStreak ? `💔 STREAK BROKEN! (WAS x${prevCombo})` : "MISS • COMBO RESET",
-            color: [251, 113, 133],
-            alpha: 1,
-            age: 0
-          });
         }
         this.powerUps.splice(i, 1);
         continue;
       }
+    }
 
+    // Choreographed Fluid Peg Formations + Continuous Soft Anti-Overlap Repulsion Pass (Original Open Stage)
+    if (!this.isBandHeroMode && this.powerUps.length > 0) {
+      const total = Math.max(1, this.powerUps.length);
+      const minDim = Math.min(this.W, this.H);
+      let dominantFluidMode = 0;
+      for (let k = 0; k < this.powerUps.length; k++) {
+        if ((this.powerUps[k].fluidMode || 0) > dominantFluidMode) {
+          dominantFluidMode = this.powerUps[k].fluidMode || 0;
+        }
+      }
+      if (isFluidMoment && dominantFluidMode === 0) {
+        dominantFluidMode = (Math.floor(this.trackElapsedSec / 16) % 3) + 1;
+      }
+
+      const frameScale = Math.max(0.5, Math.min(2.2, worldDt * 60));
+      for (let idx = 0; idx < this.powerUps.length; idx++) {
+        const pu = this.powerUps[idx];
+        const modeTag = dominantFluidMode > 0 ? dominantFluidMode : (pu.fluidMode || 0);
+        if (modeTag === 2) {
+          // 2: Slow Galactic Spiral — pegs smoothly converge and slowly revolve around open stage center!
+          const theta = this.time * 0.62 + (idx / total) * (Math.PI * 2);
+          const ringR = minDim * (0.26 + 0.04 * Math.sin(this.time * 0.85 + idx * 0.7));
+          const goalX = this.W * 0.50 + Math.cos(theta) * ringR;
+          const goalY = this.H * 0.48 + Math.sin(theta) * ringR;
+          const blend = Math.max(0.015, Math.min(0.18, 0.055 * frameScale));
+          pu.x += (goalX - pu.x) * blend;
+          pu.y += (goalY - pu.y) * blend;
+        } else if (modeTag === 3) {
+          // 3: Flowing Liquid Sine Wave — pegs drift smoothly in a spaced undulating ribbon across the stage!
+          const slotFrac = (idx + 0.5) / total;
+          const goalX = this.W * (0.16 + 0.68 * slotFrac) + Math.sin(this.time * 1.1 + idx) * 18;
+          const goalY = this.H * 0.48 + Math.sin(this.time * 1.55 + slotFrac * Math.PI * 1.8) * (this.H * 0.15);
+          const blend = Math.max(0.015, Math.min(0.18, 0.060 * frameScale));
+          pu.x += (goalX - pu.x) * blend;
+          pu.y += (goalY - pu.y) * blend;
+        } else if (modeTag === 1) {
+          // 1: Outward-Inward Sweeping Glide — pegs glide smoothly inward from the outer screen edges along a curve!
+          const goalX = (pu.targetX || pu.x) + Math.cos(this.time * 1.6 + (pu.phase || 0)) * 16;
+          const goalY = (pu.targetY || pu.y) + Math.sin(this.time * 1.9 + (pu.phase || 0)) * 16;
+          const blend = Math.max(0.015, Math.min(0.20, 0.068 * frameScale));
+          pu.x += (goalX - pu.x) * blend;
+          pu.y += (goalY - pu.y) * blend;
+        } else {
+          // Calm Open-Stage Groove: gentle breathing hover around non-overlapping anchor
+          const goalX = (pu.targetX || pu.x) + Math.cos(this.time * 1.8 + (pu.phase || 0)) * 4.5;
+          const goalY = (pu.targetY || pu.y) + Math.sin(this.time * 2.1 + (pu.phase || 0)) * 4.5;
+          pu.x += (goalX - pu.x) * 0.16;
+          pu.y += (goalY - pu.y) * 0.16;
+        }
+      }
+
+      // Continuous Soft Anti-Overlap Repulsion Pass: guarantees two pegs NEVER stack or touch!
+      const minSep = Math.max(92, Math.min(118, minDim * 0.19));
+      for (let i = 0; i < this.powerUps.length; i++) {
+        for (let j = i + 1; j < this.powerUps.length; j++) {
+          const a = this.powerUps[i];
+          const b = this.powerUps[j];
+          const dx = b.x - a.x;
+          const dy = b.y - a.y;
+          const dist = Math.hypot(dx, dy);
+          if (dist < minSep) {
+            const safeD = Math.max(1, dist);
+            const push = (minSep - safeD) * 0.35;
+            const nx = dist < 1 ? Math.cos(i + j) : dx / safeD;
+            const ny = dist < 1 ? Math.sin(i + j) : dy / safeD;
+            a.x = Math.max(this.W * 0.12, Math.min(this.W * 0.88, a.x - nx * push));
+            a.y = Math.max(this.H * 0.12, Math.min(this.H * 0.85, a.y - ny * push));
+            b.x = Math.max(this.W * 0.12, Math.min(this.W * 0.88, b.x + nx * push));
+            b.y = Math.max(this.H * 0.12, Math.min(this.H * 0.85, b.y + ny * push));
+          }
+        }
+      }
+    }
+
+    // Generous Collection Check for responsive peg catches (Both Primary & Twin Hero can catch pegs!)
+    for (let i = this.powerUps.length - 1; i >= 0; i--) {
+      const pu = this.powerUps[i];
+      const leadTime = Math.max(0.35, (pu.targetBeatSec || 0) - (pu.spawnBeatSec || 0));
+      const u = (this.trackElapsedSec - (pu.spawnBeatSec || 0)) / leadTime;
       const distPrimary = Math.max(1, Math.hypot(this.playerX - pu.x, this.playerY - pu.y));
       const distSecondary = this.secondPlayerPos
         ? Math.max(1, Math.hypot(this.secondPlayerPos.x - pu.x, this.secondPlayerPos.y - pu.y))
@@ -545,7 +403,6 @@ Object.assign(NoMoreIllusionsApp.prototype, {
         : 99999;
       const dist = Math.min(distPrimary, Math.min(distSecondary, distTetherMid));
 
-      // Generous Collection Check for responsive highway note hits (Both Primary & Twin Hero can catch pegs!)
       const collectRadius = this.playerRadius + (pu.type === "SCORE_ORB" ? pu.radius * 1.42 : pu.radius * 1.32);
       if (dist <= collectRadius) {
         this.collectPowerUp(pu, u);
@@ -632,14 +489,13 @@ Object.assign(NoMoreIllusionsApp.prototype, {
           const vapPts = 150 * Math.max(2, this.combo);
           this.score += vapPts;
           this.prefs.points += 4;
-          this.screenShake = Math.max(this.screenShake, 9);
-          this.spawnBurstMotes(e.x, e.y, [250, 204, 21], 16);
-          this.shockwaves.push({ x: e.x, y: e.y, radius: 6, maxRadius: 190, color: [250, 204, 21], alpha: 1 });
-          this.showToast("💥", `ENEMY VAPORIZED! +${vapPts}`, `OVERDRIVE RAMMING ACTIVE (${this.overdriveTimer.toFixed(1)}s)`, "#FACC15", 1.6);
+          this.screenShake = Math.max(this.screenShake, 8);
+          this.spawnBurstMotes(e.x, e.y, [250, 204, 21], 10);
+          this.shockwaves.push({ x: e.x, y: e.y, radius: 6, maxRadius: 150, color: [250, 204, 21], alpha: 1 });
           this.floatingTexts.push({
             x: e.x,
             y: e.y,
-            text: `VAPORIZED! +${vapPts}`,
+            text: `+${vapPts}`,
             color: [250, 204, 21],
             alpha: 1,
             age: 0
@@ -648,23 +504,14 @@ Object.assign(NoMoreIllusionsApp.prototype, {
         } else if (this.shieldTimer > 0) {
           this.playSfx("shield", 0.8);
           this.shieldTimer = 0;
-          this.screenShake = 14;
-          this.showToast("🛡️", "SHIELD ABSORBED HIT!", "PROTECTIVE BARRIER SAVED YOUR RUN", "#38BDF8", 2.0);
+          this.screenShake = 12;
           this.shockwaves.push({
             x: this.playerX,
             y: this.playerY,
             radius: 10,
-            maxRadius: 240,
+            maxRadius: 185,
             color: [56, 189, 248],
             alpha: 1
-          });
-          this.floatingTexts.push({
-            x: this.playerX,
-            y: this.playerY - 30,
-            text: "SHIELD ABSORBED!",
-            color: [56, 189, 248],
-            alpha: 1,
-            age: 0
           });
           this.enemies.splice(i, 1);
         } else {
@@ -690,7 +537,7 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       }
     }
 
-    // 11. Update Particles (with Swaying Melodic Starfall Petals!), Shockwaves & Floating Texts
+    // 11. Update Particles (with Swaying Melodic Starfall Petals!), Shockwaves & Compact Floating Numbers
     for (let i = this.motes.length - 1; i >= 0; i--) {
       const m = this.motes[i];
       if (m.isStarfall) {
@@ -715,12 +562,61 @@ Object.assign(NoMoreIllusionsApp.prototype, {
     for (let i = this.floatingTexts.length - 1; i >= 0; i--) {
       const ft = this.floatingTexts[i];
       ft.age += dt;
-      ft.y -= dt * 42;
-      ft.alpha = Math.max(0, 1 - ft.age / 1.15);
+      ft.y -= dt * 36;
+      ft.alpha = Math.max(0, 1 - ft.age / 0.58);
       if (ft.alpha <= 0) this.floatingTexts.splice(i, 1);
     }
 
     this.updateLiveHUD();
+  },
+
+  // Anti-Overlap Spatial Placement Solver (1:1 with Android resolveNonOverlappingOrbSpot)
+  resolveNonOverlappingOrbSpot(desiredX, desiredY, seedIdx = 0) {
+    const minX = this.W * 0.14;
+    const maxX = this.W * 0.86;
+    const minY = this.H * 0.13;
+    const maxY = this.H * 0.83;
+    const minClearance = Math.max(96, Math.min(132, Math.min(this.W, this.H) * 0.22));
+
+    const minDistToExisting = (cx, cy) => {
+      let best = 99999;
+      for (let i = 0; i < this.powerUps.length; i++) {
+        const o = this.powerUps[i];
+        const dLive = Math.hypot(cx - o.x, cy - o.y);
+        const dTarget = Math.hypot(cx - (o.targetX || o.x), cy - (o.targetY || o.y));
+        best = Math.min(best, dLive, dTarget);
+      }
+      return best;
+    };
+
+    const baseX = Math.max(minX, Math.min(maxX, desiredX));
+    const baseY = Math.max(minY, Math.min(maxY, desiredY));
+    if (this.powerUps.length === 0 || minDistToExisting(baseX, baseY) >= minClearance) {
+      return { x: baseX, y: baseY };
+    }
+
+    let bestSpot = { x: baseX, y: baseY };
+    let bestClearance = minDistToExisting(baseX, baseY);
+    const goldenAngle = 2.3999632;
+    const spanX = Math.max(40, maxX - minX);
+    const spanY = Math.max(40, maxY - minY);
+
+    for (let attempt = 1; attempt <= 16; attempt++) {
+      const theta = (seedIdx * 0.91 + attempt) * goldenAngle;
+      const fracX = 0.5 + 0.44 * Math.cos(theta);
+      const fracY = 0.5 + 0.44 * Math.sin(theta * 1.13 + attempt * 0.37);
+      const candX = Math.max(minX, Math.min(maxX, minX + fracX * spanX));
+      const candY = Math.max(minY, Math.min(maxY, minY + fracY * spanY));
+      const clear = minDistToExisting(candX, candY);
+      if (clear >= minClearance) {
+        return { x: candX, y: candY };
+      }
+      if (clear > bestClearance) {
+        bestClearance = clear;
+        bestSpot = { x: candX, y: candY };
+      }
+    }
+    return bestSpot;
   },
 
   spawnChartedOrb(cue, beatPeriod = 0.48) {
@@ -729,9 +625,8 @@ Object.assign(NoMoreIllusionsApp.prototype, {
     const laneIdx = Math.max(0, Math.min(3, rawLaneIdx));
     const phraseBeatNum = laneIdx + 1;
 
-    // Radical Pickup Simplification:
-    // ONLY 4 unmistakable highway items exist:
-    // 1. Standard Fret Beat Note ("SCORE_ORB" + "NONE")
+    // Radical Pickup Simplification (4 unmistakable items):
+    // 1. Standard Beat Peg ("SCORE_ORB" + "NONE")
     // 2. ★ 4X STAR Note ("SCORE_ORB" + "CONSTELLATION_STAR")
     // 3. 💥 BOMB ("BLAST" - vaporizes all enemies on screen)
     // 4. 🛡️ SHIELD ("SHIELD" - blocks 1 hit)
@@ -752,19 +647,23 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       isSupernova = true;
     }
 
-    // ZERO OVERLAP RULE in Band Hero mode: while a Sustain Slide Ribbon is active on the highway, skip beat pegs
-    if (this.isBandHeroMode && this.wormholes && this.wormholes.length > 0) {
-      return;
-    }
-
     const rawTargetSec = cue.timestampSec || cue.timeSec || (this.trackElapsedSec + 1.9);
     const beatGridStep = Math.max(0.35, beatPeriod);
     const targetBeatSec = Math.round(rawTargetSec / beatGridStep) * beatGridStep;
     const seqIdx = cue.sequenceIndex || (this.powerUps.length + 1);
-    const isVocalStream = Boolean(cue.isVocalStream) ||
-      (this.multiBandState && (this.multiBandState.vocal >= 0.44 || (this.multiBandState.bassDropOut && this.multiBandState.vocal >= 0.30)));
+    const isFluidMoment = Boolean(
+      this.multiBandState && (
+        this.multiBandState.vocal >= 0.43 ||
+        (this.multiBandState.bassDropOut && this.multiBandState.vocal >= 0.30) ||
+        this.multiBandState.isClimax ||
+        this.multiBandState.swellDelta >= 0.08
+      )
+    );
+    const isVocalStream = Boolean(cue.isVocalStream) || isFluidMoment;
 
     let startX, startY, receptorX, receptorY, spawnBeatSec, expireBeatSec;
+    let fluidMode = 0;
+
     if (this.isBandHeroMode) {
       const startPt = typeof this.computeHighwayPoint === "function"
         ? this.computeHighwayPoint(laneIdx, 0, this.W, this.H)
@@ -781,13 +680,23 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       const ttlGraceSec = Math.max(0.45, beatPeriod * 0.92);
       expireBeatSec = targetBeatSec + ttlGraceSec;
     } else {
-      // Original Free-Roam Cosmic Stage: Clean standalone orbs at their natural stage positions for a full 8 BEATS!
+      // Original Open-Stage Flow: Non-overlapping stage positions (X: 14%..86%, Y: 13%..83%) + Fluid Formations!
       const normX = Math.max(0.14, Math.min(0.86, cue.normX || 0.5));
-      const normY = Math.max(0.18, Math.min(0.75, cue.normY || 0.45));
-      startX = normX * this.W;
-      startY = normY * this.H;
-      receptorX = startX;
-      receptorY = startY;
+      const normY = Math.max(0.13, Math.min(0.83, cue.normY || 0.48));
+      const cleanSpot = this.resolveNonOverlappingOrbSpot(normX * this.W, normY * this.H, seqIdx);
+      receptorX = cleanSpot.x;
+      receptorY = cleanSpot.y;
+
+      fluidMode = isFluidMoment ? ((Math.floor(this.trackElapsedSec / 16) % 3) + 1) : 0;
+      if (fluidMode === 1) {
+        // Mode 1 (Outward-Inward Sweeping Glide): spawn just outside left/right edge and smoothly glide onto the stage!
+        startX = receptorX < this.W * 0.5 ? -28 : (this.W + 28);
+        startY = Math.max(this.H * 0.12, Math.min(this.H * 0.84, receptorY + (seqIdx % 2 === 0 ? -60 : 60)));
+      } else {
+        startX = receptorX;
+        startY = receptorY;
+      }
+
       // 8-Beat total on-screen window (2 beats lead + 6 beats hold = 8 beats!)
       spawnBeatSec = targetBeatSec - beatGridStep * 2.0;
       expireBeatSec = targetBeatSec + beatGridStep * 6.0;
@@ -798,6 +707,7 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       y: startY,
       targetX: receptorX,
       targetY: receptorY,
+      fluidMode,
       vx: 0,
       vy: 0,
       speed: 0,
@@ -858,7 +768,7 @@ Object.assign(NoMoreIllusionsApp.prototype, {
   collectPowerUp(pu, uHit = 1.0) {
     if (pu.type === "SCORE_ORB") {
       this.playSfx("orb", 0.72);
-      this.triggerHaptic([18]);
+      this.triggerHaptic([16]);
       this.orbsCollectedRun++;
       const prevCombo = this.combo;
       this.combo = Math.min(8, this.combo + 1);
@@ -874,7 +784,7 @@ Object.assign(NoMoreIllusionsApp.prototype, {
         : Math.max(this.vocalStreamContrailTimer || 0, 2.0);
 
       // Timing Accuracy Check: in Band Hero mode compare against the 65% Strike Line;
-      // in Original 8-Beat mode, hitting on ANY beat pulse triggers ★ PERFECT ON-BEAT!
+      // in Original 8-Beat mode, hitting on ANY beat pulse triggers crisp emerald reward!
       const beatDiff = Math.abs(this.trackElapsedSec - (pu.targetBeatSec || this.trackElapsedSec));
       const strikeY = this.H * 0.65;
       const isAtStrikeLine = this.isBandHeroMode
@@ -886,87 +796,73 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       const pts = Math.max(10, Math.round(basePts * this.combo * (this.constellationRushTimer > 0 ? 2 : 1) * diffMult));
       this.score += pts;
 
-      // Trigger swaying Melodic Starfall Cascade on 6x+ Perfect streak milestones!
-      if (isAtStrikeLine && this.combo >= 6 && this.orbsCollectedRun % 6 === 0) {
+      // Trigger swaying Melodic Starfall Cascade on 8x+ Perfect streak milestones!
+      if (isAtStrikeLine && this.combo >= 6 && this.orbsCollectedRun % 8 === 0) {
         this.spawnMelodicStarfallCascade();
       }
 
-      this.spawnBurstMotes(pu.x, pu.y, isAtStrikeLine ? [74, 222, 128] : [250, 204, 21], 16);
+      this.spawnBurstMotes(pu.x, pu.y, isAtStrikeLine ? [74, 222, 128] : [250, 204, 21], 6);
       this.shockwaves.push({
         x: pu.x,
-        y: isAtStrikeLine ? strikeY : pu.y,
-        radius: 10,
-        maxRadius: isAtStrikeLine ? 165 : 95,
+        y: (this.isBandHeroMode && isAtStrikeLine) ? strikeY : pu.y,
+        radius: 8,
+        maxRadius: isAtStrikeLine ? 115 : 75,
         color: isAtStrikeLine ? [74, 222, 128] : [250, 204, 21],
         alpha: 1
       });
-      const streakBadge = this.combo >= 4 ? `🔥STREAK x${this.combo}` : `x${this.combo}`;
       this.floatingTexts.push({
         x: pu.x,
-        y: pu.y - 20,
-        text: isAtStrikeLine ? `★ PERFECT ON-BEAT! +${pts} (${streakBadge})` : `EARLY +${pts} (${streakBadge})`,
+        y: pu.y - 16,
+        text: `+${pts}`,
         color: isAtStrikeLine ? [74, 222, 128] : [250, 204, 21],
         alpha: 1,
         age: 0
       });
 
-      // ★ 4X STAR Overdrive Note (1:1 with Android GameOrbCollection.kt)
+      // ★ 4X STAR Overdrive Note (1:1 with Android GameOrbCollection.kt — zero banner popups!)
       const eff = pu.keyWordEffect || "NONE";
       if (pu.isSupernova || eff !== "NONE") {
-        this.screenShake = Math.max(this.screenShake, 9);
+        this.screenShake = Math.max(this.screenShake, 7);
         this.overdriveTimer = Math.max(this.overdriveTimer, 8.0);
         this.constellationRushTimer = Math.max(this.constellationRushTimer, 10.0);
         this.spawnMelodicStarfallCascade();
-        this.showToast("★", "STAR POWER OVERDRIVE!", "4X SCORE MULTIPLIER • RAM RED HAZARDS!", "#FACC15", 2.8);
       }
     } else {
       this.playSfx("powerup", 0.8);
-      this.triggerHaptic([30]);
+      this.triggerHaptic([26]);
       let col = [56, 189, 248];
       if (pu.type === "BLAST" || pu.type === "OVERDRIVE") {
         col = [239, 68, 68];
         this.overdriveTimer = Math.max(this.overdriveTimer, 5.5);
-        this.screenShake = Math.max(this.screenShake, 16);
-        let vaporized = 0;
+        this.screenShake = Math.max(this.screenShake, 12);
         for (let k = 0; k < this.enemies.length; k++) {
           const en = this.enemies[k];
-          vaporized++;
           this.score += 150 * Math.max(1, this.combo);
-          this.spawnBurstMotes(en.x, en.y, k % 2 === 0 ? [250, 204, 21] : [239, 68, 68], 12);
-          this.shockwaves.push({ x: en.x, y: en.y, radius: 8, maxRadius: 150, color: [250, 204, 21], alpha: 1 });
+          this.spawnBurstMotes(en.x, en.y, k % 2 === 0 ? [250, 204, 21] : [239, 68, 68], 8);
+          this.shockwaves.push({ x: en.x, y: en.y, radius: 8, maxRadius: 130, color: [250, 204, 21], alpha: 1 });
         }
         this.enemies = [];
         this.telegraphs = [];
-        this.shockwaves.push({ x: pu.x, y: pu.y, radius: 12, maxRadius: 560, color: col, alpha: 1 });
-        this.showToast("💥", "BOMB DETONATED!",
-          vaporized > 0 ? `${vaporized} ENEMIES DESTROYED! (+${vaporized * 150} PTS)` : "ALL HAZARDS CLEARED + 5.5s OVERDRIVE!",
-          "#EF4444", 2.6);
+        this.shockwaves.push({ x: pu.x, y: pu.y, radius: 12, maxRadius: 420, color: col, alpha: 1 });
       } else {
         this.shieldTimer = Math.max(this.shieldTimer, 8.0);
         col = [56, 189, 248];
-        this.showToast("🛡️", "SHIELD ACTIVE!", "BLOCKS NEXT ENEMY HIT • 8.0s BARRIER", "#38BDF8", 2.4);
       }
-      this.spawnBurstMotes(pu.x, pu.y, col, 16);
+      this.spawnBurstMotes(pu.x, pu.y, col, 8);
       this.shockwaves.push({
         x: pu.x,
         y: pu.y,
         radius: 10,
-        maxRadius: 175,
+        maxRadius: 135,
         color: col,
         alpha: 1
       });
     }
   },
 
-  // Candy-Catcher-Style Top-Center Pickup Toast (1:1 with Android GameHUD.kt PowerUpBannerToast)
-  showToast(icon, title, subtitle, accentHex, duration = 2.4) {
-    this.activeToast = { icon, title, subtitle, accent: accentHex, timer: duration, maxTimer: duration };
-    const el = document.getElementById("hud-pickup-toast");
-    if (el) {
-      el.classList.remove("toast-pop");
-      void el.offsetWidth; // restart bounce animation
-      el.classList.add("toast-pop");
-    }
+  // Silenced in v11 so zero popups cover the open stage during gameplay
+  showToast() {
+    this.activeToast = null;
   },
 
   startWormholeSlide(wh, startX, startY, endX, endY) {
