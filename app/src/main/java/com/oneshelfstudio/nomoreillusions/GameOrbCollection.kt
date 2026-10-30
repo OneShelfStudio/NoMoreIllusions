@@ -375,7 +375,7 @@ internal fun spawnStationaryBeatOrbsForFrame(
         multiBand.swellDelta >= 0.08f
     // Rotate cleanly among 3 fluid formations: 101f = Outward-Inward Sweep, 102f = Slow Galactic Spiral, 103f = Flowing Sine Wave
     val fluidFormationTag = if (!isBandHeroMode && isFluidMoment) {
-        when (((trackSec / 16f).toInt()) % 3) {
+        when (maxOf(0f, trackSec / 16f).toInt().mod(3)) {
             0 -> 101f
             1 -> 102f
             else -> 103f

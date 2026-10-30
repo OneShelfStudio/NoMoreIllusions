@@ -8,6 +8,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 class BillingManager(private val context: Context, private val onProductPurchased: (String) -> Unit) {
@@ -46,7 +47,12 @@ class BillingManager(private val context: Context, private val onProductPurchase
                     queryPurchases()
                 }
             }
-            override fun onBillingServiceDisconnected() {}
+            override fun onBillingServiceDisconnected() {
+                scope.launch {
+                    delay(3000)
+                    connectToBilling()
+                }
+            }
         })
     }
 
@@ -98,15 +104,20 @@ class BillingManager(private val context: Context, private val onProductPurchase
                 .build()
             billingClient.launchBillingFlow(activity, billingFlowParams)
         } else {
-            // Demo / Debug fallback when Play Console SKUs are not yet live
-            val label = when {
-                productId == "full_album_unlock" -> "No More Illusions Full Album Unlocked!"
-                productId == "points_10000" -> "+1,000 Pulse Points Added!"
-                productId.startsWith("track_") -> "Track ${productId.removePrefix("track_")} Unlocked!"
-                else -> "Unlocked!"
+            if (BuildConfig.DEBUG) {
+                // Demo / Debug fallback when Play Console SKUs are not yet live
+                val label = when {
+                    productId == "full_album_unlock" -> "No More Illusions Full Album Unlocked!"
+                    productId == "points_10000" -> "+1,000 Pulse Points Added!"
+                    productId.startsWith("track_") -> "Track ${productId.removePrefix("track_")} Unlocked!"
+                    else -> "Unlocked!"
+                }
+                Toast.makeText(activity, "[DEBUG] $label", Toast.LENGTH_SHORT).show()
+                notifyPurchase(productId)
+            } else {
+                Toast.makeText(activity, "Store connection unavailable. Please check your internet connection.", Toast.LENGTH_SHORT).show()
+                connectToBilling()
             }
-            Toast.makeText(activity, label, Toast.LENGTH_SHORT).show()
-            notifyPurchase(productId)
         }
     }
 

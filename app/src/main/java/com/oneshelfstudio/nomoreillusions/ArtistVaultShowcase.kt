@@ -878,7 +878,7 @@ fun ArtistExclusivesSpecialsHub(
                     ) {
                         if (vipCodeInput.isEmpty()) {
                             Text(
-                                text = "ENTER CODE (e.g. ETHAN / CONFIDE)",
+                                text = if (BuildConfig.DEBUG) "ENTER CODE (e.g. ETHAN / CONFIDE)" else "ENTER ARTIST VIP CODE",
                                 color = Color.White.copy(alpha = 0.35f),
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold

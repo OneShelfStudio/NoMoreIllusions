@@ -799,7 +799,7 @@ fun StudioCustomizerSuite(
                     ) {
                         if (passcodeText.isEmpty()) {
                             Text(
-                                text = "ENTER PASSCODE (e.g. ILLUSIONS2026)",
+                                text = if (BuildConfig.DEBUG) "ENTER PASSCODE (e.g. ILLUSIONS2026)" else "ENTER SECRET PASSCODE",
                                 color = Color.White.copy(alpha = 0.35f),
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold
@@ -827,7 +827,7 @@ fun StudioCustomizerSuite(
                     if (passcodeError) {
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
-                            text = "Invalid passcode. Try ILLUSIONS2026 or CONFIDE",
+                            text = if (BuildConfig.DEBUG) "Invalid passcode. Try ILLUSIONS2026 or CONFIDE" else "Invalid passcode. Please check and try again.",
                             color = Color(0xFFFF1E42L),
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold

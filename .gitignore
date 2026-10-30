@@ -16,6 +16,10 @@ captures/
 release/
 *.keystore
 *.jks
+NoMoreIllusionsKey
+*.p12
+*.pfx
+*.pdf
 
 *.hprof
 

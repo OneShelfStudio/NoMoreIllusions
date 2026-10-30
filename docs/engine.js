@@ -399,9 +399,35 @@ class NoMoreIllusionsApp {
       this.previewCanvas.addEventListener("pointercancel", () => { this.previewTouchPos = null; });
     }
 
+    // Auto-pause active run and mute background audio when tab is hidden
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) {
+        if (this.gameState === "PLAYING") {
+          this.pauseGame();
+        }
+        if (this.lobbyAudio && !this.lobbyAudio.paused) {
+          this.lobbyAudio.pause();
+          this._resumeLobbyOnVisible = true;
+        }
+        if (this.demoAudio && !this.demoAudio.paused) {
+          this.demoAudio.pause();
+          this._resumeDemoOnVisible = true;
+        }
+      } else {
+        if (this._resumeLobbyOnVisible && this.gameState === "MENU" && !this.prefs.musicMuted) {
+          this._resumeLobbyOnVisible = false;
+          this.lobbyAudio.play().catch(() => {});
+        }
+        if (this._resumeDemoOnVisible && this.gameState === "DEMO_PLAYER" && !this.prefs.musicMuted) {
+          this._resumeDemoOnVisible = false;
+          this.demoAudio.play().catch(() => {});
+        }
+      }
+    });
+
     // Track Audio Ended -> Track Completed (or Endless Loop Escalation)!
     this.trackAudio.addEventListener("ended", () => {
-      if (this.gameState === "PLAYING") {
+      if (this.gameState === "PLAYING" && !document.hidden) {
         if (this.getRemixMode().id === "ENDLESS") this.advanceEndlessLoop();
         else this.completeStageTrack();
       }
@@ -427,7 +453,7 @@ class NoMoreIllusionsApp {
       this.prefs.seenHowToPlay = true;
       localStorage.setItem("nmi_seen_htp", "true");
     }
-    const shouldLaunch = startImmediately || this.pendingStageLaunch;
+    const shouldLaunch = startImmediately && this.pendingStageLaunch;
     this.pendingStageLaunch = false;
 
     const card = document.getElementById("htp-modal-card");

@@ -1,18 +1,18 @@
-const CACHE_NAME = "nmi-v29-live";
+const CACHE_NAME = "nmi-v30-live";
 const ASSETS = [
   "./",
   "./index.html",
-  "./styles.css?v=29",
-  "./multi_band_data.js?v=29",
-  "./music_library.js?v=29",
-  "./background_renderer.js?v=29",
-  "./beat_orb_renderer.js?v=29",
-  "./game_renderer.js?v=29",
-  "./engine.js?v=29",
-  "./audio_synth.js?v=29",
-  "./game_physics.js?v=29",
-  "./ui_screens.js?v=29",
-  "./tutorial_overlay.js?v=29",
+  "./styles.css?v=30",
+  "./multi_band_data.js?v=30",
+  "./music_library.js?v=30",
+  "./background_renderer.js?v=30",
+  "./beat_orb_renderer.js?v=30",
+  "./game_renderer.js?v=30",
+  "./engine.js?v=30",
+  "./audio_synth.js?v=30",
+  "./game_physics.js?v=30",
+  "./ui_screens.js?v=30",
+  "./tutorial_overlay.js?v=30",
   "./manifest.json",
   "./assets/nmi_logo.png",
   "./assets/mandala_hero_cyber.png",
@@ -53,14 +53,6 @@ self.addEventListener("activate", (event) => {
       )
     )
     .then(() => self.clients.claim())
-    .then(() => self.clients.matchAll({ type: "window" }))
-    .then((clients) => {
-      clients.forEach((client) => {
-        if ("navigate" in client) {
-          client.navigate(client.url).catch(() => {});
-        }
-      });
-    })
   );
 });
 

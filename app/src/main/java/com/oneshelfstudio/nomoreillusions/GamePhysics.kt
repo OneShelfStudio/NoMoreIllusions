@@ -453,17 +453,18 @@ fun stepNebulousBeatOrbs(
     }
 
     if (!isBandHeroMode && powerUps.isNotEmpty()) {
-        val total = powerUps.size.coerceAtLeast(1)
         val minDim = minOf(screenWidth, screenHeight)
-        val dominantFluidMode = powerUps.maxOfOrNull { it.orbitRadius } ?: 0f
 
-        powerUps.forEachIndexed { idx, orb ->
-            val modeTag = if (dominantFluidMode >= 101f) dominantFluidMode else orb.orbitRadius
+        powerUps.forEach { orb ->
+            val modeTag = orb.orbitRadius
+            val stableSlot = (orb.sequenceIndex % 6).toFloat()
+            val slotFrac = (stableSlot + 0.5f) / 6f
+
             when (modeTag) {
                 102f -> {
-                    // Slow Galactic Spiral: all pegs smoothly converge and slowly revolve around open stage center!
-                    val theta = gameTime * 0.62f + (idx.toFloat() / total) * (2f * PI.toFloat())
-                    val ringR = minDim * (0.26f + 0.04f * sin(gameTime * 0.85f + idx * 0.7f))
+                    // Slow Galactic Spiral: pegs smoothly revolve around open stage center on stable spiral arms!
+                    val theta = gameTime * 0.62f + (stableSlot / 6f) * (2f * PI.toFloat())
+                    val ringR = minDim * (0.26f + 0.04f * sin(gameTime * 0.85f + stableSlot * 0.7f))
                     val goalX = screenWidth * 0.50f + cos(theta) * ringR
                     val goalY = screenHeight * 0.48f + sin(theta) * ringR
                     val blend = (0.055f * currentScale).coerceIn(0.01f, 0.18f)
@@ -472,15 +473,14 @@ fun stepNebulousBeatOrbs(
                 }
                 103f -> {
                     // Flowing Liquid Sine Wave: pegs drift smoothly in a spaced undulating ribbon across the open stage!
-                    val slotFrac = (idx + 0.5f) / total.toFloat()
-                    val goalX = screenWidth * (0.16f + 0.68f * slotFrac) + sin(gameTime * 1.1f + idx) * 18f
+                    val goalX = screenWidth * (0.16f + 0.68f * slotFrac) + sin(gameTime * 1.1f + stableSlot) * 18f
                     val goalY = screenHeight * 0.48f + sin(gameTime * 1.55f + slotFrac * PI.toFloat() * 1.8f) * (screenHeight * 0.15f)
                     val blend = (0.060f * currentScale).coerceIn(0.01f, 0.18f)
                     orb.x += (goalX - orb.x) * blend
                     orb.y += (goalY - orb.y) * blend
                 }
                 101f -> {
-                    // Outward-Inward Sweeping Glide: pegs glide smoothly inward from the outer screen edge along a graceful curve!
+                    // Outward-Inward Sweeping Glide: pegs glide smoothly inward from outer screen edge along a graceful curve!
                     val goalX = orb.anchorX + cos(gameTime * 1.6f + orb.phase) * 16f
                     val goalY = orb.anchorY + sin(gameTime * 1.9f + orb.phase) * 16f
                     val blend = (0.068f * currentScale).coerceIn(0.01f, 0.20f)
@@ -498,17 +498,19 @@ fun stepNebulousBeatOrbs(
         }
 
         // Continuous Soft Anti-Overlap Repulsion Pass: guarantees two pegs NEVER stack or overlap!
-        val minSep = (minDim * 0.19f).coerceIn(92f, 118f)
+        val minSep = (minDim * 0.17f).coerceIn(84f, 108f)
         for (i in 0 until powerUps.size) {
             for (j in i + 1 until powerUps.size) {
                 val a = powerUps[i]
                 val b = powerUps[j]
+                // Only repel if both pegs are visibly on stage (preserves outer edge spawn gliding)
+                if (a.x < 0f || a.x > screenWidth || b.x < 0f || b.x > screenWidth) continue
                 val dx = b.x - a.x
                 val dy = b.y - a.y
                 val dist = hypot(dx, dy)
                 if (dist < minSep) {
                     val safeD = dist.coerceAtLeast(1f)
-                    val push = (minSep - safeD) * 0.35f
+                    val push = (minSep - safeD) * 0.30f
                     val nx = if (dist < 1f) cos((i + j).toFloat()) else dx / safeD
                     val ny = if (dist < 1f) sin((i + j).toFloat()) else dy / safeD
                     a.x = (a.x - nx * push).coerceIn(screenWidth * 0.12f, screenWidth * 0.88f)

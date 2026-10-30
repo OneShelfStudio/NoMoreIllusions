@@ -635,8 +635,9 @@ function drawTrackRevealCanvas(ctx, logoImg, progress, beatPulse, isConstellatio
 // 7. MENU TURNTABLE & CUSTOMIZER PREVIEW RENDERERS
 // ============================================================================
 function drawMenuTurntable(ctx, logoImg, time, isGoldMode) {
-  const w = ctx.canvas.width;
-  const h = ctx.canvas.height;
+  const dpr = window.devicePixelRatio || 1;
+  const w = ctx.canvas.clientWidth || (ctx.canvas.width / dpr) || 138;
+  const h = ctx.canvas.clientHeight || (ctx.canvas.height / dpr) || 138;
   ctx.clearRect(0, 0, w, h);
 
   const cx = w / 2;

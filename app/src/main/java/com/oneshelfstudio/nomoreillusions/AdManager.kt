@@ -29,10 +29,9 @@ class AdManager(private val context: Context) {
         const val TEST_REWARDED_ID = "ca-app-pub-3940256099942544/5224354917"
         const val PROD_REWARDED_ID = "ca-app-pub-7651037308656903/5252612003"
 
-        // Locked to TRUE across all builds (Debug & Release/Internal Testing) during Artist Testing
-        // so neither Ethan nor testers can ever trigger live AdMob impressions or clicks.
+        // Test ads enabled on Debug builds; Production AdMob IDs active on Release
         @Volatile
-        var forceSafeTestAds: Boolean = true
+        var forceSafeTestAds: Boolean = BuildConfig.DEBUG
 
         val bannerAdUnitId: String
             get() = if (BuildConfig.DEBUG || forceSafeTestAds) TEST_BANNER_ID else PROD_BANNER_ID
@@ -104,7 +103,7 @@ class AdManager(private val context: Context) {
                 override fun onAdFailedToShowFullScreenContent(adError: AdError) {
                     rewardedAd = null
                     loadRewardedAd()
-                    if (BuildConfig.DEBUG || forceSafeTestAds) {
+                    if (BuildConfig.DEBUG) {
                         onRewardEarned()
                     }
                     onAdDismissed()
@@ -115,7 +114,7 @@ class AdManager(private val context: Context) {
             }
         } ?: run {
             loadRewardedAd()
-            if (BuildConfig.DEBUG || forceSafeTestAds) {
+            if (BuildConfig.DEBUG) {
                 onRewardEarned()
             }
             onAdDismissed()

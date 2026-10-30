@@ -261,8 +261,8 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       // - CHILL / EASY: Training Mode (hardly any enemies: max 1, 4.8s cooldown)
       // - ORIGINAL / NORMAL: Band-Hero Standard (lots of beat pegs, max 1-2 enemies, 3.2s cooldown)
       // - NIGHTCORE / ENDLESS / HARD: Full Multi-Enemy Challenge (3-5 enemies)
-      const isEasyMode = mode.id === "CHILL" || this.prefs.difficulty === "EASY";
-      const isHardMode = mode.id === "NIGHTCORE" || mode.id === "ENDLESS" || this.prefs.difficulty === "HARD";
+      const isEasyMode = mode.id === "CHILL" || mode.id === "SLOWED" || this.prefs.difficulty === "EASY";
+      const isHardMode = mode.id === "NIGHTCORE" || mode.id === "OVERCLOCK" || mode.id === "ENDLESS" || this.prefs.difficulty === "HARD";
       const enemyScale = isEasyMode ? 0.22 : (isHardMode ? 1.15 : 0.42);
       const maxEnemies = isEasyMode
         ? 1
@@ -317,26 +317,19 @@ Object.assign(NoMoreIllusionsApp.prototype, {
 
     // Choreographed Fluid Peg Formations + Continuous Soft Anti-Overlap Repulsion Pass (Original Open Stage)
     if (!this.isBandHeroMode && this.powerUps.length > 0) {
-      const total = Math.max(1, this.powerUps.length);
       const minDim = Math.min(this.W, this.H);
-      let dominantFluidMode = 0;
-      for (let k = 0; k < this.powerUps.length; k++) {
-        if ((this.powerUps[k].fluidMode || 0) > dominantFluidMode) {
-          dominantFluidMode = this.powerUps[k].fluidMode || 0;
-        }
-      }
-      if (isFluidMoment && dominantFluidMode === 0) {
-        dominantFluidMode = (Math.floor(this.trackElapsedSec / 16) % 3) + 1;
-      }
-
       const frameScale = Math.max(0.5, Math.min(2.2, worldDt * 60));
+
       for (let idx = 0; idx < this.powerUps.length; idx++) {
         const pu = this.powerUps[idx];
-        const modeTag = dominantFluidMode > 0 ? dominantFluidMode : (pu.fluidMode || 0);
+        const modeTag = pu.fluidMode || 0;
+        const stableSlot = (pu.sequenceIndex || idx) % 6;
+        const slotFrac = (stableSlot + 0.5) / 6;
+
         if (modeTag === 2) {
-          // 2: Slow Galactic Spiral — pegs smoothly converge and slowly revolve around open stage center!
-          const theta = this.time * 0.62 + (idx / total) * (Math.PI * 2);
-          const ringR = minDim * (0.26 + 0.04 * Math.sin(this.time * 0.85 + idx * 0.7));
+          // 2: Slow Galactic Spiral — pegs smoothly revolve around open stage center on stable spiral arms!
+          const theta = this.time * 0.62 + (stableSlot / 6) * (Math.PI * 2);
+          const ringR = minDim * (0.26 + 0.04 * Math.sin(this.time * 0.85 + stableSlot * 0.7));
           const goalX = this.W * 0.50 + Math.cos(theta) * ringR;
           const goalY = this.H * 0.48 + Math.sin(theta) * ringR;
           const blend = Math.max(0.015, Math.min(0.18, 0.055 * frameScale));
@@ -344,8 +337,7 @@ Object.assign(NoMoreIllusionsApp.prototype, {
           pu.y += (goalY - pu.y) * blend;
         } else if (modeTag === 3) {
           // 3: Flowing Liquid Sine Wave — pegs drift smoothly in a spaced undulating ribbon across the stage!
-          const slotFrac = (idx + 0.5) / total;
-          const goalX = this.W * (0.16 + 0.68 * slotFrac) + Math.sin(this.time * 1.1 + idx) * 18;
+          const goalX = this.W * (0.16 + 0.68 * slotFrac) + Math.sin(this.time * 1.1 + stableSlot) * 18;
           const goalY = this.H * 0.48 + Math.sin(this.time * 1.55 + slotFrac * Math.PI * 1.8) * (this.H * 0.15);
           const blend = Math.max(0.015, Math.min(0.18, 0.060 * frameScale));
           pu.x += (goalX - pu.x) * blend;
@@ -367,17 +359,19 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       }
 
       // Continuous Soft Anti-Overlap Repulsion Pass: guarantees two pegs NEVER stack or touch!
-      const minSep = Math.max(92, Math.min(118, minDim * 0.19));
+      const minSep = Math.max(84, Math.min(108, minDim * 0.17));
       for (let i = 0; i < this.powerUps.length; i++) {
         for (let j = i + 1; j < this.powerUps.length; j++) {
           const a = this.powerUps[i];
           const b = this.powerUps[j];
+          // Only repel if both pegs are visibly on stage (preserves outer edge spawn gliding)
+          if (a.x < 0 || a.x > this.W || b.x < 0 || b.x > this.W) continue;
           const dx = b.x - a.x;
           const dy = b.y - a.y;
           const dist = Math.hypot(dx, dy);
           if (dist < minSep) {
             const safeD = Math.max(1, dist);
-            const push = (minSep - safeD) * 0.35;
+            const push = (minSep - safeD) * 0.30;
             const nx = dist < 1 ? Math.cos(i + j) : dx / safeD;
             const ny = dist < 1 ? Math.sin(i + j) : dy / safeD;
             a.x = Math.max(this.W * 0.12, Math.min(this.W * 0.88, a.x - nx * push));

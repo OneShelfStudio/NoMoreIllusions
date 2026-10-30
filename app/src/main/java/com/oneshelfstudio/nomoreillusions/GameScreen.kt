@@ -110,11 +110,6 @@ fun GameScreen(
     var trackMasteryStarsCsv by remember { mutableStateOf(prefs.getString("track_mastery_stars", "0,0") ?: "0,0") }
     var gameOverCounter by remember { mutableIntStateOf(0) }
 
-    LaunchedEffect(isVipUnlocked) {
-        // Keep safe Google Test Ad Unit IDs active for all builds during artist testing
-        AdManager.forceSafeTestAds = true
-    }
-
     // Dismissable control hint preference
     var showDragHint by remember { mutableStateOf(prefs.getBoolean("show_drag_hint", true)) }
     var isRevivingRun by remember { mutableStateOf(false) }
@@ -168,24 +163,16 @@ fun GameScreen(
         billingManager.onUiPurchaseListener = { productId ->
             when {
                 productId == "points_10000" -> {
-                    pulsePoints += 1000
-                    prefs.edit().putInt("pulse_points", pulsePoints).apply()
                     audioEngine.playVictory()
                 }
                 productId == "full_album_unlock" -> {
-                    unlockedTrackCount = totalTracks
-                    prefs.edit().putInt("unlocked_tracks", totalTracks).apply()
                     audioEngine.playVictory()
                 }
                 productId.startsWith("track_") -> {
                     val trackNum = productId.removePrefix("track_").toIntOrNull()
                     if (trackNum != null) {
-                        if (trackNum > unlockedTrackCount) {
-                            unlockedTrackCount = trackNum.coerceIn(1, totalTracks)
-                        }
                         selectedTrackIndex = trackNum.coerceIn(1, totalTracks)
                         prefs.edit()
-                            .putInt("unlocked_tracks", unlockedTrackCount)
                             .putInt("selected_track", selectedTrackIndex)
                             .apply()
                         audioEngine.playVictory()
@@ -544,11 +531,16 @@ fun GameScreen(
     // Zero-Stutter 60/120Hz Physics & 4Hz Multi-Band Musical Choreography Loop
     LaunchedEffect(gameState) {
         if (gameState != GameState.PLAYING && gameState != GameState.MENU) return@LaunchedEffect
+        var lastFrameNanos = 0L
         while (isActive && (gameState == GameState.PLAYING || gameState == GameState.MENU)) {
-            withFrameNanos { _ ->
+            withFrameNanos { frameTimeNanos ->
+                val dt = if (lastFrameNanos == 0L) 0.016f else ((frameTimeNanos - lastFrameNanos) / 1_000_000_000f).coerceIn(0.001f, 0.05f)
+                lastFrameNanos = frameTimeNanos
+                val frameFactor = dt / 0.016f
+
                 liveBeatPhase = audioEngine.getBeatPhase()
                 if (gameState == GameState.MENU) {
-                    gameTime += 0.016f
+                    gameTime += dt
                     liveAudioEnergy = 0.42f + 0.08f * sin(gameTime * 0.8f)
                     liveSwellDelta = 0f
                     liveMultiBand = MultiBandAudioState(rms = liveAudioEnergy, bass = 0.38f, vocal = 0.45f, high = 0.30f)
@@ -561,26 +553,26 @@ fun GameScreen(
                     return@withFrameNanos
                 }
 
-                val currentScale = when {
+                val currentScale = (when {
                     isFocusActive -> 0.32f
                     slowMoTime > 0f -> 0.48f
                     else -> timeScale
-                }
-                gameTime += 0.016f * currentScale
-                levelPlayTime += 0.016f * currentScale
-                survivalPointAccumulator += 0.016f * currentScale
+                }) * frameFactor
+                gameTime += dt * currentScale
+                levelPlayTime += dt * currentScale
+                survivalPointAccumulator += dt * currentScale
 
                 if (spawnInvulnerabilityTime > 0f) {
-                    spawnInvulnerabilityTime -= 0.016f * currentScale
+                    spawnInvulnerabilityTime = (spawnInvulnerabilityTime - dt * currentScale).coerceAtLeast(0f)
                 }
                 if (slowMoTime > 0f) {
-                    slowMoTime = (slowMoTime - 0.016f).coerceAtLeast(0f)
+                    slowMoTime = (slowMoTime - dt).coerceAtLeast(0f)
                 }
                 if (magnetTime > 0f) {
-                    magnetTime = (magnetTime - 0.016f).coerceAtLeast(0f)
+                    magnetTime = (magnetTime - dt).coerceAtLeast(0f)
                 }
                 if (vocalStreamContrailTimer > 0f) {
-                    vocalStreamContrailTimer = (vocalStreamContrailTimer - 0.016f * currentScale).coerceAtLeast(0f)
+                    vocalStreamContrailTimer = (vocalStreamContrailTimer - dt * currentScale).coerceAtLeast(0f)
                 }
                 val curToast = activePowerUpToast
                 if (curToast != null) {
@@ -1332,7 +1324,7 @@ fun GameScreen(
 
 
 
-        if (gameState != GameState.MUSIC_DEMO && gameState != GameState.PLAYING && gameState != GameState.COUNTDOWN) {
+        if (gameState != GameState.MUSIC_DEMO && gameState != GameState.PLAYING && gameState != GameState.COUNTDOWN && gameState != GameState.PAUSED) {
             Box(modifier = Modifier.align(Alignment.TopCenter).statusBarsPadding()) {
                 AndroidView(
                     factory = { ctx ->
@@ -1341,6 +1333,9 @@ fun GameScreen(
                             adUnitId = AdManager.bannerAdUnitId
                             loadAd(AdRequest.Builder().build())
                         }
+                    },
+                    onRelease = { adView ->
+                        adView.destroy()
                     }
                 )
             }
