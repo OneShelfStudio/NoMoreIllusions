@@ -634,7 +634,7 @@ function drawTrackRevealCanvas(ctx, logoImg, progress, beatPulse, isConstellatio
 // ============================================================================
 // 7. MENU TURNTABLE & CUSTOMIZER PREVIEW RENDERERS
 // ============================================================================
-function drawMenuTurntable(ctx, logoImg, time, isGoldMode) {
+function drawMenuTurntable(ctx, logoImg, time, isGoldMode, isLocked) {
   const dpr = window.devicePixelRatio || 1;
   const w = ctx.canvas.clientWidth || (ctx.canvas.width / dpr) || 138;
   const h = ctx.canvas.clientHeight || (ctx.canvas.height / dpr) || 138;
@@ -646,7 +646,7 @@ function drawMenuTurntable(ctx, logoImg, time, isGoldMode) {
   const vinylRadius = outerRadius * 0.80;
   const pulse = 0.5 + 0.5 * Math.sin(time * 2.5 * Math.PI * 2);
 
-  // 1. Smooth Concentric Harmonic Wave Rings & Orbiting Aurora Crescents (Replaces 36 straight stick lines!)
+  // 1. Smooth Concentric Harmonic Wave Rings
   for (let rIdx = 0; rIdx < 3; rIdx++) {
     const waveR = vinylRadius * (1.05 + rIdx * 0.075 + pulse * 0.025);
     const baseSpin = time * (rIdx % 2 === 0 ? 0.85 : -0.65) + rIdx * 1.1;
@@ -657,7 +657,7 @@ function drawMenuTurntable(ctx, logoImg, time, isGoldMode) {
       const sa = baseSpin + seg * ((Math.PI * 2) / 3);
       ctx.beginPath();
       ctx.arc(cx, cy, waveR, sa, sa + 1.35);
-      ctx.strokeStyle = rgba(ringCol, 0.68 - rIdx * 0.16);
+      ctx.strokeStyle = rgba(ringCol, isLocked ? 0.22 : (0.68 - rIdx * 0.16));
       ctx.lineWidth = 3.0 - rIdx * 0.6;
       ctx.lineCap = "round";
       ctx.stroke();
@@ -667,30 +667,30 @@ function drawMenuTurntable(ctx, logoImg, time, isGoldMode) {
   // 2. Vinyl Disc Base & Concentric Micro-Grooves
   ctx.beginPath();
   ctx.arc(cx, cy, vinylRadius, 0, Math.PI * 2);
-  ctx.fillStyle = "#080612";
+  ctx.fillStyle = isLocked ? "#0B0F19" : "#080612";
   ctx.fill();
 
   for (let g = 1; g <= 4; g++) {
     const gr = vinylRadius * (0.64 + g * 0.08);
     ctx.beginPath();
     ctx.arc(cx, cy, gr, 0, Math.PI * 2);
-    ctx.strokeStyle = "rgba(255,255,255,0.09)";
+    ctx.strokeStyle = isLocked ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.09)";
     ctx.lineWidth = 1.1;
     ctx.stroke();
   }
 
   // Spinning specular sheen arc on vinyl
-  const spinDeg = (time * 50) % 360;
+  const spinDeg = isLocked ? 25 : ((time * 50) % 360);
   ctx.beginPath();
   ctx.arc(cx, cy, vinylRadius * 0.86, spinDeg * Math.PI / 180, (spinDeg + 50) * Math.PI / 180);
-  ctx.strokeStyle = rgba([56, 189, 248], 0.22);
+  ctx.strokeStyle = isLocked ? "rgba(255,255,255,0.05)" : rgba([56, 189, 248], 0.22);
   ctx.lineWidth = 5;
   ctx.lineCap = "round";
   ctx.stroke();
 
   ctx.beginPath();
   ctx.arc(cx, cy, vinylRadius * 0.86, (spinDeg + 180) * Math.PI / 180, (spinDeg + 230) * Math.PI / 180);
-  ctx.strokeStyle = rgba([168, 85, 247], 0.22);
+  ctx.strokeStyle = isLocked ? "rgba(255,255,255,0.04)" : rgba([168, 85, 247], 0.22);
   ctx.lineWidth = 5;
   ctx.lineCap = "round";
   ctx.stroke();
@@ -698,25 +698,30 @@ function drawMenuTurntable(ctx, logoImg, time, isGoldMode) {
   // Outer metallic rim
   ctx.beginPath();
   ctx.arc(cx, cy, vinylRadius, 0, Math.PI * 2);
-  ctx.strokeStyle = isGoldMode ? rgba([250, 204, 21], 0.88) : rgba([56, 189, 248], 0.65);
+  ctx.strokeStyle = isLocked ? "rgba(100, 116, 139, 0.4)" : (isGoldMode ? rgba([250, 204, 21], 0.88) : rgba([56, 189, 248], 0.65));
   ctx.lineWidth = 2.5;
   ctx.stroke();
 
-  // 3. Spinning Center Album Art Label (nmi_logo.png)
+  // 3. Spinning Center Album Art Picture Label
   const labelSize = vinylRadius * 1.16;
   if (logoImg && logoImg.complete && logoImg.naturalWidth > 0) {
     ctx.save();
     ctx.beginPath();
     ctx.arc(cx, cy, labelSize / 2, 0, Math.PI * 2);
     ctx.clip();
+    if (isLocked) {
+      ctx.filter = "grayscale(100%) opacity(45%)";
+    }
     ctx.translate(cx, cy);
-    ctx.rotate(spinDeg * Math.PI / 180);
+    if (!isLocked) {
+      ctx.rotate(spinDeg * Math.PI / 180);
+    }
     ctx.drawImage(logoImg, -labelSize / 2, -labelSize / 2, labelSize, labelSize);
     ctx.restore();
 
     ctx.beginPath();
     ctx.arc(cx, cy, labelSize / 2, 0, Math.PI * 2);
-    ctx.strokeStyle = isGoldMode ? "#FACC15" : "rgba(56, 189, 248, 0.72)";
+    ctx.strokeStyle = isLocked ? "rgba(100, 116, 139, 0.6)" : (isGoldMode ? "#FACC15" : "rgba(56, 189, 248, 0.72)");
     ctx.lineWidth = 1.6;
     ctx.stroke();
   }
@@ -726,41 +731,66 @@ function drawMenuTurntable(ctx, logoImg, time, isGoldMode) {
   ctx.arc(cx, cy, 4.5, 0, Math.PI * 2);
   ctx.fillStyle = "#080612";
   ctx.fill();
-  ctx.strokeStyle = "#FACC15";
+  ctx.strokeStyle = isLocked ? "#64748B" : "#FACC15";
   ctx.lineWidth = 1.5;
   ctx.stroke();
 
   // 4. Stylized Laser Tone-Arm (Top-Right Pivot)
   const pivotX = cx + vinylRadius * 0.82;
   const pivotY = cy - vinylRadius * 0.72;
-  const needleX = cx + vinylRadius * 0.42;
-  const needleY = cy + vinylRadius * 0.18;
+  const needleX = isLocked ? (cx + vinylRadius * 0.70) : (cx + vinylRadius * 0.42);
+  const needleY = isLocked ? (cy - vinylRadius * 0.35) : (cy + vinylRadius * 0.18);
 
   ctx.beginPath();
   ctx.arc(pivotX, pivotY, 6.5, 0, Math.PI * 2);
   ctx.fillStyle = "#1E1B2E";
   ctx.fill();
-  ctx.strokeStyle = "#FACC15";
+  ctx.strokeStyle = isLocked ? "#64748B" : "#FACC15";
   ctx.lineWidth = 2;
   ctx.stroke();
 
   ctx.beginPath();
   ctx.moveTo(pivotX, pivotY);
   ctx.lineTo(needleX, needleY);
-  ctx.strokeStyle = "rgba(226,232,240,0.85)";
+  ctx.strokeStyle = isLocked ? "rgba(148, 163, 184, 0.45)" : "rgba(226,232,240,0.85)";
   ctx.lineWidth = 2.8;
   ctx.lineCap = "round";
   ctx.stroke();
 
   ctx.beginPath();
   ctx.arc(needleX, needleY, 5.5 + pulse * 3, 0, Math.PI * 2);
-  ctx.fillStyle = "rgba(56,189,248,0.45)";
+  ctx.fillStyle = isLocked ? "rgba(148,163,184,0.2)" : (isGoldMode ? "rgba(250,204,21,0.45)" : "rgba(56,189,248,0.45)");
   ctx.fill();
 
   ctx.beginPath();
   ctx.arc(needleX, needleY, 2.8, 0, Math.PI * 2);
-  ctx.fillStyle = "#FFFFFF";
+  ctx.fillStyle = isLocked ? "#94A3B8" : "#FFFFFF";
   ctx.fill();
+
+  // 5. Frosted Greyed-Out Lock Overlay on Turntable Platter
+  if (isLocked) {
+    ctx.save();
+    const bw = 64;
+    const bh = 28;
+    ctx.fillStyle = "rgba(5, 8, 17, 0.86)";
+    ctx.strokeStyle = "rgba(100, 116, 139, 0.75)";
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    if (ctx.roundRect) {
+      ctx.roundRect(cx - bw / 2, cy - bh / 2, bw, bh, 6);
+    } else {
+      ctx.rect(cx - bw / 2, cy - bh / 2, bw, bh);
+    }
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = "#E2E8F0";
+    ctx.font = "900 11px system-ui, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("🔒 LOCKED", cx, cy);
+    ctx.restore();
+  }
 }
 
 // ============================================================================

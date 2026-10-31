@@ -1379,8 +1379,23 @@ fun GameScreen(
                     selectedTrackIndex = idx.coerceIn(1, totalTracks)
                 },
                 onStart = {
-                    audioEngine.playMenuNote()
-                    startFreshLevelRun(selectedTrackIndex)
+                    val isTrackUnlocked = selectedTrackIndex == 1 || unlockedTrackCount >= selectedTrackIndex || isVipUnlocked || prefs.getBoolean("art_unlocked_$selectedTrackIndex", false) || prefs.getBoolean("track_unlocked_$selectedTrackIndex", false)
+                    if (isTrackUnlocked) {
+                        audioEngine.playMenuNote()
+                        startFreshLevelRun(selectedTrackIndex)
+                    } else {
+                        val cost = MusicLibrary.unlockCostForTrack(selectedTrackIndex)
+                        if (pulsePoints >= cost) {
+                            pulsePoints -= cost
+                            prefs.edit().putInt("pulse_points", pulsePoints).putBoolean("track_unlocked_$selectedTrackIndex", true).apply()
+                            unlockedTrackCount = maxOf(unlockedTrackCount, selectedTrackIndex)
+                            audioEngine.playPowerUp()
+                            startFreshLevelRun(selectedTrackIndex)
+                        } else {
+                            audioEngine.playMenuNote()
+                            gameState = GameState.MUSIC_DEMO
+                        }
+                    }
                 },
                 onMusicDemo = { audioEngine.playMenuNote(); gameState = GameState.MUSIC_DEMO },
                 onHowToPlay = { audioEngine.playMenuNote(); gameState = GameState.HOW_TO_PLAY },
