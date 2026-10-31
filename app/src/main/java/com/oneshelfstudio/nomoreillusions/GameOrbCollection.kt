@@ -334,6 +334,26 @@ private fun resolveNonOverlappingOrbSpot(
     return bestPt
 }
 
+/**
+ * Computes an offscreen perimeter entry point radiating from the outside boundary inward.
+ */
+internal fun computePerimeterSpawnPoint(
+    anchorPt: Offset,
+    screenWidth: Float,
+    screenHeight: Float,
+    seedIndex: Int
+): Offset {
+    val cx = screenWidth * 0.5f
+    val cy = screenHeight * 0.5f
+    val baseAngle = atan2(anchorPt.y - cy, anchorPt.x - cx)
+    val angleJitter = ((seedIndex % 7) - 3) * 0.18f
+    val spawnAngle = baseAngle + angleJitter
+    val spawnDist = hypot(cx, cy) * 1.30f
+    val sx = cx + cos(spawnAngle) * spawnDist
+    val sy = cy + sin(spawnAngle) * spawnDist
+    return Offset(sx, sy)
+}
+
 internal fun spawnStationaryBeatOrbsForFrame(
     chart: List<BeatOrbCue>,
     startCueIdx: Int,
@@ -382,9 +402,9 @@ internal fun spawnStationaryBeatOrbsForFrame(
         }
     } else 0f
 
-    // Calm, uncluttered stage count: max 5 pegs in normal groove, 6 during fluid musical formations!
-    val maxActiveOrbs = if (isBandHeroMode) 9 else if (isFluidMoment) 6 else 5
-    val effectiveLeadTime = if (isBandHeroMode) spawnLeadTime else maxOf(spawnLeadTime, beatGridStep * 2.5f)
+    // Rich, alive musical stage: 12-14 active notes, 10 in Band Hero mode
+    val maxActiveOrbs = if (isBandHeroMode) 10 else if (isFluidMoment) 14 else 12
+    val effectiveLeadTime = if (isBandHeroMode) spawnLeadTime else (beatGridStep * 3.5f).coerceIn(1.4f, 2.8f)
     val effectiveHoldWindow = if (isBandHeroMode) ttlGraceSec else (beatGridStep * 6.0f)
 
     while (
@@ -405,9 +425,9 @@ internal fun spawnStationaryBeatOrbsForFrame(
             val laneIdx = (((cue.normX - 0.16f) / 0.68f * 4f).toInt() + cue.sequenceIndex) % 4
             val clampedLane = laneIdx.coerceIn(0, 3)
 
-            // Only inject intermediate highway notes in Band Hero mode (or when powerUps is initially empty)
+            // Inject intermediate rhythm notes when gaps allow
             val gapSec = quantizedBeatSec - prevCueSec
-            if ((isBandHeroMode || powerUps.isEmpty()) && !isTrainingMode && prevCueSec > 0.5f && gapSec in (beatGridStep * 1.85f)..3.20f && powerUps.size < maxActiveOrbs - 2) {
+            if (!isTrainingMode && prevCueSec > 0.5f && gapSec in (beatGridStep * 1.5f)..3.50f && powerUps.size < maxActiveOrbs - 2) {
                 val rawMidSec = prevCueSec + gapSec * 0.5f
                 val midBeatSec = (rawMidSec / beatGridStep).roundToInt() * beatGridStep
                 if (midBeatSec > trackSec + 0.25f && abs(midBeatSec - quantizedBeatSec) >= beatGridStep * 0.75f && abs(midBeatSec - prevCueSec) >= beatGridStep * 0.75f) {
@@ -424,11 +444,13 @@ internal fun spawnStationaryBeatOrbsForFrame(
                             seedIndex = cue.sequenceIndex * 2
                         )
                     }
+                    val midSpawnEntry = if (isBandHeroMode) midAnchor else computePerimeterSpawnPoint(midAnchor, screenWidth, screenHeight, cue.sequenceIndex * 2)
+                    val midSwoop = if (isBandHeroMode) 0f else if (isFluidMoment) -0.45f else 0.15f
                     val midSpawnSec = midBeatSec - effectiveLeadTime
                     powerUps.add(
                         GameObject(
-                            x = midAnchor.x,
-                            y = midAnchor.y,
+                            x = midSpawnEntry.x,
+                            y = midSpawnEntry.y,
                             radius = 32f,
                             color = applyColorBlind(laneColors[midLane]),
                             angle = 0f,
@@ -444,7 +466,10 @@ internal fun spawnStationaryBeatOrbsForFrame(
                             sequenceIndex = cue.sequenceIndex * 2,
                             isGoldenOrb = isGoldenActive,
                             keyWordEffect = KeyWordEffect.NONE,
-                            orbitRadius = fluidFormationTag
+                            orbitRadius = fluidFormationTag,
+                            spawnX = midSpawnEntry.x,
+                            spawnY = midSpawnEntry.y,
+                            swoopCurve = midSwoop
                         )
                     )
                 }
@@ -462,16 +487,16 @@ internal fun spawnStationaryBeatOrbsForFrame(
                     seedIndex = cue.sequenceIndex * 2 + 1
                 )
             }
-            // For Outward-Inward Sweeping Glide (101f), start near the outer stage edge so notes smoothly sweep inward onto the stage!
-            val spawnEntryPt = if (!isBandHeroMode && fluidFormationTag == 101f) {
-                val fromLeft = anchorPt.x < screenWidth * 0.5f
-                Offset(
-                    x = if (fromLeft) -28f else (screenWidth + 28f),
-                    y = (anchorPt.y + (if (cue.sequenceIndex % 2 == 0) -65f else 65f)).coerceIn(screenHeight * 0.12f, screenHeight * 0.84f)
-                )
-            } else {
+            // Spawn from outside screen perimeter moving inward at speed dictated by BPM
+            val spawnEntryPt = if (isBandHeroMode) {
                 anchorPt
+            } else {
+                computePerimeterSpawnPoint(anchorPt, screenWidth, screenHeight, cue.sequenceIndex * 2 + 1)
             }
+            // During long refrains (isFluidMoment), apply alternating curved swoops for flowing arcs
+            val swoopCurve = if (isBandHeroMode) 0f
+            else if (isFluidMoment) (if (cue.sequenceIndex % 2 == 0) 0.52f else -0.52f)
+            else ((cue.sequenceIndex % 5 - 2) * 0.12f)
             val mappedPowerUpType = when (cue.powerUpType) {
                 PowerUpType.BLAST, PowerUpType.MAGNET -> PowerUpType.BLAST
                 PowerUpType.SHIELD, PowerUpType.SLOW_MO -> PowerUpType.SHIELD
@@ -517,7 +542,10 @@ internal fun spawnStationaryBeatOrbsForFrame(
                     sequenceIndex = cue.sequenceIndex * 2 + 1,
                     isGoldenOrb = isOrbGolden,
                     keyWordEffect = mappedKeyWord,
-                    orbitRadius = fluidFormationTag
+                    orbitRadius = fluidFormationTag,
+                    spawnX = spawnEntryPt.x,
+                    spawnY = spawnEntryPt.y,
+                    swoopCurve = swoopCurve
                 )
             )
         }

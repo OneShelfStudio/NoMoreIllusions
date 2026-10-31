@@ -78,6 +78,8 @@ fun GameScreen(
     val btnIconPause = ImageBitmap.imageResource(id = R.drawable.btn_icon_pause)
     val btnIconClose = ImageBitmap.imageResource(id = R.drawable.btn_icon_close)
     val uiDialogPanel = ImageBitmap.imageResource(id = R.drawable.ui_dialog_panel)
+    val track01Art = ImageBitmap.imageResource(id = R.drawable.track_01)
+    val track02Art = ImageBitmap.imageResource(id = R.drawable.track_02)
 
     val prefs = remember {
         val masterKey = MasterKey.Builder(context)
@@ -1296,6 +1298,8 @@ fun GameScreen(
         )
 
         val currentTrackMeta = MusicLibrary.getTrack(selectedTrackIndex)
+        val isCurrentTrackUnlocked = selectedTrackIndex == 1 || unlockedTrackCount >= selectedTrackIndex || isVipUnlocked || prefs.getBoolean("art_unlocked_$selectedTrackIndex", false) || prefs.getBoolean("track_unlocked_$selectedTrackIndex", false)
+        val currentTrackArt = if (selectedTrackIndex == 1) track01Art else track02Art
         if (gameState == GameState.PLAYING || gameState == GameState.COUNTDOWN || gameState == GameState.PAUSED) {
             HUD(
                 score = score,
@@ -1308,6 +1312,8 @@ fun GameScreen(
                 multiplier = scoreMultiplier,
                 multiplierTime = multiplierTime,
                 btnIconPause = btnIconPause,
+                trackArt = currentTrackArt,
+                isCurrentTrackUnlocked = isCurrentTrackUnlocked,
                 difficulty = gameDifficulty,
                 currentSectionLabel = activeSectionLabel,
                 isExtraJuiceActive = juiceIntensity > 0.45f || liveAudioEnergy > 0.72f,

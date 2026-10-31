@@ -405,32 +405,128 @@ fun FirstTimeDiscoveryModal(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            Text(
-                text = discovery.body,
-                color = Color.White.copy(alpha = 0.92f),
-                fontSize = 12.sp,
-                lineHeight = 17.sp,
-                textAlign = TextAlign.Center
-            )
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(Color(0xFF071124L))
-                    .border(1.dp, discovery.accentColor.copy(alpha = 0.40f), RoundedCornerShape(10.dp))
-                    .padding(horizontal = 12.dp, vertical = 8.dp)
-            ) {
-                Text(
-                    text = discovery.tip,
-                    color = discovery.accentColor,
-                    fontSize = 10.5.sp,
-                    fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Center,
+            if (discovery == FirstTimeDiscovery.FAN_WELCOME) {
+                // Visual-First 3-Card Guide (Zero Reading Overhead!)
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.fillMaxWidth()
+                ) {
+                    // Card 1: Drag to Glide
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color(0xFF070E1DL))
+                            .border(1.2.dp, Color(0xFF38BDF8L).copy(alpha = 0.55f), RoundedCornerShape(12.dp))
+                            .padding(vertical = 10.dp, horizontal = 4.dp)
+                    ) {
+                        Text(text = "👆", fontSize = 26.sp)
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = "DRAG",
+                            color = Color(0xFF38BDF8L),
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Black
+                        )
+                        Text(
+                            text = "To Glide",
+                            color = Color(0xFF94A3B8L),
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    // Card 2: Catch Notes
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color(0xFF070E1DL))
+                            .border(1.2.dp, Color(0xFFFACC15L).copy(alpha = 0.55f), RoundedCornerShape(12.dp))
+                            .padding(vertical = 10.dp, horizontal = 4.dp)
+                    ) {
+                        Text(text = "🎵", fontSize = 26.sp)
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = "CATCH",
+                            color = Color(0xFFFACC15L),
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Black
+                        )
+                        Text(
+                            text = "Beat Notes",
+                            color = Color(0xFF94A3B8L),
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    // Card 3: Avoid Hazards
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color(0xFF070E1DL))
+                            .border(1.2.dp, Color(0xFFF43F5EL).copy(alpha = 0.55f), RoundedCornerShape(12.dp))
+                            .padding(vertical = 10.dp, horizontal = 4.dp)
+                    ) {
+                        Text(text = "⚠️", fontSize = 26.sp)
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = "AVOID",
+                            color = Color(0xFFF43F5EL),
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Black
+                        )
+                        Text(
+                            text = "Red Hazards",
+                            color = Color(0xFF94A3B8L),
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Text(
+                    text = "Unlock tracks & artist vault secrets as you play!",
+                    color = Color(0xFFCBD5E1L),
+                    fontSize = 10.5.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    textAlign = TextAlign.Center
                 )
+            } else {
+                Text(
+                    text = discovery.body,
+                    color = Color.White.copy(alpha = 0.92f),
+                    fontSize = 12.sp,
+                    lineHeight = 17.sp,
+                    textAlign = TextAlign.Center
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(Color(0xFF071124L))
+                        .border(1.dp, discovery.accentColor.copy(alpha = 0.40f), RoundedCornerShape(10.dp))
+                        .padding(horizontal = 12.dp, vertical = 8.dp)
+                ) {
+                    Text(
+                        text = discovery.tip,
+                        color = discovery.accentColor,
+                        fontSize = 10.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(14.dp))
@@ -450,7 +546,7 @@ fun FirstTimeDiscoveryModal(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = discovery.buttonText,
+                    text = if (discovery == FirstTimeDiscovery.FAN_WELCOME) "LET'S PLAY ♪" else discovery.buttonText,
                     color = Color(0xFF020617L),
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Black,

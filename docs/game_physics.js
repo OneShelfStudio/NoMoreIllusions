@@ -117,10 +117,10 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       (this.multiBandState.bassDropOut && this.multiBandState.vocal >= 0.30) ||
       Boolean(this.multiBandState.isClimax) ||
       (this.multiBandState.swellDelta >= 0.08);
-    const maxActiveOrbs = isBandHero ? 9 : (isFluidMoment ? 6 : 5);
+    const maxActiveOrbs = isBandHero ? 10 : (isFluidMoment ? 14 : 12);
     const spawnLeadTime = isBandHero
       ? Math.max(1.75, Math.min(2.35, beatPeriod * 3.8))
-      : Math.max(0.85, Math.min(1.50, beatPeriod * 2.5));
+      : Math.max(1.40, Math.min(2.80, beatPeriod * 3.5));
     const isTrainingEasy = mode.id === "CHILL" || mode.id === "SLOWED" || this.prefs.difficulty === "EASY";
     while (
       this.nextBeatCueIndex < chart.length &&
@@ -322,39 +322,61 @@ Object.assign(NoMoreIllusionsApp.prototype, {
 
       for (let idx = 0; idx < this.powerUps.length; idx++) {
         const pu = this.powerUps[idx];
-        const modeTag = pu.fluidMode || 0;
-        const stableSlot = (pu.sequenceIndex || idx) % 6;
-        const slotFrac = (stableSlot + 0.5) / 6;
+        const leadDur = Math.max(0.45, (pu.targetBeatSec || 1) - (pu.spawnBeatSec || 0));
+        const u = Math.max(0, Math.min(1.25, (this.trackElapsedSec - pu.spawnBeatSec) / leadDur));
+        const hasPerimeterSpawn = (pu.spawnX !== undefined && pu.spawnY !== undefined) &&
+          (pu.spawnX !== pu.targetX || pu.spawnY !== pu.targetY);
 
-        if (modeTag === 2) {
-          // 2: Slow Galactic Spiral — pegs smoothly revolve around open stage center on stable spiral arms!
-          const theta = this.time * 0.62 + (stableSlot / 6) * (Math.PI * 2);
-          const ringR = minDim * (0.26 + 0.04 * Math.sin(this.time * 0.85 + stableSlot * 0.7));
-          const goalX = this.W * 0.50 + Math.cos(theta) * ringR;
-          const goalY = this.H * 0.48 + Math.sin(theta) * ringR;
-          const blend = Math.max(0.015, Math.min(0.18, 0.055 * frameScale));
-          pu.x += (goalX - pu.x) * blend;
-          pu.y += (goalY - pu.y) * blend;
-        } else if (modeTag === 3) {
-          // 3: Flowing Liquid Sine Wave — pegs drift smoothly in a spaced undulating ribbon across the stage!
-          const goalX = this.W * (0.16 + 0.68 * slotFrac) + Math.sin(this.time * 1.1 + stableSlot) * 18;
-          const goalY = this.H * 0.48 + Math.sin(this.time * 1.55 + slotFrac * Math.PI * 1.8) * (this.H * 0.15);
-          const blend = Math.max(0.015, Math.min(0.18, 0.060 * frameScale));
-          pu.x += (goalX - pu.x) * blend;
-          pu.y += (goalY - pu.y) * blend;
-        } else if (modeTag === 1) {
-          // 1: Outward-Inward Sweeping Glide — pegs glide smoothly inward from the outer screen edges along a curve!
-          const goalX = (pu.targetX || pu.x) + Math.cos(this.time * 1.6 + (pu.phase || 0)) * 16;
-          const goalY = (pu.targetY || pu.y) + Math.sin(this.time * 1.9 + (pu.phase || 0)) * 16;
-          const blend = Math.max(0.015, Math.min(0.20, 0.068 * frameScale));
-          pu.x += (goalX - pu.x) * blend;
-          pu.y += (goalY - pu.y) * blend;
+        if (hasPerimeterSpawn && u < 1.0) {
+          const t = Math.max(0, Math.min(1, 1 - (1 - u) * (1 - u)));
+          const chordX = pu.targetX - pu.spawnX;
+          const chordY = pu.targetY - pu.spawnY;
+          const perpX = -chordY;
+          const perpY = chordX;
+          const ctrlX = (pu.spawnX + pu.targetX) * 0.5 + perpX * (pu.swoopCurve || 0);
+          const ctrlY = (pu.spawnY + pu.targetY) * 0.5 + perpY * (pu.swoopCurve || 0);
+
+          const oneMinusT = 1 - t;
+          const targetPosX = oneMinusT * oneMinusT * pu.spawnX + 2 * oneMinusT * t * ctrlX + t * t * pu.targetX;
+          const targetPosY = oneMinusT * oneMinusT * pu.spawnY + 2 * oneMinusT * t * ctrlY + t * t * pu.targetY;
+
+          pu.x += (targetPosX - pu.x) * 0.38;
+          pu.y += (targetPosY - pu.y) * 0.38;
         } else {
-          // Calm Open-Stage Groove: gentle breathing hover around non-overlapping anchor
-          const goalX = (pu.targetX || pu.x) + Math.cos(this.time * 1.8 + (pu.phase || 0)) * 4.5;
-          const goalY = (pu.targetY || pu.y) + Math.sin(this.time * 2.1 + (pu.phase || 0)) * 4.5;
-          pu.x += (goalX - pu.x) * 0.16;
-          pu.y += (goalY - pu.y) * 0.16;
+          const modeTag = pu.fluidMode || 0;
+          const stableSlot = (pu.sequenceIndex || idx) % 6;
+          const slotFrac = (stableSlot + 0.5) / 6;
+
+          if (modeTag === 2) {
+            // 2: Slow Galactic Spiral — pegs smoothly revolve around open stage center on stable spiral arms!
+            const theta = this.time * 0.62 + (stableSlot / 6) * (Math.PI * 2);
+            const ringR = minDim * (0.26 + 0.04 * Math.sin(this.time * 0.85 + stableSlot * 0.7));
+            const goalX = this.W * 0.50 + Math.cos(theta) * ringR;
+            const goalY = this.H * 0.48 + Math.sin(theta) * ringR;
+            const blend = Math.max(0.015, Math.min(0.18, 0.055 * frameScale));
+            pu.x += (goalX - pu.x) * blend;
+            pu.y += (goalY - pu.y) * blend;
+          } else if (modeTag === 3) {
+            // 3: Flowing Liquid Sine Wave — pegs drift smoothly in a spaced undulating ribbon across the stage!
+            const goalX = this.W * (0.16 + 0.68 * slotFrac) + Math.sin(this.time * 1.1 + stableSlot) * 18;
+            const goalY = this.H * 0.48 + Math.sin(this.time * 1.55 + slotFrac * Math.PI * 1.8) * (this.H * 0.15);
+            const blend = Math.max(0.015, Math.min(0.18, 0.060 * frameScale));
+            pu.x += (goalX - pu.x) * blend;
+            pu.y += (goalY - pu.y) * blend;
+          } else if (modeTag === 1) {
+            // 1: Outward-Inward Sweeping Glide — pegs glide smoothly along wide sweeping arcs!
+            const goalX = (pu.targetX || pu.x) + Math.cos(this.time * 1.6 + (pu.phase || 0)) * 24;
+            const goalY = (pu.targetY || pu.y) + Math.sin(this.time * 1.9 + (pu.phase || 0)) * 24;
+            const blend = Math.max(0.015, Math.min(0.20, 0.068 * frameScale));
+            pu.x += (goalX - pu.x) * blend;
+            pu.y += (goalY - pu.y) * blend;
+          } else {
+            // Calm Open-Stage Groove: gentle breathing hover around non-overlapping anchor
+            const goalX = (pu.targetX || pu.x) + Math.cos(this.time * 1.8 + (pu.phase || 0)) * 4.5;
+            const goalY = (pu.targetY || pu.y) + Math.sin(this.time * 2.1 + (pu.phase || 0)) * 4.5;
+            pu.x += (goalX - pu.x) * 0.16;
+            pu.y += (goalY - pu.y) * 0.16;
+          }
         }
       }
 
@@ -674,31 +696,38 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       const ttlGraceSec = Math.max(0.45, beatPeriod * 0.92);
       expireBeatSec = targetBeatSec + ttlGraceSec;
     } else {
-      // Original Open-Stage Flow: Non-overlapping stage positions (X: 14%..86%, Y: 13%..83%) + Fluid Formations!
+      // Original Open-Stage Flow: Perimeter entry radiating inward at BPM speed + swooping refrain arcs
       const normX = Math.max(0.14, Math.min(0.86, cue.normX || 0.5));
       const normY = Math.max(0.13, Math.min(0.83, cue.normY || 0.48));
       const cleanSpot = this.resolveNonOverlappingOrbSpot(normX * this.W, normY * this.H, seqIdx);
       receptorX = cleanSpot.x;
       receptorY = cleanSpot.y;
 
-      fluidMode = isFluidMoment ? ((Math.floor(this.trackElapsedSec / 16) % 3) + 1) : 0;
-      if (fluidMode === 1) {
-        // Mode 1 (Outward-Inward Sweeping Glide): spawn just outside left/right edge and smoothly glide onto the stage!
-        startX = receptorX < this.W * 0.5 ? -28 : (this.W + 28);
-        startY = Math.max(this.H * 0.12, Math.min(this.H * 0.84, receptorY + (seqIdx % 2 === 0 ? -60 : 60)));
-      } else {
-        startX = receptorX;
-        startY = receptorY;
-      }
+      const cx = this.W * 0.5;
+      const cy = this.H * 0.5;
+      const baseAngle = Math.atan2(receptorY - cy, receptorX - cx);
+      const angleJitter = ((seqIdx % 7) - 3) * 0.18;
+      const spawnAngle = baseAngle + angleJitter;
+      const spawnDist = Math.hypot(cx, cy) * 1.30;
+      startX = cx + Math.cos(spawnAngle) * spawnDist;
+      startY = cy + Math.sin(spawnAngle) * spawnDist;
 
-      // 8-Beat total on-screen window (2 beats lead + 6 beats hold = 8 beats!)
-      spawnBeatSec = targetBeatSec - beatGridStep * 2.0;
+      fluidMode = isFluidMoment ? ((Math.floor(this.trackElapsedSec / 16) % 3) + 1) : 0;
+      swoopCurve = isFluidMoment
+        ? (seqIdx % 2 === 0 ? 0.52 : -0.52)
+        : ((seqIdx % 5 - 2) * 0.12);
+
+      const leadDur = Math.max(1.4, Math.min(2.8, beatPeriod * 3.5));
+      spawnBeatSec = targetBeatSec - leadDur;
       expireBeatSec = targetBeatSec + beatGridStep * 6.0;
     }
 
     this.powerUps.push({
       x: startX,
       y: startY,
+      spawnX: startX,
+      spawnY: startY,
+      swoopCurve: swoopCurve || 0,
       targetX: receptorX,
       targetY: receptorY,
       fluidMode,

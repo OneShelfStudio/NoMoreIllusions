@@ -72,19 +72,15 @@
         </div>
       </div>
 
-      <!-- 3 Frameless Floating Stage Icons (Zero Boxy Tiles!) -->
-      <div class="bento-row">
-        <div class="bento-tile" onclick="window.app.openScreen('CUSTOMIZER', -1)">
+      <!-- 2 Frameless Floating Stage Cards (Album & Vault + Studio VIP) -->
+      <div class="bento-row" style="gap:14px;max-width:380px;">
+        <div class="bento-tile" onclick="window.app.openScreen('CUSTOMIZER', -1)" style="flex:1;">
           <div class="bento-icon-circle" style="border-color:rgba(234,179,8,0.65);background:radial-gradient(circle,rgba(234,179,8,0.28),transparent);">💿</div>
           <div class="bento-title" style="color:#EAB308;">ALBUM &amp; VAULT</div>
         </div>
-        <div class="bento-tile" onclick="window.app.openScreen('HOW_TO_PLAY')">
-          <div class="bento-icon-circle" style="border-color:rgba(74,222,128,0.65);background:radial-gradient(circle,rgba(74,222,128,0.28),transparent);">🎬</div>
-          <div class="bento-title" style="color:#4ADE80;">MINI VIDEO</div>
-        </div>
-        <div class="bento-tile" onclick="window.app.openScreen('SETTINGS')">
+        <div class="bento-tile" onclick="window.app.openScreen('SETTINGS')" style="flex:1;">
           <div class="bento-icon-circle" style="border-color:rgba(56,189,248,0.65);background:radial-gradient(circle,rgba(56,189,248,0.28),transparent);">🎚️</div>
-          <div class="bento-title" style="color:#38BDF8;">STUDIO</div>
+          <div class="bento-title" style="color:#38BDF8;">STUDIO &amp; VIP</div>
         </div>
       </div>
     </div>
@@ -132,6 +128,12 @@
             <img src="assets/btn_icon_pause.png" alt="Pause" />
           </button>
         </div>
+      </div>
+
+      <!-- Live Song Unlock & Discovery Progress Capsule -->
+      <div id="hud-unlock-capsule" style="display:inline-flex;align-items:center;gap:6px;padding:3px 8px;border-radius:4px;background:rgba(6,11,24,0.88);border:1px solid rgba(250,204,21,0.65);width:fit-content;pointer-events:none;margin-top:2px;">
+        <img id="hud-track-art-thumb" src="assets/track_01.png" style="width:18px;height:18px;border-radius:50%;object-fit:cover;border:1px solid #FACC15;" />
+        <span id="hud-unlock-text" style="font-size:9px;font-weight:900;letter-spacing:0.5px;color:#FDE047;">🔒 UNLOCKING TRACK 01 • 0%</span>
       </div>
     </div>
   </div>
@@ -224,14 +226,14 @@
         <div id="tc-excl-quote" style="font-size:10px;font-weight:800;font-style:italic;color:#38BDF8;margin-top:6px;"></div>
       </div>
 
-      <!-- Prominent Alternate Mode Button: "PLAY MY MUSIC: BAND HERO STYLE" (4-Lane Highway Edition) -->
+      <!-- Prominent Alternate Mode Button: "PLAY CLASSIC MODE: GUITAR HERO STYLE" (4-Lane Highway Edition) -->
       <div onclick="window.app.startBandHeroStage()"
            style="width:100%;padding:10px 14px;margin-bottom:8px;cursor:pointer;text-align:center;
                   clip-path:polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px);
                   background:linear-gradient(90deg, #2E1065, #0F172A, #4C0519);
                   border:2px solid #FACC15;box-shadow:0 0 24px rgba(250,204,21,0.35);">
         <div style="font-size:12.5px;font-weight:900;color:#FACC15;letter-spacing:0.8px;">
-          🎸 PLAY MY MUSIC: BAND HERO STYLE
+          🎸 PLAY CLASSIC MODE: GUITAR HERO STYLE
         </div>
         <div style="font-size:9px;font-weight:800;color:#38BDF8;letter-spacing:0.6px;margin-top:2px;">
           4-LANE RHYTHM HIGHWAY EDITION • TAP TO LAUNCH
@@ -342,68 +344,63 @@
   </div>
 
   <!-- ======================================================================
-       8. HOW TO PLAY MODAL (WITH 12-SECOND AUTO-PLAYING MINI-VIDEO REEL)
+       8. HOW TO PLAY MODAL
        ====================================================================== -->
   <div id="screen-HOW_TO_PLAY" class="screen-overlay modal-backdrop">
     <div id="htp-modal-card" class="glass-modal-card" style="max-width:420px;max-height:92vh;overflow-y:auto;">
       <div class="guide-card-header">
         <div>
-          <div class="guide-title">STAGE BRIEFING &amp; MINI-VIDEO</div>
-          <div id="htp-sub-header" style="font-size:10.5px;color:#CBD5E1;font-weight:700;">Zero mid-game pop-ups • Countdown waits until you tap Start</div>
+          <div class="guide-title">HOW TO PLAY • MUSIC GUIDE</div>
+          <div id="htp-sub-header" style="font-size:10.5px;color:#CBD5E1;font-weight:700;">Fluid Glide Rhythm • Unlock Tracks • Classic Mode (Guitar Hero Style)</div>
         </div>
         <button class="btn-close-pill" onclick="window.app.dismissHowToPlay(false, false)">BACK</button>
       </div>
 
-      <!-- 12-Second Looping Mini-Video Reel -->
-      <div style="background:#050814;border:1.5px solid rgba(56,189,248,0.55);border-radius:14px;padding:8px;text-align:left;">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
-          <span style="font-size:8.5px;font-weight:900;color:#22C55E;letter-spacing:1.1px;">● LIVE GAMEPLAY PREVIEW REEL (12s LOOP)</span>
-          <span style="font-size:8.5px;font-weight:800;color:#94A3B8;">AUTO-PLAYING</span>
-        </div>
-        <canvas id="htp-video-canvas" width="320" height="148" style="width:100%;height:148px;border-radius:10px;border:1px solid rgba(255,255,255,0.14);display:block;"></canvas>
-        <div id="htp-video-title" style="font-size:10.5px;font-weight:900;color:#FACC15;margin-top:6px;">1/3 • HIT FRET NOTES ON THE GLOWING BEAT LINE</div>
-        <div id="htp-video-sub" style="font-size:9.5px;color:#E2E8F0;margin-top:1px;">Notes scroll down 4 lanes — catch them at the Strike Line for ★ PERFECT ON-BEAT!</div>
-        <div style="display:flex;gap:5px;margin-top:6px;">
-          <div style="flex:1;height:4px;background:rgba(255,255,255,0.14);border-radius:2px;overflow:hidden;"><div id="htp-video-bar-0" style="width:0%;height:100%;background:#FACC15;"></div></div>
-          <div style="flex:1;height:4px;background:rgba(255,255,255,0.14);border-radius:2px;overflow:hidden;"><div id="htp-video-bar-1" style="width:0%;height:100%;background:#38BDF8;"></div></div>
-          <div style="flex:1;height:4px;background:rgba(255,255,255,0.14);border-radius:2px;overflow:hidden;"><div id="htp-video-bar-2" style="width:0%;height:100%;background:#EF4444;"></div></div>
-        </div>
-      </div>
-
-      <!-- 1. GUITAR-HERO BEAT LINE -->
-      <div class="guide-item" style="border-color:rgba(250,204,21,0.45);">
-        <div class="guide-icon-badge" style="background:rgba(250,204,21,0.18);border:1.5px solid #FACC15;color:#FACC15;">★</div>
-        <div>
-          <div class="guide-text-title" style="color:#FACC15;">HIT NOTES ON THE BEAT STRIKE LINE</div>
-          <div class="guide-text-body">
-            Colored Fret Gems scroll down the 4-lane highway. Catch them as they cross the <b>Glowing Beat Strike Line</b> for <b>★ PERFECT ON-BEAT!</b> points &amp; Fret Flames!
-          </div>
-        </div>
-      </div>
-
-      <!-- 2. 2-FINGER TWIN HERO & VOCAL SUSTAIN HOLDS -->
+      <!-- 1. DRAG TO GLIDE -->
       <div class="guide-item" style="border-color:rgba(56,189,248,0.45);">
-        <div class="guide-icon-badge" style="background:rgba(56,189,248,0.18);border:1.5px solid #38BDF8;color:#38BDF8;">⚡</div>
+        <div class="guide-icon-badge" style="background:rgba(56,189,248,0.18);border:1.5px solid #38BDF8;color:#38BDF8;">👆</div>
         <div>
-          <div class="guide-text-title" style="color:#38BDF8;">2-FINGER TWIN HERO &amp; VOCAL SUSTAIN HOLDS</div>
+          <div class="guide-text-title" style="color:#38BDF8;">1. DRAG TO GLIDE</div>
           <div class="guide-text-body">
-            Place a <b>2nd finger</b> anywhere on screen to spawn a <b>Twin Hero Sprite</b> linked by an <b>Electric Plasma Tether</b>! On vocal swells, <b>hold 2 fingers</b> to charge the dual sustain chord to 100%!
+            Touch and drag anywhere on the screen to smoothly glide your hero around the stage with zero lag.
           </div>
         </div>
       </div>
 
-      <!-- 3. BOMBS & SHIELDS -->
+      <!-- 2. CATCH BEAT NOTES -->
+      <div class="guide-item" style="border-color:rgba(250,204,21,0.45);">
+        <div class="guide-icon-badge" style="background:rgba(250,204,21,0.18);border:1.5px solid #FACC15;color:#FACC15;">🎵</div>
+        <div>
+          <div class="guide-text-title" style="color:#FACC15;">2. CATCH BEAT NOTES</div>
+          <div class="guide-text-body">
+            Notes glide inward from the outside perimeter to the rhythm of the music. Intercept them on beat to charge your combo and multiplier!
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. AVOID RED HAZARDS -->
       <div class="guide-item" style="border-color:rgba(239,68,68,0.45);">
-        <div class="guide-icon-badge" style="background:rgba(239,68,68,0.18);border:1.5px solid #EF4444;color:#EF4444;">💥</div>
+        <div class="guide-icon-badge" style="background:rgba(239,68,68,0.18);border:1.5px solid #EF4444;color:#EF4444;">⚠️</div>
         <div>
-          <div class="guide-text-title" style="color:#EF4444;">GRAB 💥 BOMBS TO DESTROY RED ENEMIES</div>
+          <div class="guide-text-title" style="color:#EF4444;">3. AVOID RED HAZARDS</div>
           <div class="guide-text-body">
-            Collect labeled <b>💥 BOMB</b> items to instantly vaporize every enemy on screen (+150 pts each), or grab <b>🛡️ SHIELD</b> to block a hit!
+            Crimson hazard spikes damage your combo. Dodge them safely or collect <b>💥 Bomb</b> or <b>🛡️ Shield</b> orbs to defend your run.
           </div>
         </div>
       </div>
 
-      <div style="display:flex;gap:10px;margin-top:4px;">
+      <!-- 4. CLASSIC MODE (Guitar Hero Style) -->
+      <div class="guide-item" style="border-color:rgba(236,72,153,0.45);">
+        <div class="guide-icon-badge" style="background:rgba(236,72,153,0.18);border:1.5px solid #EC4899;color:#EC4899;">🎸</div>
+        <div>
+          <div class="guide-text-title" style="color:#F472B6;">4. CLASSIC MODE (Guitar Hero Style)</div>
+          <div class="guide-text-body">
+            Toggle Classic Mode anytime on the main menu to experience authentic 4-lane vertical highway rhythm action!
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px;margin-top:8px;">
         <button class="btn-action-secondary" onclick="window.app.dismissHowToPlay(true, true)" style="flex:0.95;height:46px;font-size:10.5px;">
           DON'T SHOW AGAIN
         </button>
@@ -551,19 +548,19 @@
     </div>
   </div>
 
-  <script src="multi_band_data.js?v=30"></script>
-  <script src="music_library.js?v=30"></script>
-  <script src="background_renderer.js?v=30"></script>
-  <script src="beat_orb_renderer.js?v=30"></script>
-  <script src="game_renderer.js?v=30"></script>
-  <script src="engine.js?v=30"></script>
-  <script src="audio_synth.js?v=30"></script>
-  <script src="game_physics.js?v=30"></script>
-  <script src="ui_screens.js?v=30"></script>
-  <script src="tutorial_overlay.js?v=30"></script>
+  <script src="multi_band_data.js?v=32"></script>
+  <script src="music_library.js?v=32"></script>
+  <script src="background_renderer.js?v=32"></script>
+  <script src="beat_orb_renderer.js?v=32"></script>
+  <script src="game_renderer.js?v=32"></script>
+  <script src="engine.js?v=32"></script>
+  <script src="audio_synth.js?v=32"></script>
+  <script src="game_physics.js?v=32"></script>
+  <script src="ui_screens.js?v=32"></script>
+  <script src="tutorial_overlay.js?v=32"></script>
   <script>
     (function () {
-      const CURRENT_WEB_BUILD = "nmi-v31-vinyl-visuals";
+      const CURRENT_WEB_BUILD = "nmi-v32-gameplay-overhaul";
       if ("serviceWorker" in navigator) {
         let refreshing = false;
         navigator.serviceWorker.addEventListener("controllerchange", () => {

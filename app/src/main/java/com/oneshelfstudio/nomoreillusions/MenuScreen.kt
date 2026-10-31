@@ -425,68 +425,43 @@ fun MenuUI(
                     drawCircle(color = if (isCurrentTrackUnlocked) Color.White else Color(0xFF94A3B8L), radius = 3.2f, center = stylusTip)
                 }
 
-                // Spinning Vinyl Center Label with Real Track Picture
-                val platterLabelSize = 74.dp
+                // Spinning Vinyl Center Label with Signature Band Logo
+                val platterLabelSize = 78.dp
                 Box(
                     modifier = Modifier
                         .size(platterLabelSize)
                         .graphicsLayer(
-                            rotationZ = if (isCurrentTrackUnlocked) (menuTime * 32f * platterSpinSpeed) % 360f else 0f
+                            rotationZ = (menuTime * 32f * platterSpinSpeed) % 360f
                         )
                         .clip(CircleShape)
+                        .background(Color(0xFF060913L))
                         .border(
-                            width = 1.8.dp,
-                            color = if (isCurrentTrackUnlocked) modeAccent else Color(0xFF475569L),
+                            width = 2.dp,
+                            color = modeAccent,
                             shape = CircleShape
                         ),
                     contentAlignment = Alignment.Center
                 ) {
                     Image(
-                        bitmap = selectedTrackArt,
-                        contentDescription = "No More Illusions Active Track Artwork",
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop,
-                        colorFilter = if (!isCurrentTrackUnlocked) ColorFilter.colorMatrix(ColorMatrix().apply { setToSaturation(0.0f) }) else null,
-                        alpha = if (isCurrentTrackUnlocked) 1.0f else 0.42f
+                        bitmap = nmiLogo,
+                        contentDescription = "No More Illusions Official Band Logo",
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(6.dp),
+                        contentScale = ContentScale.Fit
                     )
-                    // Metallic Spindle Hole
+                    // Metallic Spindle Hole Core
                     Box(
                         modifier = Modifier
-                            .size(11.dp)
+                            .size(10.dp)
                             .clip(CircleShape)
                             .background(Color(0xFF030508L))
-                            .border(1.2.dp, if (isCurrentTrackUnlocked) Color(0xFFFACC15L) else Color(0xFF64748BL), CircleShape)
+                            .border(1.2.dp, Color(0xFFFACC15L), CircleShape)
                     )
-                }
-
-                // Frosted Greyed-Out Lock Overlay on Turntable Platter
-                if (!isCurrentTrackUnlocked) {
-                    Box(
-                        modifier = Modifier
-                            .size(54.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(Color(0xD9050811L))
-                            .border(1.2.dp, Color(0xFF64748BL).copy(alpha = 0.75f), RoundedCornerShape(8.dp)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center
-                        ) {
-                            Text(text = "🔒", fontSize = 16.sp)
-                            Text(
-                                text = "LOCKED",
-                                color = Color(0xFFCBD5E1L),
-                                fontSize = 8.5.sp,
-                                fontWeight = FontWeight.Black,
-                                letterSpacing = 0.6.sp
-                            )
-                        }
-                    }
                 }
             }
 
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             // Artist Signature Header + High-Score Record Banner
             Box(contentAlignment = Alignment.Center) {
@@ -514,7 +489,7 @@ fun MenuUI(
                 letterSpacing = 1.4.sp
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
             var peekPrizeTrackIdx by remember { mutableStateOf<Int?>(null) }
 
@@ -748,12 +723,12 @@ fun MenuUI(
                     }
                 }
 
-                // 4th Sculpted Gem: 🎸 BAND HERO (4-Lane Highway Edition)
+                // 4th Sculpted Gem: 🎸 CLASSIC MODE (Guitar Hero Style)
                 val bhCol = Color(0xFFFACC15L)
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier
-                        .weight(1.1f)
+                        .weight(1.15f)
                         .clip(CutCornerShape(topStart = 10.dp, bottomEnd = 10.dp))
                         .background(if (isBandHeroMode) bhCol.copy(alpha = 0.25f) else Color(0xFF160B24L))
                         .border(
@@ -765,23 +740,23 @@ fun MenuUI(
                         .padding(vertical = 8.dp, horizontal = 4.dp)
                 ) {
                     Text(
-                        text = "🎸 BAND HERO",
+                        text = "🎸 CLASSIC",
                         color = if (isBandHeroMode) bhCol else Color(0xFFF472B6L),
-                        fontSize = 9.5.sp,
+                        fontSize = 9.sp,
                         fontWeight = FontWeight.Black,
                         maxLines = 1
                     )
                     Text(
-                        text = if (isBandHeroMode) "4-Lane ON" else "4-Lane Mode",
+                        text = if (isBandHeroMode) "Guitar Hero ON" else "Guitar Hero Style",
                         color = Color(0xFFCBD5E1L),
-                        fontSize = 7.5.sp,
+                        fontSize = 7.sp,
                         fontWeight = FontWeight.Bold,
                         maxLines = 1
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             // 3. CUSTOM-SCULPTED CHAMFERED NEON LAUNCH BLADE
             val isCurrentLaunchUnlocked = selectedTrackIndex == 1 || unlockedTrackCount >= selectedTrackIndex || isVipUnlocked || prefs.getBoolean("art_unlocked_$selectedTrackIndex", false) || prefs.getBoolean("track_unlocked_$selectedTrackIndex", false)
@@ -816,44 +791,42 @@ fun MenuUI(
             ) {
                 Text(
                     text = if (!isCurrentLaunchUnlocked) "🔒 UNLOCK TRACK 0$selectedTrackIndex (${selectedTrack.unlockCost} ♪ OR BEAT STAGE 1)"
-                    else if (isBandHeroMode) "🎸 PLAY BAND HERO • TRACK 0$selectedTrackIndex"
+                    else if (isBandHeroMode) "🎸 PLAY CLASSIC MODE • GUITAR HERO STYLE"
                     else "▶ PLAY TRACK 0$selectedTrackIndex • ${selectedTrack.title.uppercase()}",
                     color = if (!isCurrentLaunchUnlocked) Color(0xFFFDE68AL) else Color(0xFFFAF8F5L),
-                    fontSize = if (!isCurrentLaunchUnlocked) 12.sp else 14.5.sp,
+                    fontSize = if (!isCurrentLaunchUnlocked) 11.5.sp else 13.5.sp,
                     fontWeight = FontWeight.Black,
-                    letterSpacing = if (!isCurrentLaunchUnlocked) 0.8.sp else 1.6.sp
+                    letterSpacing = if (!isCurrentLaunchUnlocked) 0.8.sp else 1.4.sp
                 )
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-            // 3 Frameless Floating Stage Icons (Zero Boxy AI Tiles!)
+            // 2 Frameless Floating Stage Cards (Album & Vault + Studio VIP)
             Row(
-                horizontalArrangement = Arrangement.SpaceEvenly,
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp)
             ) {
                 MenuBentoTile(
                     title = "💿 ALBUM & VAULT",
                     subtitle = "Songs & Fan Notes",
                     accent = Color(0xFFEAB308L),
-                    onClick = onMusicDemo
+                    onClick = onMusicDemo,
+                    modifier = Modifier.weight(1f)
                 )
                 MenuBentoTile(
-                    title = "🎬 MINI VIDEO",
-                    subtitle = "How To Play",
-                    accent = Color(0xFF4ADE80L),
-                    onClick = onHowToPlay
-                )
-                MenuBentoTile(
-                    title = "🎚️ STUDIO",
-                    subtitle = "Audio & VIP",
+                    title = "🎚️ STUDIO & VIP",
+                    subtitle = "Audio & Upgrades",
                     accent = Color(0xFF38BDF8L),
-                    onClick = onSettings
+                    onClick = onSettings,
+                    modifier = Modifier.weight(1f)
                 )
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             // Authentic Vector Brand Icon Dock (Spotify, Apple Music, YouTube, Instagram, TikTok)
             Text(
@@ -961,7 +934,7 @@ fun HowToPlayUI(
                 .padding(vertical = 12.dp)
         ) {
             Text(
-                text = "HOW TO PLAY • VIDEO GUIDE",
+                text = "HOW TO PLAY • MUSIC GUIDE",
                 color = Color(0xFFEAB308L),
                 fontSize = 22.sp,
                 fontWeight = FontWeight.Black,
@@ -969,38 +942,30 @@ fun HowToPlayUI(
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "Band Hero Rhythm Highway • Labeled Pickups • High-Score Chases",
+                text = "Fluid Glide Rhythm • Unlock Tracks • Classic Mode (Guitar Hero Style)",
                 color = Color(0xFFCBD5E1L),
                 fontSize = 11.sp,
                 fontWeight = FontWeight.SemiBold
             )
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Live 12-Second Animated Gameplay Mini-Video Reel
-            MiniGameplayVideoReel(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(195.dp)
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-            InstructionItem(
-                "1. CATCH NOTES ON THE BEAT STRIKE LINE",
-                "Notes scroll down the 4-lane perspective highway. Catch them right as they cross the glowing lower Beat Strike Line for ★ PERFECT ON-BEAT (+200) and Fret Flames!"
-            )
-            InstructionItem(
-                "2. TWO-FINGER TWIN HERO & VOCAL SUSTAIN HOLDS",
-                "Touch with a 2nd finger anytime to spawn a Twin Hero linked by a live Electric/Liquid Plasma Tether! On flowy vocal swells, hold 2 fingers on the Beat Strike Line to charge 100% Vocal Harmony (+500)!"
-            )
-            InstructionItem(
-                "3. GRAB 💥 BOMB TO VAPORIZE ALL ENEMIES",
-                "Every item is clearly labeled! Grabbing 💥 BOMB triggers a shockwave that instantly destroys every red enemy on screen (+150 pts each)."
-            )
-            InstructionItem(
-                "4. GRAB 🛡️ SHIELD & CHASE ∞ ENDLESS HIGH SCORES",
-                "🛡️ SHIELD blocks 1 hazard hit. Play ∞ ENDLESS LOOP mode on the main menu to loop songs at escalating speeds for massive high-score records!"
-            )
             Spacer(modifier = Modifier.height(16.dp))
+
+            InstructionItem(
+                "👆 1. DRAG TO GLIDE",
+                "Touch anywhere and drag smoothly to glide your hero across the stage. Your hero responds fluidly to your finger with zero lag."
+            )
+            InstructionItem(
+                "🎵 2. CATCH BEAT NOTES",
+                "Notes glide in from the outside perimeter to the rhythm of the music. Intercept them on the beat to charge your combo and multiplier!"
+            )
+            InstructionItem(
+                "⚠️ 3. AVOID RED HAZARDS",
+                "Crimson hazard spikes damage your combo. Dodge them safely or collect 💥 Bomb or 🛡️ Shield orbs to protect your run."
+            )
+            InstructionItem(
+                "🎸 4. CLASSIC MODE (Guitar Hero Style)",
+                "Toggle Classic Mode anytime on the main menu to experience authentic 4-lane vertical rhythm action with hit lines and fret burns!"
+            )
+            Spacer(modifier = Modifier.height(20.dp))
             ArcadePillButton(
                 text = "BACK TO STUDIO MENU",
                 pillBitmap = btnPillCyan,

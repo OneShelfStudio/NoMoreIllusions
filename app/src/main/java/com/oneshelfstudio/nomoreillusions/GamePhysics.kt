@@ -456,43 +456,65 @@ fun stepNebulousBeatOrbs(
         val minDim = minOf(screenWidth, screenHeight)
 
         powerUps.forEach { orb ->
-            val modeTag = orb.orbitRadius
-            val stableSlot = (orb.sequenceIndex % 6).toFloat()
-            val slotFrac = (stableSlot + 0.5f) / 6f
+            val leadDur = (orb.targetBeatSec - orb.spawnBeatSec).coerceAtLeast(0.45f)
+            val u = ((trackSec - orb.spawnBeatSec) / leadDur).coerceIn(0f, 1.25f)
+            val hasPerimeterSpawn = (orb.spawnX != 0f || orb.spawnY != 0f) && (orb.spawnX != orb.anchorX || orb.spawnY != orb.anchorY)
 
-            when (modeTag) {
-                102f -> {
-                    // Slow Galactic Spiral: pegs smoothly revolve around open stage center on stable spiral arms!
-                    val theta = gameTime * 0.62f + (stableSlot / 6f) * (2f * PI.toFloat())
-                    val ringR = minDim * (0.26f + 0.04f * sin(gameTime * 0.85f + stableSlot * 0.7f))
-                    val goalX = screenWidth * 0.50f + cos(theta) * ringR
-                    val goalY = screenHeight * 0.48f + sin(theta) * ringR
-                    val blend = (0.055f * currentScale).coerceIn(0.01f, 0.18f)
-                    orb.x += (goalX - orb.x) * blend
-                    orb.y += (goalY - orb.y) * blend
-                }
-                103f -> {
-                    // Flowing Liquid Sine Wave: pegs drift smoothly in a spaced undulating ribbon across the open stage!
-                    val goalX = screenWidth * (0.16f + 0.68f * slotFrac) + sin(gameTime * 1.1f + stableSlot) * 18f
-                    val goalY = screenHeight * 0.48f + sin(gameTime * 1.55f + slotFrac * PI.toFloat() * 1.8f) * (screenHeight * 0.15f)
-                    val blend = (0.060f * currentScale).coerceIn(0.01f, 0.18f)
-                    orb.x += (goalX - orb.x) * blend
-                    orb.y += (goalY - orb.y) * blend
-                }
-                101f -> {
-                    // Outward-Inward Sweeping Glide: pegs glide smoothly inward from outer screen edge along a graceful curve!
-                    val goalX = orb.anchorX + cos(gameTime * 1.6f + orb.phase) * 16f
-                    val goalY = orb.anchorY + sin(gameTime * 1.9f + orb.phase) * 16f
-                    val blend = (0.068f * currentScale).coerceIn(0.01f, 0.20f)
-                    orb.x += (goalX - orb.x) * blend
-                    orb.y += (goalY - orb.y) * blend
-                }
-                else -> {
-                    // Calm Open-Stage Groove: gentle breathing hover around non-overlapping anchor
-                    val goalX = orb.anchorX + cos(gameTime * 1.8f + orb.phase) * 4.5f
-                    val goalY = orb.anchorY + sin(gameTime * 2.1f + orb.phase) * 4.5f
-                    orb.x += (goalX - orb.x) * 0.16f
-                    orb.y += (goalY - orb.y) * 0.16f
+            if (hasPerimeterSpawn && u < 1.0f) {
+                // Smooth flight along swooping quadratic bezier path from outer perimeter onto stage
+                val t = (1f - (1f - u) * (1f - u)).coerceIn(0f, 1f) // Ease-out quad
+                val chordX = orb.anchorX - orb.spawnX
+                val chordY = orb.anchorY - orb.spawnY
+                val perpX = -chordY
+                val perpY = chordX
+                val ctrlX = (orb.spawnX + orb.anchorX) * 0.5f + perpX * orb.swoopCurve
+                val ctrlY = (orb.spawnY + orb.anchorY) * 0.5f + perpY * orb.swoopCurve
+
+                val oneMinusT = 1f - t
+                val targetPosX = oneMinusT * oneMinusT * orb.spawnX + 2f * oneMinusT * t * ctrlX + t * t * orb.anchorX
+                val targetPosY = oneMinusT * oneMinusT * orb.spawnY + 2f * oneMinusT * t * ctrlY + t * t * orb.anchorY
+
+                orb.x += (targetPosX - orb.x) * 0.38f
+                orb.y += (targetPosY - orb.y) * 0.38f
+            } else {
+                val modeTag = orb.orbitRadius
+                val stableSlot = (orb.sequenceIndex % 6).toFloat()
+                val slotFrac = (stableSlot + 0.5f) / 6f
+
+                when (modeTag) {
+                    102f -> {
+                        // Slow Galactic Spiral: pegs smoothly revolve around open stage center on stable spiral arms!
+                        val theta = gameTime * 0.62f + (stableSlot / 6f) * (2f * PI.toFloat())
+                        val ringR = minDim * (0.26f + 0.04f * sin(gameTime * 0.85f + stableSlot * 0.7f))
+                        val goalX = screenWidth * 0.50f + cos(theta) * ringR
+                        val goalY = screenHeight * 0.48f + sin(theta) * ringR
+                        val blend = (0.055f * currentScale).coerceIn(0.01f, 0.18f)
+                        orb.x += (goalX - orb.x) * blend
+                        orb.y += (goalY - orb.y) * blend
+                    }
+                    103f -> {
+                        // Flowing Liquid Sine Wave: pegs drift smoothly in a spaced undulating ribbon across the open stage!
+                        val goalX = screenWidth * (0.16f + 0.68f * slotFrac) + sin(gameTime * 1.1f + stableSlot) * 18f
+                        val goalY = screenHeight * 0.48f + sin(gameTime * 1.55f + slotFrac * PI.toFloat() * 1.8f) * (screenHeight * 0.15f)
+                        val blend = (0.060f * currentScale).coerceIn(0.01f, 0.18f)
+                        orb.x += (goalX - orb.x) * blend
+                        orb.y += (goalY - orb.y) * blend
+                    }
+                    101f -> {
+                        // Outward-Inward Sweeping Glide: pegs glide smoothly inward from outer screen edge along a graceful curve!
+                        val goalX = orb.anchorX + cos(gameTime * 1.6f + orb.phase) * 24f
+                        val goalY = orb.anchorY + sin(gameTime * 1.9f + orb.phase) * 24f
+                        val blend = (0.068f * currentScale).coerceIn(0.01f, 0.20f)
+                        orb.x += (goalX - orb.x) * blend
+                        orb.y += (goalY - orb.y) * blend
+                    }
+                    else -> {
+                        // Calm Open-Stage Groove: gentle breathing hover around non-overlapping anchor
+                        val goalX = orb.anchorX + cos(gameTime * 1.8f + orb.phase) * 4.5f
+                        val goalY = orb.anchorY + sin(gameTime * 2.1f + orb.phase) * 4.5f
+                        orb.x += (goalX - orb.x) * 0.16f
+                        orb.y += (goalY - orb.y) * 0.16f
+                    }
                 }
             }
         }

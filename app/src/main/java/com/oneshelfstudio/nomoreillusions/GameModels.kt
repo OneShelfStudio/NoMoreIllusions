@@ -176,7 +176,10 @@ data class GameObject(
     var sequenceIndex: Int = 0,
     var isGoldenOrb: Boolean = false,
     var keyWordEffect: KeyWordEffect = KeyWordEffect.NONE,
-    var hasPassedPlayer: Boolean = false
+    var hasPassedPlayer: Boolean = false,
+    var spawnX: Float = 0f,
+    var spawnY: Float = 0f,
+    var swoopCurve: Float = 0f
 )
 
 /**

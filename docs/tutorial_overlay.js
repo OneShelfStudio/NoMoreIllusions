@@ -205,14 +205,57 @@ Object.assign(NoMoreIllusionsApp.prototype, {
     document.getElementById("disc-title").textContent = disc.title;
     document.getElementById("disc-sub").textContent = disc.subtitle;
     document.getElementById("disc-sub").style.color = disc.accentHex;
-    document.getElementById("disc-body").textContent = disc.bodyText;
-    document.getElementById("disc-tip").textContent = disc.tipText;
     document.getElementById("disc-card").style.borderColor = disc.accentHex;
+
+    const bodyEl = document.getElementById("disc-body");
+    const tipEl = document.getElementById("disc-tip");
+    const canvasEl = document.getElementById("disc-spotlight-canvas");
+
+    if (disc.key === "FAN_WELCOME") {
+      if (canvasEl) canvasEl.style.display = "none";
+      if (tipEl) tipEl.style.display = "none";
+      if (bodyEl) {
+        bodyEl.style.background = "transparent";
+        bodyEl.style.border = "none";
+        bodyEl.style.padding = "0";
+        bodyEl.innerHTML = `
+          <div style="display:flex;gap:8px;width:100%;margin:10px 0;">
+            <div style="flex:1;background:#070E1D;border:1.2px solid rgba(56,189,248,0.55);border-radius:12px;padding:10px 4px;text-align:center;">
+              <div style="font-size:26px;">👆</div>
+              <div style="font-size:11px;font-weight:900;color:#38BDF8;margin-top:4px;">DRAG</div>
+              <div style="font-size:9px;font-weight:700;color:#94A3B8;">To Glide</div>
+            </div>
+            <div style="flex:1;background:#070E1D;border:1.2px solid rgba(250,204,21,0.55);border-radius:12px;padding:10px 4px;text-align:center;">
+              <div style="font-size:26px;">🎵</div>
+              <div style="font-size:11px;font-weight:900;color:#FACC15;margin-top:4px;">CATCH</div>
+              <div style="font-size:9px;font-weight:700;color:#94A3B8;">Beat Notes</div>
+            </div>
+            <div style="flex:1;background:#070E1D;border:1.2px solid rgba(244,63,94,0.55);border-radius:12px;padding:10px 4px;text-align:center;">
+              <div style="font-size:26px;">⚠️</div>
+              <div style="font-size:11px;font-weight:900;color:#F43F5E;margin-top:4px;">AVOID</div>
+              <div style="font-size:9px;font-weight:700;color:#94A3B8;">Red Hazards</div>
+            </div>
+          </div>
+          <div style="font-size:10px;font-weight:700;color:#CBD5E1;text-align:center;margin-bottom:8px;">Unlock tracks &amp; artist vault secrets as you play!</div>
+        `;
+      }
+    } else {
+      if (canvasEl) canvasEl.style.display = "block";
+      if (tipEl) tipEl.style.display = "block";
+      if (bodyEl) {
+        bodyEl.style.background = "rgba(6,10,22,0.85)";
+        bodyEl.style.border = "1px solid rgba(255,255,255,0.1)";
+        bodyEl.style.padding = "10px 12px";
+        bodyEl.textContent = disc.bodyText;
+      }
+      if (tipEl) tipEl.textContent = disc.tipText;
+    }
+
     const btn = document.getElementById("disc-btn");
     if (btn) {
       btn.textContent = disc.key === "FAN_WELCOME"
-        ? "★  AWESOME — LET'S EXPERIENCE THE ALBUM"
-        : "▶  GOT IT — RESUME STAGE (NEVER SHOW AGAIN)";
+        ? "LET'S PLAY ♪"
+        : "▶  GOT IT — RESUME STAGE";
     }
     modal.style.display = "flex";
   },
