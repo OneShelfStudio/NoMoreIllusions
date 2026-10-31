@@ -70,8 +70,10 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
     
-    // Ads
+    // Ads (AdMob Base + High-eCPM Mediation Adapters)
     implementation("com.google.android.gms:play-services-ads:23.4.0")
+    implementation("com.google.ads.mediation:applovin:13.0.1.0")
+    implementation("com.google.ads.mediation:unity:4.12.5.0")
     
     // Google Play Billing 8.0.0+ (Required by Google Play Console)
     implementation("com.android.billingclient:billing:8.0.0")
