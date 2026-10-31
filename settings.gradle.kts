@@ -13,7 +13,6 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        maven { url = uri("https://artifacts.applovin.com/android") }
     }
 }
 rootProject.name = "NoMoreIllusions"
