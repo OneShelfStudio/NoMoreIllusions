@@ -157,6 +157,24 @@ Object.assign(NoMoreIllusionsApp.prototype, {
         badgesEl.dataset.last = html;
       }
     }
+
+    const unlockCapsule = document.getElementById("hud-unlock-capsule");
+    const unlockText = document.getElementById("hud-unlock-text");
+    const trackThumb = document.getElementById("hud-track-art-thumb");
+    if (unlockCapsule && unlockText) {
+      const trkIdx = this.selectedStageIndex + 1;
+      const isTrkUnlocked = this.prefs.unlockedTracks.includes(OFFICIAL_TRACKS[this.selectedStageIndex]?.id) || this.prefs.isVip || this.selectedStageIndex === 0;
+      const pct = Math.floor(progress * 100);
+      if (trackThumb) {
+        trackThumb.src = trkIdx === 1 ? "assets/track_01.png" : "assets/track_02.png";
+        trackThumb.style.borderColor = isTrkUnlocked ? "#4ADE80" : "#FACC15";
+      }
+      unlockCapsule.style.borderColor = isTrkUnlocked ? "rgba(74,222,128,0.65)" : "rgba(250,204,21,0.65)";
+      unlockText.style.color = isTrkUnlocked ? "#86EFAC" : "#FDE047";
+      unlockText.textContent = isTrkUnlocked
+        ? `★ TRACK 0${trkIdx} UNLOCKED • ${pct}%`
+        : `🔒 UNLOCKING TRACK 0${trkIdx} • ${pct}% • ${this.prefs.points || 0} ♪`;
+    }
   },
 
     openLinerNotes(trackIndex = this.selectedStageIndex) {
@@ -437,8 +455,8 @@ Object.assign(NoMoreIllusionsApp.prototype, {
                     clip-path:polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
                     background:${bhActive ? "rgba(250,204,21,0.26)" : "#160B24"};
                     border:${bhActive ? "2px solid #FACC15" : "1px solid rgba(236,72,153,0.48)"};">
-          <div style="font-size:9.5px;font-weight:900;color:${bhActive ? "#FACC15" : "#F472B6"};white-space:nowrap;">🎸 BAND HERO</div>
-          <div style="font-size:7.5px;font-weight:800;color:#CBD5E1;margin-top:2px;white-space:nowrap;">${bhActive ? "4-Lane ON" : "4-Lane Mode"}</div>
+          <div style="font-size:9.5px;font-weight:900;color:${bhActive ? "#FACC15" : "#F472B6"};white-space:nowrap;">🎸 CLASSIC</div>
+          <div style="font-size:7px;font-weight:800;color:#CBD5E1;margin-top:2px;white-space:nowrap;">${bhActive ? "Guitar Hero ON" : "Guitar Hero Style"}</div>
         </div>
       `;
 
@@ -466,13 +484,13 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       launchMain.innerHTML = !isStageUnlocked
         ? `🔒 &nbsp;UNLOCK TRACK 0${this.selectedStageIndex + 1} (1,200 ♪ OR BEAT STAGE 1)`
         : (this.isBandHeroMode
-          ? `🎸 &nbsp;PLAY BAND HERO • TRACK 0${this.selectedStageIndex + 1}`
+          ? `🎸 &nbsp;PLAY CLASSIC MODE • GUITAR HERO STYLE`
           : `▶ &nbsp;PLAY TRACK 0${this.selectedStageIndex + 1} • ${activeStage.title.toUpperCase()}`);
     }
     const launchSub = document.getElementById("menu-launch-sub");
     if (launchSub) {
       launchSub.textContent = this.isBandHeroMode
-        ? "4-LANE RHYTHM HIGHWAY EDITION"
+        ? "GUITAR HERO STYLE 4-LANE HIGHWAY"
         : `${activeRemix.displayName} • 8-BEAT FREE-ROAM STAGE`;
       launchSub.style.color = launchAccent;
     }

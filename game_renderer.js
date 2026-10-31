@@ -702,27 +702,22 @@ function drawMenuTurntable(ctx, logoImg, time, isGoldMode, isLocked) {
   ctx.lineWidth = 2.5;
   ctx.stroke();
 
-  // 3. Spinning Center Album Art Picture Label
+  // 3. Spinning Center Signature Band Logo Platter Label
   const labelSize = vinylRadius * 1.16;
   if (logoImg && logoImg.complete && logoImg.naturalWidth > 0) {
     ctx.save();
     ctx.beginPath();
     ctx.arc(cx, cy, labelSize / 2, 0, Math.PI * 2);
     ctx.clip();
-    if (isLocked) {
-      ctx.filter = "grayscale(100%) opacity(45%)";
-    }
     ctx.translate(cx, cy);
-    if (!isLocked) {
-      ctx.rotate(spinDeg * Math.PI / 180);
-    }
+    ctx.rotate((time * 42) * Math.PI / 180);
     ctx.drawImage(logoImg, -labelSize / 2, -labelSize / 2, labelSize, labelSize);
     ctx.restore();
 
     ctx.beginPath();
     ctx.arc(cx, cy, labelSize / 2, 0, Math.PI * 2);
-    ctx.strokeStyle = isLocked ? "rgba(100, 116, 139, 0.6)" : (isGoldMode ? "#FACC15" : "rgba(56, 189, 248, 0.72)");
-    ctx.lineWidth = 1.6;
+    ctx.strokeStyle = isGoldMode ? "#FACC15" : "rgba(56, 189, 248, 0.85)";
+    ctx.lineWidth = 1.8;
     ctx.stroke();
   }
 
@@ -766,31 +761,6 @@ function drawMenuTurntable(ctx, logoImg, time, isGoldMode, isLocked) {
   ctx.arc(needleX, needleY, 2.8, 0, Math.PI * 2);
   ctx.fillStyle = isLocked ? "#94A3B8" : "#FFFFFF";
   ctx.fill();
-
-  // 5. Frosted Greyed-Out Lock Overlay on Turntable Platter
-  if (isLocked) {
-    ctx.save();
-    const bw = 64;
-    const bh = 28;
-    ctx.fillStyle = "rgba(5, 8, 17, 0.86)";
-    ctx.strokeStyle = "rgba(100, 116, 139, 0.75)";
-    ctx.lineWidth = 1.2;
-    ctx.beginPath();
-    if (ctx.roundRect) {
-      ctx.roundRect(cx - bw / 2, cy - bh / 2, bw, bh, 6);
-    } else {
-      ctx.rect(cx - bw / 2, cy - bh / 2, bw, bh);
-    }
-    ctx.fill();
-    ctx.stroke();
-
-    ctx.fillStyle = "#E2E8F0";
-    ctx.font = "900 11px system-ui, sans-serif";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText("🔒 LOCKED", cx, cy);
-    ctx.restore();
-  }
 }
 
 // ============================================================================
