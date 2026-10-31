@@ -166,6 +166,8 @@ class NoMoreIllusionsApp {
   loadAllBitmaps() {
     const assetMap = {
       logo: "assets/nmi_logo.png",
+      track_01: "assets/track_01.png",
+      track_02: "assets/track_02.png",
       hero_cyan: "assets/mandala_hero_cyber.png",
       hero_gold: "assets/mandala_hero_solar.png",
       hero_prism: "assets/mandala_hero_prism.png",
@@ -492,8 +494,24 @@ class NoMoreIllusionsApp {
 
   startStage(stageIndex = this.selectedStageIndex) {
     this.unlockAudioOnFirstGesture();
-    this.playSfx("click");
     this.selectedStageIndex = stageIndex;
+    const stage = OFFICIAL_TRACKS[stageIndex] || OFFICIAL_TRACKS[0];
+    const isUnlocked = this.prefs.unlockedTracks.includes(stage.id) || this.prefs.isVip || stageIndex === 0;
+    if (!isUnlocked) {
+      if (this.prefs.pulsePoints >= 1200) {
+        this.prefs.pulsePoints -= 1200;
+        this.prefs.unlockedTracks.push(stage.id);
+        this.savePrefs();
+        this.playSfx("powerup", 0.9);
+        this.syncUI();
+      } else {
+        this.playSfx("click");
+        this.openScreen("CUSTOMIZER", stageIndex);
+        return;
+      }
+    } else {
+      this.playSfx("click");
+    }
 
     // Show centered zoom-bounce How-To-Play pop-up before countdown starts (unless user clicked "Don't Show Again")
     if (!this.prefs.seenHowToPlay) {
@@ -839,7 +857,10 @@ class NoMoreIllusionsApp {
     if (this.gameState === "MENU" && this.menuTurntableCtx) {
       const allGold = OFFICIAL_TRACKS.every((t) => (this.prefs.trackMasteryMedals[t.id] || 0) >= 3);
       const effectiveTime = this.time + (this.turntableAngle || 0) * 0.45;
-      drawMenuTurntable(this.menuTurntableCtx, this.images.logo, effectiveTime, allGold);
+      const curTrack = OFFICIAL_TRACKS[this.selectedStageIndex] || OFFICIAL_TRACKS[0];
+      const trackImg = this.images[curTrack.id] || this.images.logo;
+      const isLocked = !this.prefs.unlockedTracks.includes(curTrack.id) && !this.prefs.isVip;
+      drawMenuTurntable(this.menuTurntableCtx, trackImg, effectiveTime, allGold, isLocked);
     }
 
     if (this.gameState === "CUSTOMIZER" && this.previewCtx) {

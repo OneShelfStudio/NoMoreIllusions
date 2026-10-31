@@ -321,42 +321,57 @@ Object.assign(NoMoreIllusionsApp.prototype, {
     if (trackDeckRow) {
       const discsHtml = OFFICIAL_TRACKS.map((track, idx) => {
         const isSel = idx === this.selectedStageIndex;
-        const isTrkUnlocked = this.prefs.unlockedTracks.includes(track.id);
+        const isTrkUnlocked = this.prefs.unlockedTracks.includes(track.id) || this.prefs.isVip || idx === 0;
         const stars = this.prefs.trackMasteryMedals[track.id] || 0;
         const starsStr = [1, 2, 3].map(s => s <= stars ? "★" : "☆").join("");
-        const accentCol = isSel ? activeRemix.color : "#64748B";
+        const accentCol = isSel ? activeRemix.color : (isTrkUnlocked ? "#38BDF8" : "#475569");
         return `
           <div onclick="window.app.selectStage(${idx})"
                style="flex:1;min-width:0;padding:10px 8px;cursor:pointer;position:relative;
                       clip-path:polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px);
-                      background:${isSel ? `linear-gradient(180deg, ${accentCol}30, #070D1B)` : "linear-gradient(180deg, #080E1C, #040710)"};
-                      border:${isSel ? `2px solid ${accentCol}` : "1.2px solid rgba(255,255,255,0.18)"};
-                      box-shadow:${isSel ? `0 0 18px ${accentCol}44` : "none"};
+                      background:${!isTrkUnlocked ? "linear-gradient(180deg, #090D18, #03050B)" : isSel ? `linear-gradient(180deg, ${accentCol}33, #070D1B)` : "linear-gradient(180deg, #080E1C, #040710)"};
+                      border:${!isTrkUnlocked ? "1.2px solid #334155" : isSel ? `2px solid ${accentCol}` : "1.2px solid rgba(255,255,255,0.18)"};
+                      box-shadow:${isSel && isTrkUnlocked ? `0 0 18px ${accentCol}44` : "none"};
                       display:flex;flex-direction:column;align-items:center;">
             <div style="width:100%;display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-              <span style="font-size:10px;font-weight:900;letter-spacing:1px;color:${isSel ? accentCol : "#94A3B8"};">TRACK 0${idx + 1}</span>
+              <span style="font-size:10px;font-weight:900;letter-spacing:1px;color:${isTrkUnlocked ? (isSel ? accentCol : "#94A3B8") : "#64748B"};">TRACK 0${idx + 1}</span>
               <span onclick="window.app.togglePrizePeek(${idx}, event)"
-                    style="padding:2px 6px;font-size:9.5px;font-weight:900;
+                    style="padding:2px 6px;font-size:8.5px;font-weight:900;
                            clip-path:polygon(5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%, 0 5px);
-                           background:${isTrkUnlocked ? "#064E3B" : "#422006"};
-                           border:1px solid ${isTrkUnlocked ? "#4ADE80" : "#FACC15"};
-                           color:${isTrkUnlocked ? "#4ADE80" : "#FACC15"};">
-                ${isTrkUnlocked ? "★ 🎁" : "🔒 🎁"}
+                           background:${isTrkUnlocked ? "#064E3B" : "#1E293B"};
+                           border:1px solid ${isTrkUnlocked ? "#4ADE80" : "#64748B"};
+                           color:${isTrkUnlocked ? "#4ADE80" : "#CBD5E1"};">
+                ${isTrkUnlocked ? "★ UNLOCKED" : "🔒 1,200 ♪"}
               </span>
             </div>
-            <div style="position:relative;width:64px;height:64px;border-radius:50%;background:#050811;
-                        border:${isSel ? `2.2px solid ${accentCol}` : "1.2px solid rgba(255,255,255,0.25)"};
-                        display:flex;align-items:center;justify-content:center;margin-bottom:6px;">
-              <div style="position:relative;width:44px;height:44px;border-radius:50%;overflow:hidden;border:1.5px solid ${isTrkUnlocked ? "#4ADE80" : "#FACC15"};">
-                <img src="assets/nmi_logo.png" alt="Cover" style="width:100%;height:100%;object-fit:cover;filter:${isTrkUnlocked ? "none" : "blur(3px) brightness(0.42)"};" />
-                ${!isTrkUnlocked ? `<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:13px;">🎁</div>` : ""}
+            <!-- Authentic Spinning Vinyl Record with Song Picture -->
+            <div style="position:relative;width:68px;height:68px;display:flex;align-items:center;justify-content:center;margin-bottom:6px;">
+              <div style="position:absolute;inset:0;border-radius:50%;background:#06080F;
+                          border:${isSel && isTrkUnlocked ? `2px solid ${accentCol}` : isTrkUnlocked ? '1.2px solid rgba(255,255,255,0.22)' : '1.2px solid #334155'};
+                          box-shadow:inset 0 0 10px rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;
+                          ${isTrkUnlocked && isSel ? 'animation: vinyl-spin 4.5s linear infinite;' : isTrkUnlocked ? 'animation: vinyl-spin 14s linear infinite;' : ''}">
+                <div style="position:absolute;inset:4px;border-radius:50%;border:1px dashed rgba(255,255,255,0.07);pointer-events:none;"></div>
+                <div style="position:absolute;inset:8px;border-radius:50%;border:1px solid rgba(255,255,255,0.05);pointer-events:none;"></div>
+                <div style="position:absolute;inset:0;border-radius:50%;background:linear-gradient(135deg, rgba(255,255,255,0.14) 0%, transparent 42%, rgba(255,255,255,0.08) 100%);pointer-events:none;"></div>
+                <div style="position:relative;width:40px;height:40px;border-radius:50%;overflow:hidden;border:1.4px solid ${isTrkUnlocked ? (isSel ? accentCol : '#FACC15') : '#475569'};display:flex;align-items:center;justify-content:center;">
+                  <img src="assets/${track.id}.png" alt="${track.title}" style="width:100%;height:100%;object-fit:cover;${!isTrkUnlocked ? 'filter:grayscale(1) brightness(0.40);' : ''}" />
+                  <div style="position:absolute;width:6px;height:6px;border-radius:50%;background:#030508;border:1px solid ${isTrkUnlocked ? '#FACC15' : '#64748B'};"></div>
+                </div>
               </div>
+              <!-- Non-spinning Frosted Greyed-Out Lock Overlay -->
+              ${!isTrkUnlocked ? `
+                <div style="position:absolute;inset:4px;border-radius:8px;background:rgba(5,8,17,0.86);border:1.2px solid rgba(100,116,139,0.75);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:2;backdrop-filter:blur(2px);">
+                  <span style="font-size:14px;line-height:1;">🔒</span>
+                  <span style="font-size:7.5px;font-weight:900;color:#CBD5E1;letter-spacing:0.5px;margin-top:2px;">LOCKED</span>
+                  <span style="font-size:7px;font-weight:800;color:#FACC15;">1,200 ♪</span>
+                </div>
+              ` : ""}
             </div>
-            <div style="font-size:11.5px;font-weight:900;color:#FFFFFF;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;">
+            <div style="font-size:11.5px;font-weight:900;color:${isTrkUnlocked ? '#FFFFFF' : '#94A3B8'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;">
               ${track.title.toUpperCase()}
             </div>
-            <div style="font-size:8.5px;font-weight:800;color:${isTrkUnlocked ? "#4ADE80" : "#FACC15"};margin-top:2px;">
-              ${starsStr} • ${isTrkUnlocked ? "UNLOCKED" : "WIN SONG + ART"}
+            <div style="font-size:8.5px;font-weight:800;color:${isTrkUnlocked ? '#4ADE80' : '#64748B'};margin-top:2px;">
+              ${isTrkUnlocked ? `${starsStr} • READY` : "🔒 BEAT STAGE 1 OR 1,200 ♪"}
             </div>
           </div>
         `;
@@ -365,19 +380,19 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       let peekHtml = "";
       if (typeof this.peekPrizeTrackIdx === "number" && OFFICIAL_TRACKS[this.peekPrizeTrackIdx]) {
         const pTrack = OFFICIAL_TRACKS[this.peekPrizeTrackIdx];
-        const pWon = this.prefs.unlockedTracks.includes(pTrack.id);
+        const pWon = this.prefs.unlockedTracks.includes(pTrack.id) || this.prefs.isVip || this.peekPrizeTrackIdx === 0;
         peekHtml = `
           <div onclick="window.app.togglePrizePeek(null, event)"
                style="margin-top:8px;padding:8px 12px;display:flex;align-items:center;gap:10px;cursor:pointer;
                       clip-path:polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
-                      background:#0A1224;border:1.5px solid #FACC15;">
-            <img src="assets/nmi_logo.png" alt="Prize" style="width:42px;height:42px;border-radius:8px;border:1.5px solid #FACC15;object-fit:cover;flex-shrink:0;" />
+                      background:${pWon ? "#0A1224" : "#0F172A"};border:1.5px solid ${pWon ? "#FACC15" : "#475569"};">
+            <img src="assets/${pTrack.id}.png" alt="Prize" style="width:42px;height:42px;border-radius:50%;border:1.5px solid ${pWon ? "#FACC15" : "#64748B"};object-fit:cover;flex-shrink:0;${pWon ? "" : "filter:grayscale(1) brightness(0.45);"}">
             <div style="flex:1;text-align:left;min-width:0;">
-              <div style="font-size:10px;font-weight:900;color:#FACC15;">
-                ${pWon ? `★ TRACK 0${this.peekPrizeTrackIdx + 1} PRIZE UNLOCKED!` : `🎁 BEAT TRACK 0${this.peekPrizeTrackIdx + 1} TO WIN:`}
+              <div style="font-size:10px;font-weight:900;color:${pWon ? "#FACC15" : "#94A3B8"};">
+                ${pWon ? `★ TRACK 0${this.peekPrizeTrackIdx + 1} UNLOCKED & READY!` : `🔒 BEAT TRACK 01 OR UNLOCK FOR 1,200 ♪:`}
               </div>
               <div style="font-size:9.5px;font-weight:800;color:#FFFFFF;margin-top:2px;">
-                💿 "${pTrack.title}" Full Song + Album Art + Fan Note
+                💿 "${pTrack.title}" Official Master Track (${Math.round(pTrack.bpm)} BPM)
               </div>
             </div>
             <span style="font-size:12px;font-weight:900;color:#94A3B8;">✕</span>
@@ -437,7 +452,8 @@ Object.assign(NoMoreIllusionsApp.prototype, {
 
     // 3. Custom-Sculpted Chamfered Neon Launch Blade (#btn-launch-stage)
     const launchBtn = document.getElementById("btn-launch-stage");
-    const launchAccent = this.isBandHeroMode ? "#FACC15" : activeRemix.color;
+    const isStageUnlocked = this.prefs.unlockedTracks.includes(activeStage.id) || this.prefs.isVip || this.selectedStageIndex === 0;
+    const launchAccent = !isStageUnlocked ? "#F59E0B" : (this.isBandHeroMode ? "#FACC15" : activeRemix.color);
     if (launchBtn) {
       launchBtn.style.clipPath = "polygon(18px 0, 100% 0, 100% calc(100% - 18px), calc(100% - 18px) 100%, 0 100%, 0 18px)";
       launchBtn.style.background = `linear-gradient(90deg, ${launchAccent}44, #091326, ${launchAccent}44)`;
@@ -447,9 +463,11 @@ Object.assign(NoMoreIllusionsApp.prototype, {
 
     const launchMain = document.getElementById("menu-launch-main");
     if (launchMain) {
-      launchMain.innerHTML = this.isBandHeroMode
-        ? `🎸 &nbsp;PLAY BAND HERO • TRACK 0${this.selectedStageIndex + 1}`
-        : `▶ &nbsp;PLAY TRACK 0${this.selectedStageIndex + 1} • ${activeStage.title.toUpperCase()}`;
+      launchMain.innerHTML = !isStageUnlocked
+        ? `🔒 &nbsp;UNLOCK TRACK 0${this.selectedStageIndex + 1} (1,200 ♪ OR BEAT STAGE 1)`
+        : (this.isBandHeroMode
+          ? `🎸 &nbsp;PLAY BAND HERO • TRACK 0${this.selectedStageIndex + 1}`
+          : `▶ &nbsp;PLAY TRACK 0${this.selectedStageIndex + 1} • ${activeStage.title.toUpperCase()}`);
     }
     const launchSub = document.getElementById("menu-launch-sub");
     if (launchSub) {
