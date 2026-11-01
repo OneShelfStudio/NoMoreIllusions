@@ -51,6 +51,9 @@ Object.assign(NoMoreIllusionsApp.prototype, {
     if (this.shieldTimer > 0) this.shieldTimer = Math.max(0, this.shieldTimer - dt);
     if (this.slowMoTimer > 0) this.slowMoTimer = Math.max(0, this.slowMoTimer - dt);
     if (this.overdriveTimer > 0) this.overdriveTimer = Math.max(0, this.overdriveTimer - dt);
+    if (this.electricSurgeTimer > 0) this.electricSurgeTimer = Math.max(0, this.electricSurgeTimer - dt);
+    if (this.prismBloomTimer > 0) this.prismBloomTimer = Math.max(0, this.prismBloomTimer - dt);
+    if (this.solarNovaFlash > 0) this.solarNovaFlash = Math.max(0, this.solarNovaFlash - dt * 2.5);
     if (this.magnetTimer > 0) this.magnetTimer = Math.max(0, this.magnetTimer - dt);
     if (this.eclipseModeTimer > 0) this.eclipseModeTimer = Math.max(0, this.eclipseModeTimer - dt);
     if (this.constellationRushTimer > 0) this.constellationRushTimer = Math.max(0, this.constellationRushTimer - dt);
@@ -120,7 +123,7 @@ Object.assign(NoMoreIllusionsApp.prototype, {
     const maxActiveOrbs = isBandHero ? 10 : (isFluidMoment ? 14 : 12);
     const spawnLeadTime = isBandHero
       ? Math.max(1.75, Math.min(2.35, beatPeriod * 3.8))
-      : Math.max(1.40, Math.min(2.80, beatPeriod * 3.5));
+      : Math.max(2.40, Math.min(3.60, beatPeriod * 4.8));
     const isTrainingEasy = mode.id === "CHILL" || mode.id === "SLOWED" || this.prefs.difficulty === "EASY";
     while (
       this.nextBeatCueIndex < chart.length &&
@@ -302,41 +305,44 @@ Object.assign(NoMoreIllusionsApp.prototype, {
         pu.targetY = this.H * 0.65;
       }
 
-      // Check expiration: in Band Hero mode when u > 1.24; in Original mode after the 8-beat window (expireBeatSec)
+      // Check expiration: in Band Hero mode when u > 1.24; in Waterfall mode when note crosses bottom exit boundary
       const isExpiredByTtl = (this.isBandHeroMode && u > 1.24) || (pu.expireBeatSec > 0 && this.trackElapsedSec > pu.expireBeatSec);
-      if (isExpiredByTtl || pu.age >= pu.maxLifetime) {
-        if (isExpiredByTtl && this.isBandHeroMode) {
-          // Missed beat note past the Strike Line: ONLY quietly reset combo (zero screen clutter or popups!)
-          if (this.combo > 1) this.combo = 1;
+      const isPastBottom = !this.isBandHeroMode && (pu.y >= (this.H + 45) || u >= 2.05);
+      if (isExpiredByTtl || isPastBottom || pu.age >= pu.maxLifetime) {
+        // Uncollected note escaped: Stop the streak and give crisp feedback!
+        if (this.combo > 1) {
+          this.combo = 1;
           this.comboTimer = 0;
+          this.triggerHaptic([32]);
+          this.screenShake = Math.max(this.screenShake, 3.5);
+          this.floatingTexts.push({
+            x: Math.max(60, Math.min(this.W - 60, pu.x)),
+            y: this.H - 55,
+            text: "STREAK LOST",
+            color: [239, 68, 68],
+            alpha: 1,
+            age: 0
+          });
         }
         this.powerUps.splice(i, 1);
         continue;
       }
     }
 
-    // Choreographed Full-Screen Rhythmic Trajectory (Original Open Stage)
+    // Rhythmic Waterfall Trajectory: Gentle top-to-bottom cascade with melodic swoop ribbons
     if (!this.isBandHeroMode && this.powerUps.length > 0) {
       for (let idx = 0; idx < this.powerUps.length; idx++) {
         const pu = this.powerUps[idx];
         const leadDur = Math.max(0.45, (pu.targetBeatSec || 1) - (pu.spawnBeatSec || 0));
         const totalDur = leadDur * 2.0;
         const s = Math.max(0, Math.min(1.25, (this.trackElapsedSec - pu.spawnBeatSec) / totalDur));
-        const hasPerimeterSpawn = (pu.spawnX !== undefined && pu.spawnY !== undefined) &&
-          (pu.spawnX !== pu.targetX || pu.spawnY !== pu.targetY);
+        const hasWaterfall = pu.exitY !== undefined;
 
-        if (hasPerimeterSpawn) {
-          // Direct parametric position: steady, tempo-locked rhythmic velocity moving ALL THE WAY ACROSS the stage
-          const exitX = 2 * pu.targetX - pu.spawnX;
-          const exitY = 2 * pu.targetY - pu.spawnY;
-          const chordX = exitX - pu.spawnX;
-          const chordY = exitY - pu.spawnY;
-          const perpX = -chordY * 0.35;
-          const perpY = chordX * 0.35;
-          const arcOffset = Math.sin(Math.min(1, Math.max(0, s)) * Math.PI) * (pu.swoopCurve || 0);
-
-          pu.x = pu.spawnX + s * chordX + perpX * arcOffset;
-          pu.y = pu.spawnY + s * chordY + perpY * arcOffset;
+        if (hasWaterfall) {
+          // Constant downward velocity with graceful sinusoidal S-curve sway
+          const arcOffset = Math.sin(Math.min(1, Math.max(0, s)) * Math.PI) * (pu.swoopCurve || 0) * (this.W * 0.20);
+          pu.x = pu.spawnX + s * (pu.exitX - pu.spawnX) + arcOffset;
+          pu.y = pu.spawnY + s * (pu.exitY - pu.spawnY);
         } else {
           // Gentle breathing hover for static ambient items
           const goalX = (pu.targetX || pu.x) + Math.cos(this.time * 1.8 + (pu.phase || 0)) * 4.5;
@@ -644,31 +650,26 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       const ttlGraceSec = Math.max(0.45, beatPeriod * 0.92);
       expireBeatSec = targetBeatSec + ttlGraceSec;
     } else {
-      // Original Open-Stage Flow: Perimeter entry radiating inward at BPM speed + swooping refrain arcs
-      const normX = Math.max(0.14, Math.min(0.86, cue.normX || 0.5));
-      const normY = Math.max(0.13, Math.min(0.83, cue.normY || 0.48));
-      const cleanSpot = this.resolveNonOverlappingOrbSpot(normX * this.W, normY * this.H, seqIdx);
-      receptorX = cleanSpot.x;
-      receptorY = cleanSpot.y;
+      // Rhythmic Waterfall Top-Horizon Flow: notes cascade gracefully down from upper boundary
+      const normX = Math.max(0.18, Math.min(0.82, cue.normX || 0.5));
+      receptorX = normX * this.W;
+      receptorY = this.H * 0.58;
 
-      const cx = this.W * 0.5;
-      const cy = this.H * 0.5;
-      const baseAngle = Math.atan2(receptorY - cy, receptorX - cx);
-      const angleJitter = ((seqIdx % 7) - 3) * 0.18;
-      const spawnAngle = baseAngle + angleJitter;
-      const spawnDist = Math.hypot(cx, cy) * 1.30;
-      startX = cx + Math.cos(spawnAngle) * spawnDist;
-      startY = cy + Math.sin(spawnAngle) * spawnDist;
+      const swoopCurve = isFluidMoment
+        ? (seqIdx % 2 === 0 ? 0.36 : -0.36)
+        : (((seqIdx % 5) - 2) * 0.12);
 
-      fluidMode = isFluidMoment ? ((Math.floor(this.trackElapsedSec / 16) % 3) + 1) : 0;
-      swoopCurve = isFluidMoment
-        ? (seqIdx % 2 === 0 ? 0.52 : -0.52)
-        : ((seqIdx % 5 - 2) * 0.12);
+      const lateralOffset = swoopCurve * this.W * 0.26;
+      startX = receptorX + lateralOffset;
+      startY = -50;
+      exitX = receptorX - lateralOffset;
+      exitY = this.H + 70;
 
-      const noteLeadBeats = 3.2 + (seqIdx % 5) * 0.20; // 3.2 to 4.0 beats natural tempo pacing
-      const leadDur = Math.max(1.6, beatPeriod * noteLeadBeats);
+      // Relaxed, readable tempo pacing: 4.6 to 5.4 seconds to traverse the arena
+      const noteLeadBeats = 4.2 + (seqIdx % 4) * 0.25;
+      const leadDur = Math.max(2.2, beatPeriod * noteLeadBeats);
       spawnBeatSec = targetBeatSec - leadDur;
-      expireBeatSec = targetBeatSec + leadDur + 0.25;
+      expireBeatSec = targetBeatSec + leadDur + 0.35;
     }
 
     this.powerUps.push({
@@ -676,6 +677,8 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       y: startY,
       spawnX: startX,
       spawnY: startY,
+      exitX: typeof exitX === "number" ? exitX : startX,
+      exitY: typeof exitY === "number" ? exitY : (this.H + 70),
       swoopCurve: swoopCurve || 0,
       targetX: receptorX,
       targetY: receptorY,
@@ -805,27 +808,39 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       let col = [56, 189, 248];
       if (pu.type === "ELECTRIC_HARMONIC") {
         this.overdriveTimer = Math.max(this.overdriveTimer, 8.0);
+        this.electricSurgeTimer = Math.max(this.electricSurgeTimer || 0, 8.0);
         this.screenShake = Math.max(this.screenShake, 14);
         col = [250, 204, 21];
         this.shockwaves.push({ x: pu.x, y: pu.y, radius: 14, maxRadius: 650, color: col, alpha: 1 });
         this.shockwaves.push({ x: pu.x, y: pu.y, radius: 10, maxRadius: 450, color: [56, 189, 248], alpha: 1 });
+        for (let m = 0; m < 18; m++) {
+          const a = (m / 18) * Math.PI * 2;
+          this.spawnBurstMotes(pu.x + Math.cos(a) * 22, pu.y + Math.sin(a) * 22, m % 2 === 0 ? [250, 204, 21] : [56, 189, 248], 2);
+        }
         this.floatingTexts.push({
           x: pu.x,
           y: pu.y - 20,
-          text: "⚡ ELECTRIC OVERDRIVE 4X!",
+          text: "⚡ ELECTRIC SURGE (4X & SYNTH AURORA)!",
           color: [250, 204, 21],
           alpha: 1,
           age: 0
         });
       } else if (pu.type === "PRISM_HARMONY") {
         this.screenShake = Math.max(this.screenShake, 8);
+        this.prismBloomTimer = Math.max(this.prismBloomTimer || 0, 8.0);
+        this.unlockedArtPercent = Math.min(1.0, (this.unlockedArtPercent || 0.2) + 0.20);
         col = [74, 222, 128];
         this.shockwaves.push({ x: pu.x, y: pu.y, radius: 14, maxRadius: 500, color: col, alpha: 1 });
         this.shockwaves.push({ x: pu.x, y: pu.y, radius: 10, maxRadius: 320, color: [236, 72, 153], alpha: 1 });
+        for (let m = 0; m < 16; m++) {
+          const a = (m / 16) * Math.PI * 2;
+          const rainbowCols = [[74, 222, 128], [56, 189, 248], [236, 72, 153], [250, 204, 21], [192, 132, 252]];
+          this.spawnBurstMotes(pu.x + Math.cos(a) * 20, pu.y + Math.sin(a) * 20, rainbowCols[m % rainbowCols.length], 2);
+        }
         this.floatingTexts.push({
           x: pu.x,
           y: pu.y - 20,
-          text: "✨ PRISM VOCAL BLOOM!",
+          text: "✨ PRISM VOCAL BLOOM! (+20% ART UNBLUR)",
           color: [74, 222, 128],
           alpha: 1,
           age: 0
@@ -837,15 +852,15 @@ Object.assign(NoMoreIllusionsApp.prototype, {
         this.floatingTexts.push({
           x: pu.x,
           y: pu.y - 20,
-          text: "🌀 VORTEX SLOW-MO!",
+          text: "🌀 VORTEX GRAVITY WARP (50% SLOW-MO)!",
           color: [192, 132, 252],
           alpha: 1,
           age: 0
         });
       } else if (pu.type === "BLAST" || pu.type === "OVERDRIVE") {
         col = [249, 115, 22];
-        // Tactical screen-wide wipe without granting continuous invulnerable ramming
-        this.screenShake = Math.max(this.screenShake, 16);
+        this.solarNovaFlash = 1.0;
+        this.screenShake = Math.max(this.screenShake, 18);
         for (let k = 0; k < this.enemies.length; k++) {
           const en = this.enemies[k];
           this.score += 200 * Math.max(1, this.combo);
@@ -858,7 +873,7 @@ Object.assign(NoMoreIllusionsApp.prototype, {
         this.floatingTexts.push({
           x: pu.x,
           y: pu.y - 20,
-          text: "💥 NOVA DETONATED!",
+          text: "💥 SOLAR NOVA (HAZARDS CLEARED)!",
           color: [249, 115, 22],
           alpha: 1,
           age: 0

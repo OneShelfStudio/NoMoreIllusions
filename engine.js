@@ -1124,6 +1124,16 @@ class NoMoreIllusionsApp {
       ? Math.max(0, Math.min(1, this.trackElapsedSec / Math.max(1, this.activeTrackDurationSec)))
       : 0;
 
+    const curTrack = OFFICIAL_TRACKS[this.selectedStageIndex] || OFFICIAL_TRACKS[0];
+    const trackImg = this.images[curTrack.id] || this.images.logo;
+    const specialVisuals = {
+      isElectric: Boolean(this.electricSurgeTimer > 0 || this.overdriveTimer > 0),
+      isPrism: Boolean(this.prismBloomTimer > 0),
+      isSlowMo: Boolean(this.slowMoTimer > 0),
+      solarNovaFlash: Math.max(0, Math.min(1, this.solarNovaFlash || 0)),
+      unblurPercent: Math.max(0.12, Math.min(1.0, (this.unlockedArtPercent || 0.20) + (trackProgress || 0) * 0.35))
+    };
+
     drawNebulaBackground(
       ctx,
       this.W,
@@ -1135,8 +1145,9 @@ class NoMoreIllusionsApp {
       this.multiBandState,
       this.eclipseModeTimer > 0,
       this.constellationRushTimer > 0,
-      this.images.logo,
-      trackProgress
+      trackImg,
+      trackProgress,
+      specialVisuals
     );
 
     if (this.gameState === "PLAYING" || this.gameState === "PAUSED" || this.gameState === "GAME_OVER" || this.gameState === "TRACK_COMPLETED") {

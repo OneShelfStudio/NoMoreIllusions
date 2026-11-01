@@ -1,4 +1,4 @@
-const CACHE_NAME = "nmi-v34-fullscreen-pegs";
+const CACHE_NAME = "nmi-v35-waterfall-aurora";
 const ASSETS = [
   "./",
   "./index.html",

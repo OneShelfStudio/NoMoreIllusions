@@ -138,20 +138,26 @@ Object.assign(NoMoreIllusionsApp.prototype, {
     const comboChip = document.getElementById("hud-combo-chip");
     const comboVal = document.getElementById("hud-combo-val");
     if (comboChip && comboVal) {
-      if (this.combo > 1 || this.constellationRushTimer > 0) {
-        comboChip.style.display = "inline-flex";
-        const effMult = this.combo * (this.constellationRushTimer > 0 ? 2 : 1);
+      comboChip.style.display = "inline-flex";
+      const effMult = this.combo * (this.constellationRushTimer > 0 ? 2 : 1);
+      if (effMult > 1) {
+        comboChip.style.borderColor = effMult >= 8 ? "#FACC15" : "#38BDF8";
+        comboChip.style.background = effMult >= 8 ? "rgba(250, 204, 21, 0.16)" : "rgba(56, 189, 248, 0.14)";
         comboVal.textContent = effMult >= 8 ? `🔥 x${effMult} STREAK` : `⚡ x${effMult} COMBO`;
       } else {
-        comboChip.style.display = "none";
+        comboChip.style.borderColor = "rgba(255, 255, 255, 0.18)";
+        comboChip.style.background = "rgba(15, 23, 42, 0.60)";
+        comboVal.textContent = `♪ 1x STREAK`;
       }
     }
 
     const badgesEl = document.getElementById("hud-powerup-badges");
     if (badgesEl) {
       let html = "";
-      if (this.shieldTimer > 0) html += `<span title="Shield">🛡️</span>`;
-      if (this.overdriveTimer > 0 || this.constellationRushTimer > 0) html += `<span style="color:#FACC15;font-weight:900;">★</span>`;
+      if (this.shieldTimer > 0) html += `<span title="Aegis Shield">🛡️</span>`;
+      if (this.electricSurgeTimer > 0 || this.overdriveTimer > 0) html += `<span title="Electric Overdrive" style="color:#FACC15;font-weight:900;">⚡ 4X</span>`;
+      if (this.prismBloomTimer > 0) html += `<span title="Prism Vocal Bloom" style="color:#4ADE80;font-weight:900;">✨ PRISM</span>`;
+      if (this.slowMoTimer > 0) html += `<span title="Vortex Slow-Mo" style="color:#C084FC;font-weight:900;">🌀 50%</span>`;
       if (badgesEl.dataset.last !== html) {
         badgesEl.innerHTML = html;
         badgesEl.dataset.last = html;
