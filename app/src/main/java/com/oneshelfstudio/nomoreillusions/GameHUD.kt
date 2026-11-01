@@ -16,11 +16,15 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlin.math.cos
+import kotlin.math.exp
+import kotlin.math.sin
 
 @Suppress("UNUSED_PARAMETER")
 @Composable
@@ -46,6 +50,7 @@ fun HUD(
     slowMoTime: Float = 0f,
     magnetTime: Float = 0f,
     endlessLoopCount: Int = 0,
+    comboBanner: ComboZoomBannerData? = null,
     onPause: () -> Unit
 ) {
     // Ultra-Clean Open-Stage HUD (< 4% screen footprint — clean score, combo streak, zero cluttered popups!)
@@ -55,6 +60,64 @@ fun HUD(
             .statusBarsPadding()
             .padding(top = 6.dp, start = 14.dp, end = 14.dp)
     ) {
+        // 3. Upper-Middle on-screen Combo & Streak Zoom Popup Banner
+        if (comboBanner != null && comboBanner.timer > 0f) {
+            val elapsed = comboBanner.maxTimer - comboBanner.timer
+            val progress = (elapsed / comboBanner.maxTimer).coerceIn(0f, 1f)
+            val fadeOut = (comboBanner.timer / 0.22f).coerceIn(0f, 1f)
+
+            val springPunch = if (!comboBanner.isBroken) {
+                0.42f * exp(-elapsed * 12.0f) * cos(elapsed * 22.0f)
+            } else 0f
+            val scale = (1.0f + springPunch).coerceIn(0.85f, 1.45f)
+            val shake = if (comboBanner.isBroken) {
+                sin(progress * 55f) * (1f - progress * 1.5f).coerceAtLeast(0f) * 9f
+            } else 0f
+
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = 58.dp)
+                    .offset(x = shake.dp)
+                    .graphicsLayer {
+                        scaleX = scale
+                        scaleY = scale
+                        alpha = fadeOut
+                    }
+                    .clip(CircleShape)
+                    .background(
+                        if (comboBanner.isBroken) Color(0xEB1E080EL) else Color(0xDE080C18L)
+                    )
+                    .border(
+                        width = 2.dp,
+                        color = comboBanner.color.copy(alpha = 0.95f * fadeOut),
+                        shape = CircleShape
+                    )
+                    .padding(horizontal = 20.dp, vertical = 7.dp)
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = comboBanner.text,
+                        color = if (comboBanner.isBroken) Color.White else comboBanner.color,
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.Black,
+                        style = TextStyle(
+                            shadow = Shadow(
+                                color = comboBanner.color.copy(alpha = 0.85f),
+                                blurRadius = 14f
+                            )
+                        )
+                    )
+                    Text(
+                        text = comboBanner.subText,
+                        color = if (comboBanner.isBroken) Color(0xFFFCA5A5L) else Color.White.copy(alpha = 0.88f),
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 0.5.sp
+                    )
+                }
+            }
+        }
         Column(modifier = Modifier.fillMaxWidth()) {
             // 1. Hairline Track Progress Bar along the very top edge
             Box(

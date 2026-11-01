@@ -11,6 +11,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
@@ -368,41 +369,92 @@ fun DrawScope.drawNebulaBackground(
         }
     }
 
-    // 8. Progressive Album Artwork Hologram Watermark Reveal in the Center
-    if (trackArtwork != null && trackProgress > 0.01f) {
-        val p = trackProgress.coerceIn(0f, 1f)
-        val artBoxSize = minOf(size.width, size.height) * (0.50f + p * 0.28f + bass * 0.04f)
-        val dstW = artBoxSize.toInt().coerceAtLeast(1)
-        val dstH = artBoxSize.toInt().coerceAtLeast(1)
-        val left = ((size.width - dstW) / 2f).toInt()
-        val top = ((size.height - dstH) / 2f).toInt()
+    // 8. Progressive Waterfall Album Artwork Fill in Center (Top-to-Bottom Fill & Splash Meniscus)
+    if (trackArtwork != null) {
+        val p = trackProgress.coerceIn(0.02f, 1f)
+        val artBoxSize = minOf(size.width, size.height) * (0.52f + bass * 0.04f)
+        val artRadius = artBoxSize * 0.48f
+        val artLeft = centerX - artRadius
+        val artTop = centerY - artRadius
+        val dstW = (artRadius * 2f).toInt().coerceAtLeast(1)
+        val dstH = (artRadius * 2f).toInt().coerceAtLeast(1)
+        val waterLevelY = artTop + (artRadius * 2f) * p
 
-        // Soft outer glowing halo expanding with unlock progress
-        val ringRadius = artBoxSize * 0.52f
+        // 8a. Frosted dark vinyl disc silhouette & subtle groove rings (unrevealed empty container)
         drawCircle(
-            brush = Brush.radialGradient(
-                colors = listOf(
-                    Color(0xFF38BDF8).copy(alpha = 0.04f + p * 0.16f),
-                    Color(0xFFFACC15).copy(alpha = 0.02f + p * 0.12f),
-                    Color.Transparent
-                ),
-                center = Offset(centerX, centerY),
-                radius = ringRadius * 1.15f
-            ),
-            radius = ringRadius * 1.15f,
+            color = Color(0xFF070B16).copy(alpha = 0.72f),
+            radius = artRadius,
             center = Offset(centerX, centerY)
         )
-
-        // Draw track artwork revealing with progressive clarity and presence
-        drawImage(
-            image = trackArtwork,
-            srcOffset = IntOffset.Zero,
-            srcSize = IntSize(trackArtwork.width, trackArtwork.height),
-            dstOffset = IntOffset(left, top),
-            dstSize = IntSize(dstW, dstH),
-            alpha = (0.06f + p * 0.38f + vocal * 0.06f).coerceIn(0.06f, 0.52f),
-            blendMode = BlendMode.Screen
+        drawCircle(
+            color = Color(0xFF64748B).copy(alpha = 0.35f),
+            radius = artRadius,
+            center = Offset(centerX, centerY),
+            style = Stroke(width = 2f)
         )
+        for (g in 1..4) {
+            drawCircle(
+                color = Color(0xFF94A3B8).copy(alpha = 0.08f),
+                radius = artRadius * (g / 5f),
+                center = Offset(centerX, centerY),
+                style = Stroke(width = 1f)
+            )
+        }
+
+        // 8b. Waterfall clipped album artwork revealing from top down to waterLevelY
+        clipRect(
+            left = artLeft - 10f,
+            top = artTop - 10f,
+            right = artLeft + dstW + 10f,
+            bottom = waterLevelY
+        ) {
+            drawImage(
+                image = trackArtwork,
+                srcOffset = IntOffset.Zero,
+                srcSize = IntSize(trackArtwork.width, trackArtwork.height),
+                dstOffset = IntOffset(artLeft.toInt(), artTop.toInt()),
+                dstSize = IntSize(dstW, dstH),
+                alpha = (0.78f + p * 0.22f).coerceIn(0.78f, 1f)
+            )
+        }
+
+        // 8c. Glowing undulating liquid meniscus wave across waterLevelY
+        if (p in 0.02f..0.995f) {
+            val wavePath = Path()
+            val waveStep = 6f
+            var first = true
+            var wx = artLeft
+            while (wx <= artLeft + dstW) {
+                val waveOffset = sin(wx * 0.055f + time * 7.5f) * 3.5f + cos(wx * 0.028f - time * 5f) * 2f
+                val wy = waterLevelY + waveOffset
+                if (first) {
+                    wavePath.moveTo(wx, wy)
+                    first = false
+                } else {
+                    wavePath.lineTo(wx, wy)
+                }
+                wx += waveStep
+            }
+            val waveCol = if (isConstellationActive) Color(0xFFFACC15L) else Color(0xFF38BDF8L)
+            drawPath(
+                path = wavePath,
+                color = waveCol.copy(alpha = 0.95f),
+                style = Stroke(width = 3.5f, cap = StrokeCap.Round)
+            )
+            drawPath(
+                path = wavePath,
+                color = Color.White.copy(alpha = 0.85f),
+                style = Stroke(width = 1.5f, cap = StrokeCap.Round)
+            )
+        } else if (p >= 0.995f) {
+            // 100% UNLOCKED CROWN GLOW
+            drawCircle(
+                color = Color(0xFFFACC15).copy(alpha = 0.75f + 0.25f * sin(time * 6f)),
+                radius = artRadius,
+                center = Offset(centerX, centerY),
+                style = Stroke(width = 3.5f)
+            )
+        }
     }
 
     // 9. Focus-mode or Eclipse / Zero-Bass Breakdown deep edge vignette

@@ -22,6 +22,18 @@ data class PowerUpBannerToast(
 )
 
 /**
+ * Upper-middle on-screen combo & streak zoom popup banner data.
+ */
+data class ComboZoomBannerData(
+    val text: String,
+    val subText: String,
+    val color: Color,
+    val timer: Float = 1.4f,
+    val maxTimer: Float = 1.4f,
+    val isBroken: Boolean = false
+)
+
+/**
  * Stage modes driven by real musical swells & song sections.
  */
 enum class StageMode {

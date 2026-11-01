@@ -585,6 +585,11 @@ class NoMoreIllusionsApp {
     this.endlessLoopCount = 0;
     this.vocalStreamContrailTimer = 0;
     this.activeToast = null;
+    this.electricSurgeTimer = 0;
+    this.prismBloomTimer = 0;
+    this.prismSurgeBonus = 0;
+    this.solarNovaFlash = 0;
+    this.comboZoomBanner = null;
 
     this.playerX = this.W / 2;
     this.playerY = this.H * 0.65;
@@ -1131,7 +1136,8 @@ class NoMoreIllusionsApp {
       isPrism: Boolean(this.prismBloomTimer > 0),
       isSlowMo: Boolean(this.slowMoTimer > 0),
       solarNovaFlash: Math.max(0, Math.min(1, this.solarNovaFlash || 0)),
-      unblurPercent: Math.max(0.12, Math.min(1.0, (this.unlockedArtPercent || 0.20) + (trackProgress || 0) * 0.35))
+      unblurPercent: Math.max(0.12, Math.min(1.0, (this.unlockedArtPercent || 0.20) + (trackProgress || 0) * 0.35)),
+      prismSurgeBonus: Math.max(0, Math.min(1.0, this.prismSurgeBonus || 0))
     };
 
     drawNebulaBackground(
@@ -1212,6 +1218,9 @@ class NoMoreIllusionsApp {
       }
 
       drawFloatingTexts(ctx, this.floatingTexts);
+      if (typeof drawComboZoomBanner === "function") {
+        drawComboZoomBanner(ctx, this.W, this.H, this.comboZoomBanner, this.time);
+      }
     }
 
     ctx.restore();
