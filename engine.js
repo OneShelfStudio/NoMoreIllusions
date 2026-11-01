@@ -166,8 +166,8 @@ class NoMoreIllusionsApp {
   loadAllBitmaps() {
     const assetMap = {
       logo: "assets/nmi_logo.png",
-      track_01: "assets/track_01.png",
-      track_02: "assets/track_02.png",
+      track_01: "assets/track_01.webp",
+      track_02: "assets/track_02.webp",
       hero_cyan: "assets/mandala_hero_cyber.png",
       hero_gold: "assets/mandala_hero_solar.png",
       hero_prism: "assets/mandala_hero_prism.png",

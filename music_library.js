@@ -237,7 +237,7 @@ const OFFICIAL_TRACKS = [
     src: "assets/track_01.mp3",
     audioSrc: "assets/track_01.mp3",
     artKey: "track01Art",
-    artSrc: "assets/track_01.png",
+    artSrc: "assets/track_01.webp",
     sections: [
       { t: 0, timeSec: 0, title: "AMBIENT INTRO", subtitle: "SYNTH RESONANCE", effectType: "STANDARD", maxEnemies: 0, enemySpeedMult: 0.70, clearEnemiesOnEnter: true, allowAnomalies: false, juiceTier: "NONE" },
       { t: 7.25, timeSec: 7.25, title: "BASS & GUITAR SWELL", subtitle: "SUB-BASS DRIFT", effectType: "WARP_PULSE", maxEnemies: 1, enemySpeedMult: 0.72, clearEnemiesOnEnter: false, allowAnomalies: false, juiceTier: "SECTION_SHIFT" },
@@ -282,7 +282,7 @@ const OFFICIAL_TRACKS = [
     src: "assets/track_02.mp3",
     audioSrc: "assets/track_02.mp3",
     artKey: "track02Art",
-    artSrc: "assets/track_02.png",
+    artSrc: "assets/track_02.webp",
     sections: [
       { t: 0, timeSec: 0, title: "WARM CHORD INTRO", subtitle: "WARM CHORD BED", effectType: "STANDARD", maxEnemies: 0, enemySpeedMult: 0.70, clearEnemiesOnEnter: true, allowAnomalies: false, juiceTier: "NONE" },
       { t: 6.5, timeSec: 6.5, title: "SUB-BASS WARMTH", subtitle: "808 PULSE", effectType: "WARP_PULSE", maxEnemies: 0, enemySpeedMult: 0.72, clearEnemiesOnEnter: false, allowAnomalies: false, juiceTier: "SECTION_SHIFT" },
