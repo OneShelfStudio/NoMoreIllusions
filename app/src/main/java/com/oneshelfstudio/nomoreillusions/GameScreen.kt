@@ -831,6 +831,18 @@ fun GameScreen(
                     magnetActive = magnetTime > 0f && !isBandHeroMode,
                     isBandHeroMode = isBandHeroMode,
                     onBeatMissed = {
+                        if (rhythmCombo > 0) {
+                            floatingTexts.add(
+                                FloatingText(
+                                    x = screenWidth / 2f,
+                                    y = screenHeight - 65f,
+                                    text = "STREAK LOST",
+                                    color = Color(0xFFEF4444L),
+                                    life = 1f
+                                )
+                            )
+                            shakeAmount = maxOf(shakeAmount, 3.5f)
+                        }
                         rhythmCombo = 0
                     }
                 )

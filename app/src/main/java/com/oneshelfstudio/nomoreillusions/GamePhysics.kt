@@ -445,7 +445,9 @@ fun stepNebulousBeatOrbs(
             orb.x = pt.x
             orb.y = pt.y
         } else {
-            if (trackSec > expireSec) {
+            val isPastBottom = orb.y >= (screenHeight + 45f) || u >= 2.05f
+            if (trackSec > expireSec || isPastBottom) {
+                onBeatMissed(orb)
                 iter.remove()
                 continue
             }
@@ -456,22 +458,21 @@ fun stepNebulousBeatOrbs(
         powerUps.forEach { orb ->
             val leadDur = (orb.targetBeatSec - orb.spawnBeatSec).coerceAtLeast(0.45f)
             val totalDur = leadDur * 2.0f
-            val hasPerimeterSpawn = (orb.spawnX != 0f || orb.spawnY != 0f) && (orb.spawnX != orb.anchorX || orb.spawnY != orb.anchorY)
+            val s = ((trackSec - orb.spawnBeatSec) / totalDur).coerceIn(0f, 1.25f)
+            val hasWaterfall = orb.exitY != 0f
 
-            if (hasPerimeterSpawn) {
-                // Constant-speed full-screen traversal:
-                // Notes glide smoothly from perimeter entry (s = 0), cross the playfield catch zone
-                // on the beat (s = 0.5), and glide all the way across to the opposite edge (s = 1.0)
-                // without ever stopping in the middle of the field.
-                val s = ((trackSec - orb.spawnBeatSec) / totalDur).coerceIn(0f, 1.25f)
+            if (hasWaterfall) {
+                // Constant downward velocity with graceful sinusoidal S-curve sway
+                val arcOffset = sin(s.coerceIn(0f, 1f) * PI.toFloat()) * orb.swoopCurve * (screenWidth * 0.20f)
+                orb.x = orb.spawnX + s * (orb.exitX - orb.spawnX) + arcOffset
+                orb.y = orb.spawnY + s * (orb.exitY - orb.spawnY)
+            } else {
                 val exitX = 2f * orb.anchorX - orb.spawnX
                 val exitY = 2f * orb.anchorY - orb.spawnY
-
                 val chordX = exitX - orb.spawnX
                 val chordY = exitY - orb.spawnY
                 val perpX = -chordY * 0.35f
                 val perpY = chordX * 0.35f
-
                 val arcOffset = sin(s.coerceIn(0f, 1f) * PI.toFloat()) * orb.swoopCurve
                 orb.x = orb.spawnX + s * chordX + perpX * arcOffset
                 orb.y = orb.spawnY + s * chordY + perpY * arcOffset

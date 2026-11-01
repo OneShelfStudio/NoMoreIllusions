@@ -115,23 +115,21 @@ fun HUD(
                             )
                         )
                     }
-                    if (rhythmCombo > 1) {
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Box(
-                            modifier = Modifier
-                                .clip(CircleShape)
-                                .background(Color(0x33FACC15L))
-                                .border(1.dp, Color(0xFFFACC15L).copy(alpha = 0.75f), CircleShape)
-                                .padding(horizontal = 7.dp, vertical = 2.dp)
-                        ) {
-                            Text(
-                                text = if (rhythmCombo >= 8) "🔥 ${rhythmCombo} STREAK" else "⚡ ${rhythmCombo} COMBO",
-                                color = Color(0xFFFACC15L),
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Black,
-                                letterSpacing = 0.5.sp
-                            )
-                        }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Box(
+                        modifier = Modifier
+                            .clip(CircleShape)
+                            .background(if (rhythmCombo >= 8) Color(0x33FACC15L) else if (rhythmCombo > 1) Color(0x3338BDF8L) else Color(0x22FFFFFFL))
+                            .border(1.dp, (if (rhythmCombo >= 8) Color(0xFFFACC15L) else if (rhythmCombo > 1) Color(0xFF38BDF8L) else Color.White.copy(alpha = 0.25f)), CircleShape)
+                            .padding(horizontal = 7.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            text = if (rhythmCombo >= 8) "🔥 $rhythmCombo STREAK" else if (rhythmCombo > 1) "⚡ $rhythmCombo COMBO" else "♪ 1x STREAK",
+                            color = if (rhythmCombo >= 8) Color(0xFFFACC15L) else if (rhythmCombo > 1) Color(0xFF38BDF8L) else Color.White.copy(alpha = 0.70f),
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Black,
+                            letterSpacing = 0.5.sp
+                        )
                     }
                     if (shieldTime > 0f) {
                         Spacer(modifier = Modifier.width(8.dp))

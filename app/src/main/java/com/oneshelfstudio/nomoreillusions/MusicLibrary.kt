@@ -271,11 +271,11 @@ object MusicLibrary {
                 KeyWordEffect.MAGNETAR_WAR -> PowerUpType.BLAST
                 KeyWordEffect.TRACTOR_REACH, KeyWordEffect.BINARY_HEART -> PowerUpType.SHIELD
                 else -> when {
-                    seq % 20 == 4 -> PowerUpType.ELECTRIC_HARMONIC // ⚡ Electric Surge: Synth highway & aurora overdrive!
-                    seq % 20 == 8 -> PowerUpType.PRISM_HARMONY     // ✨ Prism Bloom: Vocal harmony & album art reveal!
-                    seq % 20 == 12 -> PowerUpType.SLOW_MO          // 🌀 Vortex Rewind: 50% slow-mo breakdown!
-                    seq % 20 == 16 -> PowerUpType.BLAST            // 💥 Nova Blast: Screen hazard clear!
-                    seq % 20 == 0 -> PowerUpType.SHIELD           // 🛡️ Aegis Shield: 1-hit protective barrier!
+                    seq % 8 == 2 -> PowerUpType.ELECTRIC_HARMONIC // ⚡ Electric Surge: Synth highway & aurora overdrive!
+                    seq % 8 == 4 -> PowerUpType.PRISM_HARMONY     // ✨ Prism Bloom: Vocal harmony & album art reveal!
+                    seq % 8 == 6 -> PowerUpType.SLOW_MO          // 🌀 Vortex Rewind: 50% slow-mo breakdown!
+                    seq % 8 == 0 -> PowerUpType.BLAST            // 💥 Nova Blast: Screen hazard clear!
+                    seq % 16 == 7 -> PowerUpType.SHIELD          // 🛡️ Aegis Shield: 1-hit protective barrier!
                     else -> PowerUpType.NONE                       // ♪ Regular rhythmic beat note
                 }
             }
@@ -391,11 +391,11 @@ object MusicLibrary {
                 KeyWordEffect.MAGNETAR_WAR -> PowerUpType.BLAST
                 KeyWordEffect.TRACTOR_REACH, KeyWordEffect.BINARY_HEART -> PowerUpType.SHIELD
                 else -> when {
-                    seq % 20 == 4 -> PowerUpType.ELECTRIC_HARMONIC // ⚡ Electric Surge: Synth highway & aurora overdrive!
-                    seq % 20 == 8 -> PowerUpType.PRISM_HARMONY     // ✨ Prism Bloom: Vocal harmony & album art reveal!
-                    seq % 20 == 12 -> PowerUpType.SLOW_MO          // 🌀 Vortex Rewind: 50% slow-mo breakdown!
-                    seq % 20 == 16 -> PowerUpType.BLAST            // 💥 Nova Blast: Screen hazard clear!
-                    seq % 20 == 0 -> PowerUpType.SHIELD           // 🛡️ Aegis Shield: 1-hit protective barrier!
+                    seq % 8 == 2 -> PowerUpType.ELECTRIC_HARMONIC // ⚡ Electric Surge: Synth highway & aurora overdrive!
+                    seq % 8 == 4 -> PowerUpType.PRISM_HARMONY     // ✨ Prism Bloom: Vocal harmony & album art reveal!
+                    seq % 8 == 6 -> PowerUpType.SLOW_MO          // 🌀 Vortex Rewind: 50% slow-mo breakdown!
+                    seq % 8 == 0 -> PowerUpType.BLAST            // 💥 Nova Blast: Screen hazard clear!
+                    seq % 16 == 7 -> PowerUpType.SHIELD          // 🛡️ Aegis Shield: 1-hit protective barrier!
                     else -> PowerUpType.NONE                       // ♪ Regular rhythmic beat note
                 }
             }

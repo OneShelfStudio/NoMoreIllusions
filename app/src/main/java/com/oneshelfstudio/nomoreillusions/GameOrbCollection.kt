@@ -445,7 +445,7 @@ internal fun spawnStationaryBeatOrbsForFrame(
 
     // Rich, alive musical stage: 12-14 active notes, 10 in Band Hero mode
     val maxActiveOrbs = if (isBandHeroMode) 10 else if (isFluidMoment) 14 else 12
-    val effectiveLeadTime = if (isBandHeroMode) spawnLeadTime else (beatGridStep * 4.0f).coerceIn(1.8f, 3.2f)
+    val effectiveLeadTime = if (isBandHeroMode) spawnLeadTime else (beatGridStep * 4.4f).coerceIn(2.2f, 3.4f)
     val effectiveHoldWindow = if (isBandHeroMode) ttlGraceSec else (beatGridStep * 6.0f)
 
     while (
@@ -528,16 +528,20 @@ internal fun spawnStationaryBeatOrbsForFrame(
                     seedIndex = cue.sequenceIndex * 2 + 1
                 )
             }
-            // Spawn from outside screen perimeter moving inward at speed dictated by BPM
-            val spawnEntryPt = if (isBandHeroMode) {
-                anchorPt
-            } else {
-                computePerimeterSpawnPoint(anchorPt, screenWidth, screenHeight, cue.sequenceIndex * 2 + 1)
-            }
-            // During long refrains (isFluidMoment), apply alternating curved swoops for flowing arcs
+            // Rhythmic Waterfall Top-Horizon Flow: notes cascade gracefully down from upper boundary
+            val normX = cue.normX.coerceIn(0.18f, 0.82f)
+            val receptorX = normX * screenWidth
+            val receptorY = screenHeight * 0.58f
+
             val swoopCurve = if (isBandHeroMode) 0f
-            else if (isFluidMoment) (if (cue.sequenceIndex % 2 == 0) 0.52f else -0.52f)
+            else if (isFluidMoment) (if (cue.sequenceIndex % 2 == 0) 0.36f else -0.36f)
             else ((cue.sequenceIndex % 5 - 2) * 0.12f)
+
+            val lateralOffset = swoopCurve * screenWidth * 0.26f
+            val startX = if (isBandHeroMode) anchorPt.x else (receptorX + lateralOffset)
+            val startY = if (isBandHeroMode) anchorPt.y else -50f
+            val exitX = if (isBandHeroMode) anchorPt.x else (receptorX - lateralOffset)
+            val exitY = if (isBandHeroMode) anchorPt.y else (screenHeight + 70f)
 
             // Direct mapping preserves distinct special peg types to activate different song sections
             val mappedPowerUpType = cue.powerUpType
@@ -555,29 +559,24 @@ internal fun spawnStationaryBeatOrbsForFrame(
                 else -> if (isSupernova) Color(0xFFFACC15L) else laneColors[clampedLane]
             }
 
-            // Natural speed pacing variation across beats (locked to rhythm at constant speed)
-            val noteLeadBeats = when (cue.sequenceIndex % 4) {
-                0 -> 3.6f
-                1 -> 4.0f
-                2 -> 3.2f
-                else -> 3.8f
-            }
-            val noteLeadTime = (beatGridStep * noteLeadBeats).coerceIn(1.8f, 3.4f)
+            // Relaxed, readable tempo pacing: 4.6 to 5.4 seconds to traverse the arena
+            val noteLeadBeats = 4.2f + (cue.sequenceIndex % 4) * 0.25f
+            val noteLeadTime = (beatGridStep * noteLeadBeats).coerceIn(2.2f, 3.4f)
             val spawnSec = quantizedBeatSec - noteLeadTime
-            val expireSec = quantizedBeatSec + noteLeadTime + 0.25f
+            val expireSec = quantizedBeatSec + noteLeadTime + 0.35f
 
             powerUps.add(
                 GameObject(
-                    x = spawnEntryPt.x,
-                    y = spawnEntryPt.y,
+                    x = startX,
+                    y = startY,
                     radius = if (isSupernova || mappedPowerUpType != PowerUpType.NONE) 38f else 32f,
                     color = applyColorBlind(pColor),
                     angle = 0f,
                     speed = 0f,
                     powerUpType = mappedPowerUpType,
                     phase = cue.sequenceIndex * 0.7f,
-                    anchorX = anchorPt.x,
-                    anchorY = anchorPt.y,
+                    anchorX = receptorX,
+                    anchorY = receptorY,
                     spawnBeatSec = spawnSec,
                     targetBeatSec = quantizedBeatSec,
                     expireBeatSec = expireSec,
@@ -586,8 +585,10 @@ internal fun spawnStationaryBeatOrbsForFrame(
                     isGoldenOrb = isOrbGolden,
                     keyWordEffect = mappedKeyWord,
                     orbitRadius = fluidFormationTag,
-                    spawnX = spawnEntryPt.x,
-                    spawnY = spawnEntryPt.y,
+                    spawnX = startX,
+                    spawnY = startY,
+                    exitX = exitX,
+                    exitY = exitY,
                     swoopCurve = swoopCurve
                 )
             )

@@ -179,6 +179,8 @@ data class GameObject(
     var hasPassedPlayer: Boolean = false,
     var spawnX: Float = 0f,
     var spawnY: Float = 0f,
+    var exitX: Float = 0f,
+    var exitY: Float = 0f,
     var swoopCurve: Float = 0f
 )
 

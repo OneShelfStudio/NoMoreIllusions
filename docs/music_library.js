@@ -129,11 +129,11 @@ function buildConfideOrbChart() {
         : effect === "MAGNETAR_WAR" ? "BLAST"
         : effect === "TRACTOR_REACH" ? "SHIELD"
         : "SCORE_ORB")
-      : (seq % 20 === 4 ? "ELECTRIC_HARMONIC"
-        : seq % 20 === 8 ? "PRISM_HARMONY"
-        : seq % 20 === 12 ? "SLOW_MO"
-        : seq % 20 === 16 ? "BLAST"
-        : seq % 20 === 0 ? "SHIELD"
+      : (seq % 8 === 2 ? "ELECTRIC_HARMONIC"
+        : seq % 8 === 4 ? "PRISM_HARMONY"
+        : seq % 8 === 6 ? "SLOW_MO"
+        : seq % 8 === 0 ? "BLAST"
+        : seq % 16 === 7 ? "SHIELD"
         : "SCORE_ORB");
     cues.push({
       sequenceIndex: seq,
@@ -221,11 +221,11 @@ function buildNumberOneOrbChart() {
         : effect === "MAGNETAR_WAR" ? "BLAST"
         : effect === "TRACTOR_REACH" ? "SHIELD"
         : "SCORE_ORB")
-      : (seq % 20 === 4 ? "ELECTRIC_HARMONIC"
-        : seq % 20 === 8 ? "PRISM_HARMONY"
-        : seq % 20 === 12 ? "SLOW_MO"
-        : seq % 20 === 16 ? "BLAST"
-        : seq % 20 === 0 ? "SHIELD"
+      : (seq % 8 === 2 ? "ELECTRIC_HARMONIC"
+        : seq % 8 === 4 ? "PRISM_HARMONY"
+        : seq % 8 === 6 ? "SLOW_MO"
+        : seq % 8 === 0 ? "BLAST"
+        : seq % 16 === 7 ? "SHIELD"
         : "SCORE_ORB");
     cues.push({
       sequenceIndex: seq,
