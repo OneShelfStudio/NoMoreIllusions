@@ -347,67 +347,54 @@
        8. HOW TO PLAY MODAL
        ====================================================================== -->
   <div id="screen-HOW_TO_PLAY" class="screen-overlay modal-backdrop">
-    <div id="htp-modal-card" class="glass-modal-card" style="max-width:420px;max-height:92vh;overflow-y:auto;">
-      <div class="guide-card-header">
-        <div>
-          <div class="guide-title">HOW TO PLAY • MUSIC GUIDE</div>
-          <div id="htp-sub-header" style="font-size:10.5px;color:#CBD5E1;font-weight:700;">Fluid Glide Rhythm • Unlock Tracks • Classic Mode (Guitar Hero Style)</div>
-        </div>
-        <button class="btn-close-pill" onclick="window.app.dismissHowToPlay(false, false)">BACK</button>
-      </div>
+    <div id="htp-modal-card" class="glass-modal-card" style="max-width:328px;max-height:92vh;overflow-y:auto;padding:16px;text-align:center;">
+      <div style="font-size:10px;font-weight:900;letter-spacing:1.6px;color:#FACC15;">★ STAGE BRIEFING ★</div>
+      <div class="guide-title" style="font-size:18px;margin-top:2px;">HOW TO PLAY</div>
+      <div id="htp-sub-header" style="font-size:10px;color:#94A3B8;font-weight:600;margin-top:2px;margin-bottom:12px;">Glide smoothly to the rhythm of the music</div>
 
-      <!-- 1. DRAG TO GLIDE -->
-      <div class="guide-item" style="border-color:rgba(56,189,248,0.45);">
-        <div class="guide-icon-badge" style="background:rgba(56,189,248,0.18);border:1.5px solid #38BDF8;color:#38BDF8;">👆</div>
+      <!-- 1. GATHER BEAT NOTES -->
+      <div class="guide-item" style="border-color:rgba(250,204,21,0.45);padding:8px 10px;margin-bottom:7px;text-align:left;">
+        <div class="guide-icon-badge" style="background:rgba(250,204,21,0.18);border:1.5px solid #FACC15;color:#FACC15;width:28px;height:28px;font-size:13px;">🎵</div>
         <div>
-          <div class="guide-text-title" style="color:#38BDF8;">1. DRAG TO GLIDE</div>
-          <div class="guide-text-body">
-            Touch and drag anywhere on the screen to smoothly glide your hero around the stage with zero lag.
+          <div class="guide-text-title" style="color:#FACC15;font-size:11px;">1. GATHER BEAT NOTES</div>
+          <div class="guide-text-body" style="font-size:10px;">
+            Glide into incoming notes on the beat to charge your combo streak.
           </div>
         </div>
       </div>
 
-      <!-- 2. CATCH BEAT NOTES -->
-      <div class="guide-item" style="border-color:rgba(250,204,21,0.45);">
-        <div class="guide-icon-badge" style="background:rgba(250,204,21,0.18);border:1.5px solid #FACC15;color:#FACC15;">🎵</div>
+      <!-- 2. AVOID ENEMIES -->
+      <div class="guide-item" style="border-color:rgba(239,68,68,0.45);padding:8px 10px;margin-bottom:7px;text-align:left;">
+        <div class="guide-icon-badge" style="background:rgba(239,68,68,0.18);border:1.5px solid #EF4444;color:#EF4444;width:28px;height:28px;font-size:13px;">👾</div>
         <div>
-          <div class="guide-text-title" style="color:#FACC15;">2. CATCH BEAT NOTES</div>
-          <div class="guide-text-body">
-            Notes glide inward from the outside perimeter to the rhythm of the music. Intercept them on beat to charge your combo and multiplier!
+          <div class="guide-text-title" style="color:#EF4444;font-size:11px;">2. AVOID ENEMIES</div>
+          <div class="guide-text-body" style="font-size:10px;">
+            Dodge red enemy hazards to protect your streak and health.
           </div>
         </div>
       </div>
 
-      <!-- 3. AVOID RED HAZARDS -->
-      <div class="guide-item" style="border-color:rgba(239,68,68,0.45);">
-        <div class="guide-icon-badge" style="background:rgba(239,68,68,0.18);border:1.5px solid #EF4444;color:#EF4444;">⚠️</div>
+      <!-- 3. HIT SPECIAL PEGS -->
+      <div class="guide-item" style="border-color:rgba(56,189,248,0.45);padding:8px 10px;margin-bottom:14px;text-align:left;">
+        <div class="guide-icon-badge" style="background:rgba(56,189,248,0.18);border:1.5px solid #38BDF8;color:#38BDF8;width:28px;height:28px;font-size:13px;">⚡</div>
         <div>
-          <div class="guide-text-title" style="color:#EF4444;">3. AVOID RED HAZARDS</div>
-          <div class="guide-text-body">
-            Crimson hazard spikes damage your combo. Dodge them safely or collect <b>💥 Bomb</b> or <b>🛡️ Shield</b> orbs to defend your run.
+          <div class="guide-text-title" style="color:#38BDF8;font-size:11px;">3. HIT SPECIAL PEGS</div>
+          <div class="guide-text-body" style="font-size:10px;">
+            Catch 💥 Bomb and ⚡ Electric pegs to wipe enemies &amp; transform the stage.
           </div>
         </div>
       </div>
 
-      <!-- 4. CLASSIC MODE (Guitar Hero Style) -->
-      <div class="guide-item" style="border-color:rgba(236,72,153,0.45);">
-        <div class="guide-icon-badge" style="background:rgba(236,72,153,0.18);border:1.5px solid #EC4899;color:#EC4899;">🎸</div>
-        <div>
-          <div class="guide-text-title" style="color:#F472B6;">4. CLASSIC MODE (Guitar Hero Style)</div>
-          <div class="guide-text-body">
-            Toggle Classic Mode anytime on the main menu to experience authentic 4-lane vertical highway rhythm action!
-          </div>
-        </div>
-      </div>
-
-      <div style="display:flex;gap:10px;margin-top:8px;">
-        <button class="btn-action-secondary" onclick="window.app.dismissHowToPlay(true, true)" style="flex:0.95;height:46px;font-size:10.5px;">
+      <div style="display:flex;gap:8px;">
+        <button class="btn-action-secondary" onclick="window.app.dismissHowToPlay(true, true)" style="flex:1;height:42px;font-size:9.5px;letter-spacing:0.5px;">
           DON'T SHOW AGAIN
         </button>
-        <button id="htp-primary-btn" class="btn-action-primary" onclick="window.app.dismissHowToPlay(true, false)" style="flex:1.35;height:46px;background:linear-gradient(90deg,#22C55E,#0EA5E9);">
-          ▶ &nbsp;START COUNTDOWN
+        <button id="htp-primary-btn" class="btn-action-primary" onclick="window.app.dismissHowToPlay(true, false)" style="flex:1.2;height:42px;background:linear-gradient(90deg,#22C55E,#0EA5E9);font-size:11px;font-weight:900;">
+          DROP IN ▶
         </button>
       </div>
+    </div>
+  </div>
     </div>
   </div>
 
