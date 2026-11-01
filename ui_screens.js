@@ -139,9 +139,9 @@ Object.assign(NoMoreIllusionsApp.prototype, {
     const comboVal = document.getElementById("hud-combo-val");
     if (comboChip && comboVal) {
       if (this.combo > 1 || this.constellationRushTimer > 0) {
-        comboChip.style.display = "inline";
+        comboChip.style.display = "inline-flex";
         const effMult = this.combo * (this.constellationRushTimer > 0 ? 2 : 1);
-        comboVal.textContent = `x${effMult}`;
+        comboVal.textContent = effMult >= 8 ? `🔥 x${effMult} STREAK` : `⚡ x${effMult} COMBO`;
       } else {
         comboChip.style.display = "none";
       }
@@ -158,22 +158,10 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       }
     }
 
+    // Hide distracting upper-left capsule during active play to keep playfield pristine
     const unlockCapsule = document.getElementById("hud-unlock-capsule");
-    const unlockText = document.getElementById("hud-unlock-text");
-    const trackThumb = document.getElementById("hud-track-art-thumb");
-    if (unlockCapsule && unlockText) {
-      const trkIdx = this.selectedStageIndex + 1;
-      const isTrkUnlocked = this.prefs.unlockedTracks.includes(OFFICIAL_TRACKS[this.selectedStageIndex]?.id) || this.prefs.isVip || this.selectedStageIndex === 0;
-      const pct = Math.floor(progress * 100);
-      if (trackThumb) {
-        trackThumb.src = trkIdx === 1 ? "assets/track_01.png" : "assets/track_02.png";
-        trackThumb.style.borderColor = isTrkUnlocked ? "#4ADE80" : "#FACC15";
-      }
-      unlockCapsule.style.borderColor = isTrkUnlocked ? "rgba(74,222,128,0.65)" : "rgba(250,204,21,0.65)";
-      unlockText.style.color = isTrkUnlocked ? "#86EFAC" : "#FDE047";
-      unlockText.textContent = isTrkUnlocked
-        ? `★ TRACK 0${trkIdx} UNLOCKED • ${pct}%`
-        : `🔒 UNLOCKING TRACK 0${trkIdx} • ${pct}% • ${this.prefs.points || 0} ♪`;
+    if (unlockCapsule) {
+      unlockCapsule.style.display = "none";
     }
   },
 

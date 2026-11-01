@@ -328,7 +328,8 @@ Object.assign(NoMoreIllusionsApp.prototype, {
           (pu.spawnX !== pu.targetX || pu.spawnY !== pu.targetY);
 
         if (hasPerimeterSpawn && u < 1.0) {
-          const t = Math.max(0, Math.min(1, 1 - (1 - u) * (1 - u)));
+          // Direct parametric position: steady, tempo-locked rhythmic velocity without jerky exponential lag
+          const t = Math.max(0, Math.min(1, u));
           const chordX = pu.targetX - pu.spawnX;
           const chordY = pu.targetY - pu.spawnY;
           const perpX = -chordY;
@@ -340,8 +341,8 @@ Object.assign(NoMoreIllusionsApp.prototype, {
           const targetPosX = oneMinusT * oneMinusT * pu.spawnX + 2 * oneMinusT * t * ctrlX + t * t * pu.targetX;
           const targetPosY = oneMinusT * oneMinusT * pu.spawnY + 2 * oneMinusT * t * ctrlY + t * t * pu.targetY;
 
-          pu.x += (targetPosX - pu.x) * 0.38;
-          pu.y += (targetPosY - pu.y) * 0.38;
+          pu.x = targetPosX;
+          pu.y = targetPosY;
         } else {
           const modeTag = pu.fluidMode || 0;
           const stableSlot = (pu.sequenceIndex || idx) % 6;
@@ -386,6 +387,13 @@ Object.assign(NoMoreIllusionsApp.prototype, {
         for (let j = i + 1; j < this.powerUps.length; j++) {
           const a = this.powerUps[i];
           const b = this.powerUps[j];
+          // Only repel settled stage anchors; skip incoming notes still in flight along their rhythmic entry path
+          const aLead = Math.max(0.45, (a.targetBeatSec || 1) - (a.spawnBeatSec || 0));
+          const aU = (this.trackElapsedSec - (a.spawnBeatSec || 0)) / aLead;
+          const bLead = Math.max(0.45, (b.targetBeatSec || 1) - (b.spawnBeatSec || 0));
+          const bU = (this.trackElapsedSec - (b.spawnBeatSec || 0)) / bLead;
+          if (aU < 1.0 || bU < 1.0) continue;
+
           // Only repel if both pegs are visibly on stage (preserves outer edge spawn gliding)
           if (a.x < 0 || a.x > this.W || b.x < 0 || b.x > this.W) continue;
           const dx = b.x - a.x;
@@ -717,7 +725,7 @@ Object.assign(NoMoreIllusionsApp.prototype, {
         ? (seqIdx % 2 === 0 ? 0.52 : -0.52)
         : ((seqIdx % 5 - 2) * 0.12);
 
-      const leadDur = Math.max(1.4, Math.min(2.8, beatPeriod * 3.5));
+      const leadDur = Math.max(1.8, Math.min(3.2, beatPeriod * 4.0));
       spawnBeatSec = targetBeatSec - leadDur;
       expireBeatSec = targetBeatSec + beatGridStep * 6.0;
     }
@@ -856,19 +864,19 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       let col = [56, 189, 248];
       if (pu.type === "BLAST" || pu.type === "OVERDRIVE") {
         col = [239, 68, 68];
-        this.overdriveTimer = Math.max(this.overdriveTimer, 5.5);
-        this.screenShake = Math.max(this.screenShake, 12);
+        // Tactical screen-wide wipe without granting continuous invulnerable ramming
+        this.screenShake = Math.max(this.screenShake, 16);
         for (let k = 0; k < this.enemies.length; k++) {
           const en = this.enemies[k];
-          this.score += 150 * Math.max(1, this.combo);
-          this.spawnBurstMotes(en.x, en.y, k % 2 === 0 ? [250, 204, 21] : [239, 68, 68], 8);
-          this.shockwaves.push({ x: en.x, y: en.y, radius: 8, maxRadius: 130, color: [250, 204, 21], alpha: 1 });
+          this.score += 200 * Math.max(1, this.combo);
+          this.spawnBurstMotes(en.x, en.y, [250, 204, 21], 10);
+          this.shockwaves.push({ x: en.x, y: en.y, radius: 8, maxRadius: 150, color: [250, 204, 21], alpha: 1 });
         }
         this.enemies = [];
         this.telegraphs = [];
-        this.shockwaves.push({ x: pu.x, y: pu.y, radius: 12, maxRadius: 420, color: col, alpha: 1 });
+        this.shockwaves.push({ x: pu.x, y: pu.y, radius: 14, maxRadius: 650, color: col, alpha: 1 });
       } else {
-        this.shieldTimer = Math.max(this.shieldTimer, 8.0);
+        this.shieldTimer = Math.max(this.shieldTimer, 5.0);
         col = [56, 189, 248];
       }
       this.spawnBurstMotes(pu.x, pu.y, col, 8);
