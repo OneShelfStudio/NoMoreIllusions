@@ -225,6 +225,63 @@ function drawNebulaBackground(ctx, W, H, palette, stars, time, beatPulse, multiB
     }
   }
 
+  // 4b. Dynamic Special Phase Transformations (Full-Screen Visual Overhauls)
+  if (isElectric) {
+    // High-Voltage Atmospheric Lightning Arcs & Electric Grid Surges across the sky
+    ctx.save();
+    for (let arc = 0; arc < 4; arc++) {
+      const startX = ((arc * 0.28 + (time * 0.22) % 1.0) % 1.0) * W;
+      const arcSeed = Math.floor(time * 16 + arc * 77);
+      let curX = startX;
+      let curY = 0;
+      ctx.beginPath();
+      ctx.moveTo(curX, curY);
+      for (let s = 1; s <= 7; s++) {
+        curY += H / 7;
+        const jitter = Math.sin(arcSeed + s * 4.6) * (W * 0.09);
+        curX += jitter;
+        ctx.lineTo(curX, curY);
+      }
+      ctx.strokeStyle = arc % 2 === 0 ? "rgba(250, 204, 21, 0.72)" : "rgba(56, 189, 248, 0.85)";
+      ctx.lineWidth = 2.6;
+      ctx.shadowColor = arc % 2 === 0 ? "#FACC15" : "#38BDF8";
+      ctx.shadowBlur = 16;
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  if (isPrism) {
+    // Rotating Rainbow Prismatic Diffraction Beams radiating from the central core
+    ctx.save();
+    const beamCount = 12;
+    for (let b = 0; b < beamCount; b++) {
+      const beamAngle = time * 0.45 + (b * (Math.PI * 2 / beamCount));
+      const bCol = b % 4 === 0 ? [74, 222, 128] : b % 4 === 1 ? [56, 189, 248] : b % 4 === 2 ? [236, 72, 153] : [250, 204, 21];
+      ctx.beginPath();
+      ctx.moveTo(centerX, centerY);
+      ctx.arc(centerX, centerY, maxDim * 0.75, beamAngle - 0.08, beamAngle + 0.08);
+      ctx.closePath();
+      ctx.fillStyle = rgba(bCol, 0.14 + 0.06 * Math.sin(time * 4.5 + b));
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  if (isSlowMo) {
+    // Gravitational Time-Dilation Horizon Rings
+    ctx.save();
+    for (let v = 0; v < 4; v++) {
+      const vRadius = ((time * 0.16 + v * 0.25) % 1.0) * maxDim * 0.65;
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, vRadius, 0, Math.PI * 2);
+      ctx.strokeStyle = rgba([192, 132, 252], 0.38 * (1 - vRadius / (maxDim * 0.65)));
+      ctx.lineWidth = 4.2;
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
   // 5. Organic Harmonic Halo Petal Rings
   const ringCount = isEclipseActive ? 4 : 6;
   const ringSpeed = multiBand.bassDropOut ? 0.035 : ((isSlowMo ? 0.03 : 0.06) + bass * 0.10 + high * 0.05);
@@ -260,27 +317,106 @@ function drawNebulaBackground(ctx, W, H, palette, stars, time, beatPulse, multiB
     }
   }
 
-  // 6. Progressive Album Artwork Hologram Watermark Reveal in Center (Dynamic Unblur & Prism Bloom)
-  if (trackArtwork && trackArtwork.complete && (trackProgress > 0.01 || unblurPercent > 0.15)) {
-    const artBoxSize = Math.min(W, H) * (0.48 + bass * 0.05);
-    const artAlpha = Math.min(0.65, 0.08 + unblurPercent * 0.38 + (isPrism ? 0.18 : 0));
-    ctx.save();
-    ctx.globalCompositeOperation = "screen";
-    ctx.globalAlpha = artAlpha;
+  // 6. Progressive Waterfall Album Artwork Fill in Center (Top-to-Bottom Fill & Splash Meniscus)
+  const effectiveProgress = Math.max(0.02, Math.min(1.0, (trackProgress || 0) + (specialVisuals.prismSurgeBonus || 0)));
+  const artBoxSize = Math.min(W, H) * (0.52 + bass * 0.05);
+  const artRadius = artBoxSize * 0.48;
+  const artTop = centerY - artRadius;
+  const artLeft = centerX - artRadius;
+  const waterLevelY = artTop + (artRadius * 2) * effectiveProgress;
+
+  // 6a. Dark Frosted Disc Silhouette & Concentric Vinyl Grooves (Unrevealed Base)
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(centerX, centerY, artRadius, 0, Math.PI * 2);
+  ctx.fillStyle = "rgba(7, 11, 22, 0.72)";
+  ctx.fill();
+  ctx.strokeStyle = "rgba(100, 116, 139, 0.35)";
+  ctx.lineWidth = 2.0;
+  ctx.stroke();
+
+  for (let g = 1; g <= 4; g++) {
     ctx.beginPath();
-    ctx.arc(centerX, centerY, artBoxSize * 0.48, 0, Math.PI * 2);
+    ctx.arc(centerX, centerY, artRadius * (g / 5), 0, Math.PI * 2);
+    ctx.strokeStyle = "rgba(148, 163, 184, 0.08)";
+    ctx.lineWidth = 1.0;
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  // 6b. Waterfall Clipped Album Artwork revealing from top down to waterLevelY
+  if (trackArtwork && trackArtwork.complete) {
+    ctx.save();
+    // Circular Vinyl Bounds Clip
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, artRadius, 0, Math.PI * 2);
     ctx.clip();
-    ctx.drawImage(trackArtwork, centerX - artBoxSize * 0.5, centerY - artBoxSize * 0.5, artBoxSize, artBoxSize);
+
+    // Waterfall Vertical Threshold Clip (top down to waterLevelY)
+    ctx.beginPath();
+    ctx.rect(centerX - artRadius - 10, artTop - 10, artRadius * 2 + 20, (artRadius * 2) * effectiveProgress + 10);
+    ctx.clip();
+
+    // Draw high-vibrance artwork inside the waterfall revealed region
+    ctx.globalAlpha = Math.min(1.0, 0.82 + effectiveProgress * 0.18 + (isPrism ? 0.15 : 0));
+    ctx.drawImage(trackArtwork, artLeft, artTop, artRadius * 2, artRadius * 2);
     ctx.restore();
 
-    // Subtle glowing vinyl groove rim around the unblurring art
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(centerX, centerY, artBoxSize * 0.48, 0, Math.PI * 2);
-    ctx.strokeStyle = rgba(isPrism ? [74, 222, 128] : isElectric ? [250, 204, 21] : [255, 255, 255], 0.35 * artAlpha);
-    ctx.lineWidth = 2.4;
-    ctx.stroke();
-    ctx.restore();
+    // 6c. Glowing undulating liquid meniscus wave across waterLevelY
+    if (effectiveProgress > 0.02 && effectiveProgress < 0.995) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, artRadius, 0, Math.PI * 2);
+      ctx.clip();
+
+      const waveCol = isPrism ? [74, 222, 128] : (isElectric ? [250, 204, 21] : [56, 189, 248]);
+      ctx.beginPath();
+      const waveStep = 6;
+      let first = true;
+      for (let wx = artLeft - 10; wx <= artLeft + artRadius * 2 + 10; wx += waveStep) {
+        const waveOffset = Math.sin(wx * 0.055 + time * 7.5) * 3.5 + Math.cos(wx * 0.028 - time * 5.0) * 2.0;
+        const wy = waterLevelY + waveOffset;
+        if (first) {
+          ctx.moveTo(wx, wy);
+          first = false;
+        } else {
+          ctx.lineTo(wx, wy);
+        }
+      }
+      ctx.strokeStyle = rgba(waveCol, 0.95);
+      ctx.lineWidth = 3.5;
+      ctx.shadowColor = rgba(waveCol, 0.85);
+      ctx.shadowBlur = 14;
+      ctx.stroke();
+
+      // Bright white-hot crest
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.9)";
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      // Waterfall spray droplets trickling along the filling meniscus
+      const dropletCount = 6;
+      for (let d = 0; d < dropletCount; d++) {
+        const dx = artLeft + ((d * 47 + time * 85) % (artRadius * 2));
+        const dy = waterLevelY + ((d * 19 + time * 95) % 18) - 4;
+        ctx.beginPath();
+        ctx.arc(dx, dy, 2.0, 0, Math.PI * 2);
+        ctx.fillStyle = rgba(waveCol, 0.82);
+        ctx.fill();
+      }
+      ctx.restore();
+    } else if (effectiveProgress >= 0.995) {
+      // 100% UNLOCKED CROWN GLOW
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, artRadius, 0, Math.PI * 2);
+      ctx.strokeStyle = rgba([250, 204, 21], 0.75 + 0.25 * Math.sin(time * 6));
+      ctx.lineWidth = 3.5;
+      ctx.shadowColor = "rgba(250, 204, 21, 0.85)";
+      ctx.shadowBlur = 18;
+      ctx.stroke();
+      ctx.restore();
+    }
   }
 
   // 7. Full-Screen Solar Nova Blast Wave

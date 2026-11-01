@@ -764,6 +764,114 @@ function drawMenuTurntable(ctx, logoImg, time, isGoldMode, isLocked) {
 }
 
 // ============================================================================
+// 7b. UPPER-MIDDLE ON-SCREEN COMBO & STREAK ZOOM POPUP BANNER
+// ============================================================================
+function drawComboZoomBanner(ctx, W, H, banner, time) {
+  if (!banner || banner.timer <= 0) return;
+
+  const cx = W * 0.5;
+  const cy = Math.max(90, H * 0.19);
+  const elapsed = Math.max(0, banner.maxTimer - banner.timer);
+  const lifeT = Math.max(0, Math.min(1.0, elapsed / banner.maxTimer));
+  const fadeOut = Math.min(1.0, banner.timer / 0.22);
+
+  ctx.save();
+  ctx.translate(cx, cy);
+
+  if (banner.isBroken) {
+    // Fractured streak-broken shatter animation with horizontal glitch shake
+    const shake = Math.sin(lifeT * 55) * Math.max(0, 1.0 - lifeT * 1.5) * 9;
+    ctx.translate(shake, 0);
+
+    const pillW = Math.min(W * 0.85, 250);
+    const pillH = 48;
+    const r = 24;
+
+    // Red fracture glow
+    ctx.shadowColor = "rgba(239, 68, 68, 0.85)";
+    ctx.shadowBlur = 18;
+
+    // Dark crimson background
+    ctx.beginPath();
+    ctx.roundRect(-pillW * 0.5, -pillH * 0.5, pillW, pillH, r);
+    ctx.fillStyle = `rgba(30, 8, 14, ${0.92 * fadeOut})`;
+    ctx.fill();
+
+    ctx.strokeStyle = `rgba(239, 68, 68, ${0.95 * fadeOut})`;
+    ctx.lineWidth = 2.4;
+    ctx.stroke();
+
+    // Shatter diagonal fracture slash line
+    ctx.beginPath();
+    ctx.moveTo(-pillW * 0.32, -pillH * 0.5);
+    ctx.lineTo(pillW * 0.18, pillH * 0.5);
+    ctx.strokeStyle = `rgba(255, 255, 255, ${0.60 * fadeOut})`;
+    ctx.lineWidth = 2.0;
+    ctx.stroke();
+
+    ctx.shadowBlur = 0;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+
+    ctx.font = "900 18px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+    ctx.fillStyle = `rgba(255, 255, 255, ${fadeOut})`;
+    ctx.fillText(banner.text, 0, -4);
+
+    ctx.font = "800 10px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+    ctx.fillStyle = `rgba(252, 165, 165, ${0.95 * fadeOut})`;
+    ctx.fillText(banner.subText || "STREAK LOST", 0, 14);
+  } else {
+    // Elastic spring bounce: starts punchy (1.42x) and elastic-damps down to 1.0x
+    const springPunch = 0.42 * Math.exp(-elapsed * 12.0) * Math.cos(elapsed * 22.0);
+    const scale = Math.max(0.85, 1.0 + springPunch);
+    ctx.scale(scale, scale);
+
+    const pillW = Math.min(W * 0.85, 270);
+    const pillH = 50;
+    const r = 25;
+    const col = banner.color || [250, 204, 21];
+
+    // Neon drop shadow
+    ctx.shadowColor = rgba(col, 0.85);
+    ctx.shadowBlur = 20;
+
+    // Dark translucent glass backing
+    ctx.beginPath();
+    ctx.roundRect(-pillW * 0.5, -pillH * 0.5, pillW, pillH, r);
+    ctx.fillStyle = `rgba(8, 12, 24, ${0.88 * fadeOut})`;
+    ctx.fill();
+
+    // Radiant colored neon rim
+    ctx.strokeStyle = rgba(col, 0.95 * fadeOut);
+    ctx.lineWidth = 2.4;
+    ctx.stroke();
+
+    // Inner subtle glow fill
+    const innerGrad = ctx.createLinearGradient(0, -pillH * 0.5, 0, pillH * 0.5);
+    innerGrad.addColorStop(0, rgba(col, 0.25 * fadeOut));
+    innerGrad.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = innerGrad;
+    ctx.fill();
+
+    ctx.shadowBlur = 0;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+
+    // Big punchy headline
+    ctx.font = "900 20px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+    ctx.fillStyle = rgba(col, fadeOut);
+    ctx.fillText(banner.text, 0, -5);
+
+    // Letterspaced crisp subtext
+    ctx.font = "800 10px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+    ctx.fillStyle = `rgba(255, 255, 255, ${0.88 * fadeOut})`;
+    ctx.fillText(banner.subText || "RHYTHMIC STREAK", 0, 14);
+  }
+
+  ctx.restore();
+}
+
+// ============================================================================
 // 8. FULL GAME CONTROLLER & PHYSICS ENGINE (1:1 Port of GamePhysics.kt)
 // ============================================================================
 

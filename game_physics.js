@@ -63,7 +63,26 @@ Object.assign(NoMoreIllusionsApp.prototype, {
 
     if (this.comboTimer > 0) {
       this.comboTimer -= dt;
-      if (this.comboTimer <= 0) this.combo = 1;
+      if (this.comboTimer <= 0) {
+        if (this.combo > 1) {
+          this.comboZoomBanner = {
+            text: "💔 STREAK TIMEOUT",
+            subText: "FLOW INTERRUPTED",
+            color: [239, 68, 68],
+            timer: 1.4,
+            maxTimer: 1.4,
+            isBroken: true
+          };
+        }
+        this.combo = 1;
+      }
+    }
+
+    if (this.comboZoomBanner) {
+      this.comboZoomBanner.timer -= dt;
+      if (this.comboZoomBanner.timer <= 0) {
+        this.comboZoomBanner = null;
+      }
     }
 
     // Score & Level Progression (Scaled by Mode Difficulty Multiplier!)
@@ -315,6 +334,14 @@ Object.assign(NoMoreIllusionsApp.prototype, {
           this.comboTimer = 0;
           this.triggerHaptic([32]);
           this.screenShake = Math.max(this.screenShake, 3.5);
+          this.comboZoomBanner = {
+            text: "💔 STREAK BROKEN",
+            subText: "MISSED BEAT NOTE",
+            color: [239, 68, 68],
+            timer: 1.5,
+            maxTimer: 1.5,
+            isBroken: true
+          };
           this.floatingTexts.push({
             x: Math.max(60, Math.min(this.W - 60, pu.x)),
             y: this.H - 55,
@@ -477,6 +504,14 @@ Object.assign(NoMoreIllusionsApp.prototype, {
             color: [56, 189, 248],
             alpha: 1
           });
+          this.comboZoomBanner = {
+            text: "🛡️ SHIELD DEFLECTED!",
+            subText: "HAZARD IMPACT ABSORBED",
+            color: [56, 189, 248],
+            timer: 1.4,
+            maxTimer: 1.4,
+            isBroken: true
+          };
           this.enemies.splice(i, 1);
         } else {
           this.screenShake = 20;
@@ -741,37 +776,35 @@ Object.assign(NoMoreIllusionsApp.prototype, {
   },
 
   collectPowerUp(pu, uHit = 1.0) {
+    this.orbsCollectedRun = (this.orbsCollectedRun || 0) + 1;
+    const prevCombo = this.combo || 1;
+    this.combo = Math.min(16, prevCombo + 1);
+    if (this.combo > this.maxComboRun) this.maxComboRun = this.combo;
+    this.comboTimer = 5.0; // generous 5s window to maintain flow
+    this.synthComboChordStinger(this.combo);
+
+    // Streaming notes together charges the thick Neon Contrail
+    this.vocalStreamContrailTimer = (pu.isVocalStream || (this.multiBandState && this.multiBandState.vocal >= 0.42))
+      ? 4.0
+      : Math.max(this.vocalStreamContrailTimer || 0, 2.0);
+
+    const strikeY = this.H * 0.65;
+    const beatDiff = Math.abs(this.trackElapsedSec - (pu.targetBeatSec || this.trackElapsedSec));
+    const isAtStrikeLine = this.isBandHeroMode
+      ? ((uHit >= 0.78 && uHit <= 1.18) || Math.abs(pu.y - strikeY) <= 74 || beatDiff <= 0.24)
+      : (this.beatPulse >= 0.25 || pu.isSupernova);
+
+    const mode = this.getRemixMode();
+    const diffMult = (mode.scoreMult || 1.0) * (this.prefs.difficulty === "EASY" ? 0.55 : (this.prefs.difficulty === "HARD" ? 1.35 : 1.0));
+
     if (pu.type === "SCORE_ORB") {
       this.playSfx("orb", 0.72);
       this.triggerHaptic([16]);
-      this.orbsCollectedRun++;
-      const prevCombo = this.combo;
-      this.combo = Math.min(8, this.combo + 1);
-      if (this.combo > this.maxComboRun) this.maxComboRun = this.combo;
-      if (this.combo >= 4 && this.combo > prevCombo) {
-        this.synthComboChordStinger(this.combo);
-      }
-      this.comboTimer = 4.5;
 
-      // Streaming notes together charges the thick, long Neon Contrail!
-      this.vocalStreamContrailTimer = (pu.isVocalStream || (this.multiBandState && this.multiBandState.vocal >= 0.42))
-        ? 4.0
-        : Math.max(this.vocalStreamContrailTimer || 0, 2.0);
-
-      // Timing Accuracy Check: in Band Hero mode compare against the 65% Strike Line;
-      // in Original 8-Beat mode, hitting on ANY beat pulse triggers crisp emerald reward!
-      const beatDiff = Math.abs(this.trackElapsedSec - (pu.targetBeatSec || this.trackElapsedSec));
-      const strikeY = this.H * 0.65;
-      const isAtStrikeLine = this.isBandHeroMode
-        ? ((uHit >= 0.78 && uHit <= 1.18) || Math.abs(pu.y - strikeY) <= 74 || beatDiff <= 0.24)
-        : (this.beatPulse >= 0.25 || pu.isSupernova);
-      const mode = this.getRemixMode();
-      const diffMult = (mode.scoreMult || 1.0) * (this.prefs.difficulty === "EASY" ? 0.55 : (this.prefs.difficulty === "HARD" ? 1.35 : 1.0));
       const basePts = isAtStrikeLine ? 120 : 60;
       const pts = Math.max(10, Math.round(basePts * this.combo * (this.constellationRushTimer > 0 ? 2 : 1) * diffMult));
       this.score += pts;
 
-      // Trigger swaying Melodic Starfall Cascade on 8x+ Perfect streak milestones!
       if (isAtStrikeLine && this.combo >= 6 && this.orbsCollectedRun % 8 === 0) {
         this.spawnMelodicStarfallCascade();
       }
@@ -794,7 +827,29 @@ Object.assign(NoMoreIllusionsApp.prototype, {
         age: 0
       });
 
-      // ★ 4X STAR Overdrive Note (1:1 with Android GameOrbCollection.kt — zero banner popups!)
+      // Upper-middle on-screen zoom banner tallying combo!
+      if (this.combo >= 2) {
+        if (isAtStrikeLine) {
+          this.comboZoomBanner = {
+            text: `★ PERFECT BEAT! ${this.combo}x 🔥`,
+            subText: `STREAK CHAIN • +${pts} PTS`,
+            color: this.combo >= 8 ? [250, 204, 21] : [74, 222, 128],
+            timer: 1.25,
+            maxTimer: 1.25,
+            isBroken: false
+          };
+        } else {
+          this.comboZoomBanner = {
+            text: `${this.combo}x STREAK`,
+            subText: `RHYTHMIC FLOW • +${pts} PTS`,
+            color: [56, 189, 248],
+            timer: 1.1,
+            maxTimer: 1.1,
+            isBroken: false
+          };
+        }
+      }
+
       const eff = pu.keyWordEffect || "NONE";
       if (pu.isSupernova || eff !== "NONE") {
         this.screenShake = Math.max(this.screenShake, 7);
@@ -803,13 +858,16 @@ Object.assign(NoMoreIllusionsApp.prototype, {
         this.spawnMelodicStarfallCascade();
       }
     } else {
-      this.playSfx("powerup", 0.8);
-      this.triggerHaptic([26]);
+      this.playSfx("powerup", 0.82);
+      this.triggerHaptic([28]);
+      const specialPts = Math.round(250 * this.combo * diffMult);
+      this.score += specialPts;
+
       let col = [56, 189, 248];
       if (pu.type === "ELECTRIC_HARMONIC") {
         this.overdriveTimer = Math.max(this.overdriveTimer, 8.0);
         this.electricSurgeTimer = Math.max(this.electricSurgeTimer || 0, 8.0);
-        this.screenShake = Math.max(this.screenShake, 14);
+        this.screenShake = Math.max(this.screenShake, 16);
         col = [250, 204, 21];
         this.shockwaves.push({ x: pu.x, y: pu.y, radius: 14, maxRadius: 650, color: col, alpha: 1 });
         this.shockwaves.push({ x: pu.x, y: pu.y, radius: 10, maxRadius: 450, color: [56, 189, 248], alpha: 1 });
@@ -817,67 +875,70 @@ Object.assign(NoMoreIllusionsApp.prototype, {
           const a = (m / 18) * Math.PI * 2;
           this.spawnBurstMotes(pu.x + Math.cos(a) * 22, pu.y + Math.sin(a) * 22, m % 2 === 0 ? [250, 204, 21] : [56, 189, 248], 2);
         }
-        this.floatingTexts.push({
-          x: pu.x,
-          y: pu.y - 20,
-          text: "⚡ ELECTRIC SURGE (4X & SYNTH AURORA)!",
+        this.comboZoomBanner = {
+          text: `⚡ 4X OVERDRIVE! (${this.combo}x STREAK)`,
+          subText: "SYNTH AURORA SURGE • +250 PTS",
           color: [250, 204, 21],
-          alpha: 1,
-          age: 0
-        });
+          timer: 1.6,
+          maxTimer: 1.6,
+          isBroken: false
+        };
       } else if (pu.type === "PRISM_HARMONY") {
-        this.screenShake = Math.max(this.screenShake, 8);
+        this.screenShake = Math.max(this.screenShake, 10);
         this.prismBloomTimer = Math.max(this.prismBloomTimer || 0, 8.0);
+        this.prismSurgeBonus = Math.min(1.0, (this.prismSurgeBonus || 0) + 0.20);
         this.unlockedArtPercent = Math.min(1.0, (this.unlockedArtPercent || 0.2) + 0.20);
         col = [74, 222, 128];
-        this.shockwaves.push({ x: pu.x, y: pu.y, radius: 14, maxRadius: 500, color: col, alpha: 1 });
-        this.shockwaves.push({ x: pu.x, y: pu.y, radius: 10, maxRadius: 320, color: [236, 72, 153], alpha: 1 });
+        this.shockwaves.push({ x: pu.x, y: pu.y, radius: 14, maxRadius: 550, color: col, alpha: 1 });
+        this.shockwaves.push({ x: pu.x, y: pu.y, radius: 10, maxRadius: 360, color: [236, 72, 153], alpha: 1 });
         for (let m = 0; m < 16; m++) {
           const a = (m / 16) * Math.PI * 2;
           const rainbowCols = [[74, 222, 128], [56, 189, 248], [236, 72, 153], [250, 204, 21], [192, 132, 252]];
           this.spawnBurstMotes(pu.x + Math.cos(a) * 20, pu.y + Math.sin(a) * 20, rainbowCols[m % rainbowCols.length], 2);
         }
-        this.floatingTexts.push({
-          x: pu.x,
-          y: pu.y - 20,
-          text: "✨ PRISM VOCAL BLOOM! (+20% ART UNBLUR)",
+        this.comboZoomBanner = {
+          text: `✨ PRISM VOCAL BLOOM! (${this.combo}x STREAK)`,
+          subText: "+20% ART WATERFALL FILL • +250 PTS",
           color: [74, 222, 128],
-          alpha: 1,
-          age: 0
-        });
+          timer: 1.6,
+          maxTimer: 1.6,
+          isBroken: false
+        };
       } else if (pu.type === "SLOW_MO") {
         this.slowMoTimer = Math.max(this.slowMoTimer, 6.0);
         col = [192, 132, 252];
-        this.shockwaves.push({ x: pu.x, y: pu.y, radius: 14, maxRadius: 420, color: col, alpha: 1 });
-        this.floatingTexts.push({
-          x: pu.x,
-          y: pu.y - 20,
-          text: "🌀 VORTEX GRAVITY WARP (50% SLOW-MO)!",
+        this.shockwaves.push({ x: pu.x, y: pu.y, radius: 14, maxRadius: 450, color: col, alpha: 1 });
+        this.comboZoomBanner = {
+          text: `🌀 VORTEX SLOW-MO! (${this.combo}x STREAK)`,
+          subText: "TIME DILATION FLOW • +250 PTS",
           color: [192, 132, 252],
-          alpha: 1,
-          age: 0
-        });
+          timer: 1.6,
+          maxTimer: 1.6,
+          isBroken: false
+        };
       } else if (pu.type === "BLAST" || pu.type === "OVERDRIVE") {
         col = [249, 115, 22];
         this.solarNovaFlash = 1.0;
-        this.screenShake = Math.max(this.screenShake, 18);
+        this.screenShake = Math.max(this.screenShake, 20);
+        let vaporizedCount = 0;
         for (let k = 0; k < this.enemies.length; k++) {
           const en = this.enemies[k];
           this.score += 200 * Math.max(1, this.combo);
           this.spawnBurstMotes(en.x, en.y, [250, 204, 21], 10);
           this.shockwaves.push({ x: en.x, y: en.y, radius: 8, maxRadius: 150, color: [250, 204, 21], alpha: 1 });
+          vaporizedCount++;
         }
         this.enemies = [];
         this.telegraphs = [];
         this.shockwaves.push({ x: pu.x, y: pu.y, radius: 14, maxRadius: 750, color: col, alpha: 1 });
-        this.floatingTexts.push({
-          x: pu.x,
-          y: pu.y - 20,
-          text: "💥 SOLAR NOVA (HAZARDS CLEARED)!",
+        this.comboZoomBanner = {
+          text: `💥 SOLAR NOVA! (${this.combo}x STREAK)`,
+          subText: `${vaporizedCount > 0 ? vaporizedCount + ' HAZARDS' : 'ALL HAZARDS'} VAPORIZED • +250 PTS`,
           color: [249, 115, 22],
-          alpha: 1,
-          age: 0
-        });
+          timer: 1.6,
+          maxTimer: 1.6,
+          isBroken: false
+        };
       } else {
         this.shieldTimer = Math.max(this.shieldTimer, 6.0);
         col = [56, 189, 248];
@@ -885,20 +946,20 @@ Object.assign(NoMoreIllusionsApp.prototype, {
           x: pu.x,
           y: pu.y,
           radius: 10,
-          maxRadius: 260,
+          maxRadius: 280,
           color: col,
           alpha: 1
         });
-        this.floatingTexts.push({
-          x: pu.x,
-          y: pu.y - 20,
-          text: "🛡️ AEGIS SHIELD ACTIVE!",
+        this.comboZoomBanner = {
+          text: `🛡️ AEGIS BARRIER! (${this.combo}x STREAK)`,
+          subText: "INVINCIBILITY SHIELD ACTIVE • +250 PTS",
           color: [56, 189, 248],
-          alpha: 1,
-          age: 0
-        });
+          timer: 1.6,
+          maxTimer: 1.6,
+          isBroken: false
+        };
       }
-      this.spawnBurstMotes(pu.x, pu.y, col, 8);
+      this.spawnBurstMotes(pu.x, pu.y, col, 10);
     }
   },
 
