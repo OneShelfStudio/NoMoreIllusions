@@ -453,97 +453,28 @@ fun stepNebulousBeatOrbs(
     }
 
     if (!isBandHeroMode && powerUps.isNotEmpty()) {
-        val minDim = minOf(screenWidth, screenHeight)
-
         powerUps.forEach { orb ->
             val leadDur = (orb.targetBeatSec - orb.spawnBeatSec).coerceAtLeast(0.45f)
-            val u = ((trackSec - orb.spawnBeatSec) / leadDur).coerceIn(0f, 1.25f)
+            val totalDur = leadDur * 2.0f
             val hasPerimeterSpawn = (orb.spawnX != 0f || orb.spawnY != 0f) && (orb.spawnX != orb.anchorX || orb.spawnY != orb.anchorY)
 
-            if (hasPerimeterSpawn && u < 1.0f) {
-                // Steady-beat travel locked to the rhythm of the music:
-                // Direct parametric positioning eliminates jerky lerp lag and gives a smooth musical flow
-                val t = u.coerceIn(0f, 1f)
-                val chordX = orb.anchorX - orb.spawnX
-                val chordY = orb.anchorY - orb.spawnY
-                val perpX = -chordY
-                val perpY = chordX
-                val ctrlX = (orb.spawnX + orb.anchorX) * 0.5f + perpX * orb.swoopCurve
-                val ctrlY = (orb.spawnY + orb.anchorY) * 0.5f + perpY * orb.swoopCurve
+            if (hasPerimeterSpawn) {
+                // Constant-speed full-screen traversal:
+                // Notes glide smoothly from perimeter entry (s = 0), cross the playfield catch zone
+                // on the beat (s = 0.5), and glide all the way across to the opposite edge (s = 1.0)
+                // without ever stopping in the middle of the field.
+                val s = ((trackSec - orb.spawnBeatSec) / totalDur).coerceIn(0f, 1.25f)
+                val exitX = 2f * orb.anchorX - orb.spawnX
+                val exitY = 2f * orb.anchorY - orb.spawnY
 
-                val oneMinusT = 1f - t
-                orb.x = oneMinusT * oneMinusT * orb.spawnX + 2f * oneMinusT * t * ctrlX + t * t * orb.anchorX
-                orb.y = oneMinusT * oneMinusT * orb.spawnY + 2f * oneMinusT * t * ctrlY + t * t * orb.anchorY
-            } else {
-                val modeTag = orb.orbitRadius
-                val stableSlot = (orb.sequenceIndex % 6).toFloat()
-                val slotFrac = (stableSlot + 0.5f) / 6f
+                val chordX = exitX - orb.spawnX
+                val chordY = exitY - orb.spawnY
+                val perpX = -chordY * 0.35f
+                val perpY = chordX * 0.35f
 
-                when (modeTag) {
-                    102f -> {
-                        // Slow Galactic Spiral: pegs smoothly revolve around open stage center on stable spiral arms!
-                        val theta = gameTime * 0.62f + (stableSlot / 6f) * (2f * PI.toFloat())
-                        val ringR = minDim * (0.26f + 0.04f * sin(gameTime * 0.85f + stableSlot * 0.7f))
-                        val goalX = screenWidth * 0.50f + cos(theta) * ringR
-                        val goalY = screenHeight * 0.48f + sin(theta) * ringR
-                        val blend = (0.055f * currentScale).coerceIn(0.01f, 0.18f)
-                        orb.x += (goalX - orb.x) * blend
-                        orb.y += (goalY - orb.y) * blend
-                    }
-                    103f -> {
-                        // Flowing Liquid Sine Wave: pegs drift smoothly in a spaced undulating ribbon across the open stage!
-                        val goalX = screenWidth * (0.16f + 0.68f * slotFrac) + sin(gameTime * 1.1f + stableSlot) * 18f
-                        val goalY = screenHeight * 0.48f + sin(gameTime * 1.55f + slotFrac * PI.toFloat() * 1.8f) * (screenHeight * 0.15f)
-                        val blend = (0.060f * currentScale).coerceIn(0.01f, 0.18f)
-                        orb.x += (goalX - orb.x) * blend
-                        orb.y += (goalY - orb.y) * blend
-                    }
-                    101f -> {
-                        // Outward-Inward Sweeping Glide: pegs glide smoothly inward from outer screen edge along a graceful curve!
-                        val goalX = orb.anchorX + cos(gameTime * 1.6f + orb.phase) * 24f
-                        val goalY = orb.anchorY + sin(gameTime * 1.9f + orb.phase) * 24f
-                        val blend = (0.068f * currentScale).coerceIn(0.01f, 0.20f)
-                        orb.x += (goalX - orb.x) * blend
-                        orb.y += (goalY - orb.y) * blend
-                    }
-                    else -> {
-                        // Calm Open-Stage Groove: gentle breathing hover around non-overlapping anchor
-                        val goalX = orb.anchorX + cos(gameTime * 1.8f + orb.phase) * 4.5f
-                        val goalY = orb.anchorY + sin(gameTime * 2.1f + orb.phase) * 4.5f
-                        orb.x += (goalX - orb.x) * 0.16f
-                        orb.y += (goalY - orb.y) * 0.16f
-                    }
-                }
-            }
-        }
-
-        // Continuous Soft Anti-Overlap Repulsion Pass: guarantees two pegs NEVER stack or overlap!
-        // Only repels notes that have already arrived on stage (u >= 1.0f) so incoming notes travel without deflection
-        val minSep = (minDim * 0.17f).coerceIn(84f, 108f)
-        for (i in 0 until powerUps.size) {
-            for (j in i + 1 until powerUps.size) {
-                val a = powerUps[i]
-                val b = powerUps[j]
-                val aLead = (a.targetBeatSec - a.spawnBeatSec).coerceAtLeast(0.45f)
-                val bLead = (b.targetBeatSec - b.spawnBeatSec).coerceAtLeast(0.45f)
-                val aU = (trackSec - a.spawnBeatSec) / aLead
-                val bU = (trackSec - b.spawnBeatSec) / bLead
-                if (aU < 1.0f || bU < 1.0f) continue
-                // Only repel if both pegs are visibly on stage (preserves outer edge spawn gliding)
-                if (a.x < 0f || a.x > screenWidth || b.x < 0f || b.x > screenWidth) continue
-                val dx = b.x - a.x
-                val dy = b.y - a.y
-                val dist = hypot(dx, dy)
-                if (dist < minSep) {
-                    val safeD = dist.coerceAtLeast(1f)
-                    val push = (minSep - safeD) * 0.30f
-                    val nx = if (dist < 1f) cos((i + j).toFloat()) else dx / safeD
-                    val ny = if (dist < 1f) sin((i + j).toFloat()) else dy / safeD
-                    a.x = (a.x - nx * push).coerceIn(screenWidth * 0.12f, screenWidth * 0.88f)
-                    a.y = (a.y - ny * push).coerceIn(screenHeight * 0.12f, screenHeight * 0.85f)
-                    b.x = (b.x + nx * push).coerceIn(screenWidth * 0.12f, screenWidth * 0.88f)
-                    b.y = (b.y + ny * push).coerceIn(screenHeight * 0.12f, screenHeight * 0.85f)
-                }
+                val arcOffset = sin(s.coerceIn(0f, 1f) * PI.toFloat()) * orb.swoopCurve
+                orb.x = orb.spawnX + s * chordX + perpX * arcOffset
+                orb.y = orb.spawnY + s * chordY + perpY * arcOffset
             }
         }
     }

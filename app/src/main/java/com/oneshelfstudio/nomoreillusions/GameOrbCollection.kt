@@ -47,6 +47,48 @@ internal fun handleRegularOrbPowerUp(
     var toast: PowerUpBannerToast? = null
 
     when (p.powerUpType) {
+        PowerUpType.ELECTRIC_HARMONIC -> {
+            nextStarPower = maxOf(nextStarPower, 8.0f)
+            nextShake = 14f
+            nextPunch = 0.06f
+            nextFlash = 1.0f
+            shockwaves.add(Shockwave(p.x, p.y, 0f, 650f, Color(0xFFFACC15L), 1.3f))
+            shockwaves.add(Shockwave(p.x, p.y, 0f, 450f, Color(0xFF38BDF8L), 1.1f))
+            toast = PowerUpBannerToast(
+                icon = "⚡",
+                title = "ELECTRIC SURGE ACTIVE!",
+                subtitle = "SYNTH AURORA & 4X OVERDRIVE",
+                accentColor = Color(0xFFFACC15L),
+                timer = 2.6f,
+                maxTimer = 2.6f
+            )
+        }
+        PowerUpType.PRISM_HARMONY -> {
+            nextFlash = 0.90f
+            nextPunch = 0.045f
+            shockwaves.add(Shockwave(p.x, p.y, 0f, 500f, Color(0xFF4ADE80L), 1.2f))
+            shockwaves.add(Shockwave(p.x, p.y, 0f, 320f, Color(0xFFEC4899L), 1.0f))
+            toast = PowerUpBannerToast(
+                icon = "✨",
+                title = "PRISM VOCAL BLOOM!",
+                subtitle = "CRYSTAL HARMONY & ART REVEAL",
+                accentColor = Color(0xFF4ADE80L),
+                timer = 2.6f,
+                maxTimer = 2.6f
+            )
+        }
+        PowerUpType.SLOW_MO -> {
+            nextSlowMo = maxOf(nextSlowMo, 6.0f)
+            shockwaves.add(Shockwave(p.x, p.y, 0f, 420f, Color(0xFFC084FCL), 1.1f))
+            toast = PowerUpBannerToast(
+                icon = "🌀",
+                title = "VORTEX TIME-WARP!",
+                subtitle = "50% SLOW-MO BREAKDOWN FLOW",
+                accentColor = Color(0xFFC084FCL),
+                timer = 2.6f,
+                maxTimer = 2.6f
+            )
+        }
         PowerUpType.BLAST -> {
             nextShake = 16f
             nextPunch = 0.055f
@@ -78,7 +120,7 @@ internal fun handleRegularOrbPowerUp(
             enemyTelegraphs.clear()
             toast = PowerUpBannerToast(
                 icon = "💥",
-                title = "BOMB DETONATED!",
+                title = "NOVA DETONATED!",
                 subtitle = if (vaporizedCount > 0) "$vaporizedCount HAZARDS VAPORIZED! (+${vaporizedCount * 150 * mult} PTS)" else "ARENA CLEARED OF HAZARDS!",
                 accentColor = Color(0xFFF97316L),
                 timer = 2.2f,
@@ -90,7 +132,7 @@ internal fun handleRegularOrbPowerUp(
             shockwaves.add(Shockwave(p.x, p.y, 0f, 260f, Color(0xFF38BDF8L), 0.90f))
             toast = PowerUpBannerToast(
                 icon = "🛡️",
-                title = "SHIELD ACTIVE!",
+                title = "AEGIS SHIELD ACTIVE!",
                 subtitle = "ABSORBS NEXT HAZARD COLLISION",
                 accentColor = Color(0xFF38BDF8L),
                 timer = 2.2f,
@@ -460,7 +502,7 @@ internal fun spawnStationaryBeatOrbsForFrame(
                             anchorY = midAnchor.y,
                             spawnBeatSec = midSpawnSec,
                             targetBeatSec = midBeatSec,
-                            expireBeatSec = midBeatSec + effectiveHoldWindow,
+                            expireBeatSec = midBeatSec + effectiveLeadTime + 0.25f,
                             phraseBeatNum = midLane + 1,
                             sequenceIndex = cue.sequenceIndex * 2,
                             isGoldenOrb = isGoldenActive,
@@ -496,32 +538,34 @@ internal fun spawnStationaryBeatOrbsForFrame(
             val swoopCurve = if (isBandHeroMode) 0f
             else if (isFluidMoment) (if (cue.sequenceIndex % 2 == 0) 0.52f else -0.52f)
             else ((cue.sequenceIndex % 5 - 2) * 0.12f)
-            val mappedPowerUpType = when (cue.powerUpType) {
-                PowerUpType.BLAST, PowerUpType.MAGNET -> PowerUpType.BLAST
-                PowerUpType.SHIELD, PowerUpType.SLOW_MO -> PowerUpType.SHIELD
-                else -> when (cue.keyWordEffect) {
-                    KeyWordEffect.MAGNETAR_WAR, KeyWordEffect.PRISM_SHATTER -> PowerUpType.BLAST
-                    KeyWordEffect.ECLIPSE_DARK -> PowerUpType.SHIELD
-                    else -> PowerUpType.NONE
-                }
-            }
-            val mappedKeyWord = when {
-                mappedPowerUpType == PowerUpType.BLAST || mappedPowerUpType == PowerUpType.SHIELD -> KeyWordEffect.NONE
-                cue.keyWordEffect != KeyWordEffect.NONE || cue.isGoldenCue -> KeyWordEffect.CONSTELLATION_STAR
-                else -> KeyWordEffect.NONE
-            }
 
-            val isSupernova = mappedKeyWord == KeyWordEffect.CONSTELLATION_STAR
+            // Direct mapping preserves distinct special peg types to activate different song sections
+            val mappedPowerUpType = cue.powerUpType
+            val mappedKeyWord = cue.keyWordEffect
+
+            val isSupernova = mappedKeyWord == KeyWordEffect.CONSTELLATION_STAR || mappedPowerUpType == PowerUpType.ELECTRIC_HARMONIC
             val isOrbGolden = isSupernova || isGoldenActive
 
-            val pColor = when {
-                mappedPowerUpType == PowerUpType.BLAST -> Color(0xFFF97316L)
-                mappedPowerUpType == PowerUpType.SHIELD -> Color(0xFF38BDF8L)
-                isSupernova -> Color(0xFFFACC15L)
-                else -> laneColors[clampedLane]
+            val pColor = when (mappedPowerUpType) {
+                PowerUpType.ELECTRIC_HARMONIC -> Color(0xFFFACC15L)
+                PowerUpType.PRISM_HARMONY -> Color(0xFF4ADE80L)
+                PowerUpType.SLOW_MO -> Color(0xFFC084FCL)
+                PowerUpType.BLAST -> Color(0xFFF97316L)
+                PowerUpType.SHIELD -> Color(0xFF38BDF8L)
+                else -> if (isSupernova) Color(0xFFFACC15L) else laneColors[clampedLane]
             }
 
-            val spawnSec = quantizedBeatSec - effectiveLeadTime
+            // Natural speed pacing variation across beats (locked to rhythm at constant speed)
+            val noteLeadBeats = when (cue.sequenceIndex % 4) {
+                0 -> 3.6f
+                1 -> 4.0f
+                2 -> 3.2f
+                else -> 3.8f
+            }
+            val noteLeadTime = (beatGridStep * noteLeadBeats).coerceIn(1.8f, 3.4f)
+            val spawnSec = quantizedBeatSec - noteLeadTime
+            val expireSec = quantizedBeatSec + noteLeadTime + 0.25f
+
             powerUps.add(
                 GameObject(
                     x = spawnEntryPt.x,
@@ -536,7 +580,7 @@ internal fun spawnStationaryBeatOrbsForFrame(
                     anchorY = anchorPt.y,
                     spawnBeatSec = spawnSec,
                     targetBeatSec = quantizedBeatSec,
-                    expireBeatSec = quantizedBeatSec + effectiveHoldWindow,
+                    expireBeatSec = expireSec,
                     phraseBeatNum = clampedLane + 1,
                     sequenceIndex = cue.sequenceIndex * 2 + 1,
                     isGoldenOrb = isOrbGolden,

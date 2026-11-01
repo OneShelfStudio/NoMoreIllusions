@@ -185,16 +185,19 @@ fun DrawScope.drawPowerUps(
         val u = ((trackSec - p.spawnBeatSec) / leadDur).coerceIn(0f, 1.25f)
         val perspScale = if (isBandHeroMode) computeHighwayScale(u) else 1.0f
         val center = Offset(p.x, p.y)
-        val isSupernova = p.keyWordEffect == KeyWordEffect.CONSTELLATION_STAR
-        val isBomb = p.powerUpType == PowerUpType.BLAST
-        val isShield = p.powerUpType == PowerUpType.SHIELD
+        val isElectric = p.powerUpType == PowerUpType.ELECTRIC_HARMONIC || p.keyWordEffect == KeyWordEffect.CONSTELLATION_STAR
+        val isPrism = p.powerUpType == PowerUpType.PRISM_HARMONY || p.keyWordEffect == KeyWordEffect.PRISM_SHATTER
+        val isVortex = p.powerUpType == PowerUpType.SLOW_MO || p.keyWordEffect == KeyWordEffect.ECLIPSE_DARK
+        val isBomb = p.powerUpType == PowerUpType.BLAST || p.keyWordEffect == KeyWordEffect.MAGNETAR_WAR
+        val isShield = p.powerUpType == PowerUpType.SHIELD || p.keyWordEffect == KeyWordEffect.TRACTOR_REACH
+        val isSpecial = isElectric || isPrism || isVortex || isBomb || isShield
 
         val expireSec = if (p.expireBeatSec > 0f) p.expireBeatSec else (p.targetBeatSec + 0.45f)
         val ttlRemaining = (expireSec - trackSec).coerceAtLeast(0f)
         val ttlAlpha = (ttlRemaining / 0.35f).coerceIn(0.20f, 1.0f)
 
         val isOnBeatNow = if (isBandHeroMode) (u in 0.86f..1.14f) else (beatPhase in 0f..0.24f || beatPhase >= 0.84f)
-        val beatPulseScale = 1.0f + (if (isOnBeatNow) 0.18f else 0.10f) * beatKick
+        val beatPulseScale = 1.0f + (if (isOnBeatNow) 0.20f else 0.10f) * beatKick + 0.08f * sin((beatPhase.coerceIn(0f, 1f)) * 6.283185f)
         val coreRad = p.radius * perspScale * beatPulseScale
         val bounceOffsetY = -beatKick * (if (isOnBeatNow) 7f else 4f) * perspScale
         val center3D = Offset(center.x, center.y + bounceOffsetY)
@@ -202,14 +205,16 @@ fun DrawScope.drawPowerUps(
 
         val laneIdx = (p.phraseBeatNum - 1).coerceIn(0, 3)
         val effectColor = when {
+            isElectric -> Color(0xFFFACC15L)
+            isPrism -> Color(0xFF4ADE80L)
+            isVortex -> Color(0xFFC084FCL)
             isBomb -> Color(0xFFF97316L)
             isShield -> Color(0xFF38BDF8L)
-            isSupernova -> Color(0xFFFACC15L)
             else -> laneColors[laneIdx]
         }
 
         // Subtle, clean contracting beat ring in Original mode (zero giant vertical flame columns!)
-        if (!isBandHeroMode && !isBomb && !isShield) {
+        if (!isBandHeroMode && !isSpecial) {
             val beatRingFrac = if (beatPhase >= 0f) (1f - beatPhase.coerceIn(0f, 1f)) else 0.5f
             val beatRingR = coreRad * (1.06f + beatRingFrac * 0.50f)
             drawCircle(
@@ -234,9 +239,177 @@ fun DrawScope.drawPowerUps(
             size = Size(coreRad * 1.68f, coreRad * 0.48f)
         )
 
-        if (isBomb) {
+        if (isElectric) {
             // =========================================================================
-            // 💥 3D VOLUMETRIC BOMB SPHERE (UNMISTAKABLE LABELED ENEMY-DESTROYER!)
+            // ⚡ 3D VOLUMETRIC ELECTRIC SURGE SPHERE (SYNTH HIGHWAY & 4X OVERDRIVE!)
+            // =========================================================================
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(
+                        Color.White.copy(alpha = 0.98f * ttlAlpha),
+                        Color(0xFFFACC15L).copy(alpha = 0.88f * ttlAlpha),
+                        Color(0xFF38BDF8L).copy(alpha = 0.40f * ttlAlpha),
+                        Color.Transparent
+                    ),
+                    center = center3D,
+                    radius = coreRad * 2.35f
+                ),
+                radius = coreRad * 2.35f,
+                center = center3D,
+                blendMode = BlendMode.Screen
+            )
+            // Orbiting 3D Gyro Ring with electric spark needles
+            withTransform({
+                rotate(degrees = (time * 115f) % 360f, pivot = center3D)
+            }) {
+                drawOval(
+                    color = Color(0xFFFEF08AL).copy(alpha = 0.90f * ttlAlpha),
+                    topLeft = Offset(center3D.x - coreRad * 1.32f, center3D.y - coreRad * 0.44f),
+                    size = Size(coreRad * 2.64f, coreRad * 0.88f),
+                    style = Stroke(width = 2.8f * perspScale)
+                )
+            }
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(
+                        Color.White.copy(alpha = 0.99f * ttlAlpha),
+                        Color(0xFFFDE047L).copy(alpha = 0.96f * ttlAlpha),
+                        Color(0xFF0284C7L).copy(alpha = 0.96f * ttlAlpha),
+                        Color(0xFF0C192EL).copy(alpha = 0.98f * ttlAlpha)
+                    ),
+                    center = lightOrigin,
+                    radius = coreRad * 1.35f
+                ),
+                radius = coreRad,
+                center = center3D
+            )
+            drawCircle(
+                color = Color.White.copy(alpha = 0.95f * ttlAlpha),
+                radius = coreRad,
+                center = center3D,
+                style = Stroke(width = 3.5f)
+            )
+            drawIntoCanvas { canvas ->
+                cachedSubPaint.textSize = (17.5f * perspScale).coerceAtLeast(12f)
+                cachedSubPaint.color = android.graphics.Color.rgb(254, 240, 138)
+                canvas.nativeCanvas.drawText("⚡ ELECTRIC", center3D.x, center3D.y - coreRad * 1.35f, cachedSubPaint)
+            }
+        } else if (isPrism) {
+            // =========================================================================
+            // ✨ 3D VOLUMETRIC PRISM VOCAL BLOOM SPHERE (CRYSTAL VOCALS & ART REVEAL)
+            // =========================================================================
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(
+                        Color.White.copy(alpha = 0.98f * ttlAlpha),
+                        Color(0xFF4ADE80L).copy(alpha = 0.82f * ttlAlpha),
+                        Color(0xFFEC4899L).copy(alpha = 0.45f * ttlAlpha),
+                        Color.Transparent
+                    ),
+                    center = center3D,
+                    radius = coreRad * 2.30f
+                ),
+                radius = coreRad * 2.30f,
+                center = center3D,
+                blendMode = BlendMode.Screen
+            )
+            withTransform({
+                rotate(degrees = (-time * 85f) % 360f, pivot = center3D)
+            }) {
+                drawOval(
+                    color = Color(0xFF86EFACL).copy(alpha = 0.88f * ttlAlpha),
+                    topLeft = Offset(center3D.x - coreRad * 1.25f, center3D.y - coreRad * 0.48f),
+                    size = Size(coreRad * 2.50f, coreRad * 0.96f),
+                    style = Stroke(width = 2.6f * perspScale)
+                )
+            }
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(
+                        Color.White.copy(alpha = 0.99f * ttlAlpha),
+                        Color(0xFF86EFACL).copy(alpha = 0.95f * ttlAlpha),
+                        Color(0xFF059669L).copy(alpha = 0.96f * ttlAlpha),
+                        Color(0xFF064E3BL).copy(alpha = 0.98f * ttlAlpha)
+                    ),
+                    center = lightOrigin,
+                    radius = coreRad * 1.35f
+                ),
+                radius = coreRad,
+                center = center3D
+            )
+            drawCircle(
+                color = Color(0xFFA7F3D0L).copy(alpha = 0.95f * ttlAlpha),
+                radius = coreRad,
+                center = center3D,
+                style = Stroke(width = 3.2f)
+            )
+            drawIntoCanvas { canvas ->
+                cachedSubPaint.textSize = (17.5f * perspScale).coerceAtLeast(12f)
+                cachedSubPaint.color = android.graphics.Color.rgb(167, 243, 208)
+                canvas.nativeCanvas.drawText("✨ PRISM", center3D.x, center3D.y - coreRad * 1.35f, cachedSubPaint)
+            }
+        } else if (isVortex) {
+            // =========================================================================
+            // 🌀 3D VOLUMETRIC VORTEX SPHERE (50% SLOW-MO COSMIC BREAKDOWN FLOW)
+            // =========================================================================
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(
+                        Color(0xFFC084FCL).copy(alpha = 0.85f * ttlAlpha),
+                        Color(0xFF7C3AEDL).copy(alpha = 0.45f * ttlAlpha),
+                        Color.Transparent
+                    ),
+                    center = center3D,
+                    radius = coreRad * 2.25f
+                ),
+                radius = coreRad * 2.25f,
+                center = center3D,
+                blendMode = BlendMode.Screen
+            )
+            withTransform({
+                rotate(degrees = (time * 140f) % 360f, pivot = center3D)
+            }) {
+                for (arm in 0 until 3) {
+                    val ang = arm * (2f * PI.toFloat() / 3f)
+                    val p1 = Offset(center3D.x + cos(ang) * (coreRad * 0.7f), center3D.y + sin(ang) * (coreRad * 0.7f))
+                    val p2 = Offset(center3D.x + cos(ang + 0.8f) * (coreRad * 1.35f), center3D.y + sin(ang + 0.8f) * (coreRad * 1.35f))
+                    drawLine(
+                        color = Color(0xFFE9D5FFL).copy(alpha = 0.90f * ttlAlpha),
+                        start = p1,
+                        end = p2,
+                        strokeWidth = 3.5f * perspScale,
+                        cap = StrokeCap.Round
+                    )
+                }
+            }
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(
+                        Color.White.copy(alpha = 0.98f * ttlAlpha),
+                        Color(0xFFC084FCL).copy(alpha = 0.95f * ttlAlpha),
+                        Color(0xFF6B21A8L).copy(alpha = 0.96f * ttlAlpha),
+                        Color(0xFF1E1035L).copy(alpha = 0.98f * ttlAlpha)
+                    ),
+                    center = lightOrigin,
+                    radius = coreRad * 1.35f
+                ),
+                radius = coreRad,
+                center = center3D
+            )
+            drawCircle(
+                color = Color(0xFFE9D5FFL).copy(alpha = 0.92f * ttlAlpha),
+                radius = coreRad,
+                center = center3D,
+                style = Stroke(width = 3.2f)
+            )
+            drawIntoCanvas { canvas ->
+                cachedSubPaint.textSize = (17.5f * perspScale).coerceAtLeast(12f)
+                cachedSubPaint.color = android.graphics.Color.rgb(233, 213, 255)
+                canvas.nativeCanvas.drawText("🌀 VORTEX", center3D.x, center3D.y - coreRad * 1.35f, cachedSubPaint)
+            }
+        } else if (isBomb) {
+            // =========================================================================
+            // 💥 3D VOLUMETRIC NOVA SPHERE (SOLAR FLARE ENEMY-DESTROYER!)
             // =========================================================================
             drawCircle(
                 brush = Brush.radialGradient(
@@ -265,7 +438,6 @@ fun DrawScope.drawPowerUps(
                     cap = StrokeCap.Round
                 )
             }
-            // 3D Shaded Ordnance Sphere
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
@@ -286,24 +458,14 @@ fun DrawScope.drawPowerUps(
                 center = center3D,
                 style = Stroke(width = 3.4f)
             )
-            // 3D Specular Highlight Arc
-            drawArc(
-                color = Color.White.copy(alpha = 0.88f * ttlAlpha),
-                startAngle = 195f,
-                sweepAngle = 68f,
-                useCenter = false,
-                topLeft = Offset(center3D.x - coreRad * 0.76f, center3D.y - coreRad * 0.76f),
-                size = Size(coreRad * 1.52f, coreRad * 1.52f),
-                style = Stroke(width = 3.0f * perspScale, cap = StrokeCap.Round)
-            )
             drawIntoCanvas { canvas ->
                 cachedSubPaint.textSize = (18f * perspScale).coerceAtLeast(12.5f)
                 cachedSubPaint.color = android.graphics.Color.WHITE
-                canvas.nativeCanvas.drawText("💥 BOMB", center3D.x, center3D.y - coreRad * 1.35f, cachedSubPaint)
+                canvas.nativeCanvas.drawText("💥 NOVA", center3D.x, center3D.y - coreRad * 1.35f, cachedSubPaint)
             }
         } else if (isShield) {
             // =========================================================================
-            // 🛡️ 3D VOLUMETRIC SHIELD ORB (PROTECTIVE BARRIER DOME!)
+            // 🛡️ 3D VOLUMETRIC AEGIS SHIELD ORB (PROTECTIVE BARRIER DOME!)
             // =========================================================================
             drawCircle(
                 brush = Brush.radialGradient(
@@ -339,74 +501,10 @@ fun DrawScope.drawPowerUps(
                 center = center3D,
                 style = Stroke(width = 3.2f)
             )
-            drawArc(
-                color = Color.White.copy(alpha = 0.92f * ttlAlpha),
-                startAngle = 195f,
-                sweepAngle = 72f,
-                useCenter = false,
-                topLeft = Offset(center3D.x - coreRad * 0.76f, center3D.y - coreRad * 0.76f),
-                size = Size(coreRad * 1.52f, coreRad * 1.52f),
-                style = Stroke(width = 3.0f * perspScale, cap = StrokeCap.Round)
-            )
             drawIntoCanvas { canvas ->
                 cachedSubPaint.textSize = (18f * perspScale).coerceAtLeast(12.5f)
                 cachedSubPaint.color = android.graphics.Color.rgb(186, 230, 253)
-                canvas.nativeCanvas.drawText("🛡️ SHIELD", center3D.x, center3D.y - coreRad * 1.32f, cachedSubPaint)
-            }
-        } else if (isSupernova) {
-            // =========================================================================
-            // ★ 3D VOLUMETRIC 24K STAR POWER SPHERE (4X MULTIPLIER & OVERDRIVE!)
-            // =========================================================================
-            drawCircle(
-                brush = Brush.radialGradient(
-                    colors = listOf(
-                        Color.White.copy(alpha = 0.98f * ttlAlpha),
-                        Color(0xFFFACC15L).copy(alpha = 0.85f * ttlAlpha),
-                        Color(0xFFF97316L).copy(alpha = 0.35f * ttlAlpha),
-                        Color.Transparent
-                    ),
-                    center = center3D,
-                    radius = coreRad * 2.35f
-                ),
-                radius = coreRad * 2.35f,
-                center = center3D,
-                blendMode = BlendMode.Screen
-            )
-            // Orbiting 3D Gyro Ring
-            withTransform({
-                rotate(degrees = (time * 95f) % 360f, pivot = center3D)
-            }) {
-                drawOval(
-                    color = Color(0xFFFEF08AL).copy(alpha = 0.88f * ttlAlpha),
-                    topLeft = Offset(center3D.x - coreRad * 1.32f, center3D.y - coreRad * 0.44f),
-                    size = Size(coreRad * 2.64f, coreRad * 0.88f),
-                    style = Stroke(width = 2.8f * perspScale)
-                )
-            }
-            drawCircle(
-                brush = Brush.radialGradient(
-                    colors = listOf(
-                        Color.White.copy(alpha = 0.99f * ttlAlpha),
-                        Color(0xFFFDE047L).copy(alpha = 0.96f * ttlAlpha),
-                        Color(0xFFD97706L).copy(alpha = 0.96f * ttlAlpha),
-                        Color(0xFF451A03L).copy(alpha = 0.98f * ttlAlpha)
-                    ),
-                    center = lightOrigin,
-                    radius = coreRad * 1.35f
-                ),
-                radius = coreRad,
-                center = center3D
-            )
-            drawCircle(
-                color = Color.White.copy(alpha = 0.95f * ttlAlpha),
-                radius = coreRad,
-                center = center3D,
-                style = Stroke(width = 3.5f)
-            )
-            drawIntoCanvas { canvas ->
-                cachedSubPaint.textSize = (17.5f * perspScale).coerceAtLeast(12f)
-                cachedSubPaint.color = android.graphics.Color.rgb(254, 240, 138)
-                canvas.nativeCanvas.drawText("★ 4X STAR", center3D.x, center3D.y - coreRad * 1.32f, cachedSubPaint)
+                canvas.nativeCanvas.drawText("🛡️ AEGIS", center3D.x, center3D.y - coreRad * 1.32f, cachedSubPaint)
             }
         } else {
             // =========================================================================

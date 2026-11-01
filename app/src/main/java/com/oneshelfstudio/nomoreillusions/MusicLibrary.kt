@@ -265,15 +265,18 @@ object MusicLibrary {
             prevY = ny
 
             val pType = when (effect) {
-                KeyWordEffect.MAGNETAR_WAR, KeyWordEffect.PRISM_SHATTER, KeyWordEffect.CONSTELLATION_STAR -> PowerUpType.BLAST
-                KeyWordEffect.ECLIPSE_DARK, KeyWordEffect.BINARY_HEART -> PowerUpType.SHIELD
-                KeyWordEffect.TRACTOR_REACH -> PowerUpType.MAGNET
+                KeyWordEffect.CONSTELLATION_STAR -> PowerUpType.ELECTRIC_HARMONIC
+                KeyWordEffect.PRISM_SHATTER -> PowerUpType.PRISM_HARMONY
+                KeyWordEffect.ECLIPSE_DARK -> PowerUpType.SLOW_MO
+                KeyWordEffect.MAGNETAR_WAR -> PowerUpType.BLAST
+                KeyWordEffect.TRACTOR_REACH, KeyWordEffect.BINARY_HEART -> PowerUpType.SHIELD
                 else -> when {
-                    seq % 16 == 4 -> PowerUpType.BLAST    // 💥 Nova Blast: Vaporizes all enemies on screen + 5s Overdrive!
-                    seq % 16 == 8 -> PowerUpType.SHIELD   // 🛡️ Aegis Shield: Absorbs next hit!
-                    seq % 16 == 12 -> PowerUpType.SLOW_MO // ⏳ Chrono Shift: Slows enemies 0.45x!
-                    seq % 16 == 0 -> PowerUpType.MAGNET   // 🧲 Harmonic Magnet: Pulls nearby orbs in!
-                    else -> PowerUpType.MULTIPLIER        // ♪ Musical Beat Note Orb
+                    seq % 20 == 4 -> PowerUpType.ELECTRIC_HARMONIC // ⚡ Electric Surge: Synth highway & aurora overdrive!
+                    seq % 20 == 8 -> PowerUpType.PRISM_HARMONY     // ✨ Prism Bloom: Vocal harmony & album art reveal!
+                    seq % 20 == 12 -> PowerUpType.SLOW_MO          // 🌀 Vortex Rewind: 50% slow-mo breakdown!
+                    seq % 20 == 16 -> PowerUpType.BLAST            // 💥 Nova Blast: Screen hazard clear!
+                    seq % 20 == 0 -> PowerUpType.SHIELD           // 🛡️ Aegis Shield: 1-hit protective barrier!
+                    else -> PowerUpType.NONE                       // ♪ Regular rhythmic beat note
                 }
             }
 
@@ -382,15 +385,18 @@ object MusicLibrary {
             prevY = ny
 
             val pType = when (effect) {
-                KeyWordEffect.MAGNETAR_WAR, KeyWordEffect.PRISM_SHATTER, KeyWordEffect.CONSTELLATION_STAR -> PowerUpType.BLAST
-                KeyWordEffect.ECLIPSE_DARK, KeyWordEffect.BINARY_HEART -> PowerUpType.SHIELD
-                KeyWordEffect.TRACTOR_REACH -> PowerUpType.MAGNET
+                KeyWordEffect.CONSTELLATION_STAR -> PowerUpType.ELECTRIC_HARMONIC
+                KeyWordEffect.PRISM_SHATTER -> PowerUpType.PRISM_HARMONY
+                KeyWordEffect.ECLIPSE_DARK -> PowerUpType.SLOW_MO
+                KeyWordEffect.MAGNETAR_WAR -> PowerUpType.BLAST
+                KeyWordEffect.TRACTOR_REACH, KeyWordEffect.BINARY_HEART -> PowerUpType.SHIELD
                 else -> when {
-                    seq % 16 == 4 -> PowerUpType.BLAST    // 💥 Nova Blast: Vaporizes all enemies on screen + 5s Overdrive!
-                    seq % 16 == 8 -> PowerUpType.SHIELD   // 🛡️ Aegis Shield: Absorbs next hit!
-                    seq % 16 == 12 -> PowerUpType.SLOW_MO // ⏳ Chrono Shift: Slows enemies 0.45x!
-                    seq % 16 == 0 -> PowerUpType.MAGNET   // 🧲 Harmonic Magnet: Pulls nearby orbs in!
-                    else -> PowerUpType.MULTIPLIER        // ♪ Musical Beat Note Orb
+                    seq % 20 == 4 -> PowerUpType.ELECTRIC_HARMONIC // ⚡ Electric Surge: Synth highway & aurora overdrive!
+                    seq % 20 == 8 -> PowerUpType.PRISM_HARMONY     // ✨ Prism Bloom: Vocal harmony & album art reveal!
+                    seq % 20 == 12 -> PowerUpType.SLOW_MO          // 🌀 Vortex Rewind: 50% slow-mo breakdown!
+                    seq % 20 == 16 -> PowerUpType.BLAST            // 💥 Nova Blast: Screen hazard clear!
+                    seq % 20 == 0 -> PowerUpType.SHIELD           // 🛡️ Aegis Shield: 1-hit protective barrier!
+                    else -> PowerUpType.NONE                       // ♪ Regular rhythmic beat note
                 }
             }
 

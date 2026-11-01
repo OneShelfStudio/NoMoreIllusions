@@ -315,29 +315,40 @@ function drawPowerUps(ctx, powerUps, playerX, playerY, time, trackSec, beatPulse
     const remTtl = pu.expireBeatSec > 0 ? Math.max(0, pu.expireBeatSec - trackSec) : (pu.maxLifetime - pu.age);
     const puAlpha = Math.max(0.20, Math.min(1, remTtl / 0.22));
 
-    const isBomb = pu.type === "BLAST" || pu.type === "OVERDRIVE";
-    const isShield = pu.type === "SHIELD";
-    const isSupernova = !isBomb && !isShield && (pu.isSupernova || pu.keyWordEffect === "CONSTELLATION_STAR");
+    const isElectric = pu.type === "ELECTRIC_HARMONIC";
+    const isPrism = pu.type === "PRISM_HARMONY";
+    const isVortex = pu.type === "SLOW_MO";
+    const isNova = pu.type === "BLAST" || pu.type === "OVERDRIVE";
+    const isAegis = pu.type === "SHIELD";
+    const isSpecialType = isElectric || isPrism || isVortex || isNova || isAegis;
+    const isSupernova = !isSpecialType && (pu.isSupernova || pu.keyWordEffect === "CONSTELLATION_STAR");
     const laneIdx = Math.max(0, Math.min(3, (pu.phraseBeatNum || 1) - 1));
-    const effectCol = isBomb
+
+    const effectCol = isElectric
+      ? [250, 204, 21]
+      : isPrism
+      ? [74, 222, 128]
+      : isVortex
+      ? [192, 132, 252]
+      : isNova
       ? [249, 115, 22]
-      : isShield
+      : isAegis
       ? [56, 189, 248]
       : isSupernova
       ? [250, 204, 21]
       : HIGHWAY_LANE_COLORS[laneIdx];
 
-    const isOnStrikeLine = isBandHeroMode ? (u >= 0.86 && u <= 1.14) : (beatPulse >= 0.52);
-    const beatPulseScale = 1.0 + (isOnStrikeLine ? 0.18 : 0.10) * beatPulse;
-    const coreRad = (pu.radius || 32) * perspScale * beatPulseScale;
+    const isOnStrikeLine = isBandHeroMode ? (u >= 0.86 && u <= 1.14) : (beatPulse >= 0.45);
+    const rhythmPulse = 1.0 + (isOnStrikeLine ? 0.20 : 0.12) * beatPulse + 0.08 * Math.sin(time * 8.0);
+    const coreRad = (pu.radius || 32) * perspScale * rhythmPulse;
 
     const bounceOffsetY = -beatPulse * 6 * perspScale;
     const cx = pu.x;
     const cy = pu.y + bounceOffsetY;
 
     ctx.save();
-    // Subtle, clean contracting beat ring in Original mode (zero giant vertical flame columns!)
-    if (!isBandHeroMode && !isBomb && !isShield) {
+    // Subtle, clean contracting beat ring in Original mode
+    if (!isBandHeroMode && !isSpecialType) {
       const ringRadius = coreRad * (1.06 + 0.52 * (1 - beatPulse));
       ctx.beginPath();
       ctx.arc(cx, cy, ringRadius, 0, Math.PI * 2);
@@ -365,8 +376,156 @@ function drawPowerUps(ctx, powerUps, playerX, playerY, time, trackSec, beatPulse
     ctx.fillStyle = `rgba(0, 0, 0, ${(0.42 * puAlpha).toFixed(3)})`;
     ctx.fill();
 
-    if (isBomb) {
-      // 💥 3D VOLUMETRIC BOMB SPHERE (LABELED ENEMY-DESTROYER ORDNANCE)
+    if (isElectric) {
+      // ⚡ ELECTRIC SYNTH OVERDRIVE SPHERE (Neon Cyan & Gold Pulsar + Lightning Sparks)
+      const glow = ctx.createRadialGradient(cx, cy, 2, cx, cy, coreRad * 2.35);
+      glow.addColorStop(0, rgba([255, 255, 255], 0.96 * puAlpha));
+      glow.addColorStop(0.35, rgba([250, 204, 21], 0.86 * puAlpha));
+      glow.addColorStop(0.70, rgba([56, 189, 248], 0.52 * puAlpha));
+      glow.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.beginPath();
+      ctx.arc(cx, cy, coreRad * 2.35, 0, Math.PI * 2);
+      ctx.fillStyle = glow;
+      ctx.fill();
+
+      // Spinning 3D gyro ring
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, coreRad * 1.25, coreRad * 0.45, time * 1.5, 0, Math.PI * 2);
+      ctx.strokeStyle = rgba([250, 204, 21], 0.90 * puAlpha);
+      ctx.lineWidth = 2.6;
+      ctx.stroke();
+
+      // Rotating lightning sparks
+      for (let s = 0; s < 6; s++) {
+        const ang = s * (Math.PI / 3) + time * 3.2;
+        ctx.beginPath();
+        ctx.moveTo(cx + Math.cos(ang) * (coreRad * 0.8), cy + Math.sin(ang) * (coreRad * 0.8));
+        ctx.lineTo(cx + Math.cos(ang) * (coreRad * 1.35), cy + Math.sin(ang) * (coreRad * 1.35));
+        ctx.strokeStyle = rgba([56, 189, 248], 0.95 * puAlpha);
+        ctx.lineWidth = 2.4;
+        ctx.stroke();
+      }
+
+      const electricSphere = ctx.createRadialGradient(
+        cx - coreRad * 0.34, cy - coreRad * 0.36, coreRad * 0.08,
+        cx, cy, coreRad * 1.08
+      );
+      electricSphere.addColorStop(0, "#FFFFFF");
+      electricSphere.addColorStop(0.25, "#FEF08A");
+      electricSphere.addColorStop(0.65, "#06B6D4");
+      electricSphere.addColorStop(1, "#082F49");
+      ctx.beginPath();
+      ctx.arc(cx, cy, coreRad, 0, Math.PI * 2);
+      ctx.fillStyle = electricSphere;
+      ctx.fill();
+      ctx.strokeStyle = rgba([250, 204, 21], 0.95 * puAlpha);
+      ctx.lineWidth = 3.0;
+      ctx.stroke();
+
+      ctx.font = `900 ${Math.max(14, Math.round(coreRad * 0.90))}px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillStyle = "#FFFFFF";
+      ctx.fillText("⚡", cx, cy);
+
+      ctx.font = `900 ${Math.max(12, Math.round(14.5 * perspScale))}px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
+      ctx.textBaseline = "alphabetic";
+      ctx.fillStyle = "#FEF08A";
+      ctx.fillText("⚡ ELECTRIC", cx, cy - coreRad * 1.42);
+    } else if (isPrism) {
+      // ✨ PRISM VOCAL BLOOM SPHERE (Iridescent Holographic Opal + Rainbow Shockwaves)
+      const glow = ctx.createRadialGradient(cx, cy, 2, cx, cy, coreRad * 2.30);
+      glow.addColorStop(0, rgba([255, 255, 255], 0.96 * puAlpha));
+      glow.addColorStop(0.35, rgba([74, 222, 128], 0.82 * puAlpha));
+      glow.addColorStop(0.70, rgba([236, 72, 153], 0.50 * puAlpha));
+      glow.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.beginPath();
+      ctx.arc(cx, cy, coreRad * 2.30, 0, Math.PI * 2);
+      ctx.fillStyle = glow;
+      ctx.fill();
+
+      // Refractive holographic arcs
+      for (let a = 0; a < 3; a++) {
+        ctx.beginPath();
+        ctx.arc(cx, cy, coreRad * (1.1 + a * 0.15), time * 1.2 + a, time * 1.2 + a + Math.PI * 0.8);
+        ctx.strokeStyle = rgba([74, 222, 128], 0.75 * puAlpha);
+        ctx.lineWidth = 2.2;
+        ctx.stroke();
+      }
+
+      const prismSphere = ctx.createRadialGradient(
+        cx - coreRad * 0.34, cy - coreRad * 0.36, coreRad * 0.08,
+        cx, cy, coreRad * 1.08
+      );
+      prismSphere.addColorStop(0, "#FFFFFF");
+      prismSphere.addColorStop(0.30, "#86EFAC");
+      prismSphere.addColorStop(0.65, "#F472B6");
+      prismSphere.addColorStop(1, "#312E81");
+      ctx.beginPath();
+      ctx.arc(cx, cy, coreRad, 0, Math.PI * 2);
+      ctx.fillStyle = prismSphere;
+      ctx.fill();
+      ctx.strokeStyle = rgba([255, 255, 255], 0.95 * puAlpha);
+      ctx.lineWidth = 3.0;
+      ctx.stroke();
+
+      ctx.font = `900 ${Math.max(14, Math.round(coreRad * 0.90))}px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillStyle = "#FFFFFF";
+      ctx.fillText("✨", cx, cy);
+
+      ctx.font = `900 ${Math.max(12, Math.round(14.5 * perspScale))}px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
+      ctx.textBaseline = "alphabetic";
+      ctx.fillStyle = "#86EFAC";
+      ctx.fillText("✨ PRISM", cx, cy - coreRad * 1.42);
+    } else if (isVortex) {
+      // 🌀 VORTEX SLOW-MO SPHERE (Deep Amethyst Void + Cosmic Accretion Ring)
+      const glow = ctx.createRadialGradient(cx, cy, 2, cx, cy, coreRad * 2.25);
+      glow.addColorStop(0, rgba([255, 255, 255], 0.95 * puAlpha));
+      glow.addColorStop(0.40, rgba([192, 132, 252], 0.85 * puAlpha));
+      glow.addColorStop(0.75, rgba([147, 51, 234], 0.50 * puAlpha));
+      glow.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.beginPath();
+      ctx.arc(cx, cy, coreRad * 2.25, 0, Math.PI * 2);
+      ctx.fillStyle = glow;
+      ctx.fill();
+
+      // Swirling cosmic accretion ring
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, coreRad * 1.28, coreRad * 0.42, -time * 2.0, 0, Math.PI * 2);
+      ctx.strokeStyle = rgba([216, 180, 254], 0.88 * puAlpha);
+      ctx.lineWidth = 2.8;
+      ctx.stroke();
+
+      const vortexSphere = ctx.createRadialGradient(
+        cx - coreRad * 0.34, cy - coreRad * 0.36, coreRad * 0.08,
+        cx, cy, coreRad * 1.08
+      );
+      vortexSphere.addColorStop(0, "#FFFFFF");
+      vortexSphere.addColorStop(0.28, "#E9D5FF");
+      vortexSphere.addColorStop(0.68, "#9333EA");
+      vortexSphere.addColorStop(1, "#3B0764");
+      ctx.beginPath();
+      ctx.arc(cx, cy, coreRad, 0, Math.PI * 2);
+      ctx.fillStyle = vortexSphere;
+      ctx.fill();
+      ctx.strokeStyle = rgba([216, 180, 254], 0.92 * puAlpha);
+      ctx.lineWidth = 3.0;
+      ctx.stroke();
+
+      ctx.font = `900 ${Math.max(14, Math.round(coreRad * 0.90))}px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillStyle = "#FFFFFF";
+      ctx.fillText("🌀", cx, cy);
+
+      ctx.font = `900 ${Math.max(12, Math.round(14.5 * perspScale))}px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
+      ctx.textBaseline = "alphabetic";
+      ctx.fillStyle = "#E9D5FF";
+      ctx.fillText("🌀 VORTEX", cx, cy - coreRad * 1.42);
+    } else if (isNova) {
+      // 💥 SOLAR NOVA SPHERE (Solar Flare Corona + Screen Hazard Vaporizer)
       const glow = ctx.createRadialGradient(cx, cy, 2, cx, cy, coreRad * 2.25);
       glow.addColorStop(0, rgba([250, 204, 21], 0.88 * puAlpha));
       glow.addColorStop(0.5, rgba([249, 115, 22], 0.54 * puAlpha));
@@ -406,9 +565,9 @@ function drawPowerUps(ctx, powerUps, playerX, playerY, time, trackSec, beatPulse
       ctx.font = `900 ${Math.max(12, Math.round(15 * perspScale))}px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
       ctx.textAlign = "center";
       ctx.fillStyle = "#FFFFFF";
-      ctx.fillText("💥 BOMB", cx, cy - coreRad * 1.42);
-    } else if (isShield) {
-      // 🛡️ 3D VOLUMETRIC SHIELD SPHERE (LABELED PROTECTIVE DOME)
+      ctx.fillText("💥 NOVA", cx, cy - coreRad * 1.42);
+    } else if (isAegis) {
+      // 🛡️ AEGIS CRYSTAL SHIELD SPHERE (Luminous Aqua Shield Facets)
       const glow = ctx.createRadialGradient(cx, cy, 2, cx, cy, coreRad * 2.15);
       glow.addColorStop(0, rgba([56, 189, 248], 0.76 * puAlpha));
       glow.addColorStop(1, "rgba(0,0,0,0)");
@@ -442,7 +601,7 @@ function drawPowerUps(ctx, powerUps, playerX, playerY, time, trackSec, beatPulse
       ctx.font = `900 ${Math.max(12, Math.round(15 * perspScale))}px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
       ctx.textAlign = "center";
       ctx.fillStyle = "#BAE6FD";
-      ctx.fillText("🛡️ SHIELD", cx, cy - coreRad * 1.36);
+      ctx.fillText("🛡️ AEGIS", cx, cy - coreRad * 1.36);
     } else if (isSupernova) {
       // ★ 3D VOLUMETRIC 24K GOLD STAR POWER SPHERE
       const glow = ctx.createRadialGradient(cx, cy, 2, cx, cy, coreRad * 2.3);

@@ -1,4 +1,4 @@
-const CACHE_NAME = "nmi-v33-steady-motion";
+const CACHE_NAME = "nmi-v34-fullscreen-pegs";
 const ASSETS = [
   "./",
   "./index.html",
