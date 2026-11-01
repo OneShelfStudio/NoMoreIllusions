@@ -42,6 +42,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -448,248 +449,6 @@ fun ArcadeIconButton(
 }
 
 @Composable
-fun MiniGameplayVideoReel(
-    modifier: Modifier = Modifier
-        .fillMaxWidth()
-        .height(176.dp)
-) {
-    val infiniteTransition = rememberInfiniteTransition(label = "miniVideoReel")
-    val reelSec by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 12f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 12000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "reelSec"
-    )
-
-    val chapterIdx = (reelSec / 4f).toInt().coerceIn(0, 2)
-    val chapterProgress = (reelSec % 4f) / 4f
-    val chapterTitle = when (chapterIdx) {
-        0 -> "SCENE 1/3 • CATCH NOTES ON THE BEAT STRIKE LINE"
-        1 -> "SCENE 2/3 • HOLD & FOLLOW SUSTAIN SLIDE RIBBONS"
-        else -> "SCENE 3/3 • GRAB 💥 BOMBS TO VAPORIZE RED HAZARDS"
-    }
-    val chapterSub = when (chapterIdx) {
-        0 -> "Wait for notes to cross the glowing lower Beat Line for ★ PERFECT ON-BEAT!"
-        1 -> "Steer onto the note head and stay inside the scrolling golden ribbon tail!"
-        else -> "💥 BOMB destroys all red enemies! 🛡️ SHIELD blocks 1 collision!"
-    }
-    val chapterAccent = when (chapterIdx) {
-        0 -> Color(0xFF4ADE80)
-        1 -> Color(0xFFFACC15)
-        else -> Color(0xFFF97316)
-    }
-
-    Column(
-        modifier = modifier
-            .clip(RoundedCornerShape(10.dp))
-            .background(Color(0xFF050811))
-            .border(1.5.dp, chapterAccent.copy(alpha = 0.75f), RoundedCornerShape(10.dp))
-    ) {
-        // Top Video Header Bar
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Color(0xFF0B1120))
-                .padding(horizontal = 10.dp, vertical = 5.dp)
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier
-                        .size(7.dp)
-                        .clip(CircleShape)
-                        .background(chapterAccent)
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = chapterTitle,
-                    color = Color(0xFFFAF8F5),
-                    fontSize = 9.5.sp,
-                    fontWeight = FontWeight.Black,
-                    letterSpacing = 0.6.sp
-                )
-            }
-            Text(
-                text = "▶ MINI-VIDEO",
-                color = chapterAccent,
-                fontSize = 8.5.sp,
-                fontWeight = FontWeight.Black
-            )
-        }
-
-        // Animated Gameplay Stage Canvas
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
-        ) {
-            Canvas(modifier = Modifier.fillMaxSize()) {
-                val w = size.width
-                val h = size.height
-                val horizonY = h * 0.14f
-                val strikeY = h * 0.76f
-                val topHalfW = w * 0.15f
-                val strikeHalfW = w * 0.42f
-
-                fun hwyPt(lane: Float, u: Float): Offset {
-                    val p = u.coerceIn(0f, 1.2f)
-                    val hw = topHalfW + (strikeHalfW - topHalfW) * p
-                    val ln = ((lane - 1.5f) / 1.5f) * 0.78f
-                    return Offset(w * 0.5f + ln * hw, horizonY + (strikeY - horizonY) * p)
-                }
-
-                // Draw perspective highway deck
-                val tl = hwyPt(-0.4f, 0f)
-                val tr = hwyPt(3.4f, 0f)
-                val bl = hwyPt(-0.4f, 1.15f)
-                val br = hwyPt(3.4f, 1.15f)
-                val deck = Path().apply {
-                    moveTo(tl.x, tl.y); lineTo(tr.x, tr.y); lineTo(br.x, br.y); lineTo(bl.x, bl.y); close()
-                }
-                drawPath(deck, color = Color(0xFF0A1224))
-                val laneCols = listOf(Color(0xFF22C55E), Color(0xFFFB7185), Color(0xFFFACC15), Color(0xFF38BDF8))
-                for (l in 0..3) {
-                    drawLine(
-                        color = laneCols[l].copy(alpha = 0.45f),
-                        start = hwyPt(l.toFloat(), 0f),
-                        end = hwyPt(l.toFloat(), 1.15f),
-                        strokeWidth = 2f
-                    )
-                }
-                // Strike Line
-                val sl = hwyPt(-0.4f, 1.0f)
-                val sr = hwyPt(3.4f, 1.0f)
-                drawLine(color = Color(0xFF38BDF8).copy(alpha = 0.4f), start = sl, end = sr, strokeWidth = 9f, cap = StrokeCap.Round)
-                drawLine(color = Color.White, start = sl, end = sr, strokeWidth = 2.5f, cap = StrokeCap.Round)
-                for (l in 0..3) {
-                    val rp = hwyPt(l.toFloat(), 1.0f)
-                    drawCircle(color = laneCols[l], radius = 9f, center = rp, style = Stroke(width = 2.2f))
-                }
-
-                if (chapterIdx == 0) {
-                    // Chapter 1: Notes scrolling down to Beat Strike Line + PERFECT ON-BEAT flame!
-                    val u1 = (chapterProgress * 1.45f).coerceIn(0f, 1.15f)
-                    val notePt = hwyPt(1f, u1)
-                    val shipX = w * 0.5f + (notePt.x - w * 0.5f) * (chapterProgress * 1.4f).coerceIn(0f, 1f)
-                    val shipPt = Offset(shipX, strikeY)
-
-                    if (u1 < 1.02f) {
-                        drawCircle(color = Color(0xFFFB7185), radius = 11f, center = notePt)
-                        drawCircle(color = Color.White, radius = 5f, center = notePt)
-                    } else {
-                        // Hit explosion at Strike Line!
-                        val ringR = 14f + (u1 - 1.0f) * 190f
-                        drawCircle(color = Color(0xFFFACC15).copy(alpha = 0.85f), radius = ringR, center = shipPt, style = Stroke(width = 3.5f))
-                        drawLine(
-                            color = Color(0xFF4ADE80),
-                            start = Offset(shipPt.x, shipPt.y - 52f),
-                            end = shipPt,
-                            strokeWidth = 10f,
-                            cap = StrokeCap.Round
-                        )
-                    }
-                    // Player core
-                    drawCircle(color = Color(0xFF22C55E), radius = 12f, center = shipPt)
-                    drawCircle(color = Color.White, radius = 5f, center = shipPt)
-                } else if (chapterIdx == 1) {
-                    // Chapter 2: Hold & Slide Sustain Ribbon!
-                    val uHead = (0.25f + chapterProgress * 0.95f)
-                    val uTail = (uHead - 0.55f).coerceAtLeast(0.05f)
-                    val rPath = Path()
-                    var shipPt = Offset(w * 0.5f, strikeY)
-                    for (i in 0..10) {
-                        val s = i / 10f
-                        val uS = uTail + (uHead - uTail) * s
-                        val ln = 0.6f + 1.8f * (0.5f - 0.5f * cos(s * 3.14159f))
-                        val pt = hwyPt(ln, uS)
-                        if (i == 0) rPath.moveTo(pt.x, pt.y) else rPath.lineTo(pt.x, pt.y)
-                        if (i == 7) shipPt = pt
-                    }
-                    drawPath(rPath, color = Color(0xFFFACC15).copy(alpha = 0.45f), style = Stroke(width = 18f, cap = StrokeCap.Round))
-                    drawPath(rPath, color = Color(0xFF38BDF8), style = Stroke(width = 7f, cap = StrokeCap.Round))
-                    drawCircle(color = Color(0xFF22C55E), radius = 12f, center = shipPt)
-                    drawCircle(color = Color.White, radius = 6f, center = shipPt)
-                    drawCircle(color = Color(0xFFFACC15), radius = 19f, center = shipPt, style = Stroke(width = 2.5f))
-                } else {
-                    // Chapter 3: Grabbing 💥 BOMB vaporizes Red Spiked Hazards!
-                    val uBomb = (chapterProgress * 1.35f).coerceIn(0f, 1.0f)
-                    val bombPt = hwyPt(2f, uBomb)
-                    val shipPt = Offset(bombPt.x, strikeY)
-                    val detonated = chapterProgress >= 0.72f
-
-                    if (!detonated) {
-                        drawCircle(color = Color(0xFFF97316), radius = 13f, center = bombPt)
-                        drawCircle(color = Color(0xFFFACC15), radius = 6f, center = bombPt)
-                        // 2 incoming red hazards
-                        val e1 = Offset(w * 0.25f + chapterProgress * 45f, h * 0.42f + chapterProgress * 35f)
-                        val e2 = Offset(w * 0.76f - chapterProgress * 45f, h * 0.48f + chapterProgress * 30f)
-                        drawCircle(color = Color(0xFFFF1E42), radius = 11f, center = e1)
-                        drawCircle(color = Color(0xFFFF1E42), radius = 11f, center = e2)
-                    } else {
-                        val blastT = (chapterProgress - 0.72f) / 0.28f
-                        drawCircle(
-                            color = Color(0xFFF97316).copy(alpha = (1f - blastT).coerceIn(0f, 1f)),
-                            radius = 20f + blastT * 160f,
-                            center = shipPt,
-                            style = Stroke(width = 4.5f)
-                        )
-                    }
-                    drawCircle(color = Color(0xFF22C55E), radius = 12f, center = shipPt)
-                    drawCircle(color = Color.White, radius = 5f, center = shipPt)
-                }
-            }
-        }
-
-        // Caption & Scrubber Footer
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(Color(0xFF090E1A))
-                .padding(horizontal = 10.dp, vertical = 5.dp)
-        ) {
-            Text(
-                text = chapterSub,
-                color = Color(0xFFCBD5E1),
-                fontSize = 9.5.sp,
-                fontWeight = FontWeight.SemiBold,
-                maxLines = 1
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                for (c in 0..2) {
-                    val fillFrac = when {
-                        c < chapterIdx -> 1f
-                        c == chapterIdx -> chapterProgress
-                        else -> 0f
-                    }
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(3.5.dp)
-                            .clip(RoundedCornerShape(2.dp))
-                            .background(Color.White.copy(alpha = 0.16f))
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxHeight()
-                                .fillMaxWidth(fillFrac)
-                                .background(chapterAccent)
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
 fun TouchControlHintBanner(
     btnPillCyan: ImageBitmap,
     btnPillGreen: ImageBitmap,
@@ -740,7 +499,7 @@ fun TouchControlHintBanner(
     ) {
         Column(
             modifier = Modifier
-                .widthIn(max = 380.dp)
+                .widthIn(max = 328.dp)
                 .fillMaxWidth()
                 .graphicsLayer(
                     scaleX = popScale.value,
@@ -763,60 +522,62 @@ fun TouchControlHintBanner(
                     )
                 )
                 .border(
-                    width = 1.6.dp,
-                    color = Color(0xFFEAB308).copy(alpha = 0.78f),
-                    shape = RoundedCornerShape(14.dp)
+                    width = 1.5.dp,
+                    color = Color(0xFFEAB308).copy(alpha = 0.85f),
+                    shape = RoundedCornerShape(16.dp)
                 )
-                .padding(horizontal = 16.dp, vertical = 16.dp),
+                .padding(horizontal = 16.dp, vertical = 14.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "STAGE BRIEFING • BAND HERO RHYTHM HIGHWAY",
+                text = "★ STAGE BRIEFING ★",
                 color = Color(0xFFEAB308),
                 fontSize = 10.sp,
                 fontWeight = FontWeight.Black,
-                letterSpacing = 1.4.sp
+                letterSpacing = 1.6.sp
             )
 
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(3.dp))
 
             Text(
-                text = "HIT THE BEAT STRIKE LINE",
+                text = "HOW TO PLAY",
                 color = Color(0xFFFAF8F5),
-                fontSize = 19.sp,
+                fontSize = 18.sp,
                 fontWeight = FontWeight.Black,
                 letterSpacing = 1.0.sp
             )
+            Text(
+                text = "Glide smoothly to the rhythm of the music",
+                color = Color(0xFF94A3B8),
+                fontSize = 10.sp,
+                fontWeight = FontWeight.SemiBold,
+                textAlign = TextAlign.Center
+            )
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-            // 12-Second Looping Mini-Video Gameplay Reel
-            MiniGameplayVideoReel()
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // 3 Unmistakable Item & Timing Rules
+            // 3 Simplistic, Punchy Rules
             Column(
-                verticalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(7.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 QuickHintRow(
-                    badge = "♪",
-                    badgeColor = Color(0xFF4ADE80),
-                    title = "BEAT LINE = ★ PERFECT ON-BEAT (+200)",
-                    desc = "Catch scrolling fret notes right as they cross the lower Beat Strike Line."
+                    badge = "🎵",
+                    badgeColor = Color(0xFFFACC15),
+                    title = "1. GATHER BEAT NOTES",
+                    desc = "Glide into incoming notes on the beat to charge your combo streak."
                 )
                 QuickHintRow(
-                    badge = "💥",
-                    badgeColor = Color(0xFFF97316),
-                    title = "💥 BOMB = VAPORIZES ALL ENEMIES",
-                    desc = "Grab any pickup labeled 💥 BOMB to blow up every red hazard on screen!"
+                    badge = "👾",
+                    badgeColor = Color(0xFFF43F5E),
+                    title = "2. AVOID ENEMIES",
+                    desc = "Dodge red enemy hazards to protect your streak and health."
                 )
                 QuickHintRow(
-                    badge = "🛡️",
+                    badge = "⚡",
                     badgeColor = Color(0xFF38BDF8),
-                    title = "🛡️ SHIELD & SUSTAIN RIBBONS",
-                    desc = "🛡️ SHIELD blocks 1 hit. Follow HOLD & SLIDE ♪ ribbons for rapid bonus points!"
+                    title = "3. HIT SPECIAL PEGS",
+                    desc = "Catch 💥 Bomb and ⚡ Electric pegs to wipe enemies & transform the stage."
                 )
             }
 
@@ -824,26 +585,26 @@ fun TouchControlHintBanner(
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 ArcadePillButton(
-                    text = "DROP THE BEAT ▶",
+                    text = "DROP IN ▶",
                     pillBitmap = btnPillGreen,
                     onClick = { triggerZoomOutAndDismiss(permanent = false) },
                     modifier = Modifier
-                        .weight(1.25f)
-                        .height(44.dp),
-                    fontSize = 12.sp,
+                        .weight(1.18f)
+                        .height(42.dp),
+                    fontSize = 11.5.sp,
                     palette = ArcadeButtonPalette.EMERALD_PULSE
                 )
                 ArcadePillButton(
-                    text = "GOT IT (HIDE)",
+                    text = "DON'T SHOW AGAIN",
                     pillBitmap = btnPillCyan,
                     onClick = { triggerZoomOutAndDismiss(permanent = true) },
                     modifier = Modifier
-                        .weight(1.05f)
-                        .height(44.dp),
-                    fontSize = 10.5.sp,
+                        .weight(1.12f)
+                        .height(42.dp),
+                    fontSize = 9.sp,
                     palette = ArcadeButtonPalette.ASTRAL_CYAN
                 )
             }
