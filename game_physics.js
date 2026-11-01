@@ -315,100 +315,34 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       }
     }
 
-    // Choreographed Fluid Peg Formations + Continuous Soft Anti-Overlap Repulsion Pass (Original Open Stage)
+    // Choreographed Full-Screen Rhythmic Trajectory (Original Open Stage)
     if (!this.isBandHeroMode && this.powerUps.length > 0) {
-      const minDim = Math.min(this.W, this.H);
-      const frameScale = Math.max(0.5, Math.min(2.2, worldDt * 60));
-
       for (let idx = 0; idx < this.powerUps.length; idx++) {
         const pu = this.powerUps[idx];
         const leadDur = Math.max(0.45, (pu.targetBeatSec || 1) - (pu.spawnBeatSec || 0));
-        const u = Math.max(0, Math.min(1.25, (this.trackElapsedSec - pu.spawnBeatSec) / leadDur));
+        const totalDur = leadDur * 2.0;
+        const s = Math.max(0, Math.min(1.25, (this.trackElapsedSec - pu.spawnBeatSec) / totalDur));
         const hasPerimeterSpawn = (pu.spawnX !== undefined && pu.spawnY !== undefined) &&
           (pu.spawnX !== pu.targetX || pu.spawnY !== pu.targetY);
 
-        if (hasPerimeterSpawn && u < 1.0) {
-          // Direct parametric position: steady, tempo-locked rhythmic velocity without jerky exponential lag
-          const t = Math.max(0, Math.min(1, u));
-          const chordX = pu.targetX - pu.spawnX;
-          const chordY = pu.targetY - pu.spawnY;
-          const perpX = -chordY;
-          const perpY = chordX;
-          const ctrlX = (pu.spawnX + pu.targetX) * 0.5 + perpX * (pu.swoopCurve || 0);
-          const ctrlY = (pu.spawnY + pu.targetY) * 0.5 + perpY * (pu.swoopCurve || 0);
+        if (hasPerimeterSpawn) {
+          // Direct parametric position: steady, tempo-locked rhythmic velocity moving ALL THE WAY ACROSS the stage
+          const exitX = 2 * pu.targetX - pu.spawnX;
+          const exitY = 2 * pu.targetY - pu.spawnY;
+          const chordX = exitX - pu.spawnX;
+          const chordY = exitY - pu.spawnY;
+          const perpX = -chordY * 0.35;
+          const perpY = chordX * 0.35;
+          const arcOffset = Math.sin(Math.min(1, Math.max(0, s)) * Math.PI) * (pu.swoopCurve || 0);
 
-          const oneMinusT = 1 - t;
-          const targetPosX = oneMinusT * oneMinusT * pu.spawnX + 2 * oneMinusT * t * ctrlX + t * t * pu.targetX;
-          const targetPosY = oneMinusT * oneMinusT * pu.spawnY + 2 * oneMinusT * t * ctrlY + t * t * pu.targetY;
-
-          pu.x = targetPosX;
-          pu.y = targetPosY;
+          pu.x = pu.spawnX + s * chordX + perpX * arcOffset;
+          pu.y = pu.spawnY + s * chordY + perpY * arcOffset;
         } else {
-          const modeTag = pu.fluidMode || 0;
-          const stableSlot = (pu.sequenceIndex || idx) % 6;
-          const slotFrac = (stableSlot + 0.5) / 6;
-
-          if (modeTag === 2) {
-            // 2: Slow Galactic Spiral — pegs smoothly revolve around open stage center on stable spiral arms!
-            const theta = this.time * 0.62 + (stableSlot / 6) * (Math.PI * 2);
-            const ringR = minDim * (0.26 + 0.04 * Math.sin(this.time * 0.85 + stableSlot * 0.7));
-            const goalX = this.W * 0.50 + Math.cos(theta) * ringR;
-            const goalY = this.H * 0.48 + Math.sin(theta) * ringR;
-            const blend = Math.max(0.015, Math.min(0.18, 0.055 * frameScale));
-            pu.x += (goalX - pu.x) * blend;
-            pu.y += (goalY - pu.y) * blend;
-          } else if (modeTag === 3) {
-            // 3: Flowing Liquid Sine Wave — pegs drift smoothly in a spaced undulating ribbon across the stage!
-            const goalX = this.W * (0.16 + 0.68 * slotFrac) + Math.sin(this.time * 1.1 + stableSlot) * 18;
-            const goalY = this.H * 0.48 + Math.sin(this.time * 1.55 + slotFrac * Math.PI * 1.8) * (this.H * 0.15);
-            const blend = Math.max(0.015, Math.min(0.18, 0.060 * frameScale));
-            pu.x += (goalX - pu.x) * blend;
-            pu.y += (goalY - pu.y) * blend;
-          } else if (modeTag === 1) {
-            // 1: Outward-Inward Sweeping Glide — pegs glide smoothly along wide sweeping arcs!
-            const goalX = (pu.targetX || pu.x) + Math.cos(this.time * 1.6 + (pu.phase || 0)) * 24;
-            const goalY = (pu.targetY || pu.y) + Math.sin(this.time * 1.9 + (pu.phase || 0)) * 24;
-            const blend = Math.max(0.015, Math.min(0.20, 0.068 * frameScale));
-            pu.x += (goalX - pu.x) * blend;
-            pu.y += (goalY - pu.y) * blend;
-          } else {
-            // Calm Open-Stage Groove: gentle breathing hover around non-overlapping anchor
-            const goalX = (pu.targetX || pu.x) + Math.cos(this.time * 1.8 + (pu.phase || 0)) * 4.5;
-            const goalY = (pu.targetY || pu.y) + Math.sin(this.time * 2.1 + (pu.phase || 0)) * 4.5;
-            pu.x += (goalX - pu.x) * 0.16;
-            pu.y += (goalY - pu.y) * 0.16;
-          }
-        }
-      }
-
-      // Continuous Soft Anti-Overlap Repulsion Pass: guarantees two pegs NEVER stack or touch!
-      const minSep = Math.max(84, Math.min(108, minDim * 0.17));
-      for (let i = 0; i < this.powerUps.length; i++) {
-        for (let j = i + 1; j < this.powerUps.length; j++) {
-          const a = this.powerUps[i];
-          const b = this.powerUps[j];
-          // Only repel settled stage anchors; skip incoming notes still in flight along their rhythmic entry path
-          const aLead = Math.max(0.45, (a.targetBeatSec || 1) - (a.spawnBeatSec || 0));
-          const aU = (this.trackElapsedSec - (a.spawnBeatSec || 0)) / aLead;
-          const bLead = Math.max(0.45, (b.targetBeatSec || 1) - (b.spawnBeatSec || 0));
-          const bU = (this.trackElapsedSec - (b.spawnBeatSec || 0)) / bLead;
-          if (aU < 1.0 || bU < 1.0) continue;
-
-          // Only repel if both pegs are visibly on stage (preserves outer edge spawn gliding)
-          if (a.x < 0 || a.x > this.W || b.x < 0 || b.x > this.W) continue;
-          const dx = b.x - a.x;
-          const dy = b.y - a.y;
-          const dist = Math.hypot(dx, dy);
-          if (dist < minSep) {
-            const safeD = Math.max(1, dist);
-            const push = (minSep - safeD) * 0.30;
-            const nx = dist < 1 ? Math.cos(i + j) : dx / safeD;
-            const ny = dist < 1 ? Math.sin(i + j) : dy / safeD;
-            a.x = Math.max(this.W * 0.12, Math.min(this.W * 0.88, a.x - nx * push));
-            a.y = Math.max(this.H * 0.12, Math.min(this.H * 0.85, a.y - ny * push));
-            b.x = Math.max(this.W * 0.12, Math.min(this.W * 0.88, b.x + nx * push));
-            b.y = Math.max(this.H * 0.12, Math.min(this.H * 0.85, b.y + ny * push));
-          }
+          // Gentle breathing hover for static ambient items
+          const goalX = (pu.targetX || pu.x) + Math.cos(this.time * 1.8 + (pu.phase || 0)) * 4.5;
+          const goalY = (pu.targetY || pu.y) + Math.sin(this.time * 2.1 + (pu.phase || 0)) * 4.5;
+          pu.x += (goalX - pu.x) * 0.16;
+          pu.y += (goalY - pu.y) * 0.16;
         }
       }
     }
@@ -661,9 +595,15 @@ Object.assign(NoMoreIllusionsApp.prototype, {
     const rawType = cue.powerUpType || "SCORE_ORB";
     const rawEffect = cue.keyWordEffect || "NONE";
 
-    if (rawType === "BLAST" || rawType === "OVERDRIVE" || rawEffect === "MAGNETAR_WAR") {
+    if (rawType === "ELECTRIC_HARMONIC") {
+      cueType = "ELECTRIC_HARMONIC";
+    } else if (rawType === "PRISM_HARMONY") {
+      cueType = "PRISM_HARMONY";
+    } else if (rawType === "SLOW_MO") {
+      cueType = "SLOW_MO";
+    } else if (rawType === "BLAST" || rawType === "OVERDRIVE" || rawEffect === "MAGNETAR_WAR") {
       cueType = "BLAST";
-    } else if (rawType === "SHIELD" || rawType === "SLOW_MO" || rawEffect === "ECLIPSE_DARK") {
+    } else if (rawType === "SHIELD" || rawEffect === "ECLIPSE_DARK") {
       cueType = "SHIELD";
     } else if (rawSupernova) {
       cueType = "SCORE_ORB";
@@ -725,9 +665,10 @@ Object.assign(NoMoreIllusionsApp.prototype, {
         ? (seqIdx % 2 === 0 ? 0.52 : -0.52)
         : ((seqIdx % 5 - 2) * 0.12);
 
-      const leadDur = Math.max(1.8, Math.min(3.2, beatPeriod * 4.0));
+      const noteLeadBeats = 3.2 + (seqIdx % 5) * 0.20; // 3.2 to 4.0 beats natural tempo pacing
+      const leadDur = Math.max(1.6, beatPeriod * noteLeadBeats);
       spawnBeatSec = targetBeatSec - leadDur;
-      expireBeatSec = targetBeatSec + beatGridStep * 6.0;
+      expireBeatSec = targetBeatSec + leadDur + 0.25;
     }
 
     this.powerUps.push({
@@ -862,8 +803,47 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       this.playSfx("powerup", 0.8);
       this.triggerHaptic([26]);
       let col = [56, 189, 248];
-      if (pu.type === "BLAST" || pu.type === "OVERDRIVE") {
-        col = [239, 68, 68];
+      if (pu.type === "ELECTRIC_HARMONIC") {
+        this.overdriveTimer = Math.max(this.overdriveTimer, 8.0);
+        this.screenShake = Math.max(this.screenShake, 14);
+        col = [250, 204, 21];
+        this.shockwaves.push({ x: pu.x, y: pu.y, radius: 14, maxRadius: 650, color: col, alpha: 1 });
+        this.shockwaves.push({ x: pu.x, y: pu.y, radius: 10, maxRadius: 450, color: [56, 189, 248], alpha: 1 });
+        this.floatingTexts.push({
+          x: pu.x,
+          y: pu.y - 20,
+          text: "⚡ ELECTRIC OVERDRIVE 4X!",
+          color: [250, 204, 21],
+          alpha: 1,
+          age: 0
+        });
+      } else if (pu.type === "PRISM_HARMONY") {
+        this.screenShake = Math.max(this.screenShake, 8);
+        col = [74, 222, 128];
+        this.shockwaves.push({ x: pu.x, y: pu.y, radius: 14, maxRadius: 500, color: col, alpha: 1 });
+        this.shockwaves.push({ x: pu.x, y: pu.y, radius: 10, maxRadius: 320, color: [236, 72, 153], alpha: 1 });
+        this.floatingTexts.push({
+          x: pu.x,
+          y: pu.y - 20,
+          text: "✨ PRISM VOCAL BLOOM!",
+          color: [74, 222, 128],
+          alpha: 1,
+          age: 0
+        });
+      } else if (pu.type === "SLOW_MO") {
+        this.slowMoTimer = Math.max(this.slowMoTimer, 6.0);
+        col = [192, 132, 252];
+        this.shockwaves.push({ x: pu.x, y: pu.y, radius: 14, maxRadius: 420, color: col, alpha: 1 });
+        this.floatingTexts.push({
+          x: pu.x,
+          y: pu.y - 20,
+          text: "🌀 VORTEX SLOW-MO!",
+          color: [192, 132, 252],
+          alpha: 1,
+          age: 0
+        });
+      } else if (pu.type === "BLAST" || pu.type === "OVERDRIVE") {
+        col = [249, 115, 22];
         // Tactical screen-wide wipe without granting continuous invulnerable ramming
         this.screenShake = Math.max(this.screenShake, 16);
         for (let k = 0; k < this.enemies.length; k++) {
@@ -874,20 +854,36 @@ Object.assign(NoMoreIllusionsApp.prototype, {
         }
         this.enemies = [];
         this.telegraphs = [];
-        this.shockwaves.push({ x: pu.x, y: pu.y, radius: 14, maxRadius: 650, color: col, alpha: 1 });
+        this.shockwaves.push({ x: pu.x, y: pu.y, radius: 14, maxRadius: 750, color: col, alpha: 1 });
+        this.floatingTexts.push({
+          x: pu.x,
+          y: pu.y - 20,
+          text: "💥 NOVA DETONATED!",
+          color: [249, 115, 22],
+          alpha: 1,
+          age: 0
+        });
       } else {
-        this.shieldTimer = Math.max(this.shieldTimer, 5.0);
+        this.shieldTimer = Math.max(this.shieldTimer, 6.0);
         col = [56, 189, 248];
+        this.shockwaves.push({
+          x: pu.x,
+          y: pu.y,
+          radius: 10,
+          maxRadius: 260,
+          color: col,
+          alpha: 1
+        });
+        this.floatingTexts.push({
+          x: pu.x,
+          y: pu.y - 20,
+          text: "🛡️ AEGIS SHIELD ACTIVE!",
+          color: [56, 189, 248],
+          alpha: 1,
+          age: 0
+        });
       }
       this.spawnBurstMotes(pu.x, pu.y, col, 8);
-      this.shockwaves.push({
-        x: pu.x,
-        y: pu.y,
-        radius: 10,
-        maxRadius: 135,
-        color: col,
-        alpha: 1
-      });
     }
   },
 

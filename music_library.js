@@ -123,8 +123,18 @@ function buildConfideOrbChart() {
       }
     }
     const puType = effect !== "NONE"
-      ? (effect === "MAGNETAR_WAR" ? "BLAST" : effect === "ECLIPSE_DARK" ? "SHIELD" : effect === "TRACTOR_REACH" ? "MAGNET" : "SCORE_ORB")
-      : (seq % 16 === 4 ? "BLAST" : seq % 16 === 8 ? "SHIELD" : seq % 16 === 12 ? "SLOW_MO" : seq % 16 === 0 ? "MAGNET" : "SCORE_ORB");
+      ? (effect === "CONSTELLATION_STAR" ? "ELECTRIC_HARMONIC"
+        : effect === "PRISM_SHATTER" ? "PRISM_HARMONY"
+        : effect === "ECLIPSE_DARK" ? "SLOW_MO"
+        : effect === "MAGNETAR_WAR" ? "BLAST"
+        : effect === "TRACTOR_REACH" ? "SHIELD"
+        : "SCORE_ORB")
+      : (seq % 20 === 4 ? "ELECTRIC_HARMONIC"
+        : seq % 20 === 8 ? "PRISM_HARMONY"
+        : seq % 20 === 12 ? "SLOW_MO"
+        : seq % 20 === 16 ? "BLAST"
+        : seq % 20 === 0 ? "SHIELD"
+        : "SCORE_ORB");
     cues.push({
       sequenceIndex: seq,
       timestampSec: quantizeToBeat(anchor ? anchor[0] : t, beatSec),
@@ -205,8 +215,18 @@ function buildNumberOneOrbChart() {
       }
     }
     const puType = effect !== "NONE"
-      ? (effect === "MAGNETAR_WAR" ? "BLAST" : effect === "ECLIPSE_DARK" ? "SHIELD" : effect === "TRACTOR_REACH" ? "MAGNET" : "SCORE_ORB")
-      : (seq % 16 === 4 ? "BLAST" : seq % 16 === 8 ? "SHIELD" : seq % 16 === 12 ? "SLOW_MO" : seq % 16 === 0 ? "MAGNET" : "SCORE_ORB");
+      ? (effect === "CONSTELLATION_STAR" ? "ELECTRIC_HARMONIC"
+        : effect === "PRISM_SHATTER" ? "PRISM_HARMONY"
+        : effect === "ECLIPSE_DARK" ? "SLOW_MO"
+        : effect === "MAGNETAR_WAR" ? "BLAST"
+        : effect === "TRACTOR_REACH" ? "SHIELD"
+        : "SCORE_ORB")
+      : (seq % 20 === 4 ? "ELECTRIC_HARMONIC"
+        : seq % 20 === 8 ? "PRISM_HARMONY"
+        : seq % 20 === 12 ? "SLOW_MO"
+        : seq % 20 === 16 ? "BLAST"
+        : seq % 20 === 0 ? "SHIELD"
+        : "SCORE_ORB");
     cues.push({
       sequenceIndex: seq,
       timestampSec: quantizeToBeat(anchor ? anchor[0] : t, beatSec),
