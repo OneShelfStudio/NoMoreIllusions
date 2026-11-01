@@ -344,7 +344,7 @@ fun StudioCustomizerSuite(
                         .padding(horizontal = 12.dp, vertical = 4.dp)
                 ) {
                     Text(
-                        text = "LIVE LOADOUT PREVIEW • DRAG CORE TO TEST",
+                        text = "LIVE COSMETICS PREVIEW • DRAG CORE TO TEST",
                         color = Color(0xFF4ADE80L),
                         fontSize = 9.sp,
                         fontWeight = FontWeight.Bold,

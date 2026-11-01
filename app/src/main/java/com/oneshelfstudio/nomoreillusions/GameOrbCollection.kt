@@ -48,28 +48,27 @@ internal fun handleRegularOrbPowerUp(
 
     when (p.powerUpType) {
         PowerUpType.BLAST -> {
-            nextStarPower = maxOf(nextStarPower, 5.5f)
-            nextShake = 14f
-            nextPunch = 0.045f
-            nextFlash = 0.85f
-            shockwaves.add(Shockwave(p.x, p.y, 0f, 560f, Color(0xFFF97316L), 1.25f))
+            nextShake = 16f
+            nextPunch = 0.055f
+            nextFlash = 0.95f
+            shockwaves.add(Shockwave(p.x, p.y, 0f, 750f, Color(0xFFF97316L), 1.4f))
             var vaporizedCount = 0
             val clearIter = enemies.iterator()
             while (clearIter.hasNext()) {
                 val en = clearIter.next()
                 vaporizedCount++
                 bonusScore += (150 * mult * difficultyScoreMultiplier).toInt()
-                shockwaves.add(Shockwave(en.x, en.y, 0f, 145f, Color(0xFFFACC15L), 0.90f))
-                repeat(10) { idx ->
-                    val a = (idx / 10f) * 6.283185f
+                shockwaves.add(Shockwave(en.x, en.y, 0f, 160f, Color(0xFFFACC15L), 0.90f))
+                repeat(12) { idx ->
+                    val a = (idx / 12f) * 6.283185f
                     particles.add(
                         GameObject(
                             x = en.x,
                             y = en.y,
-                            radius = 4.8f,
+                            radius = 5.0f,
                             color = if (idx % 2 == 0) Color(0xFFFACC15L) else Color(0xFFF97316L),
-                            vx = cos(a) * 8.6f,
-                            vy = sin(a) * 8.6f,
+                            vx = cos(a) * 9.2f,
+                            vy = sin(a) * 9.2f,
                             life = 0.85f
                         )
                     )
@@ -80,19 +79,19 @@ internal fun handleRegularOrbPowerUp(
             toast = PowerUpBannerToast(
                 icon = "💥",
                 title = "BOMB DETONATED!",
-                subtitle = if (vaporizedCount > 0) "$vaporizedCount HAZARDS VAPORIZED! (+${vaporizedCount * 150 * mult} PTS)" else "ALL HAZARDS CLEARED + 5.5s OVERDRIVE!",
+                subtitle = if (vaporizedCount > 0) "$vaporizedCount HAZARDS VAPORIZED! (+${vaporizedCount * 150 * mult} PTS)" else "ARENA CLEARED OF HAZARDS!",
                 accentColor = Color(0xFFF97316L),
-                timer = 2.4f,
-                maxTimer = 2.4f
+                timer = 2.2f,
+                maxTimer = 2.2f
             )
         }
         PowerUpType.SHIELD -> {
-            nextShield = maxOf(nextShield, 8.0f)
-            shockwaves.add(Shockwave(p.x, p.y, 0f, 240f, Color(0xFF38BDF8L), 0.90f))
+            nextShield = maxOf(nextShield, 6.0f)
+            shockwaves.add(Shockwave(p.x, p.y, 0f, 260f, Color(0xFF38BDF8L), 0.90f))
             toast = PowerUpBannerToast(
                 icon = "🛡️",
                 title = "SHIELD ACTIVE!",
-                subtitle = "BLOCKS NEXT HAZARD COLLISION • 8.0s",
+                subtitle = "ABSORBS NEXT HAZARD COLLISION",
                 accentColor = Color(0xFF38BDF8L),
                 timer = 2.2f,
                 maxTimer = 2.2f
@@ -224,8 +223,8 @@ internal fun handleSupernovaOrbPickup(
                     )
                 )
             }
-            toast = PowerUpBannerToast("★", "STAR POWER OVERDRIVE!", "8s 4x SCORE MULTIPLIER + RAM HAZARDS!", Color(0xFFFACC15L), 2.6f, 2.6f)
-            Color(0xFFFACC15L)
+            toast = PowerUpBannerToast("⚡", "ELECTRIC HARMONIC SURGE!", "4x SCORE MULTIPLIER + AURORA OVERDRIVE!", Color(0xFF38BDF8L), 2.8f, 2.8f)
+            Color(0xFF38BDF8L)
         }
         KeyWordEffect.PRISM_SHATTER, KeyWordEffect.MAGNETAR_WAR -> {
             nextShake = 12f
@@ -404,7 +403,7 @@ internal fun spawnStationaryBeatOrbsForFrame(
 
     // Rich, alive musical stage: 12-14 active notes, 10 in Band Hero mode
     val maxActiveOrbs = if (isBandHeroMode) 10 else if (isFluidMoment) 14 else 12
-    val effectiveLeadTime = if (isBandHeroMode) spawnLeadTime else (beatGridStep * 3.5f).coerceIn(1.4f, 2.8f)
+    val effectiveLeadTime = if (isBandHeroMode) spawnLeadTime else (beatGridStep * 4.0f).coerceIn(1.8f, 3.2f)
     val effectiveHoldWindow = if (isBandHeroMode) ttlGraceSec else (beatGridStep * 6.0f)
 
     while (

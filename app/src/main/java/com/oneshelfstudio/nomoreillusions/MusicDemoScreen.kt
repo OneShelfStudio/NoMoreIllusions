@@ -256,7 +256,7 @@ fun MusicDemoScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "★ VAULT",
+                            text = "💎 VAULT",
                             color = if (specialsSelected) Color(0xFF020617L) else Color(0xFFFACC15L),
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Black,
@@ -283,7 +283,7 @@ fun MusicDemoScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "ALBUM",
+                            text = "💿 ALBUM",
                             color = if (albumSelected) Color.White else Color.White.copy(alpha = 0.65f),
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Black,
@@ -310,9 +310,9 @@ fun MusicDemoScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "LOADOUT",
+                            text = "🎨 SKINS & FX",
                             color = if (custSelected) Color.White else Color.White.copy(alpha = 0.65f),
-                            fontSize = 10.sp,
+                            fontSize = 9.5.sp,
                             fontWeight = FontWeight.Black,
                             letterSpacing = 0.5.sp,
                             maxLines = 1,
@@ -543,42 +543,6 @@ fun MusicDemoScreen(
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        // Song Section & Extra Juice Timeline Chips
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(5.dp),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .horizontalScroll(rememberScrollState())
-                        ) {
-                            selected.sections.forEach { sec ->
-                                val isJuice = sec.juiceTier == JuiceTier.EXTRA_JUICE || sec.juiceTier == JuiceTier.SLIGHT_EXTRA_JUICE
-                                Box(
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(6.dp))
-                                        .background(
-                                            if (isJuice) Color(0xFF16A34AL).copy(alpha = 0.24f)
-                                            else Color.White.copy(alpha = 0.05f)
-                                        )
-                                        .border(
-                                            width = 1.dp,
-                                            color = if (isJuice) Color(0xFF4ADE80L).copy(alpha = 0.70f)
-                                            else Color.White.copy(alpha = 0.12f),
-                                            shape = RoundedCornerShape(6.dp)
-                                        )
-                                        .padding(horizontal = 7.dp, vertical = 3.dp)
-                                ) {
-                                    Text(
-                                        text = (if (isJuice) "⚡ " else "") + "${formatTrackTime(sec.timestampSec.toInt())} ${sec.label}",
-                                        color = if (isJuice) Color(0xFF4ADE80L) else Color.White.copy(alpha = 0.70f),
-                                        fontSize = 8.sp,
-                                        fontWeight = if (isJuice) FontWeight.Black else FontWeight.SemiBold
-                                    )
-                                }
-                            }
-                        }
-
                         Spacer(modifier = Modifier.height(10.dp))
 
                         // Action Buttons Row
@@ -771,68 +735,6 @@ fun MusicDemoScreen(
                             isPlayable = { isPlayable(it) },
                             isArtworkUnlocked = { isArtworkUnlocked(it) },
                             onSelect = { selectedTrackIndexLocal = it }
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // UPCOMING RELEASE RADAR / PRESAVE BANNER (For Ethan to announce new singles, shows & presaves!)
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(
-                            Brush.horizontalGradient(
-                                listOf(Color(0xFF1E1B4BL), Color(0xFF061A10L))
-                            )
-                        )
-                        .border(1.dp, Color(0xFFFACC15L).copy(alpha = 0.55f), RoundedCornerShape(14.dp))
-                        .clickable {
-                            runCatching {
-                                val intent = Intent(
-                                    Intent.ACTION_VIEW,
-                                    Uri.parse("https://open.spotify.com/artist/2Cy1rpHuiZvU5ymbOQfD37?si=4z4vjdReTGCpYG-RhEn2sA")
-                                )
-                                context.startActivity(intent)
-                            }
-                        }
-                        .padding(horizontal = 12.dp, vertical = 9.dp)
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "★ UPCOMING RELEASE RADAR • NEW MUSIC & SHOWS",
-                            color = Color(0xFFFACC15L),
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Black,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Text(
-                            text = "Tap to follow No Morē Illusīons on Spotify & unlock exclusive Vault drops in the Shop tab.",
-                            color = Color.White.copy(alpha = 0.78f),
-                            fontSize = 9.sp,
-                            fontWeight = FontWeight.Medium,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(50))
-                            .background(Color(0xFFFACC15L))
-                            .padding(horizontal = 10.dp, vertical = 5.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "FOLLOW",
-                            color = Color(0xFF030712L),
-                            fontSize = 9.sp,
-                            fontWeight = FontWeight.Black,
-                            maxLines = 1,
-                            softWrap = false
                         )
                     }
                 }

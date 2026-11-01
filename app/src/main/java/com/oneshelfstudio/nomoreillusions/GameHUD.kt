@@ -35,8 +35,7 @@ fun HUD(
     multiplier: Int,
     multiplierTime: Float,
     btnIconPause: ImageBitmap,
-    trackArt: ImageBitmap? = null,
-    isCurrentTrackUnlocked: Boolean = false,
+    rhythmCombo: Int = 0,
     difficulty: GameDifficulty = GameDifficulty.REGULAR,
     currentSectionLabel: String = "INTRO",
     isExtraJuiceActive: Boolean = false,
@@ -49,7 +48,7 @@ fun HUD(
     endlessLoopCount: Int = 0,
     onPause: () -> Unit
 ) {
-    // Ultra-Clean Open-Stage HUD (< 6% screen footprint — zero stacked boxes, zero popups!)
+    // Ultra-Clean Open-Stage HUD (< 4% screen footprint — clean score, combo streak, zero cluttered popups!)
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -80,7 +79,7 @@ fun HUD(
 
             Spacer(modifier = Modifier.height(6.dp))
 
-            // 2. Frameless Top Row: Score + Multiplier on Left, Compact Pause Icon on Right
+            // 2. Frameless Top Row: Score + Dynamic Combo Streak on Left, Compact Pause Icon on Right
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -116,6 +115,24 @@ fun HUD(
                             )
                         )
                     }
+                    if (rhythmCombo > 1) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Box(
+                            modifier = Modifier
+                                .clip(CircleShape)
+                                .background(Color(0x33FACC15L))
+                                .border(1.dp, Color(0xFFFACC15L).copy(alpha = 0.75f), CircleShape)
+                                .padding(horizontal = 7.dp, vertical = 2.dp)
+                        ) {
+                            Text(
+                                text = if (rhythmCombo >= 8) "🔥 ${rhythmCombo} STREAK" else "⚡ ${rhythmCombo} COMBO",
+                                color = Color(0xFFFACC15L),
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Black,
+                                letterSpacing = 0.5.sp
+                            )
+                        }
+                    }
                     if (shieldTime > 0f) {
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
@@ -138,48 +155,6 @@ fun HUD(
                     iconBitmap = btnIconPause,
                     onClick = onPause,
                     modifier = Modifier.size(34.dp)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(5.dp))
-
-            // 3. Live Song Unlock & Discovery Progress Capsule
-            val pctUnlocked = (trackProgress * 100f).toInt().coerceIn(0, 100)
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .clip(CutCornerShape(topStart = 8.dp, bottomEnd = 8.dp))
-                    .background(Color(0xD9060B18L))
-                    .border(
-                        1.dp,
-                        if (isCurrentTrackUnlocked) Color(0xFF4ADE80L).copy(alpha = 0.65f) else Color(0xFFFACC15L).copy(alpha = 0.65f),
-                        CutCornerShape(topStart = 8.dp, bottomEnd = 8.dp)
-                    )
-                    .padding(horizontal = 8.dp, vertical = 3.dp)
-            ) {
-                if (trackArt != null) {
-                    Box(
-                        modifier = Modifier
-                            .size(20.dp)
-                            .clip(CircleShape)
-                            .border(1.dp, if (isCurrentTrackUnlocked) Color(0xFF4ADE80L) else Color(0xFFFACC15L), CircleShape)
-                    ) {
-                        Image(
-                            bitmap = trackArt,
-                            contentDescription = "Active Track Art",
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(6.dp))
-                }
-                Text(
-                    text = if (isCurrentTrackUnlocked) "★ TRACK 0$trackIndex UNLOCKED • $pctUnlocked%"
-                    else "🔒 UNLOCKING TRACK 0$trackIndex • $pctUnlocked% • $pulsePoints ♪",
-                    color = if (isCurrentTrackUnlocked) Color(0xFF86EFACL) else Color(0xFFFDE047L),
-                    fontSize = 9.sp,
-                    fontWeight = FontWeight.Black,
-                    letterSpacing = 0.5.sp
                 )
             }
         }

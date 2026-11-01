@@ -41,12 +41,12 @@ enum class FirstTimeDiscovery(
 ) {
     FAN_WELCOME(
         prefKey = "seen_discovery_fan_welcome_v2",
-        badge = "★ OFFICIAL INTERACTIVE ALBUM EXPERIENCE ★",
-        title = "WELCOME TO NO MORĒ ILLUSĪONS",
-        subtitle = "PLAY THE MUSIC • UNLOCK EXCLUSIVE ARTIST VAULT REWARDS",
-        body = "More than a rhythm game—every track you play and beat chain you master unlocks exclusive Artist Liner Notes from Ethan, Behind-the-Scenes Studio Stories, Slowed & Nightcore Master Reels, and VIP Fan Perks.",
-        tip = "FAN INCENTIVE: Complete Track 01 (Confide) & Track 02 (Number One) to unlock Ethan's personal song notes & studio secrets!",
-        buttonText = "ENTER THE ALBUM ♪",
+        badge = "★ QUICK GUIDE ★",
+        title = "HOW TO PLAY",
+        subtitle = "GATHER NOTES • AVOID ENEMIES • HIT SPECIAL PEGS",
+        body = "Glide smoothly with your finger to intercept rhythmic notes, dodge hazards, and trigger electrifying stage transformations!",
+        tip = "Hit steady beat notes to unlock new songs and artist vault secrets!",
+        buttonText = "LET'S PLAY ♪",
         accentColor = Color(0xFFFACC15L)
     ),
     BEAT_CHAIN(
@@ -411,33 +411,7 @@ fun FirstTimeDiscoveryModal(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    // Card 1: Drag to Glide
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier
-                            .weight(1f)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(Color(0xFF070E1DL))
-                            .border(1.2.dp, Color(0xFF38BDF8L).copy(alpha = 0.55f), RoundedCornerShape(12.dp))
-                            .padding(vertical = 10.dp, horizontal = 4.dp)
-                    ) {
-                        Text(text = "👆", fontSize = 26.sp)
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Text(
-                            text = "DRAG",
-                            color = Color(0xFF38BDF8L),
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Black
-                        )
-                        Text(
-                            text = "To Glide",
-                            color = Color(0xFF94A3B8L),
-                            fontSize = 9.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-
-                    // Card 2: Catch Notes
+                    // Card 1: Gather Notes
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier
@@ -450,20 +424,20 @@ fun FirstTimeDiscoveryModal(
                         Text(text = "🎵", fontSize = 26.sp)
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
-                            text = "CATCH",
+                            text = "GATHER",
                             color = Color(0xFFFACC15L),
-                            fontSize = 11.sp,
+                            fontSize = 10.5.sp,
                             fontWeight = FontWeight.Black
                         )
                         Text(
                             text = "Beat Notes",
                             color = Color(0xFF94A3B8L),
-                            fontSize = 9.sp,
+                            fontSize = 8.5.sp,
                             fontWeight = FontWeight.Bold
                         )
                     }
 
-                    // Card 3: Avoid Hazards
+                    // Card 2: Avoid Enemies
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier
@@ -473,18 +447,44 @@ fun FirstTimeDiscoveryModal(
                             .border(1.2.dp, Color(0xFFF43F5EL).copy(alpha = 0.55f), RoundedCornerShape(12.dp))
                             .padding(vertical = 10.dp, horizontal = 4.dp)
                     ) {
-                        Text(text = "⚠️", fontSize = 26.sp)
+                        Text(text = "👾", fontSize = 26.sp)
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
                             text = "AVOID",
                             color = Color(0xFFF43F5EL),
-                            fontSize = 11.sp,
+                            fontSize = 10.5.sp,
                             fontWeight = FontWeight.Black
                         )
                         Text(
-                            text = "Red Hazards",
+                            text = "Enemies",
                             color = Color(0xFF94A3B8L),
-                            fontSize = 9.sp,
+                            fontSize = 8.5.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    // Card 3: Special Pegs
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color(0xFF070E1DL))
+                            .border(1.2.dp, Color(0xFF38BDF8L).copy(alpha = 0.55f), RoundedCornerShape(12.dp))
+                            .padding(vertical = 10.dp, horizontal = 4.dp)
+                    ) {
+                        Text(text = "⚡", fontSize = 26.sp)
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = "SPECIAL",
+                            color = Color(0xFF38BDF8L),
+                            fontSize = 10.5.sp,
+                            fontWeight = FontWeight.Black
+                        )
+                        Text(
+                            text = "Power Pegs",
+                            color = Color(0xFF94A3B8L),
+                            fontSize = 8.5.sp,
                             fontWeight = FontWeight.Bold
                         )
                     }

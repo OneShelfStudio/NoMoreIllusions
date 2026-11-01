@@ -461,8 +461,9 @@ fun stepNebulousBeatOrbs(
             val hasPerimeterSpawn = (orb.spawnX != 0f || orb.spawnY != 0f) && (orb.spawnX != orb.anchorX || orb.spawnY != orb.anchorY)
 
             if (hasPerimeterSpawn && u < 1.0f) {
-                // Smooth flight along swooping quadratic bezier path from outer perimeter onto stage
-                val t = (1f - (1f - u) * (1f - u)).coerceIn(0f, 1f) // Ease-out quad
+                // Steady-beat travel locked to the rhythm of the music:
+                // Direct parametric positioning eliminates jerky lerp lag and gives a smooth musical flow
+                val t = u.coerceIn(0f, 1f)
                 val chordX = orb.anchorX - orb.spawnX
                 val chordY = orb.anchorY - orb.spawnY
                 val perpX = -chordY
@@ -471,11 +472,8 @@ fun stepNebulousBeatOrbs(
                 val ctrlY = (orb.spawnY + orb.anchorY) * 0.5f + perpY * orb.swoopCurve
 
                 val oneMinusT = 1f - t
-                val targetPosX = oneMinusT * oneMinusT * orb.spawnX + 2f * oneMinusT * t * ctrlX + t * t * orb.anchorX
-                val targetPosY = oneMinusT * oneMinusT * orb.spawnY + 2f * oneMinusT * t * ctrlY + t * t * orb.anchorY
-
-                orb.x += (targetPosX - orb.x) * 0.38f
-                orb.y += (targetPosY - orb.y) * 0.38f
+                orb.x = oneMinusT * oneMinusT * orb.spawnX + 2f * oneMinusT * t * ctrlX + t * t * orb.anchorX
+                orb.y = oneMinusT * oneMinusT * orb.spawnY + 2f * oneMinusT * t * ctrlY + t * t * orb.anchorY
             } else {
                 val modeTag = orb.orbitRadius
                 val stableSlot = (orb.sequenceIndex % 6).toFloat()
@@ -520,11 +518,17 @@ fun stepNebulousBeatOrbs(
         }
 
         // Continuous Soft Anti-Overlap Repulsion Pass: guarantees two pegs NEVER stack or overlap!
+        // Only repels notes that have already arrived on stage (u >= 1.0f) so incoming notes travel without deflection
         val minSep = (minDim * 0.17f).coerceIn(84f, 108f)
         for (i in 0 until powerUps.size) {
             for (j in i + 1 until powerUps.size) {
                 val a = powerUps[i]
                 val b = powerUps[j]
+                val aLead = (a.targetBeatSec - a.spawnBeatSec).coerceAtLeast(0.45f)
+                val bLead = (b.targetBeatSec - b.spawnBeatSec).coerceAtLeast(0.45f)
+                val aU = (trackSec - a.spawnBeatSec) / aLead
+                val bU = (trackSec - b.spawnBeatSec) / bLead
+                if (aU < 1.0f || bU < 1.0f) continue
                 // Only repel if both pegs are visibly on stage (preserves outer edge spawn gliding)
                 if (a.x < 0f || a.x > screenWidth || b.x < 0f || b.x > screenWidth) continue
                 val dx = b.x - a.x

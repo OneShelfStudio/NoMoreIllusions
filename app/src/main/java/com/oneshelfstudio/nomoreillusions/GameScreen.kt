@@ -7,6 +7,7 @@ import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -118,6 +119,37 @@ fun GameScreen(
 
     var gameState by remember { mutableStateOf(GameState.MENU) }
     var settingsReturnState by remember { mutableStateOf(GameState.MENU) }
+
+    // Intercept hardware/system back gestures so pressing back navigates menus naturally instead of killing the app
+    BackHandler(enabled = gameState != GameState.MENU) {
+        when (gameState) {
+            GameState.PLAYING -> {
+                audioEngine.pauseTrack()
+                gameState = GameState.PAUSED
+            }
+            GameState.PAUSED,
+            GameState.COUNTDOWN -> {
+                audioEngine.stopTrack()
+                audioEngine.startThemeMusic()
+                gameState = GameState.MENU
+            }
+            GameState.SETTINGS -> {
+                gameState = settingsReturnState
+                if (settingsReturnState == GameState.MENU) {
+                    audioEngine.startThemeMusic()
+                }
+            }
+            GameState.MUSIC_DEMO,
+            GameState.HOW_TO_PLAY,
+            GameState.LEVEL_COMPLETE,
+            GameState.GAME_OVER -> {
+                audioEngine.stopTrack()
+                audioEngine.startThemeMusic()
+                gameState = GameState.MENU
+            }
+            GameState.MENU -> { /* System back exits app */ }
+        }
+    }
 
     LaunchedEffect(isMusicEnabled, isSoundEnabled, activeLobbyTrack, selectedRemixMode) {
         audioEngine.isMusicEnabled = isMusicEnabled
@@ -942,14 +974,27 @@ fun GameScreen(
                             val mult = if (isGoldenActive) maxOf(scoreMultiplier, 4) else scoreMultiplier
                             val gainedPts = ((if (isCaughtOnBeat) 100 else 45) * mult * (1f + (rhythmCombo.coerceAtMost(12) * 0.10f)) * difficultyScoreMultiplier).toInt()
                             score += gainedPts
+
+                            // High-impact floating combo and on-beat feedback
+                            val comboCallout = when {
+                                rhythmCombo >= 8 -> "🔥 x$mult STREAK ($rhythmCombo)!"
+                                rhythmCombo >= 4 -> "⚡ x$mult COMBO ($rhythmCombo)!"
+                                isCaughtOnBeat -> "★ ON-BEAT! +$gainedPts"
+                                else -> "+$gainedPts"
+                            }
                             floatingTexts.add(
                                 FloatingText(
                                     x = p.x,
-                                    y = p.y - 20f,
-                                    text = "+$gainedPts",
-                                    life = 0.58f,
-                                    color = if (isCaughtOnBeat) Color(0xFF4ADE80L) else Color(0xFF38BDF8L),
-                                    isLarge = false
+                                    y = p.y - 24f,
+                                    text = comboCallout,
+                                    life = if (rhythmCombo >= 4) 0.82f else 0.58f,
+                                    color = when {
+                                        mult >= 4 || rhythmCombo >= 8 -> Color(0xFFFACC15L) // Radiant Gold
+                                        rhythmCombo >= 4 -> Color(0xFF4ADE80L) // Neon Emerald
+                                        isCaughtOnBeat -> Color(0xFF38BDF8L) // Electric Cyan
+                                        else -> Color.White
+                                    },
+                                    isLarge = rhythmCombo >= 4 || isCaughtOnBeat
                                 )
                             )
 
@@ -1297,9 +1342,6 @@ fun GameScreen(
             }
         )
 
-        val currentTrackMeta = MusicLibrary.getTrack(selectedTrackIndex)
-        val isCurrentTrackUnlocked = selectedTrackIndex == 1 || unlockedTrackCount >= selectedTrackIndex || isVipUnlocked || prefs.getBoolean("art_unlocked_$selectedTrackIndex", false) || prefs.getBoolean("track_unlocked_$selectedTrackIndex", false)
-        val currentTrackArt = if (selectedTrackIndex == 1) track01Art else track02Art
         if (gameState == GameState.PLAYING || gameState == GameState.COUNTDOWN || gameState == GameState.PAUSED) {
             HUD(
                 score = score,
@@ -1312,8 +1354,7 @@ fun GameScreen(
                 multiplier = scoreMultiplier,
                 multiplierTime = multiplierTime,
                 btnIconPause = btnIconPause,
-                trackArt = currentTrackArt,
-                isCurrentTrackUnlocked = isCurrentTrackUnlocked,
+                rhythmCombo = rhythmCombo,
                 difficulty = gameDifficulty,
                 currentSectionLabel = activeSectionLabel,
                 isExtraJuiceActive = juiceIntensity > 0.45f || liveAudioEnergy > 0.72f,
@@ -1484,7 +1525,7 @@ fun GameScreen(
                 pulsePoints = pulsePoints,
                 score = score,
                 highScore = highScore,
-                trackLabel = "TRACK %02d • ${currentTrackMeta.title}".format(selectedTrackIndex),
+                trackLabel = "TRACK %02d • ${MusicLibrary.getTrack(selectedTrackIndex).title}".format(selectedTrackIndex),
                 canContinue = pulsePoints >= 250,
                 hasAd = adManager.isAdAvailable(),
                 btnPillGreen = btnPillGreen,

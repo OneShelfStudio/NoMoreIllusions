@@ -216,6 +216,17 @@ fun LevelCompleteUI(
     val currentTrack = MusicLibrary.getTrack(trackIndex)
     val nextTrack = if (trackIndex < MusicLibrary.TOTAL_TRACKS) MusicLibrary.getTrack(trackIndex + 1) else null
 
+    val victoryZoom = remember { Animatable(0.3f) }
+    androidx.compose.runtime.LaunchedEffect(trackIndex) {
+        victoryZoom.animateTo(
+            targetValue = 1.0f,
+            animationSpec = spring(
+                dampingRatio = Spring.DampingRatioMediumBouncy,
+                stiffness = Spring.StiffnessLow
+            )
+        )
+    }
+
     val infinite = rememberInfiniteTransition(label = "victoryAnim")
     val spinDeg by infinite.animateFloat(
         initialValue = 0f,
@@ -273,9 +284,14 @@ fun LevelCompleteUI(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // HUGE 216dp Centerpiece: Spinning 24K Gold Vinyl Halo + Full Unveiled Album Cover!
+            // HUGE 216dp Centerpiece: Celebratory Zoom on Full Unveiled Album Artwork!
             Box(
-                modifier = Modifier.size(216.dp),
+                modifier = Modifier
+                    .size(216.dp)
+                    .graphicsLayer {
+                        scaleX = victoryZoom.value
+                        scaleY = victoryZoom.value
+                    },
                 contentAlignment = Alignment.Center
             ) {
                 Canvas(modifier = Modifier.fillMaxSize()) {

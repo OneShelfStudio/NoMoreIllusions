@@ -482,7 +482,7 @@ fun MenuUI(
                 )
             }
             Text(
-                text = "GAMIFIED STUDIO ALBUM • PERSONAL RECORD: $highScore PTS",
+                text = "PERSONAL RECORD: $highScore PTS",
                 color = Color(0xFFEAB308L),
                 fontSize = 9.5.sp,
                 fontWeight = FontWeight.Black,
@@ -950,20 +950,20 @@ fun HowToPlayUI(
             Spacer(modifier = Modifier.height(16.dp))
 
             InstructionItem(
-                "👆 1. DRAG TO GLIDE",
-                "Touch anywhere and drag smoothly to glide your hero across the stage. Your hero responds fluidly to your finger with zero lag."
+                "🎵 1. GATHER NOTES",
+                "Glide into notes along the steady rhythm of the music. Catch them on beat to build your combo and unlock new songs!"
             )
             InstructionItem(
-                "🎵 2. CATCH BEAT NOTES",
-                "Notes glide in from the outside perimeter to the rhythm of the music. Intercept them on the beat to charge your combo and multiplier!"
+                "👾 2. AVOID ENEMIES",
+                "Dodge red enemy hazards to protect your streak and multiplier."
             )
             InstructionItem(
-                "⚠️ 3. AVOID RED HAZARDS",
-                "Crimson hazard spikes damage your combo. Dodge them safely or collect 💥 Bomb or 🛡️ Shield orbs to protect your run."
+                "⚡ 3. HIT SPECIAL PEGS",
+                "Hit electric harmonic pegs and bomb pegs to clear enemies and transform the stage with spectacular visual surges!"
             )
             InstructionItem(
                 "🎸 4. CLASSIC MODE (Guitar Hero Style)",
-                "Toggle Classic Mode anytime on the main menu to experience authentic 4-lane vertical rhythm action with hit lines and fret burns!"
+                "Toggle Classic Mode on the main menu anytime to play vertical highway rhythm lanes!"
             )
             Spacer(modifier = Modifier.height(20.dp))
             ArcadePillButton(

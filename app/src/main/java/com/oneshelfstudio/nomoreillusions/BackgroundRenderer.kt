@@ -371,19 +371,36 @@ fun DrawScope.drawNebulaBackground(
     // 8. Progressive Album Artwork Hologram Watermark Reveal in the Center
     if (trackArtwork != null && trackProgress > 0.01f) {
         val p = trackProgress.coerceIn(0f, 1f)
-        val artBoxSize = minOf(size.width, size.height) * (0.46f + bass * 0.04f)
+        val artBoxSize = minOf(size.width, size.height) * (0.50f + p * 0.28f + bass * 0.04f)
         val dstW = artBoxSize.toInt().coerceAtLeast(1)
         val dstH = artBoxSize.toInt().coerceAtLeast(1)
         val left = ((size.width - dstW) / 2f).toInt()
         val top = ((size.height - dstH) / 2f).toInt()
 
+        // Soft outer glowing halo expanding with unlock progress
+        val ringRadius = artBoxSize * 0.52f
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(
+                    Color(0xFF38BDF8).copy(alpha = 0.04f + p * 0.16f),
+                    Color(0xFFFACC15).copy(alpha = 0.02f + p * 0.12f),
+                    Color.Transparent
+                ),
+                center = Offset(centerX, centerY),
+                radius = ringRadius * 1.15f
+            ),
+            radius = ringRadius * 1.15f,
+            center = Offset(centerX, centerY)
+        )
+
+        // Draw track artwork revealing with progressive clarity and presence
         drawImage(
             image = trackArtwork,
             srcOffset = IntOffset.Zero,
             srcSize = IntSize(trackArtwork.width, trackArtwork.height),
             dstOffset = IntOffset(left, top),
             dstSize = IntSize(dstW, dstH),
-            alpha = (0.04f + p * 0.14f + vocal * 0.05f).coerceAtMost(0.24f),
+            alpha = (0.06f + p * 0.38f + vocal * 0.06f).coerceIn(0.06f, 0.52f),
             blendMode = BlendMode.Screen
         )
     }
