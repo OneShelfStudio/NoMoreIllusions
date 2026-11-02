@@ -320,10 +320,6 @@ function drawPowerUps(ctx, powerUps, playerX, playerY, time, trackSec, beatPulse
       ctx.fill();
     }
 
-    ctx.font = "900 11px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
-    ctx.textAlign = "center";
-    ctx.fillStyle = "rgba(250, 204, 21, 0.82)";
-    ctx.fillText("★ BEAT STRIKE LINE • CATCH NOTES HERE ON TIME ★", w * 0.5, strikeL.y + 34);
     ctx.restore();
   }
 
@@ -454,11 +450,6 @@ function drawPowerUps(ctx, powerUps, playerX, playerY, time, trackSec, beatPulse
       ctx.textBaseline = "middle";
       ctx.fillStyle = "#FFFFFF";
       ctx.fillText("⚡", cx, cy);
-
-      ctx.font = `900 ${Math.max(12, Math.round(14.5 * perspScale))}px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
-      ctx.textBaseline = "alphabetic";
-      ctx.fillStyle = "#FEF08A";
-      ctx.fillText("⚡ ELECTRIC", cx, cy - coreRad * 1.42);
     } else if (isPrism) {
       // ✨ PRISM VOCAL BLOOM SPHERE (Iridescent Holographic Opal + Rainbow Shockwaves)
       const glow = ctx.createRadialGradient(cx, cy, 2, cx, cy, coreRad * 2.30);
@@ -501,11 +492,6 @@ function drawPowerUps(ctx, powerUps, playerX, playerY, time, trackSec, beatPulse
       ctx.textBaseline = "middle";
       ctx.fillStyle = "#FFFFFF";
       ctx.fillText("✨", cx, cy);
-
-      ctx.font = `900 ${Math.max(12, Math.round(14.5 * perspScale))}px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
-      ctx.textBaseline = "alphabetic";
-      ctx.fillStyle = "#86EFAC";
-      ctx.fillText("✨ PRISM", cx, cy - coreRad * 1.42);
     } else if (isVortex) {
       // 🌀 VORTEX SLOW-MO SPHERE (Deep Amethyst Void + Cosmic Accretion Ring)
       const glow = ctx.createRadialGradient(cx, cy, 2, cx, cy, coreRad * 2.25);
@@ -546,11 +532,6 @@ function drawPowerUps(ctx, powerUps, playerX, playerY, time, trackSec, beatPulse
       ctx.textBaseline = "middle";
       ctx.fillStyle = "#FFFFFF";
       ctx.fillText("🌀", cx, cy);
-
-      ctx.font = `900 ${Math.max(12, Math.round(14.5 * perspScale))}px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
-      ctx.textBaseline = "alphabetic";
-      ctx.fillStyle = "#E9D5FF";
-      ctx.fillText("🌀 VORTEX", cx, cy - coreRad * 1.42);
     } else if (isNova) {
       // 💥 SOLAR NOVA SPHERE (Solar Flare Corona + Screen Hazard Vaporizer)
       const glow = ctx.createRadialGradient(cx, cy, 2, cx, cy, coreRad * 2.25);
@@ -588,11 +569,6 @@ function drawPowerUps(ctx, powerUps, playerX, playerY, time, trackSec, beatPulse
       ctx.strokeStyle = rgba([250, 204, 21], 0.98 * puAlpha);
       ctx.lineWidth = 3.2;
       ctx.stroke();
-
-      ctx.font = `900 ${Math.max(12, Math.round(15 * perspScale))}px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
-      ctx.textAlign = "center";
-      ctx.fillStyle = "#FFFFFF";
-      ctx.fillText("💥 NOVA", cx, cy - coreRad * 1.42);
     } else if (isAegis) {
       // 🛡️ AEGIS CRYSTAL SHIELD SPHERE (Luminous Aqua Shield Facets)
       const glow = ctx.createRadialGradient(cx, cy, 2, cx, cy, coreRad * 2.15);
@@ -624,11 +600,6 @@ function drawPowerUps(ctx, powerUps, playerX, playerY, time, trackSec, beatPulse
       ctx.strokeStyle = rgba([186, 230, 253], 0.88 * puAlpha);
       ctx.lineWidth = 2.4;
       ctx.stroke();
-
-      ctx.font = `900 ${Math.max(12, Math.round(15 * perspScale))}px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
-      ctx.textAlign = "center";
-      ctx.fillStyle = "#BAE6FD";
-      ctx.fillText("🛡️ AEGIS", cx, cy - coreRad * 1.36);
     } else if (isSupernova) {
       // ★ 3D VOLUMETRIC 24K GOLD STAR POWER SPHERE
       const glow = ctx.createRadialGradient(cx, cy, 2, cx, cy, coreRad * 2.3);
@@ -666,11 +637,6 @@ function drawPowerUps(ctx, powerUps, playerX, playerY, time, trackSec, beatPulse
       ctx.textBaseline = "middle";
       ctx.fillStyle = "#422006";
       ctx.fillText("★", cx, cy + 1);
-
-      ctx.font = `900 ${Math.max(12, Math.round(14.5 * perspScale))}px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
-      ctx.textBaseline = "alphabetic";
-      ctx.fillStyle = "#FEF08A";
-      ctx.fillText("★ 4X STAR", cx, cy - coreRad * 1.38);
     } else {
       // TRUE 3D VOLUMETRIC PULSING BEAT ORB (Spherical Shading + Equatorial Gyro-Ring + Embossed ♪)
       const glow = ctx.createRadialGradient(cx, cy, 2, cx, cy, coreRad * 1.95);

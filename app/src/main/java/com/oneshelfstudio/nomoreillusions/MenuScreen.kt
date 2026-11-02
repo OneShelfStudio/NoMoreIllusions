@@ -537,7 +537,7 @@ fun MenuUI(
                 letterSpacing = 1.8.sp
             )
             Text(
-                text = if (isCurrentTrackUnlocked) "${currentTrackObj.bpm.toInt()} BPM • 432Hz MASTER • $stTxt READY" else "🔒 LOCKED • BEAT TRACK 01 OR UNLOCK (1,200 ♪)",
+                text = if (isCurrentTrackUnlocked) "432Hz MASTER • $stTxt READY" else "🔒 LOCKED • BEAT TRACK 01 OR UNLOCK (1,200 ♪)",
                 color = if (isCurrentTrackUnlocked) Color(0xFFFACC15L) else Color(0xFFF87171L),
                 fontSize = 10.sp,
                 fontWeight = FontWeight.ExtraBold,
@@ -698,7 +698,7 @@ fun MenuUI(
                     Text(
                         text = if (!isCurrentLaunchUnlocked) "TAP TO UNLOCK WITH COLLECTED NOTES"
                         else if (isBandHeroMode) "4-LANE GUITAR HERO RHYTHM RUN"
-                        else "${selectedRemixMode.displayName} • ${selectedTrack.bpm.toInt()} BPM GROOVE",
+                        else "${selectedRemixMode.displayName} • 432Hz MASTER",
                         color = Color.White.copy(alpha = 0.90f),
                         fontSize = 8.5.sp,
                         fontWeight = FontWeight.Bold,
@@ -972,7 +972,7 @@ fun SettingsUI(
                                 maxLines = 1
                             )
                             Text(
-                                text = "${lt.bpm.toInt()} BPM",
+                                text = "AMBIENT",
                                 color = Color.White.copy(alpha = 0.55f),
                                 fontSize = 8.sp,
                                 fontWeight = FontWeight.SemiBold

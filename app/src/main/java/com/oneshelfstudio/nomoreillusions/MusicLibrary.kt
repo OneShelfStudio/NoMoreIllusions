@@ -178,15 +178,14 @@ object MusicLibrary {
      */
     private fun buildConfideOrbChart(): List<BeatOrbCue> {
         val beatSec = 60f / 124f // 0.48387s
-        // ONLY 6 true milestone Supernova moments across the entire 3:39 track (matched to Ethan's exact notes!)
-        // so that when a Supernova Orb appears, it feels unmistakably special!
+        // ONLY Rare Milestone Orbs placed at major musical transitions & drops across the entire 3:39 track
         val specialMoments = listOf(
-            KeyWordAnchor(14.52f, KeyWordEffect.CONSTELLATION_STAR), // 0:14.5 Intro Drop (EXTRA JUICE)
-            KeyWordAnchor(45.97f, KeyWordEffect.PRISM_SHATTER),      // 0:46.0 Pre-Chorus Surge
-            KeyWordAnchor(75.48f, KeyWordEffect.CONSTELLATION_STAR), // 1:15.5 Hook Instrumental Drop I (EXTRA JUICE)
-            KeyWordAnchor(137.42f, KeyWordEffect.CONSTELLATION_STAR),// 2:17.5 Hook Instrumental Drop II (EXTRA JUICE)
-            KeyWordAnchor(169.35f, KeyWordEffect.MAGNETAR_WAR),      // 2:49.5 Bridge Vocal Battle Swell
-            KeyWordAnchor(183.87f, KeyWordEffect.CONSTELLATION_STAR) // 3:03.9 Ending Breakdown Climax (EXTRA JUICE)
+            KeyWordAnchor(14.52f, KeyWordEffect.CONSTELLATION_STAR), // 0:14.5 Intro Drop into Chorus 1 (⚡ Electric Overdrive)
+            KeyWordAnchor(45.97f, KeyWordEffect.PRISM_SHATTER),      // 0:46.0 Pre-Chorus Vocal Surge (✨ Prism Vocal Bloom)
+            KeyWordAnchor(75.48f, KeyWordEffect.MAGNETAR_WAR),       // 1:15.5 Chorus 2 Drop (💥 Solar Nova Blast)
+            KeyWordAnchor(124.0f, KeyWordEffect.ECLIPSE_DARK),       // 2:04.0 Hook Vocal Float (🌀 Vortex Slow-Mo)
+            KeyWordAnchor(137.42f, KeyWordEffect.CONSTELLATION_STAR),// 2:17.5 Chorus 3 Drop (⚡ Electric Overdrive)
+            KeyWordAnchor(183.87f, KeyWordEffect.CONSTELLATION_STAR) // 3:03.9 Ending Breakdown Climax (⚡ Electric Overdrive)
         )
 
         val cues = ArrayList<BeatOrbCue>(190)
@@ -270,14 +269,7 @@ object MusicLibrary {
                 KeyWordEffect.ECLIPSE_DARK -> PowerUpType.SLOW_MO
                 KeyWordEffect.MAGNETAR_WAR -> PowerUpType.BLAST
                 KeyWordEffect.TRACTOR_REACH, KeyWordEffect.BINARY_HEART -> PowerUpType.SHIELD
-                else -> when {
-                    seq % 8 == 2 -> PowerUpType.ELECTRIC_HARMONIC // ⚡ Electric Surge: Synth highway & aurora overdrive!
-                    seq % 8 == 4 -> PowerUpType.PRISM_HARMONY     // ✨ Prism Bloom: Vocal harmony & album art reveal!
-                    seq % 8 == 6 -> PowerUpType.SLOW_MO          // 🌀 Vortex Rewind: 50% slow-mo breakdown!
-                    seq % 8 == 0 -> PowerUpType.BLAST            // 💥 Nova Blast: Screen hazard clear!
-                    seq % 16 == 7 -> PowerUpType.SHIELD          // 🛡️ Aegis Shield: 1-hit protective barrier!
-                    else -> PowerUpType.NONE                       // ♪ Regular rhythmic beat note
-                }
+                else -> PowerUpType.NONE
             }
 
             cues.add(
@@ -308,12 +300,13 @@ object MusicLibrary {
      */
     private fun buildNumberOneOrbChart(): List<BeatOrbCue> {
         val beatSec = 60f / 88f // 0.6818s
+        // ONLY Rare Milestone Orbs placed at major musical transitions & drops across the entire 2:46 track
         val specialMoments = listOf(
-            KeyWordAnchor(44.32f, KeyWordEffect.TRACTOR_REACH),      // 0:44.3 Pre-Chorus I Swell
-            KeyWordAnchor(54.55f, KeyWordEffect.CONSTELLATION_STAR), // 0:54.5 Chorus I Drop (EXTRA JUICE)
-            KeyWordAnchor(92.05f, KeyWordEffect.PRISM_SHATTER),      // 1:32.0 Verse Two "Rap" (SLIGHT EXTRA JUICE)
-            KeyWordAnchor(109.09f, KeyWordEffect.CONSTELLATION_STAR),// 1:49.1 Chorus II Drop (EXTRA JUICE)
-            KeyWordAnchor(129.55f, KeyWordEffect.CONSTELLATION_STAR) // 2:09.5 Ending Breakdown Climax (EXTRA JUICE)
+            KeyWordAnchor(44.32f, KeyWordEffect.MAGNETAR_WAR),       // 0:44.3 Pre-Chorus I Swell (💥 Solar Nova Blast)
+            KeyWordAnchor(54.55f, KeyWordEffect.CONSTELLATION_STAR), // 0:54.5 Chorus I Drop (⚡ Electric Overdrive)
+            KeyWordAnchor(92.05f, KeyWordEffect.PRISM_SHATTER),      // 1:32.0 Verse Two "Rap" (✨ Prism Vocal Bloom)
+            KeyWordAnchor(109.09f, KeyWordEffect.ECLIPSE_DARK),      // 1:49.1 Chorus II Slow-Mo Pocket (🌀 Vortex Slow-Mo)
+            KeyWordAnchor(129.55f, KeyWordEffect.CONSTELLATION_STAR) // 2:09.5 Ending Breakdown Climax (⚡ Electric Overdrive)
         )
 
         val cues = ArrayList<BeatOrbCue>(160)
@@ -390,14 +383,7 @@ object MusicLibrary {
                 KeyWordEffect.ECLIPSE_DARK -> PowerUpType.SLOW_MO
                 KeyWordEffect.MAGNETAR_WAR -> PowerUpType.BLAST
                 KeyWordEffect.TRACTOR_REACH, KeyWordEffect.BINARY_HEART -> PowerUpType.SHIELD
-                else -> when {
-                    seq % 8 == 2 -> PowerUpType.ELECTRIC_HARMONIC // ⚡ Electric Surge: Synth highway & aurora overdrive!
-                    seq % 8 == 4 -> PowerUpType.PRISM_HARMONY     // ✨ Prism Bloom: Vocal harmony & album art reveal!
-                    seq % 8 == 6 -> PowerUpType.SLOW_MO          // 🌀 Vortex Rewind: 50% slow-mo breakdown!
-                    seq % 8 == 0 -> PowerUpType.BLAST            // 💥 Nova Blast: Screen hazard clear!
-                    seq % 16 == 7 -> PowerUpType.SHIELD          // 🛡️ Aegis Shield: 1-hit protective barrier!
-                    else -> PowerUpType.NONE                       // ♪ Regular rhythmic beat note
-                }
+                else -> PowerUpType.NONE
             }
 
             cues.add(

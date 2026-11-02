@@ -470,47 +470,155 @@ fun DrawScope.drawNebulaBackground(
         )
     }
 
-    // 10. Screen-Edge Bioluminescent Audio Visualizer Equalizer (Left & Right Edge Bars)
-    val barCount = 18
-    val barH = (size.height * 0.70f) / barCount
-    val startY = size.height * 0.15f
+    // 10. Dynamic Special Phase Transformations (Full-Screen Visual Overhauls)
     val isElectric = isConstellationActive
     val isPrism = activePhenomenon?.effect == KeyWordEffect.PRISM_SHATTER
     val isSlowMo = stageMode == StageMode.ABYSSAL_WAVE
 
-    for (b in 0 until barCount) {
-        val norm = b.toFloat() / barCount
-        val bandEnergy = when {
-            norm < 0.35f -> (bass * 0.85f + beatPulse * 0.35f)
-            norm < 0.70f -> (vocal * 0.80f + beatPulse * 0.20f)
-            else -> (high * 0.75f + energy * 0.25f)
-        }
-        val barLen = ((12f + bandEnergy * 42f) * (if (isElectric || isPrism) 1.4f else 1.0f)).coerceIn(4f, size.width * 0.12f)
-        val barY = startY + b * barH
-        val barCol = when {
-            isElectric -> if (b % 2 == 0) Color(0xFFFACC15L) else Color(0xFF38BDF8L)
-            isPrism -> when (b % 3) {
-                0 -> Color(0xFF4ADE80L)
-                1 -> Color(0xFFEC4899L)
-                else -> Color(0xFF38BDF8L)
+    if (isElectric) {
+        // ⚡ ELECTRIC OVERDRIVE: 3D Synthwave Perspective Floor Grid + Hyperspace Warp Rays + Branching Plasma
+        val horizonY = centerY + size.height * 0.08f
+        val gridDepth = size.height - horizonY
+        if (gridDepth > 20f) {
+            val lineCount = 14
+            for (l in 0..lineCount) {
+                val xBottom = -size.width * 0.2f + (size.width * 1.4f) * (l.toFloat() / lineCount)
+                drawLine(
+                    color = Color(0xFFFACC15).copy(alpha = 0.28f),
+                    start = Offset(centerX, horizonY),
+                    end = Offset(xBottom, size.height),
+                    strokeWidth = 1.4f
+                )
             }
-            isSlowMo -> Color(0xFFC084FCL)
-            else -> if (b % 2 == 0) palette.nebTint else palette.starTint
+            val transCount = 10
+            val scrollOffset = (time * 1.8f) % 1.0f
+            for (t in 0 until transCount) {
+                val norm = (t.toFloat() + scrollOffset) / transCount
+                val curY = horizonY + (norm * norm) * gridDepth
+                drawLine(
+                    color = Color(0xFFFACC15).copy(alpha = 0.28f),
+                    start = Offset(0f, curY),
+                    end = Offset(size.width, curY),
+                    strokeWidth = 1.4f
+                )
+            }
         }
 
-        // Left Edge Bar
-        drawRoundRect(
-            color = barCol.copy(alpha = (0.35f + bandEnergy * 0.55f).coerceIn(0.2f, 0.95f)),
-            topLeft = Offset(0f, barY + 2f),
-            size = Size(barLen, barH - 4f),
-            cornerRadius = CornerRadius(4f, 4f)
-        )
-        // Right Edge Bar
-        drawRoundRect(
-            color = barCol.copy(alpha = (0.35f + bandEnergy * 0.55f).coerceIn(0.2f, 0.95f)),
-            topLeft = Offset(size.width - barLen, barY + 2f),
-            size = Size(barLen, barH - 4f),
-            cornerRadius = CornerRadius(4f, 4f)
-        )
+        // Hyperspace Star-Warp Velocity Streaks
+        val warpCount = 20
+        for (w in 0 until warpCount) {
+            val warpAngle = (w.toFloat() / warpCount) * 2f * PI.toFloat() + time * 0.15f
+            val warpLen = (40f + 75f * beatPulse) * (0.8f + 0.4f * ((w % 3) / 2f))
+            val distFromCenter = ((time * 0.9f + w * 0.13f) % 1.0f) * maxDim * 0.72f + 25f
+            val sx = centerX + cos(warpAngle) * distFromCenter
+            val sy = centerY + sin(warpAngle) * distFromCenter
+            val ex = centerX + cos(warpAngle) * (distFromCenter + warpLen)
+            val ey = centerY + sin(warpAngle) * (distFromCenter + warpLen)
+            val col = if (w % 2 == 0) Color(0xFFFACC15) else Color(0xFF38BDF8)
+            drawLine(
+                color = col.copy(alpha = 0.75f),
+                start = Offset(sx, sy),
+                end = Offset(ex, ey),
+                strokeWidth = 2.2f
+            )
+        }
+
+        // Multi-Branching Atmospheric Lightning Arcs
+        for (arc in 0 until 3) {
+            val startX = ((arc * 0.33f + (time * 0.24f) % 1.0f) % 1.0f) * size.width
+            val arcSeed = (time * 18f + arc * 89f).toInt()
+            var curX = startX
+            var curY = 0f
+            val arcPath = Path().apply { moveTo(curX, curY) }
+            for (s in 1..8) {
+                curY += size.height / 8f
+                val jitter = sin(arcSeed.toFloat() + s * 4.8f) * (size.width * 0.08f)
+                curX += jitter
+                arcPath.lineTo(curX, curY)
+            }
+            val arcCol = if (arc % 2 == 0) Color(0xFFFACC15) else Color(0xFF38BDF8)
+            drawPath(
+                path = arcPath,
+                color = arcCol.copy(alpha = 0.85f),
+                style = Stroke(width = 2.8f, cap = StrokeCap.Round)
+            )
+        }
+    }
+
+    if (isPrism) {
+        // ✨ PRISM VOCAL BLOOM: Chromatic Dispersion Ripple Waves + Sacred Geometry Mandala
+        val waveCount = 5
+        val colors = listOf(Color(0xFF4ADE80), Color(0xFF38BDF8), Color(0xFFEC4899), Color(0xFFFACC15))
+        for (w in 0 until waveCount) {
+            val wProg = (time * 0.35f + w.toFloat() / waveCount) % 1.0f
+            val wRad = wProg * maxDim * 0.80f
+            val wAlpha = ((1.0f - wProg) * (0.35f + vocal * 0.45f)).coerceIn(0f, 1f)
+            val col = colors[w % colors.size]
+            drawCircle(
+                color = col.copy(alpha = wAlpha),
+                radius = wRad,
+                center = Offset(centerX, centerY),
+                style = Stroke(width = 3.2f * (1.0f - wProg * 0.5f))
+            )
+        }
+
+        // Sacred Geometry Mandala Rings
+        val petalRings = 3
+        for (r in 0 until petalRings) {
+            val pRad = maxDim * (0.22f + r * 0.14f) * (1.0f + vocal * 0.12f)
+            val pCount = 6 + r * 2
+            val rot = time * (if (r % 2 == 0) 0.28f else -0.22f)
+            val rCol = when (r) {
+                0 -> Color(0xFFEC4899).copy(alpha = 0.45f)
+                1 -> Color(0xFF4ADE80).copy(alpha = 0.38f)
+                else -> Color(0xFF38BDF8).copy(alpha = 0.32f)
+            }
+            for (p in 0 until pCount) {
+                val ang = rot + (p.toFloat() / pCount) * 2f * PI.toFloat()
+                val px = centerX + cos(ang) * pRad
+                val py = centerY + sin(ang) * pRad
+                drawCircle(
+                    color = rCol,
+                    radius = pRad * 0.42f,
+                    center = Offset(px, py),
+                    style = Stroke(width = 1.8f)
+                )
+            }
+        }
+    }
+
+    if (isSlowMo) {
+        // 🌀 VORTEX SLOW-MO: Gravitational Accretion Disc + Time-Dilation Horizon Waves
+        val armCount = 4
+        val spiralPoints = 24
+        for (a in 0 until armCount) {
+            val armOffset = a * (2f * PI.toFloat() / armCount) + time * 0.32f
+            val spiralPath = Path()
+            for (s in 0 until spiralPoints) {
+                val st = s.toFloat() / spiralPoints
+                val sDist = st * maxDim * 0.70f
+                val sAngle = armOffset + st * 4.2f
+                val sx = centerX + cos(sAngle) * sDist
+                val sy = centerY + sin(sAngle) * sDist
+                if (s == 0) spiralPath.moveTo(sx, sy) else spiralPath.lineTo(sx, sy)
+            }
+            val aCol = if (a % 2 == 0) Color(0xFFC084FC) else Color(0xFF9333EA)
+            drawPath(
+                path = spiralPath,
+                color = aCol.copy(alpha = 0.45f),
+                style = Stroke(width = 3.6f, cap = StrokeCap.Round)
+            )
+        }
+
+        for (v in 0 until 5) {
+            val vRadius = ((time * 0.14f + v * 0.20f) % 1.0f) * maxDim * 0.75f
+            val vFade = (1.0f - (vRadius / (maxDim * 0.75f))).coerceIn(0f, 1f)
+            drawCircle(
+                color = Color(0xFFC084FC).copy(alpha = 0.45f * vFade),
+                radius = vRadius,
+                center = Offset(centerX, centerY),
+                style = Stroke(width = 4.0f * vFade)
+            )
+        }
     }
 }

@@ -147,7 +147,7 @@ fun TrackListList(
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
-                        text = "${t.bpm.toInt()} BPM • ${formatTrackTime(t.durationSec)} • ${t.sections.size} SECTIONS",
+                        text = "${formatTrackTime(t.durationSec)} • ${t.sections.size} SECTIONS",
                         color = if (selectedRow) Color(0xFFA5B4FCL) else Color.White.copy(alpha = 0.48f),
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 10.sp
@@ -273,7 +273,7 @@ fun TrackListGrid(
             ) {
                 Column {
                     Text(
-                        text = "TRACK %02d • ${t.bpm.toInt()} BPM".format(t.index),
+                        text = "TRACK %02d • 432Hz MASTER".format(t.index),
                         color = if (selected) Color(0xFF4ADE80L) else Color(0xFFA5B4FCL),
                         fontWeight = FontWeight.Black,
                         fontSize = 10.sp

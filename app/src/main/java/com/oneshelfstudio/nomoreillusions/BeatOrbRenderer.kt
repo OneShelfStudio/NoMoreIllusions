@@ -163,17 +163,6 @@ fun DrawScope.drawPowerUps(
                 center = recPt
             )
         }
-
-        drawIntoCanvas { canvas ->
-            cachedSubPaint.textSize = 15.0f
-            cachedSubPaint.color = android.graphics.Color.argb(185, 250, 204, 21)
-            canvas.nativeCanvas.drawText(
-                "🎸 BAND HERO HIGHWAY • STEER THUMB BELOW ★",
-                w * 0.5f,
-                strikeL.y + 38f,
-                cachedSubPaint
-            )
-        }
     }
 
     if (powerUps.isEmpty()) return
@@ -289,11 +278,6 @@ fun DrawScope.drawPowerUps(
                 center = center3D,
                 style = Stroke(width = 3.5f)
             )
-            drawIntoCanvas { canvas ->
-                cachedSubPaint.textSize = (17.5f * perspScale).coerceAtLeast(12f)
-                cachedSubPaint.color = android.graphics.Color.rgb(254, 240, 138)
-                canvas.nativeCanvas.drawText("⚡ ELECTRIC", center3D.x, center3D.y - coreRad * 1.35f, cachedSubPaint)
-            }
         } else if (isPrism) {
             // =========================================================================
             // ✨ 3D VOLUMETRIC PRISM VOCAL BLOOM SPHERE (CRYSTAL VOCALS & ART REVEAL)
@@ -343,11 +327,6 @@ fun DrawScope.drawPowerUps(
                 center = center3D,
                 style = Stroke(width = 3.2f)
             )
-            drawIntoCanvas { canvas ->
-                cachedSubPaint.textSize = (17.5f * perspScale).coerceAtLeast(12f)
-                cachedSubPaint.color = android.graphics.Color.rgb(167, 243, 208)
-                canvas.nativeCanvas.drawText("✨ PRISM", center3D.x, center3D.y - coreRad * 1.35f, cachedSubPaint)
-            }
         } else if (isVortex) {
             // =========================================================================
             // 🌀 3D VOLUMETRIC VORTEX SPHERE (50% SLOW-MO COSMIC BREAKDOWN FLOW)
@@ -402,11 +381,6 @@ fun DrawScope.drawPowerUps(
                 center = center3D,
                 style = Stroke(width = 3.2f)
             )
-            drawIntoCanvas { canvas ->
-                cachedSubPaint.textSize = (17.5f * perspScale).coerceAtLeast(12f)
-                cachedSubPaint.color = android.graphics.Color.rgb(233, 213, 255)
-                canvas.nativeCanvas.drawText("🌀 VORTEX", center3D.x, center3D.y - coreRad * 1.35f, cachedSubPaint)
-            }
         } else if (isBomb) {
             // =========================================================================
             // 💥 3D VOLUMETRIC NOVA SPHERE (SOLAR FLARE ENEMY-DESTROYER!)
@@ -458,11 +432,6 @@ fun DrawScope.drawPowerUps(
                 center = center3D,
                 style = Stroke(width = 3.4f)
             )
-            drawIntoCanvas { canvas ->
-                cachedSubPaint.textSize = (18f * perspScale).coerceAtLeast(12.5f)
-                cachedSubPaint.color = android.graphics.Color.WHITE
-                canvas.nativeCanvas.drawText("💥 NOVA", center3D.x, center3D.y - coreRad * 1.35f, cachedSubPaint)
-            }
         } else if (isShield) {
             // =========================================================================
             // 🛡️ 3D VOLUMETRIC AEGIS SHIELD ORB (PROTECTIVE BARRIER DOME!)
@@ -501,11 +470,6 @@ fun DrawScope.drawPowerUps(
                 center = center3D,
                 style = Stroke(width = 3.2f)
             )
-            drawIntoCanvas { canvas ->
-                cachedSubPaint.textSize = (18f * perspScale).coerceAtLeast(12.5f)
-                cachedSubPaint.color = android.graphics.Color.rgb(186, 230, 253)
-                canvas.nativeCanvas.drawText("🛡️ AEGIS", center3D.x, center3D.y - coreRad * 1.32f, cachedSubPaint)
-            }
         } else {
             // =========================================================================
             // 🎵 TRUE 3D VOLUMETRIC PULSING BEAT ORB (GLOSSY SPHERE + GYRO RING + EMBLEM)

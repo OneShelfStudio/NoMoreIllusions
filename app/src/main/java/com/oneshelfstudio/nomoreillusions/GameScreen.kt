@@ -844,23 +844,6 @@ fun GameScreen(
                     isBandHeroMode = isBandHeroMode,
                     onBeatMissed = {
                         if (rhythmCombo > 0) {
-                            comboZoomBanner = ComboZoomBannerData(
-                                text = "💔 STREAK BROKEN",
-                                subText = "MISSED BEAT NOTE",
-                                color = Color(0xFFEF4444L),
-                                timer = 1.5f,
-                                maxTimer = 1.5f,
-                                isBroken = true
-                            )
-                            floatingTexts.add(
-                                FloatingText(
-                                    x = screenWidth / 2f,
-                                    y = screenHeight - 65f,
-                                    text = "STREAK LOST",
-                                    color = Color(0xFFEF4444L),
-                                    life = 1f
-                                )
-                            )
                             shakeAmount = maxOf(shakeAmount, 3.5f)
                         }
                         rhythmCombo = 0
@@ -1007,29 +990,6 @@ fun GameScreen(
                             val gainedPts = ((if (isCaughtOnBeat) 100 else 45) * mult * (1f + (rhythmCombo.coerceAtMost(12) * 0.10f)) * difficultyScoreMultiplier).toInt()
                             score += gainedPts
 
-                            // High-impact floating combo and on-beat feedback
-                            val comboCallout = when {
-                                rhythmCombo >= 8 -> "🔥 x$mult STREAK ($rhythmCombo)!"
-                                rhythmCombo >= 4 -> "⚡ x$mult COMBO ($rhythmCombo)!"
-                                isCaughtOnBeat -> "★ ON-BEAT! +$gainedPts"
-                                else -> "+$gainedPts"
-                            }
-                            floatingTexts.add(
-                                FloatingText(
-                                    x = p.x,
-                                    y = p.y - 24f,
-                                    text = comboCallout,
-                                    life = if (rhythmCombo >= 4) 0.82f else 0.58f,
-                                    color = when {
-                                        mult >= 4 || rhythmCombo >= 8 -> Color(0xFFFACC15L) // Radiant Gold
-                                        rhythmCombo >= 4 -> Color(0xFF4ADE80L) // Neon Emerald
-                                        isCaughtOnBeat -> Color(0xFF38BDF8L) // Electric Cyan
-                                        else -> Color.White
-                                    },
-                                    isLarge = rhythmCombo >= 4 || isCaughtOnBeat
-                                )
-                            )
-
                             val pickupRes = handleRegularOrbPowerUp(
                                 p = p,
                                 mult = mult,
@@ -1057,98 +1017,31 @@ fun GameScreen(
                             cameraPunch = pickupRes.newCameraPunch
                             beatFlashIntensity = pickupRes.newBeatFlashIntensity
                             score += pickupRes.bonusScore
-                            if (pickupRes.toast != null) activePowerUpToast = pickupRes.toast
 
-                            if (p.powerUpType == PowerUpType.NONE) {
-                                if (rhythmCombo >= 2) {
-                                    comboZoomBanner = ComboZoomBannerData(
-                                        text = if (isCaughtOnBeat) "★ PERFECT BEAT! ${rhythmCombo}x 🔥" else "${rhythmCombo}x STREAK",
-                                        subText = if (isCaughtOnBeat) "STREAK CHAIN • +$gainedPts PTS" else "RHYTHMIC FLOW • +$gainedPts PTS",
-                                        color = when {
-                                            rhythmCombo >= 8 -> Color(0xFFFACC15L)
-                                            rhythmCombo >= 4 -> Color(0xFF4ADE80L)
-                                            isCaughtOnBeat -> Color(0xFF38BDF8L)
-                                            else -> Color.White
-                                        },
-                                        timer = 1.25f,
-                                        maxTimer = 1.25f,
-                                        isBroken = false
-                                    )
-                                }
-                            } else {
-                                when (p.powerUpType) {
-                                    PowerUpType.ELECTRIC_HARMONIC -> {
-                                        audioEngine.playElectricSurgeStinger()
-                                        comboZoomBanner = ComboZoomBannerData(
-                                            text = "⚡ 4X OVERDRIVE! (${rhythmCombo}x STREAK)",
-                                            subText = "SYNTH AURORA SURGE • +250 PTS",
-                                            color = Color(0xFFFACC15L),
-                                            timer = 1.6f,
-                                            maxTimer = 1.6f,
-                                            isBroken = false
-                                        )
-                                    }
-                                    PowerUpType.PRISM_HARMONY -> {
-                                        audioEngine.playPrismBloomStinger()
-                                        comboZoomBanner = ComboZoomBannerData(
-                                            text = "✨ PRISM VOCAL BLOOM! (${rhythmCombo}x STREAK)",
-                                            subText = "+20% ART WATERFALL FILL • +250 PTS",
-                                            color = Color(0xFF4ADE80L),
-                                            timer = 1.6f,
-                                            maxTimer = 1.6f,
-                                            isBroken = false
-                                        )
-                                    }
-                                    PowerUpType.SLOW_MO -> {
-                                        audioEngine.playSlowMoStinger()
-                                        comboZoomBanner = ComboZoomBannerData(
-                                            text = "🌀 VORTEX SLOW-MO! (${rhythmCombo}x STREAK)",
-                                            subText = "TIME DILATION FLOW • +250 PTS",
-                                            color = Color(0xFFC084FCL),
-                                            timer = 1.6f,
-                                            maxTimer = 1.6f,
-                                            isBroken = false
-                                        )
-                                    }
-                                    PowerUpType.BLAST -> {
-                                        audioEngine.playSolarNovaStinger()
-                                        for (s in 0 until 28) {
-                                            val sAngle = kotlin.random.Random.nextFloat() * 2f * kotlin.math.PI.toFloat()
-                                            val sSpd = 260f + kotlin.random.Random.nextFloat() * 320f
-                                            particles.add(
-                                                GameObject(
-                                                    x = p.x,
-                                                    y = p.y,
-                                                    vx = kotlin.math.cos(sAngle) * sSpd,
-                                                    vy = kotlin.math.sin(sAngle) * sSpd,
-                                                    radius = 3.5f + kotlin.random.Random.nextFloat() * 3f,
-                                                    color = if (s % 3 == 0) Color(0xFFFDE047L) else if (s % 3 == 1) Color(0xFF38BDF8L) else Color(0xFFF97316L),
-                                                    life = 1.2f
-                                                )
+                            when (p.powerUpType) {
+                                PowerUpType.ELECTRIC_HARMONIC -> audioEngine.playElectricSurgeStinger()
+                                PowerUpType.PRISM_HARMONY -> audioEngine.playPrismBloomStinger()
+                                PowerUpType.SLOW_MO -> audioEngine.playSlowMoStinger()
+                                PowerUpType.BLAST -> {
+                                    audioEngine.playSolarNovaStinger()
+                                    for (s in 0 until 28) {
+                                        val sAngle = kotlin.random.Random.nextFloat() * 2f * kotlin.math.PI.toFloat()
+                                        val sSpd = 260f + kotlin.random.Random.nextFloat() * 320f
+                                        particles.add(
+                                            GameObject(
+                                                x = p.x,
+                                                y = p.y,
+                                                vx = kotlin.math.cos(sAngle) * sSpd,
+                                                vy = kotlin.math.sin(sAngle) * sSpd,
+                                                radius = 3.5f + kotlin.random.Random.nextFloat() * 3f,
+                                                color = if (s % 3 == 0) Color(0xFFFDE047L) else if (s % 3 == 1) Color(0xFF38BDF8L) else Color(0xFFF97316L),
+                                                life = 1.2f
                                             )
-                                        }
-                                        comboZoomBanner = ComboZoomBannerData(
-                                            text = "💥 SOLAR NOVA! (${rhythmCombo}x STREAK)",
-                                            subText = "ALL HAZARDS VAPORIZED • +250 PTS",
-                                            color = Color(0xFFF97316L),
-                                            timer = 1.6f,
-                                            maxTimer = 1.6f,
-                                            isBroken = false
                                         )
                                     }
-                                    PowerUpType.SHIELD -> {
-                                        audioEngine.playAegisStinger()
-                                        comboZoomBanner = ComboZoomBannerData(
-                                            text = "🛡️ AEGIS BARRIER! (${rhythmCombo}x STREAK)",
-                                            subText = "INVINCIBILITY ACTIVE • +250 PTS",
-                                            color = Color(0xFF38BDF8L),
-                                            timer = 1.6f,
-                                            maxTimer = 1.6f,
-                                            isBroken = false
-                                        )
-                                    }
-                                    else -> {}
                                 }
+                                PowerUpType.SHIELD -> audioEngine.playAegisStinger()
+                                else -> {}
                             }
                         } else {
                             triggerHaptic(48L)
@@ -1281,32 +1174,8 @@ fun GameScreen(
                                         life = 1f
                                     )
                                 )
-                                comboZoomBanner = ComboZoomBannerData(
-                                    text = "🛡️ SHIELD DEFLECTED!",
-                                    subText = "HAZARD IMPACT ABSORBED",
-                                    color = Color(0xFF38BDF8L),
-                                    timer = 1.4f,
-                                    maxTimer = 1.4f,
-                                    isBroken = true
-                                )
-                                activePowerUpToast = PowerUpBannerToast(
-                                    icon = "🛡️",
-                                    title = "SHIELD ABSORBED HIT!",
-                                    subtitle = "PROTECTIVE BARRIER SAVED YOUR RUN",
-                                    accentColor = Color(0xFF38BDF8L),
-                                    timer = 2.0f,
-                                    maxTimer = 2.0f
-                                )
                                 eIter.remove()
                             } else {
-                                comboZoomBanner = ComboZoomBannerData(
-                                    text = "💔 STREAK BROKEN",
-                                    subText = "HAZARD IMPACT",
-                                    color = Color(0xFFEF4444L),
-                                    timer = 1.5f,
-                                    maxTimer = 1.5f,
-                                    isBroken = true
-                                )
                                 pulsePoints += ((score / 70).coerceIn(5, 45) * difficultyScoreMultiplier).toInt().coerceAtLeast(5)
                                 gameOverCounter++
                                 gameState = GameState.GAME_OVER
@@ -1505,7 +1374,7 @@ fun GameScreen(
                 slowMoTime = slowMoTime,
                 magnetTime = magnetTime,
                 endlessLoopCount = if (selectedRemixMode == TrackRemixMode.ENDLESS) lastLoopCycleSeen else 0,
-                comboBanner = comboZoomBanner,
+                comboBanner = null,
                 onPause = { if (gameState == GameState.PLAYING) gameState = GameState.PAUSED }
             )
         }

@@ -478,6 +478,29 @@ fun stepNebulousBeatOrbs(
                 orb.y = orb.spawnY + s * chordY + perpY * arcOffset
             }
         }
+
+        // Elastic Note-on-Note Mutual Bouncing & Anti-Overlap Physics
+        if (powerUps.size > 1) {
+            for (i in 0 until powerUps.size) {
+                for (j in i + 1 until powerUps.size) {
+                    val a = powerUps[i]
+                    val b = powerUps[j]
+                    val dx = b.x - a.x
+                    val dy = b.y - a.y
+                    val dist = kotlin.math.hypot(dx, dy)
+                    val minDist = (a.radius + b.radius) * 1.35f
+                    if (dist < minDist && dist > 0.001f) {
+                        val overlap = minDist - dist
+                        val nx = dx / dist
+                        val ny = dy / dist
+                        a.x -= nx * overlap * 0.5f
+                        a.y -= ny * overlap * 0.5f
+                        b.x += nx * overlap * 0.5f
+                        b.y += ny * overlap * 0.5f
+                    }
+                }
+            }
+        }
     }
 }
 

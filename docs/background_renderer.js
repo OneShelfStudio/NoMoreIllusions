@@ -125,48 +125,6 @@ function drawNebulaBackground(ctx, W, H, palette, stars, time, beatPulse, multiB
   ctx.fillStyle = bgGrad;
   ctx.fillRect(0, 0, W, H);
 
-  // 1b. Screen-Edge Bioluminescent Audio Visualizer Equalizer (Left & Right Edge Bars)
-  const barCount = 18;
-  const barH = (H * 0.70) / barCount;
-  const startY = H * 0.15;
-  for (let b = 0; b < barCount; b++) {
-    const norm = b / barCount;
-    // Spectrum distribution: lower bars react to bass, middle to vocal, top to highs
-    const bandEnergy = norm < 0.35
-      ? (bass * 0.85 + beatPulse * 0.35)
-      : norm < 0.70
-      ? (vocal * 0.80 + beatPulse * 0.20)
-      : (high * 0.75 + energy * 0.25);
-
-    const barLen = Math.max(3, Math.min(W * 0.12, (12 + bandEnergy * 42) * (isElectric || isPrism ? 1.4 : 1.0)));
-    const barY = startY + b * barH;
-    const barCol = isElectric
-      ? (b % 2 === 0 ? [250, 204, 21] : [56, 189, 248])
-      : isPrism
-      ? (b % 3 === 0 ? [74, 222, 128] : b % 3 === 1 ? [236, 72, 153] : [56, 189, 248])
-      : isSlowMo
-      ? [192, 132, 252]
-      : (b % 2 === 0 ? palette.nebTint : palette.starTint);
-
-    const bAlpha = (0.12 + bandEnergy * 0.45) * (isElectric || isPrism ? 1.3 : 1.0);
-
-    // Left edge bar
-    ctx.beginPath();
-    ctx.rect(0, barY, barLen, barH * 0.65);
-    ctx.fillStyle = rgba(barCol, bAlpha * 0.45);
-    ctx.fill();
-    ctx.fillStyle = rgba([255, 255, 255], bAlpha * 0.85);
-    ctx.fillRect(barLen - 2.5, barY, 2.5, barH * 0.65);
-
-    // Right edge bar (mirrored)
-    ctx.beginPath();
-    ctx.rect(W - barLen, barY, barLen, barH * 0.65);
-    ctx.fillStyle = rgba(barCol, bAlpha * 0.45);
-    ctx.fill();
-    ctx.fillStyle = rgba([255, 255, 255], bAlpha * 0.85);
-    ctx.fillRect(W - barLen, barY, 2.5, barH * 0.65);
-  }
-
   // 2. Parallax Starfield (Rainbow diamonds during Prism, Gold motes during Electric)
   if (stars && stars.length) {
     for (let i = 0; i < stars.length; i++) {
@@ -265,56 +223,176 @@ function drawNebulaBackground(ctx, W, H, palette, stars, time, beatPulse, multiB
 
   // 4b. Dynamic Special Phase Transformations (Full-Screen Visual Overhauls)
   if (isElectric) {
-    // High-Voltage Atmospheric Lightning Arcs & Electric Grid Surges across the sky
+    // ⚡ ELECTRIC OVERDRIVE: 3D Synthwave Perspective Floor Grid + Hyperspace Warp Rays + Branching Plasma
     ctx.save();
-    for (let arc = 0; arc < 4; arc++) {
-      const startX = ((arc * 0.28 + (time * 0.22) % 1.0) % 1.0) * W;
-      const arcSeed = Math.floor(time * 16 + arc * 77);
+
+    // 1. 3D Perspective Neon Synthwave Ground Grid
+    const horizonY = centerY + H * 0.08;
+    const gridDepth = H - horizonY;
+    if (gridDepth > 20) {
+      ctx.beginPath();
+      // Draw perspective longitudinal lines vanishing to center
+      const lineCount = 14;
+      for (let l = 0; l <= lineCount; l++) {
+        const xBottom = -W * 0.2 + (W * 1.4) * (l / lineCount);
+        ctx.moveTo(centerX, horizonY);
+        ctx.lineTo(xBottom, H);
+      }
+      // Draw horizontal receding transverse lines with speed
+      const transCount = 10;
+      const scrollOffset = (time * 1.8) % 1.0;
+      for (let t = 0; t < transCount; t++) {
+        const norm = (t + scrollOffset) / transCount;
+        const curY = horizonY + Math.pow(norm, 2.2) * gridDepth;
+        ctx.moveTo(0, curY);
+        ctx.lineTo(W, curY);
+      }
+      ctx.strokeStyle = "rgba(250, 204, 21, 0.28)";
+      ctx.lineWidth = 1.4;
+      ctx.stroke();
+
+      // Neon horizon glow bar
+      const horizGrad = ctx.createLinearGradient(0, horizonY - 12, 0, horizonY + 18);
+      horizGrad.addColorStop(0, "rgba(56, 189, 248, 0)");
+      horizGrad.addColorStop(0.5, "rgba(250, 204, 21, 0.42)");
+      horizGrad.addColorStop(1, "rgba(56, 189, 248, 0)");
+      ctx.fillStyle = horizGrad;
+      ctx.fillRect(0, horizonY - 12, W, 30);
+    }
+
+    // 2. Hyperspace Star-Warp Velocity Streaks
+    const warpCount = 24;
+    for (let w = 0; w < warpCount; w++) {
+      const warpAngle = (w / warpCount) * Math.PI * 2 + time * 0.15;
+      const warpLen = (40 + 75 * beatPulse) * (0.8 + 0.4 * ((w % 3) / 2));
+      const distFromCenter = ((time * 0.9 + w * 0.13) % 1.0) * maxDim * 0.72 + 25;
+      const sx = centerX + Math.cos(warpAngle) * distFromCenter;
+      const sy = centerY + Math.sin(warpAngle) * distFromCenter;
+      const ex = centerX + Math.cos(warpAngle) * (distFromCenter + warpLen);
+      const ey = centerY + Math.sin(warpAngle) * (distFromCenter + warpLen);
+
+      ctx.beginPath();
+      ctx.moveTo(sx, sy);
+      ctx.lineTo(ex, ey);
+      ctx.strokeStyle = w % 2 === 0 ? "rgba(250, 204, 21, 0.75)" : "rgba(56, 189, 248, 0.75)";
+      ctx.lineWidth = 2.2;
+      ctx.stroke();
+    }
+
+    // 3. Multi-Branching Atmospheric Lightning Arcs
+    for (let arc = 0; arc < 3; arc++) {
+      const startX = ((arc * 0.33 + (time * 0.24) % 1.0) % 1.0) * W;
+      const arcSeed = Math.floor(time * 18 + arc * 89);
       let curX = startX;
       let curY = 0;
       ctx.beginPath();
       ctx.moveTo(curX, curY);
-      for (let s = 1; s <= 7; s++) {
-        curY += H / 7;
-        const jitter = Math.sin(arcSeed + s * 4.6) * (W * 0.09);
+      for (let s = 1; s <= 8; s++) {
+        curY += H / 8;
+        const jitter = Math.sin(arcSeed + s * 4.8) * (W * 0.08);
         curX += jitter;
         ctx.lineTo(curX, curY);
       }
-      ctx.strokeStyle = arc % 2 === 0 ? "rgba(250, 204, 21, 0.72)" : "rgba(56, 189, 248, 0.85)";
-      ctx.lineWidth = 2.6;
+      ctx.strokeStyle = arc % 2 === 0 ? "rgba(250, 204, 21, 0.85)" : "rgba(56, 189, 248, 0.90)";
+      ctx.lineWidth = 2.8;
       ctx.shadowColor = arc % 2 === 0 ? "#FACC15" : "#38BDF8";
-      ctx.shadowBlur = 16;
+      ctx.shadowBlur = 18;
       ctx.stroke();
     }
     ctx.restore();
   }
 
   if (isPrism) {
-    // Rotating Rainbow Prismatic Diffraction Beams radiating from the central core
+    // ✨ PRISM VOCAL BLOOM: Chromatic Dispersion Ripple Waves + Sacred Geometry Mandala + Iridescent Rays
     ctx.save();
-    const beamCount = 12;
+
+    // 1. Concentric Chromatic Dispersion Ripple Waves (pulsing with Ethan's vocal energy)
+    const waveCount = 5;
+    for (let w = 0; w < waveCount; w++) {
+      const wProg = ((time * 0.35 + w / waveCount) % 1.0);
+      const wRad = wProg * maxDim * 0.80;
+      const wAlpha = (1.0 - wProg) * (0.35 + vocal * 0.45);
+      const colors = ["#4ADE80", "#38BDF8", "#EC4899", "#FACC15"];
+      const col = colors[w % colors.length];
+
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, wRad, 0, Math.PI * 2);
+      ctx.strokeStyle = col;
+      ctx.globalAlpha = Math.max(0, Math.min(1, wAlpha));
+      ctx.lineWidth = 3.2 * (1.0 - wProg * 0.5);
+      ctx.shadowColor = col;
+      ctx.shadowBlur = 14;
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1.0;
+
+    // 2. Sacred Geometry Kaleidoscope / Mandala Rings (Interlocking Petals)
+    const petalRings = 3;
+    for (let r = 0; r < petalRings; r++) {
+      const pRad = maxDim * (0.22 + r * 0.14) * (1.0 + vocal * 0.12);
+      const pCount = 6 + r * 2;
+      const rot = time * (r % 2 === 0 ? 0.28 : -0.22);
+      ctx.beginPath();
+      for (let p = 0; p < pCount; p++) {
+        const ang = rot + (p / pCount) * Math.PI * 2;
+        const px = centerX + Math.cos(ang) * pRad;
+        const py = centerY + Math.sin(ang) * pRad;
+        ctx.arc(px, py, pRad * 0.42, 0, Math.PI * 2);
+      }
+      ctx.strokeStyle = r === 0 ? "rgba(236, 72, 153, 0.45)" : r === 1 ? "rgba(74, 222, 128, 0.38)" : "rgba(56, 189, 248, 0.32)";
+      ctx.lineWidth = 1.8;
+      ctx.stroke();
+    }
+
+    // 3. Rotating Rainbow Prismatic Diffraction Beams
+    const beamCount = 16;
     for (let b = 0; b < beamCount; b++) {
-      const beamAngle = time * 0.45 + (b * (Math.PI * 2 / beamCount));
+      const beamAngle = time * 0.40 + (b * (Math.PI * 2 / beamCount));
       const bCol = b % 4 === 0 ? [74, 222, 128] : b % 4 === 1 ? [56, 189, 248] : b % 4 === 2 ? [236, 72, 153] : [250, 204, 21];
       ctx.beginPath();
       ctx.moveTo(centerX, centerY);
-      ctx.arc(centerX, centerY, maxDim * 0.75, beamAngle - 0.08, beamAngle + 0.08);
+      ctx.arc(centerX, centerY, maxDim * 0.85, beamAngle - 0.06, beamAngle + 0.06);
       ctx.closePath();
-      ctx.fillStyle = rgba(bCol, 0.14 + 0.06 * Math.sin(time * 4.5 + b));
+      ctx.fillStyle = rgba(bCol, 0.15 + 0.08 * Math.sin(time * 5.0 + b));
       ctx.fill();
     }
     ctx.restore();
   }
 
   if (isSlowMo) {
-    // Gravitational Time-Dilation Horizon Rings
+    // 🌀 VORTEX SLOW-MO: Gravitational Accretion Disc + Time-Dilation Horizon Waves + Royal Void
     ctx.save();
-    for (let v = 0; v < 4; v++) {
-      const vRadius = ((time * 0.16 + v * 0.25) % 1.0) * maxDim * 0.65;
+
+    // 1. Spacetime Gravitational Accretion Swirling Spiral Arms
+    const armCount = 4;
+    const spiralPoints = 28;
+    for (let a = 0; a < armCount; a++) {
+      ctx.beginPath();
+      const armOffset = a * (Math.PI * 2 / armCount) + time * 0.32;
+      for (let s = 0; s < spiralPoints; s++) {
+        const st = s / spiralPoints;
+        const sDist = st * maxDim * 0.70;
+        const sAngle = armOffset + st * 4.2;
+        const sx = centerX + Math.cos(sAngle) * sDist;
+        const sy = centerY + Math.sin(sAngle) * sDist;
+        if (s === 0) ctx.moveTo(sx, sy);
+        else ctx.lineTo(sx, sy);
+      }
+      ctx.strokeStyle = a % 2 === 0 ? "rgba(192, 132, 252, 0.52)" : "rgba(147, 51, 234, 0.40)";
+      ctx.lineWidth = 3.6;
+      ctx.shadowColor = "#C084FC";
+      ctx.shadowBlur = 16;
+      ctx.stroke();
+    }
+
+    // 2. Gravitational Time-Dilation Event Horizon Expansion Rings
+    for (let v = 0; v < 5; v++) {
+      const vRadius = ((time * 0.14 + v * 0.20) % 1.0) * maxDim * 0.75;
+      const vFade = 1.0 - (vRadius / (maxDim * 0.75));
       ctx.beginPath();
       ctx.arc(centerX, centerY, vRadius, 0, Math.PI * 2);
-      ctx.strokeStyle = rgba([192, 132, 252], 0.38 * (1 - vRadius / (maxDim * 0.65)));
-      ctx.lineWidth = 4.2;
+      ctx.strokeStyle = `rgba(192, 132, 252, ${0.45 * vFade})`;
+      ctx.lineWidth = 4.0 * vFade;
       ctx.stroke();
     }
     ctx.restore();
@@ -457,17 +535,27 @@ function drawNebulaBackground(ctx, W, H, palette, stars, time, beatPulse, multiB
     }
   }
 
-  // 7. Full-Screen Solar Nova Blast Wave
+  // 7. Full-Screen Solar Nova Blast Wave (Blinding White-Hot Expanding Corona Shockwave)
   if (novaFlash > 0.01) {
-    const novaRadius = (1 - novaFlash) * maxDim * 1.1;
+    const novaRadius = (1 - novaFlash) * maxDim * 1.15;
     ctx.save();
     const novaGrad = ctx.createRadialGradient(centerX, centerY, 5, centerX, centerY, Math.max(10, novaRadius));
-    novaGrad.addColorStop(0, rgba([255, 255, 255], novaFlash * 0.85));
-    novaGrad.addColorStop(0.3, rgba([250, 204, 21], novaFlash * 0.65));
-    novaGrad.addColorStop(0.7, rgba([249, 115, 22], novaFlash * 0.45));
+    novaGrad.addColorStop(0, rgba([255, 255, 255], novaFlash * 0.92));
+    novaGrad.addColorStop(0.25, rgba([254, 240, 138], novaFlash * 0.75));
+    novaGrad.addColorStop(0.55, rgba([250, 204, 21], novaFlash * 0.55));
+    novaGrad.addColorStop(0.85, rgba([249, 115, 22], novaFlash * 0.35));
     novaGrad.addColorStop(1, "rgba(0,0,0,0)");
     ctx.fillStyle = novaGrad;
     ctx.fillRect(0, 0, W, H);
+
+    // Blinding white-hot shockwave rim
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, Math.max(10, novaRadius), 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(255, 255, 255, ${novaFlash * 0.95})`;
+    ctx.lineWidth = 6.0 * novaFlash;
+    ctx.shadowColor = "#FACC15";
+    ctx.shadowBlur = 24;
+    ctx.stroke();
     ctx.restore();
   }
 }

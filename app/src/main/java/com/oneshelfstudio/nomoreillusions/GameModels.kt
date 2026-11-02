@@ -78,9 +78,9 @@ data class MultiBandAudioState(
  * Selectable original studio lobby music tracks (FluidSynth + pedalboard mastered, non-artist audio).
  */
 enum class LobbyTrack(val id: String, val title: String, val subtitle: String, val rawResName: String, val bpm: Float) {
-    VELVET("VELVET", "Velvet Abyss", "Dark Synth Pad • 90 BPM", "lobby_velvet", 90f),
-    CRYSTAL("CRYSTAL", "Crystal Mirage", "Glass Vibraphone • 100 BPM", "lobby_crystal", 100f),
-    MIDNIGHT("MIDNIGHT", "Midnight Lo-Fi", "Warm Rhodes • 84 BPM", "lobby_midnight", 84f);
+    VELVET("VELVET", "Velvet Abyss", "Dark Synth Pad", "lobby_velvet", 90f),
+    CRYSTAL("CRYSTAL", "Crystal Mirage", "Glass Vibraphone", "lobby_crystal", 100f),
+    MIDNIGHT("MIDNIGHT", "Midnight Lo-Fi", "Warm Rhodes", "lobby_midnight", 84f);
 
     companion object {
         fun fromId(id: String?): LobbyTrack = entries.firstOrNull { it.id == id } ?: VELVET
