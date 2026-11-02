@@ -205,13 +205,18 @@ Object.assign(NoMoreIllusionsApp.prototype, {
     this.openScreen("CUSTOMIZER", -1);
   },
 
-  openScreen(stateName, customTab = -1) {
+  openScreen(stateName, customTab = -1, pushHistory = true) {
     this.unlockAudioOnFirstGesture();
     this.playSfx("whoosh_modal", 0.80);
     if (this.gameState === "DEMO_PLAYER" && stateName !== "DEMO_PLAYER") {
       this.demoAudio.pause();
     }
     this.gameState = stateName;
+    if (pushHistory && window.history && typeof window.history.pushState === "function") {
+      try {
+        window.history.pushState({ screen: stateName, tab: customTab }, "");
+      } catch (err) {}
+    }
     if (stateName === "CUSTOMIZER") {
       this.customizerTab = typeof customTab === "number" ? customTab : -1;
       setTimeout(() => this.resize(), 20);
@@ -282,6 +287,22 @@ Object.assign(NoMoreIllusionsApp.prototype, {
     this.syncUI();
   },
 
+  nextStage(ev) {
+    if (ev && typeof ev.stopPropagation === "function") ev.stopPropagation();
+    this.unlockAudioOnFirstGesture();
+    this.playSfx("click");
+    this.selectedStageIndex = (this.selectedStageIndex + 1) % OFFICIAL_TRACKS.length;
+    this.syncUI();
+  },
+
+  prevStage(ev) {
+    if (ev && typeof ev.stopPropagation === "function") ev.stopPropagation();
+    this.unlockAudioOnFirstGesture();
+    this.playSfx("click");
+    this.selectedStageIndex = (this.selectedStageIndex - 1 + OFFICIAL_TRACKS.length) % OFFICIAL_TRACKS.length;
+    this.syncUI();
+  },
+
   syncUI() {
     // Show only active screen overlay
     const screens = ["MENU", "PLAYING", "PAUSED", "GAME_OVER", "TRACK_COMPLETED", "HOW_TO_PLAY", "SETTINGS", "DEMO_PLAYER", "CUSTOMIZER", "COUNTDOWN", "LINER_NOTES"];
@@ -328,96 +349,31 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       rewardsDropWrap.innerHTML = "";
     }
 
-    // 1. ZERO-READING "TOUCH HERE -> GET THIS" DUAL VINYL STAGE DECK (#menu-track-deck-row)
-    const trackDeckRow = document.getElementById("menu-track-deck-row");
-    if (trackDeckRow) {
-      const discsHtml = OFFICIAL_TRACKS.map((track, idx) => {
-        const isSel = idx === this.selectedStageIndex;
-        const isTrkUnlocked = this.prefs.unlockedTracks.includes(track.id) || this.prefs.isVip || idx === 0;
-        const stars = this.prefs.trackMasteryMedals[track.id] || 0;
-        const starsStr = [1, 2, 3].map(s => s <= stars ? "★" : "☆").join("");
-        const accentCol = isSel ? activeRemix.color : (isTrkUnlocked ? "#38BDF8" : "#475569");
-        return `
-          <div onclick="window.app.selectStage(${idx})"
-               style="flex:1;min-width:0;padding:10px 8px;cursor:pointer;position:relative;
-                      clip-path:polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px);
-                      background:${!isTrkUnlocked ? "linear-gradient(180deg, #090D18, #03050B)" : isSel ? `linear-gradient(180deg, ${accentCol}33, #070D1B)` : "linear-gradient(180deg, #080E1C, #040710)"};
-                      border:${!isTrkUnlocked ? "1.2px solid #334155" : isSel ? `2px solid ${accentCol}` : "1.2px solid rgba(255,255,255,0.18)"};
-                      box-shadow:${isSel && isTrkUnlocked ? `0 0 18px ${accentCol}44` : "none"};
-                      display:flex;flex-direction:column;align-items:center;">
-            <div style="width:100%;display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-              <span style="font-size:10px;font-weight:900;letter-spacing:1px;color:${isTrkUnlocked ? (isSel ? accentCol : "#94A3B8") : "#64748B"};">TRACK 0${idx + 1}</span>
-              <span onclick="window.app.togglePrizePeek(${idx}, event)"
-                    style="padding:2px 6px;font-size:8.5px;font-weight:900;
-                           clip-path:polygon(5px 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%, 0 5px);
-                           background:${isTrkUnlocked ? "#064E3B" : "#1E293B"};
-                           border:1px solid ${isTrkUnlocked ? "#4ADE80" : "#64748B"};
-                           color:${isTrkUnlocked ? "#4ADE80" : "#CBD5E1"};">
-                ${isTrkUnlocked ? "★ UNLOCKED" : "🔒 1,200 ♪"}
-              </span>
-            </div>
-            <!-- Authentic Spinning Vinyl Record with Song Picture -->
-            <div style="position:relative;width:68px;height:68px;display:flex;align-items:center;justify-content:center;margin-bottom:6px;">
-              <div style="position:absolute;inset:0;border-radius:50%;background:#06080F;
-                          border:${isSel && isTrkUnlocked ? `2px solid ${accentCol}` : isTrkUnlocked ? '1.2px solid rgba(255,255,255,0.22)' : '1.2px solid #334155'};
-                          box-shadow:inset 0 0 10px rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;
-                          ${isTrkUnlocked && isSel ? 'animation: vinyl-spin 4.5s linear infinite;' : isTrkUnlocked ? 'animation: vinyl-spin 14s linear infinite;' : ''}">
-                <div style="position:absolute;inset:4px;border-radius:50%;border:1px dashed rgba(255,255,255,0.07);pointer-events:none;"></div>
-                <div style="position:absolute;inset:8px;border-radius:50%;border:1px solid rgba(255,255,255,0.05);pointer-events:none;"></div>
-                <div style="position:absolute;inset:0;border-radius:50%;background:linear-gradient(135deg, rgba(255,255,255,0.14) 0%, transparent 42%, rgba(255,255,255,0.08) 100%);pointer-events:none;"></div>
-                <div style="position:relative;width:40px;height:40px;border-radius:50%;overflow:hidden;border:1.4px solid ${isTrkUnlocked ? (isSel ? accentCol : '#FACC15') : '#475569'};display:flex;align-items:center;justify-content:center;">
-                  <img src="assets/${track.id}.png" alt="${track.title}" style="width:100%;height:100%;object-fit:cover;${!isTrkUnlocked ? 'filter:grayscale(1) brightness(0.40);' : ''}" />
-                  <div style="position:absolute;width:6px;height:6px;border-radius:50%;background:#030508;border:1px solid ${isTrkUnlocked ? '#FACC15' : '#64748B'};"></div>
-                </div>
-              </div>
-              <!-- Non-spinning Frosted Greyed-Out Lock Overlay -->
-              ${!isTrkUnlocked ? `
-                <div style="position:absolute;inset:4px;border-radius:8px;background:rgba(5,8,17,0.86);border:1.2px solid rgba(100,116,139,0.75);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:2;backdrop-filter:blur(2px);">
-                  <span style="font-size:14px;line-height:1;">🔒</span>
-                  <span style="font-size:7.5px;font-weight:900;color:#CBD5E1;letter-spacing:0.5px;margin-top:2px;">LOCKED</span>
-                  <span style="font-size:7px;font-weight:800;color:#FACC15;">1,200 ♪</span>
-                </div>
-              ` : ""}
-            </div>
-            <div style="font-size:11.5px;font-weight:900;color:${isTrkUnlocked ? '#FFFFFF' : '#94A3B8'};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;">
-              ${track.title.toUpperCase()}
-            </div>
-            <div style="font-size:8.5px;font-weight:800;color:${isTrkUnlocked ? '#4ADE80' : '#64748B'};margin-top:2px;">
-              ${isTrkUnlocked ? `${starsStr} • READY` : "🔒 BEAT STAGE 1 OR 1,200 ♪"}
-            </div>
-          </div>
-        `;
-      }).join("");
+    // 1. CAROUSEL SHOWCASE & PAGINATION DOTS
+    const trackDotsEl = document.getElementById("menu-track-dots");
+    if (trackDotsEl) {
+      trackDotsEl.innerHTML = OFFICIAL_TRACKS.map((t, idx) => `
+        <div class="track-dot ${idx === this.selectedStageIndex ? "active" : ""}"
+             onclick="window.app.selectStage(${idx})"
+             title="Track 0${idx + 1}: ${t.title}"></div>
+      `).join("");
+    }
 
-      let peekHtml = "";
-      if (typeof this.peekPrizeTrackIdx === "number" && OFFICIAL_TRACKS[this.peekPrizeTrackIdx]) {
-        const pTrack = OFFICIAL_TRACKS[this.peekPrizeTrackIdx];
-        const pWon = this.prefs.unlockedTracks.includes(pTrack.id) || this.prefs.isVip || this.peekPrizeTrackIdx === 0;
-        peekHtml = `
-          <div onclick="window.app.togglePrizePeek(null, event)"
-               style="margin-top:8px;padding:8px 12px;display:flex;align-items:center;gap:10px;cursor:pointer;
-                      clip-path:polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
-                      background:${pWon ? "#0A1224" : "#0F172A"};border:1.5px solid ${pWon ? "#FACC15" : "#475569"};">
-            <img src="assets/${pTrack.id}.png" alt="Prize" style="width:42px;height:42px;border-radius:50%;border:1.5px solid ${pWon ? "#FACC15" : "#64748B"};object-fit:cover;flex-shrink:0;${pWon ? "" : "filter:grayscale(1) brightness(0.45);"}">
-            <div style="flex:1;text-align:left;min-width:0;">
-              <div style="font-size:10px;font-weight:900;color:${pWon ? "#FACC15" : "#94A3B8"};">
-                ${pWon ? `★ TRACK 0${this.peekPrizeTrackIdx + 1} UNLOCKED & READY!` : `🔒 BEAT TRACK 01 OR UNLOCK FOR 1,200 ♪:`}
-              </div>
-              <div style="font-size:9.5px;font-weight:800;color:#FFFFFF;margin-top:2px;">
-                💿 "${pTrack.title}" Official Master Track (${Math.round(pTrack.bpm)} BPM)
-              </div>
-            </div>
-            <span style="font-size:12px;font-weight:900;color:#94A3B8;">✕</span>
-          </div>
-        `;
-      }
+    const titleMainEl = document.getElementById("menu-track-title-main");
+    const metaRowEl = document.getElementById("menu-track-meta-row");
+    const isCurUnlocked = this.prefs.unlockedTracks.includes(activeStage.id) || this.prefs.isVip || this.selectedStageIndex === 0;
+    const stars = this.prefs.trackMasteryMedals[activeStage.id] || 0;
+    const starsStr = [1, 2, 3].map(s => s <= stars ? "★" : "☆").join("");
 
-      trackDeckRow.innerHTML = `
-        <div style="display:flex;gap:10px;width:100%;">
-          ${discsHtml}
-        </div>
-        ${peekHtml}
-      `;
+    if (titleMainEl) {
+      titleMainEl.textContent = `TRACK 0${this.selectedStageIndex + 1}: ${activeStage.title.toUpperCase()}`;
+      titleMainEl.style.color = isCurUnlocked ? "#FAF8F5" : "#94A3B8";
+    }
+    if (metaRowEl) {
+      metaRowEl.textContent = isCurUnlocked
+        ? `${Math.round(activeStage.bpm)} BPM • ${activeStage.key || "432Hz MASTER"} • ${starsStr} READY`
+        : `🔒 LOCKED • BEAT TRACK 01 OR UNLOCK (1,200 ♪)`;
+      metaRowEl.style.color = isCurUnlocked ? "#FACC15" : "#F87171";
     }
 
     // 2. 4 SCULPTED CHAMFERED NEON MODE GEMS (#menu-remix-pills: Chill, Normal, Fast, Band Hero!)
@@ -462,31 +418,27 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       `;
     }
 
-    // 3. Custom-Sculpted Chamfered Neon Launch Blade (#btn-launch-stage)
+    // 3. Grand Pulsing Jewel Stage Launch Emblem (#btn-launch-stage)
     const launchBtn = document.getElementById("btn-launch-stage");
     const isStageUnlocked = this.prefs.unlockedTracks.includes(activeStage.id) || this.prefs.isVip || this.selectedStageIndex === 0;
     const launchAccent = !isStageUnlocked ? "#F59E0B" : (this.isBandHeroMode ? "#FACC15" : activeRemix.color);
-    if (launchBtn) {
-      launchBtn.style.clipPath = "polygon(18px 0, 100% 0, 100% calc(100% - 18px), calc(100% - 18px) 100%, 0 100%, 0 18px)";
-      launchBtn.style.background = `linear-gradient(90deg, ${launchAccent}44, #091326, ${launchAccent}44)`;
-      launchBtn.style.border = `2.2px solid ${launchAccent}`;
-      launchBtn.style.boxShadow = `0 0 22px ${launchAccent}44`;
-    }
 
     const launchMain = document.getElementById("menu-launch-main");
     if (launchMain) {
       launchMain.innerHTML = !isStageUnlocked
-        ? `🔒 &nbsp;UNLOCK TRACK 0${this.selectedStageIndex + 1} (1,200 ♪ OR BEAT STAGE 1)`
+        ? `🔒 &nbsp;UNLOCK TRACK 0${this.selectedStageIndex + 1} (1,200 ♪)`
         : (this.isBandHeroMode
-          ? `🎸 &nbsp;PLAY CLASSIC MODE • GUITAR HERO STYLE`
-          : `▶ &nbsp;PLAY TRACK 0${this.selectedStageIndex + 1} • ${activeStage.title.toUpperCase()}`);
+          ? `🎸 &nbsp;PLAY CLASSIC HIGHWAY`
+          : `▶ &nbsp;PLAY ${activeStage.title.toUpperCase()}`);
     }
     const launchSub = document.getElementById("menu-launch-sub");
     if (launchSub) {
-      launchSub.textContent = this.isBandHeroMode
-        ? "GUITAR HERO STYLE 4-LANE HIGHWAY"
-        : `${activeRemix.displayName} • 8-BEAT FREE-ROAM STAGE`;
-      launchSub.style.color = launchAccent;
+      launchSub.textContent = !isStageUnlocked
+        ? "TAP TO UNLOCK WITH COLLECTED NOTES"
+        : (this.isBandHeroMode
+          ? "4-LANE GUITAR HERO RHYTHM RUN"
+          : `${activeRemix.displayName} • ${Math.round(activeStage.bpm)} BPM GROOVE`);
+      launchSub.style.color = isStageUnlocked ? "#FAF8F5" : "#FACC15";
     }
 
     const vaultCountEl = document.getElementById("menu-vault-count");

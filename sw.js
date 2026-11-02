@@ -1,4 +1,4 @@
-const CACHE_NAME = "nmi-v36-combo-zoom-waterfall";
+const CACHE_NAME = "nmi-v37-rhythm-spectacle";
 const ASSETS = [
   "./",
   "./index.html",

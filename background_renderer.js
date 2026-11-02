@@ -125,9 +125,47 @@ function drawNebulaBackground(ctx, W, H, palette, stars, time, beatPulse, multiB
   ctx.fillStyle = bgGrad;
   ctx.fillRect(0, 0, W, H);
 
-  const centerX = W * 0.5;
-  const centerY = H * 0.46;
-  const maxDim = Math.max(W, H);
+  // 1b. Screen-Edge Bioluminescent Audio Visualizer Equalizer (Left & Right Edge Bars)
+  const barCount = 18;
+  const barH = (H * 0.70) / barCount;
+  const startY = H * 0.15;
+  for (let b = 0; b < barCount; b++) {
+    const norm = b / barCount;
+    // Spectrum distribution: lower bars react to bass, middle to vocal, top to highs
+    const bandEnergy = norm < 0.35
+      ? (bass * 0.85 + beatPulse * 0.35)
+      : norm < 0.70
+      ? (vocal * 0.80 + beatPulse * 0.20)
+      : (high * 0.75 + energy * 0.25);
+
+    const barLen = Math.max(3, Math.min(W * 0.12, (12 + bandEnergy * 42) * (isElectric || isPrism ? 1.4 : 1.0)));
+    const barY = startY + b * barH;
+    const barCol = isElectric
+      ? (b % 2 === 0 ? [250, 204, 21] : [56, 189, 248])
+      : isPrism
+      ? (b % 3 === 0 ? [74, 222, 128] : b % 3 === 1 ? [236, 72, 153] : [56, 189, 248])
+      : isSlowMo
+      ? [192, 132, 252]
+      : (b % 2 === 0 ? palette.nebTint : palette.starTint);
+
+    const bAlpha = (0.12 + bandEnergy * 0.45) * (isElectric || isPrism ? 1.3 : 1.0);
+
+    // Left edge bar
+    ctx.beginPath();
+    ctx.rect(0, barY, barLen, barH * 0.65);
+    ctx.fillStyle = rgba(barCol, bAlpha * 0.45);
+    ctx.fill();
+    ctx.fillStyle = rgba([255, 255, 255], bAlpha * 0.85);
+    ctx.fillRect(barLen - 2.5, barY, 2.5, barH * 0.65);
+
+    // Right edge bar (mirrored)
+    ctx.beginPath();
+    ctx.rect(W - barLen, barY, barLen, barH * 0.65);
+    ctx.fillStyle = rgba(barCol, bAlpha * 0.45);
+    ctx.fill();
+    ctx.fillStyle = rgba([255, 255, 255], bAlpha * 0.85);
+    ctx.fillRect(W - barLen, barY, 2.5, barH * 0.65);
+  }
 
   // 2. Parallax Starfield (Rainbow diamonds during Prism, Gold motes during Electric)
   if (stars && stars.length) {

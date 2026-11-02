@@ -29,10 +29,10 @@ Object.assign(NoMoreIllusionsApp.prototype, {
     // Update Multi-Band State at exact timestamp
     this.multiBandState = getMultiBandStateAt(stage.id, this.trackElapsedSec);
 
-    // Beat pulse @ 126 BPM
+    // Beat pulse @ 126 BPM (Explosive exponential transient attack & decay!)
     const beatPeriod = 60 / stage.bpm;
     const beatPhase = (this.trackElapsedSec % beatPeriod) / beatPeriod;
-    this.beatPulse = Math.pow(1 - beatPhase, 3);
+    this.beatPulse = Math.exp(-beatPhase * 6.5);
 
     // Focus Mechanic
     const focusActive = this.isFocusHolding && this.focusCharge > 0.02;
@@ -536,10 +536,17 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       }
     }
 
-    // 11. Update Particles (with Swaying Melodic Starfall Petals!), Shockwaves & Compact Floating Numbers
+    // 11. Update Particles (with Shards & Swaying Melodic Starfall Petals!), Shockwaves & Compact Floating Numbers
     for (let i = this.motes.length - 1; i >= 0; i--) {
       const m = this.motes[i];
-      if (m.isStarfall) {
+      if (m.isShard) {
+        m.x += m.vx * dt;
+        m.y += m.vy * dt;
+        m.rot = (m.rot || 0) + (m.vRot || 0) * dt;
+        if (m.x < 12 || m.x > this.W - 12) m.vx = -m.vx * 0.72;
+        if (m.y < 12 || m.y > this.H - 12) m.vy = -m.vy * 0.72;
+        m.alpha -= dt * (m.decay || 0.85);
+      } else if (m.isStarfall) {
         m.swayPhase = (m.swayPhase || 0) + dt * 2.8;
         m.x += (m.vx + Math.sin(m.swayPhase) * 65) * dt;
         m.y += m.vy * dt;
@@ -798,8 +805,8 @@ Object.assign(NoMoreIllusionsApp.prototype, {
     const diffMult = (mode.scoreMult || 1.0) * (this.prefs.difficulty === "EASY" ? 0.55 : (this.prefs.difficulty === "HARD" ? 1.35 : 1.0));
 
     if (pu.type === "SCORE_ORB") {
-      this.playSfx("orb", 0.72);
-      this.triggerHaptic([16]);
+      this.synthHarmonicOrbChime(0.72, isAtStrikeLine, this.combo);
+      this.triggerHaptic([isAtStrikeLine ? 24 : 14]);
 
       const basePts = isAtStrikeLine ? 120 : 60;
       const pts = Math.max(10, Math.round(basePts * this.combo * (this.constellationRushTimer > 0 ? 2 : 1) * diffMult));
@@ -858,22 +865,22 @@ Object.assign(NoMoreIllusionsApp.prototype, {
         this.spawnMelodicStarfallCascade();
       }
     } else {
-      this.playSfx("powerup", 0.82);
-      this.triggerHaptic([28]);
+      this.triggerHaptic([32]);
       const specialPts = Math.round(250 * this.combo * diffMult);
       this.score += specialPts;
 
       let col = [56, 189, 248];
       if (pu.type === "ELECTRIC_HARMONIC") {
+        this.synthElectricSurgeStinger(0.85);
         this.overdriveTimer = Math.max(this.overdriveTimer, 8.0);
         this.electricSurgeTimer = Math.max(this.electricSurgeTimer || 0, 8.0);
-        this.screenShake = Math.max(this.screenShake, 16);
+        this.screenShake = Math.max(this.screenShake, 18);
         col = [250, 204, 21];
         this.shockwaves.push({ x: pu.x, y: pu.y, radius: 14, maxRadius: 650, color: col, alpha: 1 });
         this.shockwaves.push({ x: pu.x, y: pu.y, radius: 10, maxRadius: 450, color: [56, 189, 248], alpha: 1 });
-        for (let m = 0; m < 18; m++) {
-          const a = (m / 18) * Math.PI * 2;
-          this.spawnBurstMotes(pu.x + Math.cos(a) * 22, pu.y + Math.sin(a) * 22, m % 2 === 0 ? [250, 204, 21] : [56, 189, 248], 2);
+        for (let m = 0; m < 20; m++) {
+          const a = (m / 20) * Math.PI * 2;
+          this.spawnBurstMotes(pu.x + Math.cos(a) * 24, pu.y + Math.sin(a) * 24, m % 2 === 0 ? [250, 204, 21] : [56, 189, 248], 3);
         }
         this.comboZoomBanner = {
           text: `⚡ 4X OVERDRIVE! (${this.combo}x STREAK)`,
@@ -884,17 +891,18 @@ Object.assign(NoMoreIllusionsApp.prototype, {
           isBroken: false
         };
       } else if (pu.type === "PRISM_HARMONY") {
-        this.screenShake = Math.max(this.screenShake, 10);
+        this.synthPrismBloomStinger(0.85);
+        this.screenShake = Math.max(this.screenShake, 12);
         this.prismBloomTimer = Math.max(this.prismBloomTimer || 0, 8.0);
         this.prismSurgeBonus = Math.min(1.0, (this.prismSurgeBonus || 0) + 0.20);
         this.unlockedArtPercent = Math.min(1.0, (this.unlockedArtPercent || 0.2) + 0.20);
         col = [74, 222, 128];
         this.shockwaves.push({ x: pu.x, y: pu.y, radius: 14, maxRadius: 550, color: col, alpha: 1 });
         this.shockwaves.push({ x: pu.x, y: pu.y, radius: 10, maxRadius: 360, color: [236, 72, 153], alpha: 1 });
-        for (let m = 0; m < 16; m++) {
-          const a = (m / 16) * Math.PI * 2;
+        for (let m = 0; m < 18; m++) {
+          const a = (m / 18) * Math.PI * 2;
           const rainbowCols = [[74, 222, 128], [56, 189, 248], [236, 72, 153], [250, 204, 21], [192, 132, 252]];
-          this.spawnBurstMotes(pu.x + Math.cos(a) * 20, pu.y + Math.sin(a) * 20, rainbowCols[m % rainbowCols.length], 2);
+          this.spawnBurstMotes(pu.x + Math.cos(a) * 22, pu.y + Math.sin(a) * 22, rainbowCols[m % rainbowCols.length], 3);
         }
         this.comboZoomBanner = {
           text: `✨ PRISM VOCAL BLOOM! (${this.combo}x STREAK)`,
@@ -905,6 +913,7 @@ Object.assign(NoMoreIllusionsApp.prototype, {
           isBroken: false
         };
       } else if (pu.type === "SLOW_MO") {
+        this.synthSlowMoTapeStop(0.85);
         this.slowMoTimer = Math.max(this.slowMoTimer, 6.0);
         col = [192, 132, 252];
         this.shockwaves.push({ x: pu.x, y: pu.y, radius: 14, maxRadius: 450, color: col, alpha: 1 });
@@ -917,20 +926,38 @@ Object.assign(NoMoreIllusionsApp.prototype, {
           isBroken: false
         };
       } else if (pu.type === "BLAST" || pu.type === "OVERDRIVE") {
+        this.synthSolarNovaExplosion(0.95);
         col = [249, 115, 22];
         this.solarNovaFlash = 1.0;
-        this.screenShake = Math.max(this.screenShake, 20);
+        this.screenShake = Math.max(this.screenShake, 24);
         let vaporizedCount = 0;
         for (let k = 0; k < this.enemies.length; k++) {
           const en = this.enemies[k];
           this.score += 200 * Math.max(1, this.combo);
-          this.spawnBurstMotes(en.x, en.y, [250, 204, 21], 10);
-          this.shockwaves.push({ x: en.x, y: en.y, radius: 8, maxRadius: 150, color: [250, 204, 21], alpha: 1 });
+          // Scatter ricocheting crystal glass shards
+          for (let s = 0; s < 14; s++) {
+            const ang = Math.random() * Math.PI * 2;
+            const spd = 140 + Math.random() * 320;
+            this.motes.push({
+              x: en.x,
+              y: en.y,
+              vx: Math.cos(ang) * spd,
+              vy: Math.sin(ang) * spd,
+              radius: 4.0 + Math.random() * 4.0,
+              color: s % 2 === 0 ? [250, 204, 21] : [249, 115, 22],
+              alpha: 1.0,
+              decay: 0.85 + Math.random() * 0.45,
+              isShard: true,
+              rot: Math.random() * 6.28,
+              vRot: (Math.random() - 0.5) * 14
+            });
+          }
+          this.shockwaves.push({ x: en.x, y: en.y, radius: 8, maxRadius: 180, color: [250, 204, 21], alpha: 1 });
           vaporizedCount++;
         }
         this.enemies = [];
         this.telegraphs = [];
-        this.shockwaves.push({ x: pu.x, y: pu.y, radius: 14, maxRadius: 750, color: col, alpha: 1 });
+        this.shockwaves.push({ x: pu.x, y: pu.y, radius: 14, maxRadius: 850, color: col, alpha: 1 });
         this.comboZoomBanner = {
           text: `💥 SOLAR NOVA! (${this.combo}x STREAK)`,
           subText: `${vaporizedCount > 0 ? vaporizedCount + ' HAZARDS' : 'ALL HAZARDS'} VAPORIZED • +250 PTS`,
@@ -940,6 +967,7 @@ Object.assign(NoMoreIllusionsApp.prototype, {
           isBroken: false
         };
       } else {
+        this.synthAegisChime(0.85);
         this.shieldTimer = Math.max(this.shieldTimer, 6.0);
         col = [56, 189, 248];
         this.shockwaves.push({
@@ -959,7 +987,7 @@ Object.assign(NoMoreIllusionsApp.prototype, {
           isBroken: false
         };
       }
-      this.spawnBurstMotes(pu.x, pu.y, col, 10);
+      this.spawnBurstMotes(pu.x, pu.y, col, 12);
     }
   },
 
