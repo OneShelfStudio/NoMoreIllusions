@@ -455,6 +455,7 @@ fun stepNebulousBeatOrbs(
     }
 
     if (!isBandHeroMode && powerUps.isNotEmpty()) {
+        val dt = (1f / 60f) * currentScale
         powerUps.forEach { orb ->
             val leadDur = (orb.targetBeatSec - orb.spawnBeatSec).coerceAtLeast(0.45f)
             val totalDur = leadDur * 2.0f
@@ -477,9 +478,26 @@ fun stepNebulousBeatOrbs(
                 orb.x = orb.spawnX + s * chordX + perpX * arcOffset
                 orb.y = orb.spawnY + s * chordY + perpY * arcOffset
             }
+
+            // Integrate elastic bounce impulse offset and decay back to waterfall path
+            orb.bounceOffsetX += orb.bvx * dt
+            orb.bounceOffsetY += orb.bvy * dt
+            orb.bvx *= 0.92f
+            orb.bvy *= 0.92f
+            orb.bounceOffsetX *= 0.94f
+            orb.bounceOffsetY *= 0.94f
+            orb.x += orb.bounceOffsetX
+            orb.y += orb.bounceOffsetY
+
+            // Smoothly decay squish deformation
+            if (orb.squish > 0.001f) {
+                orb.squish *= 0.88f
+            } else {
+                orb.squish = 0f
+            }
         }
 
-        // Elastic Note-on-Note Mutual Bouncing & Anti-Overlap Physics
+        // Natural Physics Elastic Ricochet Bouncing between colliding Orbs
         if (powerUps.size > 1) {
             for (i in 0 until powerUps.size) {
                 for (j in i + 1 until powerUps.size) {
@@ -493,10 +511,40 @@ fun stepNebulousBeatOrbs(
                         val overlap = minDist - dist
                         val nx = dx / dist
                         val ny = dy / dist
+
+                        // Positional separation to prevent interpenetration
                         a.x -= nx * overlap * 0.5f
                         a.y -= ny * overlap * 0.5f
                         b.x += nx * overlap * 0.5f
                         b.y += ny * overlap * 0.5f
+                        a.bounceOffsetX -= nx * overlap * 0.5f
+                        a.bounceOffsetY -= ny * overlap * 0.5f
+                        b.bounceOffsetX += nx * overlap * 0.5f
+                        b.bounceOffsetY += ny * overlap * 0.5f
+
+                        // Calculate relative velocities along collision normal
+                        val vxA = (b.spawnX - a.spawnX) * 0.1f + a.bvx
+                        val vyA = 120f + a.bvy
+                        val vxB = (a.spawnX - b.spawnX) * 0.1f + b.bvx
+                        val vyB = 120f + b.bvy
+                        val relVx = vxB - vxA
+                        val relVy = vyB - vyA
+                        val velAlongNormal = relVx * nx + relVy * ny
+
+                        if (velAlongNormal < 0f) {
+                            val restitution = 0.85f
+                            val impulseMag = maxOf(140f, -(1f + restitution) * velAlongNormal)
+                            a.bvx -= nx * impulseMag * 0.5f
+                            a.bvy -= ny * impulseMag * 0.5f
+                            b.bvx += nx * impulseMag * 0.5f
+                            b.bvy += ny * impulseMag * 0.5f
+
+                            // Trigger squish deformation along collision axis
+                            a.squish = 0.35f
+                            a.squishAngle = atan2(ny, nx)
+                            b.squish = 0.35f
+                            b.squishAngle = atan2(-ny, -nx)
+                        }
                     }
                 }
             }

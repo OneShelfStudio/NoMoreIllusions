@@ -370,6 +370,17 @@ function drawPowerUps(ctx, powerUps, playerX, playerY, time, trackSec, beatPulse
     const cy = pu.y + bounceOffsetY;
 
     ctx.save();
+
+    // Natural Physics Elastic Squish & Stretch Deformation
+    if (pu.squish && Math.abs(pu.squish) > 0.01) {
+      const sAngle = pu.squishAngle || 0;
+      ctx.translate(cx, cy);
+      ctx.rotate(sAngle);
+      ctx.scale(1.0 + pu.squish, 1.0 - pu.squish * 0.7);
+      ctx.rotate(-sAngle);
+      ctx.translate(-cx, -cy);
+    }
+
     // Subtle, clean contracting beat ring in Original mode
     if (!isBandHeroMode && !isSpecialType) {
       const ringRadius = coreRad * (1.06 + 0.52 * (1 - beatPulse));
@@ -386,6 +397,7 @@ function drawPowerUps(ctx, powerUps, playerX, playerY, time, trackSec, beatPulse
       ctx.stroke();
     }
 
+    // Soft drop shadow
     ctx.beginPath();
     ctx.ellipse(
       pu.x,
@@ -400,175 +412,290 @@ function drawPowerUps(ctx, powerUps, playerX, playerY, time, trackSec, beatPulse
     ctx.fill();
 
     if (isElectric) {
-      // ⚡ ELECTRIC SYNTH OVERDRIVE SPHERE (Neon Cyan & Gold Pulsar + Lightning Sparks)
+      // =========================================================================
+      // ⚡ CUSTOM SCULPTED HIGH-VOLTAGE PLASMA ORB
+      // =========================================================================
+      // 1. Radiant Electric Corona Bloom
+      const glow = ctx.createRadialGradient(cx, cy, 2, cx, cy, coreRad * 2.50);
+      glow.addColorStop(0, rgba([255, 255, 255], 0.98 * puAlpha));
+      glow.addColorStop(0.30, rgba([250, 204, 21], 0.85 * puAlpha));
+      glow.addColorStop(0.65, rgba([56, 189, 248], 0.45 * puAlpha));
+      glow.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.beginPath();
+      ctx.arc(cx, cy, coreRad * 2.50, 0, Math.PI * 2);
+      ctx.fillStyle = glow;
+      ctx.fill();
+
+      // 2. Dual Counter-Rotating Magnetic Containment Rings
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, coreRad * 1.38, coreRad * 0.46, time * 2.2, 0, Math.PI * 2);
+      ctx.strokeStyle = rgba([250, 204, 21], 0.92 * puAlpha);
+      ctx.lineWidth = 2.4;
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, coreRad * 1.38, coreRad * 0.46, -time * 2.6 + 1.2, 0, Math.PI * 2);
+      ctx.strokeStyle = rgba([56, 189, 248], 0.92 * puAlpha);
+      ctx.lineWidth = 2.4;
+      ctx.stroke();
+
+      // Luminous containment charge nodes
+      for (let n = 0; n < 3; n++) {
+        const ang1 = time * 2.2 + n * (Math.PI * 2 / 3);
+        const nx1 = cx + Math.cos(ang1) * (coreRad * 1.38);
+        const ny1 = cy + Math.sin(ang1) * (coreRad * 0.46);
+        ctx.beginPath();
+        ctx.arc(nx1, ny1, 3.2, 0, Math.PI * 2);
+        ctx.fillStyle = "#FFFFFF";
+        ctx.shadowColor = "#FACC15";
+        ctx.shadowBlur = 8;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      }
+
+      // 3. Volumetric Plasma Sphere Body
+      const electricSphere = ctx.createRadialGradient(
+        cx - coreRad * 0.32, cy - coreRad * 0.34, coreRad * 0.08,
+        cx, cy, coreRad * 1.12
+      );
+      electricSphere.addColorStop(0, "#FFFFFF");
+      electricSphere.addColorStop(0.24, "#FEF08A");
+      electricSphere.addColorStop(0.60, "#06B6D4");
+      electricSphere.addColorStop(1, "#082F49");
+      ctx.beginPath();
+      ctx.arc(cx, cy, coreRad, 0, Math.PI * 2);
+      ctx.fillStyle = electricSphere;
+      ctx.fill();
+      ctx.strokeStyle = rgba([250, 204, 21], 0.98 * puAlpha);
+      ctx.lineWidth = 3.2;
+      ctx.stroke();
+
+      // 4. Embossed ⚡ Voltage Glyph
+      ctx.font = `900 ${Math.max(15, Math.round(coreRad * 0.92))}px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillStyle = `rgba(8, 47, 73, ${(0.80 * puAlpha).toFixed(3)})`;
+      ctx.fillText("⚡", cx + 1, cy + 2);
+      ctx.fillStyle = "#FFFFFF";
+      ctx.shadowColor = "#FEF08A";
+      ctx.shadowBlur = 10;
+      ctx.fillText("⚡", cx, cy + 1);
+      ctx.shadowBlur = 0;
+    } else if (isPrism) {
+      // =========================================================================
+      // ✨ CUSTOM SCULPTED 3D FACETED CHROMATIC CRYSTAL GEMSTONE
+      // =========================================================================
+      // 1. Iridescent Prismatic Halo Bloom
+      const glow = ctx.createRadialGradient(cx, cy, 2, cx, cy, coreRad * 2.40);
+      glow.addColorStop(0, rgba([255, 255, 255], 0.98 * puAlpha));
+      glow.addColorStop(0.35, rgba([74, 222, 128], 0.78 * puAlpha));
+      glow.addColorStop(0.65, rgba([236, 72, 153], 0.48 * puAlpha));
+      glow.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.beginPath();
+      ctx.arc(cx, cy, coreRad * 2.40, 0, Math.PI * 2);
+      ctx.fillStyle = glow;
+      ctx.fill();
+
+      // 2. Orbiting Iridescent Stardust Shards
+      const shardCount = 4;
+      for (let s = 0; s < shardCount; s++) {
+        const sAng = time * 1.8 + s * (Math.PI * 2 / shardCount);
+        const sDist = coreRad * (1.32 + 0.10 * Math.sin(time * 3 + s));
+        const sx = cx + Math.cos(sAng) * sDist;
+        const sy = cy + Math.sin(sAng) * (sDist * 0.65);
+        ctx.beginPath();
+        ctx.ellipse(sx, sy, 4.5, 2.2, sAng, 0, Math.PI * 2);
+        ctx.fillStyle = s % 2 === 0 ? "#86EFAC" : "#F472B6";
+        ctx.shadowColor = "#FFFFFF";
+        ctx.shadowBlur = 6;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      }
+
+      // 3. Faceted Hexagonal Gemstone Geometry
+      const facetColors = ["#86EFAC", "#38BDF8", "#F472B6", "#FACC15", "#A78BFA", "#67E8F9"];
+      const outerVerts = [];
+      const innerVerts = [];
+      const numSides = 6;
+      for (let i = 0; i < numSides; i++) {
+        const ang = (i / numSides) * Math.PI * 2 - Math.PI / 6;
+        outerVerts.push({
+          x: cx + Math.cos(ang) * coreRad,
+          y: cy + Math.sin(ang) * coreRad
+        });
+        innerVerts.push({
+          x: cx + Math.cos(ang) * (coreRad * 0.52),
+          y: cy + Math.sin(ang) * (coreRad * 0.52)
+        });
+      }
+
+      // Draw outer trapezoid facets with chromatic dispersion
+      for (let i = 0; i < numSides; i++) {
+        const next = (i + 1) % numSides;
+        ctx.beginPath();
+        ctx.moveTo(outerVerts[i].x, outerVerts[i].y);
+        ctx.lineTo(outerVerts[next].x, outerVerts[next].y);
+        ctx.lineTo(innerVerts[next].x, innerVerts[next].y);
+        ctx.lineTo(innerVerts[i].x, innerVerts[i].y);
+        ctx.closePath();
+        ctx.fillStyle = facetColors[i % facetColors.length];
+        ctx.globalAlpha = 0.85 * puAlpha;
+        ctx.fill();
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.75)";
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1.0;
+
+      // Draw center crystal table with brilliant white-opal core
+      ctx.beginPath();
+      ctx.moveTo(innerVerts[0].x, innerVerts[0].y);
+      for (let i = 1; i < numSides; i++) {
+        ctx.lineTo(innerVerts[i].x, innerVerts[i].y);
+      }
+      ctx.closePath();
+      const centerGrad = ctx.createRadialGradient(cx, cy, 1, cx, cy, coreRad * 0.55);
+      centerGrad.addColorStop(0, "#FFFFFF");
+      centerGrad.addColorStop(0.6, "#E0F2FE");
+      centerGrad.addColorStop(1, "#BAE6FD");
+      ctx.fillStyle = centerGrad;
+      ctx.fill();
+      ctx.strokeStyle = "#FFFFFF";
+      ctx.lineWidth = 1.8;
+      ctx.stroke();
+
+      // Embossed ✨ Star Glyph
+      ctx.font = `900 ${Math.max(14, Math.round(coreRad * 0.80))}px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillStyle = `rgba(15, 23, 42, ${(0.82 * puAlpha).toFixed(3)})`;
+      ctx.fillText("✨", cx + 1, cy + 2);
+      ctx.fillStyle = "#FFFFFF";
+      ctx.shadowColor = "#86EFAC";
+      ctx.shadowBlur = 8;
+      ctx.fillText("✨", cx, cy + 1);
+      ctx.shadowBlur = 0;
+    } else if (isVortex) {
+      // =========================================================================
+      // 🌀 CUSTOM SCULPTED COSMIC SINGULARITY ORB
+      // =========================================================================
+      // 1. Deep Amethyst Gravitational Halo
       const glow = ctx.createRadialGradient(cx, cy, 2, cx, cy, coreRad * 2.35);
-      glow.addColorStop(0, rgba([255, 255, 255], 0.96 * puAlpha));
-      glow.addColorStop(0.35, rgba([250, 204, 21], 0.86 * puAlpha));
-      glow.addColorStop(0.70, rgba([56, 189, 248], 0.52 * puAlpha));
+      glow.addColorStop(0, rgba([233, 213, 255], 0.95 * puAlpha));
+      glow.addColorStop(0.40, rgba([192, 132, 252], 0.80 * puAlpha));
+      glow.addColorStop(0.75, rgba([88, 28, 135], 0.45 * puAlpha));
       glow.addColorStop(1, "rgba(0,0,0,0)");
       ctx.beginPath();
       ctx.arc(cx, cy, coreRad * 2.35, 0, Math.PI * 2);
       ctx.fillStyle = glow;
       ctx.fill();
 
-      // Spinning 3D gyro ring
-      ctx.beginPath();
-      ctx.ellipse(cx, cy, coreRad * 1.25, coreRad * 0.45, time * 1.5, 0, Math.PI * 2);
-      ctx.strokeStyle = rgba([250, 204, 21], 0.90 * puAlpha);
-      ctx.lineWidth = 2.6;
-      ctx.stroke();
-
-      // Rotating lightning sparks
-      for (let s = 0; s < 6; s++) {
-        const ang = s * (Math.PI / 3) + time * 3.2;
+      // 2. Swirling Gravitational Accretion Disc (Spiral Nebula Dust)
+      const armCount = 3;
+      for (let a = 0; a < armCount; a++) {
         ctx.beginPath();
-        ctx.moveTo(cx + Math.cos(ang) * (coreRad * 0.8), cy + Math.sin(ang) * (coreRad * 0.8));
-        ctx.lineTo(cx + Math.cos(ang) * (coreRad * 1.35), cy + Math.sin(ang) * (coreRad * 1.35));
-        ctx.strokeStyle = rgba([56, 189, 248], 0.95 * puAlpha);
+        const baseAng = a * (Math.PI * 2 / armCount) - time * 2.8;
+        for (let pt = 0; pt < 16; pt++) {
+          const tNorm = pt / 16;
+          const r = coreRad * (0.35 + tNorm * 0.95);
+          const ang = baseAng + tNorm * 2.8;
+          const px = cx + Math.cos(ang) * r;
+          const py = cy + Math.sin(ang) * (r * 0.55);
+          if (pt === 0) ctx.moveTo(px, py);
+          else ctx.lineTo(px, py);
+        }
+        ctx.strokeStyle = a % 2 === 0 ? "rgba(233, 213, 255, 0.85)" : "rgba(192, 132, 252, 0.80)";
         ctx.lineWidth = 2.4;
         ctx.stroke();
       }
 
-      const electricSphere = ctx.createRadialGradient(
-        cx - coreRad * 0.34, cy - coreRad * 0.36, coreRad * 0.08,
-        cx, cy, coreRad * 1.08
+      // 3. Gravitational Event Horizon Void Core
+      const voidGrad = ctx.createRadialGradient(
+        cx - coreRad * 0.15, cy - coreRad * 0.15, 2,
+        cx, cy, coreRad * 0.75
       );
-      electricSphere.addColorStop(0, "#FFFFFF");
-      electricSphere.addColorStop(0.25, "#FEF08A");
-      electricSphere.addColorStop(0.65, "#06B6D4");
-      electricSphere.addColorStop(1, "#082F49");
+      voidGrad.addColorStop(0, "#E9D5FF");
+      voidGrad.addColorStop(0.25, "#7E22CE");
+      voidGrad.addColorStop(0.65, "#2E1065");
+      voidGrad.addColorStop(1, "#030008");
       ctx.beginPath();
-      ctx.arc(cx, cy, coreRad, 0, Math.PI * 2);
-      ctx.fillStyle = electricSphere;
+      ctx.arc(cx, cy, coreRad * 0.78, 0, Math.PI * 2);
+      ctx.fillStyle = voidGrad;
       ctx.fill();
-      ctx.strokeStyle = rgba([250, 204, 21], 0.95 * puAlpha);
-      ctx.lineWidth = 3.0;
-      ctx.stroke();
 
-      ctx.font = `900 ${Math.max(14, Math.round(coreRad * 0.90))}px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
+      // Luminous Starlight Lensing Rim
+      ctx.strokeStyle = "rgba(233, 213, 255, 0.95)";
+      ctx.lineWidth = 2.6;
+      ctx.shadowColor = "#C084FC";
+      ctx.shadowBlur = 12;
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+
+      // Embossed 🌀 Singularity Glyph
+      ctx.font = `900 ${Math.max(14, Math.round(coreRad * 0.82))}px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.fillStyle = "#FFFFFF";
-      ctx.fillText("⚡", cx, cy);
-    } else if (isPrism) {
-      // ✨ PRISM VOCAL BLOOM SPHERE (Iridescent Holographic Opal + Rainbow Shockwaves)
-      const glow = ctx.createRadialGradient(cx, cy, 2, cx, cy, coreRad * 2.30);
-      glow.addColorStop(0, rgba([255, 255, 255], 0.96 * puAlpha));
-      glow.addColorStop(0.35, rgba([74, 222, 128], 0.82 * puAlpha));
-      glow.addColorStop(0.70, rgba([236, 72, 153], 0.50 * puAlpha));
-      glow.addColorStop(1, "rgba(0,0,0,0)");
-      ctx.beginPath();
-      ctx.arc(cx, cy, coreRad * 2.30, 0, Math.PI * 2);
-      ctx.fillStyle = glow;
-      ctx.fill();
-
-      // Refractive holographic arcs
-      for (let a = 0; a < 3; a++) {
-        ctx.beginPath();
-        ctx.arc(cx, cy, coreRad * (1.1 + a * 0.15), time * 1.2 + a, time * 1.2 + a + Math.PI * 0.8);
-        ctx.strokeStyle = rgba([74, 222, 128], 0.75 * puAlpha);
-        ctx.lineWidth = 2.2;
-        ctx.stroke();
-      }
-
-      const prismSphere = ctx.createRadialGradient(
-        cx - coreRad * 0.34, cy - coreRad * 0.36, coreRad * 0.08,
-        cx, cy, coreRad * 1.08
-      );
-      prismSphere.addColorStop(0, "#FFFFFF");
-      prismSphere.addColorStop(0.30, "#86EFAC");
-      prismSphere.addColorStop(0.65, "#F472B6");
-      prismSphere.addColorStop(1, "#312E81");
-      ctx.beginPath();
-      ctx.arc(cx, cy, coreRad, 0, Math.PI * 2);
-      ctx.fillStyle = prismSphere;
-      ctx.fill();
-      ctx.strokeStyle = rgba([255, 255, 255], 0.95 * puAlpha);
-      ctx.lineWidth = 3.0;
-      ctx.stroke();
-
-      ctx.font = `900 ${Math.max(14, Math.round(coreRad * 0.90))}px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillStyle = "#FFFFFF";
-      ctx.fillText("✨", cx, cy);
-    } else if (isVortex) {
-      // 🌀 VORTEX SLOW-MO SPHERE (Deep Amethyst Void + Cosmic Accretion Ring)
-      const glow = ctx.createRadialGradient(cx, cy, 2, cx, cy, coreRad * 2.25);
-      glow.addColorStop(0, rgba([255, 255, 255], 0.95 * puAlpha));
-      glow.addColorStop(0.40, rgba([192, 132, 252], 0.85 * puAlpha));
-      glow.addColorStop(0.75, rgba([147, 51, 234], 0.50 * puAlpha));
-      glow.addColorStop(1, "rgba(0,0,0,0)");
-      ctx.beginPath();
-      ctx.arc(cx, cy, coreRad * 2.25, 0, Math.PI * 2);
-      ctx.fillStyle = glow;
-      ctx.fill();
-
-      // Swirling cosmic accretion ring
-      ctx.beginPath();
-      ctx.ellipse(cx, cy, coreRad * 1.28, coreRad * 0.42, -time * 2.0, 0, Math.PI * 2);
-      ctx.strokeStyle = rgba([216, 180, 254], 0.88 * puAlpha);
-      ctx.lineWidth = 2.8;
-      ctx.stroke();
-
-      const vortexSphere = ctx.createRadialGradient(
-        cx - coreRad * 0.34, cy - coreRad * 0.36, coreRad * 0.08,
-        cx, cy, coreRad * 1.08
-      );
-      vortexSphere.addColorStop(0, "#FFFFFF");
-      vortexSphere.addColorStop(0.28, "#E9D5FF");
-      vortexSphere.addColorStop(0.68, "#9333EA");
-      vortexSphere.addColorStop(1, "#3B0764");
-      ctx.beginPath();
-      ctx.arc(cx, cy, coreRad, 0, Math.PI * 2);
-      ctx.fillStyle = vortexSphere;
-      ctx.fill();
-      ctx.strokeStyle = rgba([216, 180, 254], 0.92 * puAlpha);
-      ctx.lineWidth = 3.0;
-      ctx.stroke();
-
-      ctx.font = `900 ${Math.max(14, Math.round(coreRad * 0.90))}px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillStyle = "#FFFFFF";
-      ctx.fillText("🌀", cx, cy);
+      ctx.fillText("🌀", cx, cy + 1);
     } else if (isNova) {
-      // 💥 SOLAR NOVA SPHERE (Solar Flare Corona + Screen Hazard Vaporizer)
-      const glow = ctx.createRadialGradient(cx, cy, 2, cx, cy, coreRad * 2.25);
-      glow.addColorStop(0, rgba([250, 204, 21], 0.88 * puAlpha));
-      glow.addColorStop(0.5, rgba([249, 115, 22], 0.54 * puAlpha));
+      // =========================================================================
+      // 💥 CUSTOM SCULPTED THERMONUCLEAR MINIATURE STAR
+      // =========================================================================
+      // 1. Solar Corona Heatwave Bloom
+      const glow = ctx.createRadialGradient(cx, cy, 2, cx, cy, coreRad * 2.40);
+      glow.addColorStop(0, rgba([255, 255, 255], 0.98 * puAlpha));
+      glow.addColorStop(0.30, rgba([250, 204, 21], 0.88 * puAlpha));
+      glow.addColorStop(0.65, rgba([249, 115, 22], 0.52 * puAlpha));
       glow.addColorStop(1, "rgba(0,0,0,0)");
       ctx.beginPath();
-      ctx.arc(cx, cy, coreRad * 2.25, 0, Math.PI * 2);
+      ctx.arc(cx, cy, coreRad * 2.40, 0, Math.PI * 2);
       ctx.fillStyle = glow;
       ctx.fill();
 
-      for (let nub = 0; nub < 8; nub++) {
-        const ang = nub * (Math.PI / 4) + time * 1.8;
+      // 2. Solar Prominence Plasma Loops leaping off surface
+      const loopCount = 4;
+      for (let l = 0; l < loopCount; l++) {
+        const lAng = l * (Math.PI / 2) + time * 1.5;
+        const lx1 = cx + Math.cos(lAng - 0.22) * (coreRad * 0.85);
+        const ly1 = cy + Math.sin(lAng - 0.22) * (coreRad * 0.85);
+        const lx2 = cx + Math.cos(lAng + 0.22) * (coreRad * 0.85);
+        const ly2 = cy + Math.sin(lAng + 0.22) * (coreRad * 0.85);
+        const apexX = cx + Math.cos(lAng) * (coreRad * 1.36);
+        const apexY = cy + Math.sin(lAng) * (coreRad * 1.36);
         ctx.beginPath();
-        ctx.moveTo(cx + Math.cos(ang) * (coreRad * 0.85), cy + Math.sin(ang) * (coreRad * 0.85));
-        ctx.lineTo(cx + Math.cos(ang) * (coreRad * 1.32), cy + Math.sin(ang) * (coreRad * 1.32));
-        ctx.strokeStyle = rgba([250, 204, 21], 0.96 * puAlpha);
-        ctx.lineWidth = Math.max(2.8, 4.4 * perspScale);
-        ctx.lineCap = "round";
+        ctx.moveTo(lx1, ly1);
+        ctx.quadraticCurveTo(apexX, apexY, lx2, ly2);
+        ctx.strokeStyle = "rgba(254, 240, 138, 0.95)";
+        ctx.lineWidth = 2.8;
         ctx.stroke();
       }
 
-      const bombSphere = ctx.createRadialGradient(
-        cx - coreRad * 0.34, cy - coreRad * 0.36, coreRad * 0.08,
-        cx, cy, coreRad * 1.08
+      // 3. Molten Photosphere Sphere
+      const sunGrad = ctx.createRadialGradient(
+        cx - coreRad * 0.32, cy - coreRad * 0.34, coreRad * 0.08,
+        cx, cy, coreRad * 1.10
       );
-      bombSphere.addColorStop(0, rgba([255, 255, 255], 0.98 * puAlpha));
-      bombSphere.addColorStop(0.28, rgba([250, 204, 21], 0.96 * puAlpha));
-      bombSphere.addColorStop(0.65, rgba([234, 88, 12], 0.96 * puAlpha));
-      bombSphere.addColorStop(1, rgba([30, 8, 8], 0.98 * puAlpha));
+      sunGrad.addColorStop(0, "#FFFFFF");
+      sunGrad.addColorStop(0.26, "#FEF08A");
+      sunGrad.addColorStop(0.62, "#F97316");
+      sunGrad.addColorStop(1, "#7C2D12");
       ctx.beginPath();
       ctx.arc(cx, cy, coreRad, 0, Math.PI * 2);
-      ctx.fillStyle = bombSphere;
+      ctx.fillStyle = sunGrad;
       ctx.fill();
-      ctx.strokeStyle = rgba([250, 204, 21], 0.98 * puAlpha);
+      ctx.strokeStyle = "#FACC15";
       ctx.lineWidth = 3.2;
       ctx.stroke();
+
+      // Embossed 💥 Solar Flare Glyph
+      ctx.font = `900 ${Math.max(14, Math.round(coreRad * 0.82))}px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillStyle = "#FFFFFF";
+      ctx.shadowColor = "#F97316";
+      ctx.shadowBlur = 10;
+      ctx.fillText("💥", cx, cy + 1);
+      ctx.shadowBlur = 0;
     } else if (isAegis) {
       // 🛡️ AEGIS CRYSTAL SHIELD SPHERE (Luminous Aqua Shield Facets)
       const glow = ctx.createRadialGradient(cx, cy, 2, cx, cy, coreRad * 2.15);
@@ -638,29 +765,32 @@ function drawPowerUps(ctx, powerUps, playerX, playerY, time, trackSec, beatPulse
       ctx.fillStyle = "#422006";
       ctx.fillText("★", cx, cy + 1);
     } else {
-      // TRUE 3D VOLUMETRIC PULSING BEAT ORB (Spherical Shading + Equatorial Gyro-Ring + Embossed ♪)
-      const glow = ctx.createRadialGradient(cx, cy, 2, cx, cy, coreRad * 1.95);
-      glow.addColorStop(0, rgba(effectCol, 0.72 * puAlpha));
-      glow.addColorStop(0.55, rgba(effectCol, 0.25 * puAlpha));
+      // =========================================================================
+      // 🎵 BESPOKE REFRACTIVE COSMIC VINYL GLASS BEAD
+      // =========================================================================
+      // 1. Soft Ambient Bioluminescent Core Glow
+      const glow = ctx.createRadialGradient(cx, cy, 2, cx, cy, coreRad * 2.05);
+      glow.addColorStop(0, rgba(effectCol, 0.78 * puAlpha));
+      glow.addColorStop(0.55, rgba(effectCol, 0.24 * puAlpha));
       glow.addColorStop(1, "rgba(0,0,0,0)");
       ctx.beginPath();
-      ctx.arc(cx, cy, coreRad * 1.95, 0, Math.PI * 2);
+      ctx.arc(cx, cy, coreRad * 2.05, 0, Math.PI * 2);
       ctx.fillStyle = glow;
       ctx.fill();
 
-      // Off-center 3D spherical radial lighting (bright top-left specular to deep bottom-right shadow)
+      // 2. Off-Center 3D Spherical Refraction Lighting
       const darkRim = [
-        Math.round(effectCol[0] * 0.16),
-        Math.round(effectCol[1] * 0.16),
-        Math.round(effectCol[2] * 0.22)
+        Math.round(effectCol[0] * 0.14),
+        Math.round(effectCol[1] * 0.14),
+        Math.round(effectCol[2] * 0.20)
       ];
       const sphere3D = ctx.createRadialGradient(
-        cx - coreRad * 0.34, cy - coreRad * 0.36, coreRad * 0.08,
-        cx, cy, coreRad * 1.12
+        cx - coreRad * 0.35, cy - coreRad * 0.35, coreRad * 0.06,
+        cx, cy, coreRad * 1.15
       );
       sphere3D.addColorStop(0, rgba([255, 255, 255], 0.98 * puAlpha));
-      sphere3D.addColorStop(0.28, rgba(effectCol, 0.96 * puAlpha));
-      sphere3D.addColorStop(0.74, rgba(effectCol, 0.88 * puAlpha));
+      sphere3D.addColorStop(0.24, rgba(effectCol, 0.98 * puAlpha));
+      sphere3D.addColorStop(0.72, rgba(effectCol, 0.88 * puAlpha));
       sphere3D.addColorStop(1, rgba(darkRim, 0.98 * puAlpha));
 
       ctx.beginPath();
@@ -668,16 +798,25 @@ function drawPowerUps(ctx, powerUps, playerX, playerY, time, trackSec, beatPulse
       ctx.fillStyle = sphere3D;
       ctx.fill();
 
-      // Outer 3D rim ring
+      // 3. Etched Concentric Vinyl Grooves inside the glass bead
+      for (let g = 1; g <= 3; g++) {
+        ctx.beginPath();
+        ctx.arc(cx, cy, coreRad * (0.35 + g * 0.18), 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(255, 255, 255, ${(0.14 * puAlpha).toFixed(3)})`;
+        ctx.lineWidth = 1.0;
+        ctx.stroke();
+      }
+
+      // 4. Outer 3D Polished Chrome Rim
       ctx.strokeStyle = isOnStrikeLine ? "#FFFFFF" : rgba(effectCol, 0.96 * puAlpha);
       ctx.lineWidth = isOnStrikeLine ? 3.8 : 2.6;
       ctx.stroke();
 
-      // Tilted 3D equatorial gyro-ring wrapping the orb
+      // 5. Tilted 3D Equatorial Gyro-Ring wrapping the bead
       ctx.beginPath();
       ctx.ellipse(
         cx,
-        cy + coreRad * 0.05,
+        cy + coreRad * 0.04,
         coreRad * (1.14 + beatPulse * 0.10),
         coreRad * 0.38,
         (laneIdx % 2 === 0 ? -0.18 : 0.18),
@@ -688,22 +827,26 @@ function drawPowerUps(ctx, powerUps, playerX, playerY, time, trackSec, beatPulse
       ctx.lineWidth = Math.max(1.8, 2.4 * perspScale);
       ctx.stroke();
 
-      // Upper-left curved glass specular highlight arc
+      // 6. Refractive Glass Crescent Specular Glint
       ctx.beginPath();
-      ctx.arc(cx, cy, coreRad * 0.76, Math.PI * 1.08, Math.PI * 1.62);
-      ctx.strokeStyle = rgba([255, 255, 255], 0.88 * puAlpha);
-      ctx.lineWidth = Math.max(2.2, 3.2 * perspScale);
+      ctx.arc(cx, cy, coreRad * 0.78, Math.PI * 1.08, Math.PI * 1.62);
+      ctx.strokeStyle = rgba([255, 255, 255], 0.92 * puAlpha);
+      ctx.lineWidth = Math.max(2.2, 3.4 * perspScale);
       ctx.lineCap = "round";
       ctx.stroke();
 
-      // Embossed ♪ Musical Note Emblem inside the 3D sphere
+      // 7. Embedded Luminous Musical Note Emblem (Floating Hologram)
+      const noteGlyph = laneIdx % 2 === 0 ? "♪" : "♫";
       ctx.font = `900 ${Math.max(13, Math.round(coreRad * 0.82))}px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.fillStyle = `rgba(6, 10, 25, ${(0.72 * puAlpha).toFixed(3)})`;
-      ctx.fillText("♪", cx + 1, cy + 2);
-      ctx.fillStyle = `rgba(255, 255, 255, ${(0.96 * puAlpha).toFixed(3)})`;
-      ctx.fillText("♪", cx, cy + 1);
+      ctx.fillStyle = `rgba(4, 8, 20, ${(0.76 * puAlpha).toFixed(3)})`;
+      ctx.fillText(noteGlyph, cx + 1, cy + 2);
+      ctx.fillStyle = `rgba(255, 255, 255, ${(0.98 * puAlpha).toFixed(3)})`;
+      ctx.shadowColor = rgba(effectCol, 0.8);
+      ctx.shadowBlur = 6;
+      ctx.fillText(noteGlyph, cx, cy + 1);
+      ctx.shadowBlur = 0;
       ctx.textBaseline = "alphabetic";
     }
     ctx.restore();

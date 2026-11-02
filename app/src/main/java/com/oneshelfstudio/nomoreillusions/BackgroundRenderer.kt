@@ -476,71 +476,56 @@ fun DrawScope.drawNebulaBackground(
     val isSlowMo = stageMode == StageMode.ABYSSAL_WAVE
 
     if (isElectric) {
-        // ⚡ ELECTRIC OVERDRIVE: 3D Synthwave Perspective Floor Grid + Hyperspace Warp Rays + Branching Plasma
-        val horizonY = centerY + size.height * 0.08f
-        val gridDepth = size.height - horizonY
-        if (gridDepth > 20f) {
-            val lineCount = 14
-            for (l in 0..lineCount) {
-                val xBottom = -size.width * 0.2f + (size.width * 1.4f) * (l.toFloat() / lineCount)
-                drawLine(
-                    color = Color(0xFFFACC15).copy(alpha = 0.28f),
-                    start = Offset(centerX, horizonY),
-                    end = Offset(xBottom, size.height),
-                    strokeWidth = 1.4f
-                )
+        // ⚡ ELECTRIC HARMONIC: Volumetric Auroral Curtains & Rolling Ionized Plasma Clouds (No rigid lines)
+        val curY = centerY + size.height * 0.15f
+        val fluidAlpha = (0.24f + beatPulse * 0.16f).coerceIn(0.1f, 0.45f)
+        drawRect(
+            brush = Brush.verticalGradient(
+                colors = listOf(
+                    Color(0xFFFACC15L).copy(alpha = 0f),
+                    Color(0xFFFACC15L).copy(alpha = fluidAlpha * 0.45f),
+                    Color(0xFF38BDF8L).copy(alpha = fluidAlpha * 0.35f),
+                    Color(0xFF020617L).copy(alpha = 0.85f)
+                ),
+                startY = curY,
+                endY = size.height
+            ),
+            topLeft = Offset(0f, curY),
+            size = Size(size.width, size.height - curY)
+        )
+
+        // Fluid undulating ionized ribbon waves
+        for (r in 0 until 2) {
+            val wavePath = Path().apply {
+                moveTo(0f, size.height)
+                var wx = 0f
+                while (wx <= size.width) {
+                    val waveY = curY + 20f + sin(wx * 0.008f + time * 2.2f + r * 1.5f) * 28f + cos(wx * 0.015f - time * 1.6f) * 16f
+                    lineTo(wx, waveY)
+                    wx += 16f
+                }
+                lineTo(size.width, size.height)
+                close()
             }
-            val transCount = 10
-            val scrollOffset = (time * 1.8f) % 1.0f
-            for (t in 0 until transCount) {
-                val norm = (t.toFloat() + scrollOffset) / transCount
-                val curY = horizonY + (norm * norm) * gridDepth
-                drawLine(
-                    color = Color(0xFFFACC15).copy(alpha = 0.28f),
-                    start = Offset(0f, curY),
-                    end = Offset(size.width, curY),
-                    strokeWidth = 1.4f
-                )
-            }
+            val ribbonColor = if (r == 0) Color(0xFFFACC15L).copy(alpha = 0.14f) else Color(0xFF38BDF8L).copy(alpha = 0.12f)
+            drawPath(path = wavePath, color = ribbonColor)
         }
 
-        // Hyperspace Star-Warp Velocity Streaks
-        val warpCount = 20
-        for (w in 0 until warpCount) {
-            val warpAngle = (w.toFloat() / warpCount) * 2f * PI.toFloat() + time * 0.15f
-            val warpLen = (40f + 75f * beatPulse) * (0.8f + 0.4f * ((w % 3) / 2f))
-            val distFromCenter = ((time * 0.9f + w * 0.13f) % 1.0f) * maxDim * 0.72f + 25f
-            val sx = centerX + cos(warpAngle) * distFromCenter
-            val sy = centerY + sin(warpAngle) * distFromCenter
-            val ex = centerX + cos(warpAngle) * (distFromCenter + warpLen)
-            val ey = centerY + sin(warpAngle) * (distFromCenter + warpLen)
-            val col = if (w % 2 == 0) Color(0xFFFACC15) else Color(0xFF38BDF8)
-            drawLine(
-                color = col.copy(alpha = 0.75f),
-                start = Offset(sx, sy),
-                end = Offset(ex, ey),
-                strokeWidth = 2.2f
-            )
-        }
-
-        // Multi-Branching Atmospheric Lightning Arcs
-        for (arc in 0 until 3) {
-            val startX = ((arc * 0.33f + (time * 0.24f) % 1.0f) % 1.0f) * size.width
-            val arcSeed = (time * 18f + arc * 89f).toInt()
-            var curX = startX
-            var curY = 0f
-            val arcPath = Path().apply { moveTo(curX, curY) }
-            for (s in 1..8) {
-                curY += size.height / 8f
-                val jitter = sin(arcSeed.toFloat() + s * 4.8f) * (size.width * 0.08f)
-                curX += jitter
-                arcPath.lineTo(curX, curY)
-            }
-            val arcCol = if (arc % 2 == 0) Color(0xFFFACC15) else Color(0xFF38BDF8)
-            drawPath(
-                path = arcPath,
-                color = arcCol.copy(alpha = 0.85f),
-                style = Stroke(width = 2.8f, cap = StrokeCap.Round)
+        // Soft atmospheric radial ion blooms
+        for (b in 0 until 3) {
+            val bx = size.width * (0.22f + b * 0.28f + sin(time * 0.8f + b) * 0.08f)
+            val by = centerY + cos(time * 0.9f + b * 1.4f) * (size.height * 0.18f)
+            val bRadius = size.width * (0.35f + 0.10f * sin(time * 1.2f + b))
+            val bCol = if (b % 2 == 0) Color(0xFFFACC15L) else Color(0xFF38BDF8L)
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(bCol.copy(alpha = 0.22f + beatPulse * 0.12f), Color.Transparent),
+                    center = Offset(bx, by),
+                    radius = bRadius
+                ),
+                center = Offset(bx, by),
+                radius = bRadius,
+                blendMode = BlendMode.Screen
             )
         }
     }

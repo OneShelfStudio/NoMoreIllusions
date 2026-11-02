@@ -193,7 +193,22 @@ data class GameObject(
     var spawnY: Float = 0f,
     var exitX: Float = 0f,
     var exitY: Float = 0f,
-    var swoopCurve: Float = 0f
+    var swoopCurve: Float = 0f,
+    var bvx: Float = 0f,
+    var bvy: Float = 0f,
+    var bounceOffsetX: Float = 0f,
+    var bounceOffsetY: Float = 0f,
+    var squish: Float = 0f,
+    var squishAngle: Float = 0f
+)
+
+/**
+ * Primed milestone effect waiting for the exact downbeat / section drop to ignite!
+ */
+data class PrimedSectionEffect(
+    val type: PowerUpType,
+    val targetSec: Float,
+    val title: String
 )
 
 /**

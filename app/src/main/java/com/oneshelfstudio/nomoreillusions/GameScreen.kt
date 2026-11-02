@@ -400,6 +400,7 @@ fun GameScreen(
     var magnetTime by remember { mutableFloatStateOf(0f) }
     var lastLoopCycleSeen by remember { mutableIntStateOf(0) }
     var activePowerUpToast by remember { mutableStateOf<PowerUpBannerToast?>(null) }
+    var primedSectionEffect by remember { mutableStateOf<PrimedSectionEffect?>(null) }
     var toastTimeLeft by remember { mutableFloatStateOf(0f) }
     var comboZoomBanner by remember { mutableStateOf<ComboZoomBannerData?>(null) }
     var scoreMultiplier by remember { mutableIntStateOf(1) }
@@ -482,6 +483,7 @@ fun GameScreen(
         vocalStreamContrailTimer = 0f
         activePhenomenon = null
         activeWormholeSlide = null
+        primedSectionEffect = null
         liveMultiBand = MultiBandAudioState()
         liveAudioEnergy = 0.42f
         liveSwellDelta = 0f
@@ -514,6 +516,7 @@ fun GameScreen(
         beatFlashIntensity = 0f
         activePhenomenon = null
         activeWormholeSlide = null
+        primedSectionEffect = null
         activePowerUpToast = PowerUpBannerToast(
             icon = "🛡️",
             title = "REVIVED!",
@@ -684,6 +687,111 @@ fun GameScreen(
                     } else {
                         curPhenom.timer = nextTimer
                     }
+                }
+
+                // Check if a Primed Milestone Section Effect should ignite on this exact downbeat!
+                val primed = primedSectionEffect
+                if (primed != null && trackSec >= primed.targetSec) {
+                    when (primed.type) {
+                        PowerUpType.ELECTRIC_HARMONIC -> {
+                            starPowerTime = maxOf(starPowerTime, 8.0f)
+                            shakeAmount = 14f
+                            cameraPunch = 0.06f
+                            beatFlashIntensity = 1.0f
+                            audioEngine.playElectricSurgeStinger()
+                            shockwaves.add(Shockwave(player.x, player.y, 0f, 650f, Color(0xFFFACC15L), 1.3f))
+                            shockwaves.add(Shockwave(player.x, player.y, 0f, 450f, Color(0xFF38BDF8L), 1.1f))
+                            activePowerUpToast = PowerUpBannerToast(
+                                icon = "⚡",
+                                title = "ELECTRIC SURGE ACTIVE!",
+                                subtitle = "SYNTH AURORA & 4X OVERDRIVE",
+                                accentColor = Color(0xFFFACC15L),
+                                timer = 2.6f,
+                                maxTimer = 2.6f
+                            )
+                            toastTimeLeft = 2.6f
+                        }
+                        PowerUpType.PRISM_HARMONY -> {
+                            beatFlashIntensity = 0.90f
+                            cameraPunch = 0.045f
+                            audioEngine.playPrismBloomStinger()
+                            shockwaves.add(Shockwave(player.x, player.y, 0f, 500f, Color(0xFF4ADE80L), 1.2f))
+                            shockwaves.add(Shockwave(player.x, player.y, 0f, 320f, Color(0xFFEC4899L), 1.0f))
+                            activePowerUpToast = PowerUpBannerToast(
+                                icon = "✨",
+                                title = "PRISM VOCAL BLOOM!",
+                                subtitle = "CRYSTAL HARMONY & ART REVEAL",
+                                accentColor = Color(0xFF4ADE80L),
+                                timer = 2.6f,
+                                maxTimer = 2.6f
+                            )
+                            toastTimeLeft = 2.6f
+                        }
+                        PowerUpType.SLOW_MO -> {
+                            slowMoTime = maxOf(slowMoTime, 6.0f)
+                            audioEngine.playSlowMoStinger()
+                            shockwaves.add(Shockwave(player.x, player.y, 0f, 420f, Color(0xFFC084FCL), 1.1f))
+                            activePowerUpToast = PowerUpBannerToast(
+                                icon = "🌀",
+                                title = "VORTEX TIME-WARP!",
+                                subtitle = "50% SLOW-MO BREAKDOWN FLOW",
+                                accentColor = Color(0xFFC084FCL),
+                                timer = 2.6f,
+                                maxTimer = 2.6f
+                            )
+                            toastTimeLeft = 2.6f
+                        }
+                        PowerUpType.BLAST -> {
+                            shakeAmount = 16f
+                            cameraPunch = 0.055f
+                            beatFlashIntensity = 0.95f
+                            audioEngine.playSolarNovaStinger()
+                            shockwaves.add(Shockwave(player.x, player.y, 0f, 750f, Color(0xFFF97316L), 1.4f))
+                            enemies.clear()
+                            enemyTelegraphs.clear()
+                            for (s in 0 until 28) {
+                                val sAngle = Random.nextFloat() * 2f * PI.toFloat()
+                                val sSpd = 260f + Random.nextFloat() * 320f
+                                particles.add(
+                                    GameObject(
+                                        x = player.x,
+                                        y = player.y,
+                                        vx = cos(sAngle) * sSpd,
+                                        vy = sin(sAngle) * sSpd,
+                                        radius = 3.5f + Random.nextFloat() * 3f,
+                                        color = if (s % 3 == 0) Color(0xFFFDE047L) else if (s % 3 == 1) Color(0xFF38BDF8L) else Color(0xFFF97316L),
+                                        life = 1.2f
+                                    )
+                                )
+                            }
+                            activePowerUpToast = PowerUpBannerToast(
+                                icon = "💥",
+                                title = "SOLAR NOVA DETONATION!",
+                                subtitle = "ALL FOES VAPORIZED",
+                                accentColor = Color(0xFFF97316L),
+                                timer = 2.6f,
+                                maxTimer = 2.6f
+                            )
+                            toastTimeLeft = 2.6f
+                        }
+                        PowerUpType.SHIELD -> {
+                            shieldTime = maxOf(shieldTime, 6.0f)
+                            audioEngine.playAegisStinger()
+                            shockwaves.add(Shockwave(player.x, player.y, 0f, 380f, Color(0xFF38BDF8L), 1.0f))
+                            activePowerUpToast = PowerUpBannerToast(
+                                icon = "🛡️",
+                                title = "AEGIS SHIELD ENGAGED!",
+                                subtitle = "6.0s DAMAGE IMMUNITY",
+                                accentColor = Color(0xFF38BDF8L),
+                                timer = 2.6f,
+                                maxTimer = 2.6f
+                            )
+                            toastTimeLeft = 2.6f
+                        }
+                        else -> {}
+                    }
+                    triggerHaptic(55L)
+                    primedSectionEffect = null
                 }
 
                 // 2. Live Section & Musical Swell Transitions (Zero text popups on orbs; clean section shift pulse)
@@ -990,58 +1098,98 @@ fun GameScreen(
                             val gainedPts = ((if (isCaughtOnBeat) 100 else 45) * mult * (1f + (rhythmCombo.coerceAtMost(12) * 0.10f)) * difficultyScoreMultiplier).toInt()
                             score += gainedPts
 
-                            val pickupRes = handleRegularOrbPowerUp(
-                                p = p,
-                                mult = mult,
-                                difficultyScoreMultiplier = difficultyScoreMultiplier,
-                                isCaughtOnBeat = isCaughtOnBeat,
-                                gameTime = gameTime,
-                                starPowerTime = starPowerTime,
-                                shieldTime = shieldTime,
-                                slowMoTime = slowMoTime,
-                                magnetTime = magnetTime,
-                                shakeAmount = shakeAmount,
-                                cameraPunch = cameraPunch,
-                                beatFlashIntensity = beatFlashIntensity,
-                                enemies = enemies,
-                                enemyTelegraphs = enemyTelegraphs,
-                                tetheredSatellites = tetheredSatellites,
-                                shockwaves = shockwaves,
-                                particles = particles
-                            )
-                            starPowerTime = pickupRes.newStarPowerTime
-                            shieldTime = pickupRes.newShieldTime
-                            slowMoTime = pickupRes.newSlowMoTime
-                            magnetTime = pickupRes.newMagnetTime
-                            shakeAmount = pickupRes.newShakeAmount
-                            cameraPunch = pickupRes.newCameraPunch
-                            beatFlashIntensity = pickupRes.newBeatFlashIntensity
-                            score += pickupRes.bonusScore
-
-                            when (p.powerUpType) {
-                                PowerUpType.ELECTRIC_HARMONIC -> audioEngine.playElectricSurgeStinger()
-                                PowerUpType.PRISM_HARMONY -> audioEngine.playPrismBloomStinger()
-                                PowerUpType.SLOW_MO -> audioEngine.playSlowMoStinger()
-                                PowerUpType.BLAST -> {
-                                    audioEngine.playSolarNovaStinger()
-                                    for (s in 0 until 28) {
-                                        val sAngle = kotlin.random.Random.nextFloat() * 2f * kotlin.math.PI.toFloat()
-                                        val sSpd = 260f + kotlin.random.Random.nextFloat() * 320f
+                            if (p.powerUpType != null && p.powerUpType != PowerUpType.NONE) {
+                                val nextSection = MusicLibrary.nextSectionAfter(selectedTrackIndex, trackSec)
+                                val timeToDrop = if (nextSection != null) nextSection.timestampSec - trackSec else -1f
+                                if (nextSection != null && timeToDrop in 0.35f..8.0f) {
+                                    primedSectionEffect = PrimedSectionEffect(p.powerUpType, nextSection.timestampSec, nextSection.label)
+                                    floatingTexts.add(FloatingText(player.x, player.y - 25f, "⚡ PRIMED FOR ${nextSection.label}!", 1.2f, Color(0xFFFACC15L)))
+                                    activePowerUpToast = PowerUpBannerToast(
+                                        icon = when (p.powerUpType) {
+                                            PowerUpType.ELECTRIC_HARMONIC -> "⚡"
+                                            PowerUpType.PRISM_HARMONY -> "✨"
+                                            PowerUpType.SLOW_MO -> "🌀"
+                                            PowerUpType.BLAST -> "💥"
+                                            PowerUpType.SHIELD -> "🛡️"
+                                            else -> "⚡"
+                                        },
+                                        title = "PRIMED FOR ${nextSection.label}!",
+                                        subtitle = "DROPPING ON NEXT SECTION DOWNBEAT",
+                                        accentColor = Color(0xFFFACC15L),
+                                        timer = 2.4f,
+                                        maxTimer = 2.4f
+                                    )
+                                    toastTimeLeft = 2.4f
+                                    for (s in 0 until 12) {
+                                        val sAngle = Random.nextFloat() * 2f * PI.toFloat()
+                                        val sSpd = 90f + Random.nextFloat() * 110f
                                         particles.add(
                                             GameObject(
-                                                x = p.x,
-                                                y = p.y,
-                                                vx = kotlin.math.cos(sAngle) * sSpd,
-                                                vy = kotlin.math.sin(sAngle) * sSpd,
-                                                radius = 3.5f + kotlin.random.Random.nextFloat() * 3f,
-                                                color = if (s % 3 == 0) Color(0xFFFDE047L) else if (s % 3 == 1) Color(0xFF38BDF8L) else Color(0xFFF97316L),
-                                                life = 1.2f
+                                                x = player.x,
+                                                y = player.y,
+                                                vx = cos(sAngle) * sSpd,
+                                                vy = sin(sAngle) * sSpd,
+                                                radius = 3.2f,
+                                                color = Color(0xFFFACC15L),
+                                                life = 0.8f
                                             )
                                         )
                                     }
+                                } else {
+                                    val pickupRes = handleRegularOrbPowerUp(
+                                        p = p,
+                                        mult = mult,
+                                        difficultyScoreMultiplier = difficultyScoreMultiplier,
+                                        isCaughtOnBeat = isCaughtOnBeat,
+                                        gameTime = gameTime,
+                                        starPowerTime = starPowerTime,
+                                        shieldTime = shieldTime,
+                                        slowMoTime = slowMoTime,
+                                        magnetTime = magnetTime,
+                                        shakeAmount = shakeAmount,
+                                        cameraPunch = cameraPunch,
+                                        beatFlashIntensity = beatFlashIntensity,
+                                        enemies = enemies,
+                                        enemyTelegraphs = enemyTelegraphs,
+                                        tetheredSatellites = tetheredSatellites,
+                                        shockwaves = shockwaves,
+                                        particles = particles
+                                    )
+                                    starPowerTime = pickupRes.newStarPowerTime
+                                    shieldTime = pickupRes.newShieldTime
+                                    slowMoTime = pickupRes.newSlowMoTime
+                                    magnetTime = pickupRes.newMagnetTime
+                                    shakeAmount = pickupRes.newShakeAmount
+                                    cameraPunch = pickupRes.newCameraPunch
+                                    beatFlashIntensity = pickupRes.newBeatFlashIntensity
+                                    score += pickupRes.bonusScore
+
+                                    when (p.powerUpType) {
+                                        PowerUpType.ELECTRIC_HARMONIC -> audioEngine.playElectricSurgeStinger()
+                                        PowerUpType.PRISM_HARMONY -> audioEngine.playPrismBloomStinger()
+                                        PowerUpType.SLOW_MO -> audioEngine.playSlowMoStinger()
+                                        PowerUpType.BLAST -> {
+                                            audioEngine.playSolarNovaStinger()
+                                            for (s in 0 until 28) {
+                                                val sAngle = kotlin.random.Random.nextFloat() * 2f * kotlin.math.PI.toFloat()
+                                                val sSpd = 260f + kotlin.random.Random.nextFloat() * 320f
+                                                particles.add(
+                                                    GameObject(
+                                                        x = p.x,
+                                                        y = p.y,
+                                                        vx = kotlin.math.cos(sAngle) * sSpd,
+                                                        vy = kotlin.math.sin(sAngle) * sSpd,
+                                                        radius = 3.5f + kotlin.random.Random.nextFloat() * 3f,
+                                                        color = if (s % 3 == 0) Color(0xFFFDE047L) else if (s % 3 == 1) Color(0xFF38BDF8L) else Color(0xFFF97316L),
+                                                        life = 1.2f
+                                                    )
+                                                )
+                                            }
+                                        }
+                                        PowerUpType.SHIELD -> audioEngine.playAegisStinger()
+                                        else -> {}
+                                    }
                                 }
-                                PowerUpType.SHIELD -> audioEngine.playAegisStinger()
-                                else -> {}
                             }
                         } else {
                             triggerHaptic(48L)

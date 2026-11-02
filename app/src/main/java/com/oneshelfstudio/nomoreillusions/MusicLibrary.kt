@@ -517,6 +517,11 @@ object MusicLibrary {
         return track.sections.lastOrNull { positionSec >= it.timestampSec } ?: track.sections.first()
     }
 
+    fun nextSectionAfter(trackIndex: Int, positionSec: Float): TrackSection? {
+        val track = getTrack(trackIndex)
+        return track.sections.firstOrNull { it.timestampSec > positionSec }
+    }
+
     fun unlockCostForTrack(trackIndex: Int): Int {
         return getTrack(trackIndex).unlockCost
     }

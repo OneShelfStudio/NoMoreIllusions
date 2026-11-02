@@ -221,180 +221,156 @@ function drawNebulaBackground(ctx, W, H, palette, stars, time, beatPulse, multiB
     }
   }
 
-  // 4b. Dynamic Special Phase Transformations (Full-Screen Visual Overhauls)
+  // 4b. Dynamic Special Phase Transformations (Volumetric Fluid Atmospheric Overhauls — Zero Rigid Lines!)
   if (isElectric) {
-    // ⚡ ELECTRIC OVERDRIVE: 3D Synthwave Perspective Floor Grid + Hyperspace Warp Rays + Branching Plasma
+    // ⚡ ELECTRIC OVERDRIVE: Volumetric Fluid Aurora Curtains + Rolling Plasma Waves + Ionized Mist
     ctx.save();
 
-    // 1. 3D Perspective Neon Synthwave Ground Grid
-    const horizonY = centerY + H * 0.08;
-    const gridDepth = H - horizonY;
-    if (gridDepth > 20) {
-      ctx.beginPath();
-      // Draw perspective longitudinal lines vanishing to center
-      const lineCount = 14;
-      for (let l = 0; l <= lineCount; l++) {
-        const xBottom = -W * 0.2 + (W * 1.4) * (l / lineCount);
-        ctx.moveTo(centerX, horizonY);
-        ctx.lineTo(xBottom, H);
-      }
-      // Draw horizontal receding transverse lines with speed
-      const transCount = 10;
-      const scrollOffset = (time * 1.8) % 1.0;
-      for (let t = 0; t < transCount; t++) {
-        const norm = (t + scrollOffset) / transCount;
-        const curY = horizonY + Math.pow(norm, 2.2) * gridDepth;
-        ctx.moveTo(0, curY);
-        ctx.lineTo(W, curY);
-      }
-      ctx.strokeStyle = "rgba(250, 204, 21, 0.28)";
-      ctx.lineWidth = 1.4;
-      ctx.stroke();
+    // 1. Volumetric Rolling High-Voltage Aurora Curtains
+    const curtainCount = 4;
+    for (let c = 0; c < curtainCount; c++) {
+      const cBaseY = centerY - H * 0.15 + c * (H * 0.12);
+      const cWaveAmp = (32 + c * 18) * (1.0 + bass * 0.45);
+      const cSpeed = time * (1.2 + c * 0.35);
 
-      // Neon horizon glow bar
-      const horizGrad = ctx.createLinearGradient(0, horizonY - 12, 0, horizonY + 18);
-      horizGrad.addColorStop(0, "rgba(56, 189, 248, 0)");
-      horizGrad.addColorStop(0.5, "rgba(250, 204, 21, 0.42)");
-      horizGrad.addColorStop(1, "rgba(56, 189, 248, 0)");
-      ctx.fillStyle = horizGrad;
-      ctx.fillRect(0, horizonY - 12, W, 30);
+      ctx.beginPath();
+      ctx.moveTo(0, H);
+      ctx.lineTo(0, cBaseY + Math.sin(cSpeed) * cWaveAmp);
+
+      const step = W / 6;
+      for (let x = 0; x <= W + step; x += step) {
+        const currX = Math.min(W, x);
+        const currY = cBaseY + Math.sin(currX * 0.0035 + cSpeed) * cWaveAmp + Math.cos(currX * 0.0018 - cSpeed * 0.7) * (cWaveAmp * 0.4);
+        ctx.lineTo(currX, currY);
+      }
+      ctx.lineTo(W, H);
+      ctx.closePath();
+
+      const curtainGrad = ctx.createLinearGradient(0, cBaseY - cWaveAmp, 0, H);
+      const colTop = c % 2 === 0 ? "rgba(250, 204, 21, " : "rgba(56, 189, 248, ";
+      const cAlpha = (0.08 + energy * 0.16) * (1.2 - c * 0.2);
+      curtainGrad.addColorStop(0, colTop + `${cAlpha * 1.5})`);
+      curtainGrad.addColorStop(0.4, colTop + `${cAlpha * 0.6})`);
+      curtainGrad.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.fillStyle = curtainGrad;
+      ctx.fill();
     }
 
-    // 2. Hyperspace Star-Warp Velocity Streaks
-    const warpCount = 24;
-    for (let w = 0; w < warpCount; w++) {
-      const warpAngle = (w / warpCount) * Math.PI * 2 + time * 0.15;
-      const warpLen = (40 + 75 * beatPulse) * (0.8 + 0.4 * ((w % 3) / 2));
-      const distFromCenter = ((time * 0.9 + w * 0.13) % 1.0) * maxDim * 0.72 + 25;
-      const sx = centerX + Math.cos(warpAngle) * distFromCenter;
-      const sy = centerY + Math.sin(warpAngle) * distFromCenter;
-      const ex = centerX + Math.cos(warpAngle) * (distFromCenter + warpLen);
-      const ey = centerY + Math.sin(warpAngle) * (distFromCenter + warpLen);
+    // 2. Liquid High-Voltage Plasma Corona Blooms
+    const plasmaCount = 3;
+    for (let p = 0; p < plasmaCount; p++) {
+      const px = centerX + Math.sin(time * 0.8 + p * 2.1) * (W * 0.22);
+      const py = centerY + Math.cos(time * 0.7 + p * 1.7) * (H * 0.18);
+      const pRad = maxDim * (0.28 + beatPulse * 0.12 + (p % 2) * 0.08);
+      const pCol = p % 2 === 0 ? [250, 204, 21] : [56, 189, 248];
 
+      const pGrad = ctx.createRadialGradient(px, py, 4, px, py, pRad);
+      pGrad.addColorStop(0, rgba(pCol, 0.32 + energy * 0.14));
+      pGrad.addColorStop(0.5, rgba(pCol, 0.10));
+      pGrad.addColorStop(1, "rgba(0,0,0,0)");
       ctx.beginPath();
-      ctx.moveTo(sx, sy);
-      ctx.lineTo(ex, ey);
-      ctx.strokeStyle = w % 2 === 0 ? "rgba(250, 204, 21, 0.75)" : "rgba(56, 189, 248, 0.75)";
-      ctx.lineWidth = 2.2;
-      ctx.stroke();
+      ctx.arc(px, py, pRad, 0, Math.PI * 2);
+      ctx.fillStyle = pGrad;
+      ctx.fill();
     }
 
-    // 3. Multi-Branching Atmospheric Lightning Arcs
-    for (let arc = 0; arc < 3; arc++) {
-      const startX = ((arc * 0.33 + (time * 0.24) % 1.0) % 1.0) * W;
-      const arcSeed = Math.floor(time * 18 + arc * 89);
-      let curX = startX;
-      let curY = 0;
+    // 3. Bioluminescent Floating Plasma Drops
+    for (let d = 0; d < 8; d++) {
+      const dx = ((d * 0.13 + (time * 0.08) % 1.0) % 1.0) * W;
+      const dy = H - ((d * 0.18 + (time * 0.22) % 1.0) % 1.0) * H;
+      const dRad = 12 + 8 * Math.sin(time * 3 + d);
+      const dCol = d % 2 === 0 ? [250, 204, 21] : [56, 189, 248];
+
+      const dGrad = ctx.createRadialGradient(dx, dy, 1, dx, dy, dRad);
+      dGrad.addColorStop(0, rgba([255, 255, 255], 0.75));
+      dGrad.addColorStop(0.4, rgba(dCol, 0.45));
+      dGrad.addColorStop(1, "rgba(0,0,0,0)");
       ctx.beginPath();
-      ctx.moveTo(curX, curY);
-      for (let s = 1; s <= 8; s++) {
-        curY += H / 8;
-        const jitter = Math.sin(arcSeed + s * 4.8) * (W * 0.08);
-        curX += jitter;
-        ctx.lineTo(curX, curY);
-      }
-      ctx.strokeStyle = arc % 2 === 0 ? "rgba(250, 204, 21, 0.85)" : "rgba(56, 189, 248, 0.90)";
-      ctx.lineWidth = 2.8;
-      ctx.shadowColor = arc % 2 === 0 ? "#FACC15" : "#38BDF8";
-      ctx.shadowBlur = 18;
-      ctx.stroke();
+      ctx.arc(dx, dy, dRad, 0, Math.PI * 2);
+      ctx.fillStyle = dGrad;
+      ctx.fill();
     }
     ctx.restore();
   }
 
   if (isPrism) {
-    // ✨ PRISM VOCAL BLOOM: Chromatic Dispersion Ripple Waves + Sacred Geometry Mandala + Iridescent Rays
+    // ✨ PRISM VOCAL BLOOM: Liquid Watercolor Chromatic Washes + Vocal Resonance Blooms
     ctx.save();
 
-    // 1. Concentric Chromatic Dispersion Ripple Waves (pulsing with Ethan's vocal energy)
-    const waveCount = 5;
+    // 1. Expansive Liquid Watercolor Chromatic Waves (Diffusing outward with soft feathered edges)
+    const waveCount = 4;
     for (let w = 0; w < waveCount; w++) {
-      const wProg = ((time * 0.35 + w / waveCount) % 1.0);
-      const wRad = wProg * maxDim * 0.80;
-      const wAlpha = (1.0 - wProg) * (0.35 + vocal * 0.45);
-      const colors = ["#4ADE80", "#38BDF8", "#EC4899", "#FACC15"];
-      const col = colors[w % colors.length];
+      const wProg = ((time * 0.24 + w / waveCount) % 1.0);
+      const wRad = wProg * maxDim * 0.85;
+      const wAlpha = (1.0 - wProg) * (0.32 + vocal * 0.42);
+      const cols = [[74, 222, 128], [56, 189, 248], [236, 72, 153], [250, 204, 21]];
+      const col = cols[w % cols.length];
 
+      const waveGrad = ctx.createRadialGradient(centerX, centerY, Math.max(0, wRad * 0.65), centerX, centerY, wRad);
+      waveGrad.addColorStop(0, "rgba(0,0,0,0)");
+      waveGrad.addColorStop(0.5, rgba(col, wAlpha * 0.75));
+      waveGrad.addColorStop(1, "rgba(0,0,0,0)");
       ctx.beginPath();
       ctx.arc(centerX, centerY, wRad, 0, Math.PI * 2);
-      ctx.strokeStyle = col;
-      ctx.globalAlpha = Math.max(0, Math.min(1, wAlpha));
-      ctx.lineWidth = 3.2 * (1.0 - wProg * 0.5);
-      ctx.shadowColor = col;
-      ctx.shadowBlur = 14;
-      ctx.stroke();
-    }
-    ctx.globalAlpha = 1.0;
-
-    // 2. Sacred Geometry Kaleidoscope / Mandala Rings (Interlocking Petals)
-    const petalRings = 3;
-    for (let r = 0; r < petalRings; r++) {
-      const pRad = maxDim * (0.22 + r * 0.14) * (1.0 + vocal * 0.12);
-      const pCount = 6 + r * 2;
-      const rot = time * (r % 2 === 0 ? 0.28 : -0.22);
-      ctx.beginPath();
-      for (let p = 0; p < pCount; p++) {
-        const ang = rot + (p / pCount) * Math.PI * 2;
-        const px = centerX + Math.cos(ang) * pRad;
-        const py = centerY + Math.sin(ang) * pRad;
-        ctx.arc(px, py, pRad * 0.42, 0, Math.PI * 2);
-      }
-      ctx.strokeStyle = r === 0 ? "rgba(236, 72, 153, 0.45)" : r === 1 ? "rgba(74, 222, 128, 0.38)" : "rgba(56, 189, 248, 0.32)";
-      ctx.lineWidth = 1.8;
-      ctx.stroke();
+      ctx.fillStyle = waveGrad;
+      ctx.fill();
     }
 
-    // 3. Rotating Rainbow Prismatic Diffraction Beams
-    const beamCount = 16;
-    for (let b = 0; b < beamCount; b++) {
-      const beamAngle = time * 0.40 + (b * (Math.PI * 2 / beamCount));
-      const bCol = b % 4 === 0 ? [74, 222, 128] : b % 4 === 1 ? [56, 189, 248] : b % 4 === 2 ? [236, 72, 153] : [250, 204, 21];
+    // 2. Harmonic Vocal Fluid Pools (Volumetric soft-edged breathing ovals)
+    const poolCount = 3;
+    for (let p = 0; p < poolCount; p++) {
+      const ang = time * 0.35 + p * ((Math.PI * 2) / poolCount);
+      const pDist = maxDim * (0.24 + vocal * 0.14);
+      const px = centerX + Math.cos(ang) * pDist;
+      const py = centerY + Math.sin(ang) * (pDist * 0.85);
+      const pRad = maxDim * (0.22 + vocal * 0.16);
+      const pCol = p === 0 ? [74, 222, 128] : p === 1 ? [236, 72, 153] : [56, 189, 248];
+
+      const poolGrad = ctx.createRadialGradient(px, py, 2, px, py, pRad);
+      poolGrad.addColorStop(0, rgba(pCol, 0.28 + vocal * 0.20));
+      poolGrad.addColorStop(0.55, rgba(pCol, 0.08));
+      poolGrad.addColorStop(1, "rgba(0,0,0,0)");
       ctx.beginPath();
-      ctx.moveTo(centerX, centerY);
-      ctx.arc(centerX, centerY, maxDim * 0.85, beamAngle - 0.06, beamAngle + 0.06);
-      ctx.closePath();
-      ctx.fillStyle = rgba(bCol, 0.15 + 0.08 * Math.sin(time * 5.0 + b));
+      ctx.arc(px, py, pRad, 0, Math.PI * 2);
+      ctx.fillStyle = poolGrad;
       ctx.fill();
     }
     ctx.restore();
   }
 
   if (isSlowMo) {
-    // 🌀 VORTEX SLOW-MO: Gravitational Accretion Disc + Time-Dilation Horizon Waves + Royal Void
+    // 🌀 VORTEX SLOW-MO: Volumetric Cosmic Honey Accretion Swirl + Amethyst Time-Dilation Void
     ctx.save();
 
-    // 1. Spacetime Gravitational Accretion Swirling Spiral Arms
-    const armCount = 4;
-    const spiralPoints = 28;
-    for (let a = 0; a < armCount; a++) {
+    // 1. Swirling Volumetric Gravitational Accretion Clouds
+    const cloudCount = 3;
+    for (let c = 0; c < cloudCount; c++) {
+      const cAng = time * 0.18 + c * ((Math.PI * 2) / cloudCount);
+      const cDist = maxDim * (0.20 + 0.10 * Math.sin(time * 0.6 + c));
+      const cxPos = centerX + Math.cos(cAng) * cDist;
+      const cyPos = centerY + Math.sin(cAng) * (cDist * 0.7);
+      const cRad = maxDim * 0.38;
+
+      const cloudGrad = ctx.createRadialGradient(cxPos, cyPos, 4, cxPos, cyPos, cRad);
+      cloudGrad.addColorStop(0, "rgba(192, 132, 252, 0.36)");
+      cloudGrad.addColorStop(0.45, "rgba(147, 51, 234, 0.16)");
+      cloudGrad.addColorStop(1, "rgba(0,0,0,0)");
       ctx.beginPath();
-      const armOffset = a * (Math.PI * 2 / armCount) + time * 0.32;
-      for (let s = 0; s < spiralPoints; s++) {
-        const st = s / spiralPoints;
-        const sDist = st * maxDim * 0.70;
-        const sAngle = armOffset + st * 4.2;
-        const sx = centerX + Math.cos(sAngle) * sDist;
-        const sy = centerY + Math.sin(sAngle) * sDist;
-        if (s === 0) ctx.moveTo(sx, sy);
-        else ctx.lineTo(sx, sy);
-      }
-      ctx.strokeStyle = a % 2 === 0 ? "rgba(192, 132, 252, 0.52)" : "rgba(147, 51, 234, 0.40)";
-      ctx.lineWidth = 3.6;
-      ctx.shadowColor = "#C084FC";
-      ctx.shadowBlur = 16;
-      ctx.stroke();
+      ctx.arc(cxPos, cyPos, cRad, 0, Math.PI * 2);
+      ctx.fillStyle = cloudGrad;
+      ctx.fill();
     }
 
-    // 2. Gravitational Time-Dilation Event Horizon Expansion Rings
-    for (let v = 0; v < 5; v++) {
-      const vRadius = ((time * 0.14 + v * 0.20) % 1.0) * maxDim * 0.75;
-      const vFade = 1.0 - (vRadius / (maxDim * 0.75));
-      ctx.beginPath();
-      ctx.arc(centerX, centerY, vRadius, 0, Math.PI * 2);
-      ctx.strokeStyle = `rgba(192, 132, 252, ${0.45 * vFade})`;
-      ctx.lineWidth = 4.0 * vFade;
-      ctx.stroke();
-    }
+    // 2. Gravitational Time-Dilation Volumetric Lens
+    const lensRad = maxDim * (0.42 + 0.08 * Math.sin(time * 0.5));
+    const lensGrad = ctx.createRadialGradient(centerX, centerY, 5, centerX, centerY, lensRad);
+    lensGrad.addColorStop(0, "rgba(59, 7, 100, 0.55)");
+    lensGrad.addColorStop(0.6, "rgba(24, 6, 41, 0.30)");
+    lensGrad.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, lensRad, 0, Math.PI * 2);
+    ctx.fillStyle = lensGrad;
+    ctx.fill();
     ctx.restore();
   }
 
@@ -535,27 +511,31 @@ function drawNebulaBackground(ctx, W, H, palette, stars, time, beatPulse, multiB
     }
   }
 
-  // 7. Full-Screen Solar Nova Blast Wave (Blinding White-Hot Expanding Corona Shockwave)
+  // 7. Full-Screen Solar Nova Blast Wave (Volumetric Coronal Solar Heatwave Wash)
   if (novaFlash > 0.01) {
-    const novaRadius = (1 - novaFlash) * maxDim * 1.15;
+    const novaRadius = (1 - novaFlash) * maxDim * 1.18;
     ctx.save();
     const novaGrad = ctx.createRadialGradient(centerX, centerY, 5, centerX, centerY, Math.max(10, novaRadius));
-    novaGrad.addColorStop(0, rgba([255, 255, 255], novaFlash * 0.92));
-    novaGrad.addColorStop(0.25, rgba([254, 240, 138], novaFlash * 0.75));
-    novaGrad.addColorStop(0.55, rgba([250, 204, 21], novaFlash * 0.55));
-    novaGrad.addColorStop(0.85, rgba([249, 115, 22], novaFlash * 0.35));
+    novaGrad.addColorStop(0, rgba([255, 255, 255], novaFlash * 0.95));
+    novaGrad.addColorStop(0.20, rgba([254, 240, 138], novaFlash * 0.85));
+    novaGrad.addColorStop(0.50, rgba([250, 204, 21], novaFlash * 0.65));
+    novaGrad.addColorStop(0.80, rgba([249, 115, 22], novaFlash * 0.35));
     novaGrad.addColorStop(1, "rgba(0,0,0,0)");
     ctx.fillStyle = novaGrad;
     ctx.fillRect(0, 0, W, H);
 
-    // Blinding white-hot shockwave rim
+    // Billowing Volumetric Corona Plasma Ring (Soft feathered edge)
+    const rimGrad = ctx.createRadialGradient(
+      centerX, centerY, Math.max(0, novaRadius - 45),
+      centerX, centerY, novaRadius + 25
+    );
+    rimGrad.addColorStop(0, "rgba(255, 255, 255, 0)");
+    rimGrad.addColorStop(0.5, `rgba(255, 255, 255, ${novaFlash * 0.90})`);
+    rimGrad.addColorStop(1, "rgba(250, 204, 21, 0)");
     ctx.beginPath();
-    ctx.arc(centerX, centerY, Math.max(10, novaRadius), 0, Math.PI * 2);
-    ctx.strokeStyle = `rgba(255, 255, 255, ${novaFlash * 0.95})`;
-    ctx.lineWidth = 6.0 * novaFlash;
-    ctx.shadowColor = "#FACC15";
-    ctx.shadowBlur = 24;
-    ctx.stroke();
+    ctx.arc(centerX, centerY, novaRadius + 25, 0, Math.PI * 2);
+    ctx.fillStyle = rimGrad;
+    ctx.fill();
     ctx.restore();
   }
 }
