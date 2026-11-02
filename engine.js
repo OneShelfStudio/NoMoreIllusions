@@ -1236,10 +1236,7 @@ class NoMoreIllusionsApp {
         );
       }
 
-      drawFloatingTexts(ctx, this.floatingTexts);
-      if (typeof drawComboZoomBanner === "function") {
-        drawComboZoomBanner(ctx, this.W, this.H, this.comboZoomBanner, this.time);
-      }
+      // In-game screen decluttered per feedback: score & combo live cleanly in HUD header
     }
 
     ctx.restore();

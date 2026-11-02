@@ -102,14 +102,6 @@ Object.assign(NoMoreIllusionsApp.prototype, {
         color: [250, 204, 21],
         alpha: 1
       });
-      this.floatingTexts.push({
-        x: this.W / 2,
-        y: this.H * 0.30,
-        text: `PHASE ${this.level}`,
-        color: [250, 204, 21],
-        alpha: 1,
-        age: 0
-      });
     }
 
     // Player Spring-Damper Tracking (100% Free Steering — Never Hijacked!)
@@ -334,22 +326,6 @@ Object.assign(NoMoreIllusionsApp.prototype, {
           this.comboTimer = 0;
           this.triggerHaptic([32]);
           this.screenShake = Math.max(this.screenShake, 3.5);
-          this.comboZoomBanner = {
-            text: "💔 STREAK BROKEN",
-            subText: "MISSED BEAT NOTE",
-            color: [239, 68, 68],
-            timer: 1.5,
-            maxTimer: 1.5,
-            isBroken: true
-          };
-          this.floatingTexts.push({
-            x: Math.max(60, Math.min(this.W - 60, pu.x)),
-            y: this.H - 55,
-            text: "STREAK LOST",
-            color: [239, 68, 68],
-            alpha: 1,
-            age: 0
-          });
         }
         this.powerUps.splice(i, 1);
         continue;
@@ -376,6 +352,29 @@ Object.assign(NoMoreIllusionsApp.prototype, {
           const goalY = (pu.targetY || pu.y) + Math.sin(this.time * 2.1 + (pu.phase || 0)) * 4.5;
           pu.x += (goalX - pu.x) * 0.16;
           pu.y += (goalY - pu.y) * 0.16;
+        }
+      }
+
+      // Elastic Note-on-Note Mutual Bouncing & Anti-Overlap Physics
+      if (this.powerUps.length > 1) {
+        for (let a = 0; a < this.powerUps.length; a++) {
+          for (let b = a + 1; b < this.powerUps.length; b++) {
+            const pA = this.powerUps[a];
+            const pB = this.powerUps[b];
+            const dx = pB.x - pA.x;
+            const dy = pB.y - pA.y;
+            const dist = Math.hypot(dx, dy);
+            const minDist = (pA.radius + pB.radius) * 1.35;
+            if (dist < minDist && dist > 0.001) {
+              const overlap = minDist - dist;
+              const nx = dx / dist;
+              const ny = dy / dist;
+              pA.x -= nx * overlap * 0.5;
+              pA.y -= ny * overlap * 0.5;
+              pB.x += nx * overlap * 0.5;
+              pB.y += ny * overlap * 0.5;
+            }
+          }
         }
       }
     }
@@ -461,14 +460,6 @@ Object.assign(NoMoreIllusionsApp.prototype, {
         const grazePts = 60 * this.combo;
         this.score += grazePts;
         this.spawnBurstMotes((this.playerX + e.x) / 2, (this.playerY + e.y) / 2, [254, 240, 138], 10);
-        this.floatingTexts.push({
-          x: (this.playerX + e.x) / 2,
-          y: (this.playerY + e.y) / 2 - 20,
-          text: `GRAZE! +${grazePts}`,
-          color: [254, 240, 138],
-          alpha: 1,
-          age: 0
-        });
       }
 
       // Collision with Player
@@ -483,14 +474,6 @@ Object.assign(NoMoreIllusionsApp.prototype, {
           this.screenShake = Math.max(this.screenShake, 8);
           this.spawnBurstMotes(e.x, e.y, [250, 204, 21], 10);
           this.shockwaves.push({ x: e.x, y: e.y, radius: 6, maxRadius: 150, color: [250, 204, 21], alpha: 1 });
-          this.floatingTexts.push({
-            x: e.x,
-            y: e.y,
-            text: `+${vapPts}`,
-            color: [250, 204, 21],
-            alpha: 1,
-            age: 0
-          });
           this.enemies.splice(i, 1);
         } else if (this.shieldTimer > 0) {
           this.playSfx("shield", 0.8);
@@ -825,37 +808,6 @@ Object.assign(NoMoreIllusionsApp.prototype, {
         color: isAtStrikeLine ? [74, 222, 128] : [250, 204, 21],
         alpha: 1
       });
-      this.floatingTexts.push({
-        x: pu.x,
-        y: pu.y - 16,
-        text: `+${pts}`,
-        color: isAtStrikeLine ? [74, 222, 128] : [250, 204, 21],
-        alpha: 1,
-        age: 0
-      });
-
-      // Upper-middle on-screen zoom banner tallying combo!
-      if (this.combo >= 2) {
-        if (isAtStrikeLine) {
-          this.comboZoomBanner = {
-            text: `★ PERFECT BEAT! ${this.combo}x 🔥`,
-            subText: `STREAK CHAIN • +${pts} PTS`,
-            color: this.combo >= 8 ? [250, 204, 21] : [74, 222, 128],
-            timer: 1.25,
-            maxTimer: 1.25,
-            isBroken: false
-          };
-        } else {
-          this.comboZoomBanner = {
-            text: `${this.combo}x STREAK`,
-            subText: `RHYTHMIC FLOW • +${pts} PTS`,
-            color: [56, 189, 248],
-            timer: 1.1,
-            maxTimer: 1.1,
-            isBroken: false
-          };
-        }
-      }
 
       const eff = pu.keyWordEffect || "NONE";
       if (pu.isSupernova || eff !== "NONE") {
@@ -1019,14 +971,6 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       maxRadius: 185,
       color: [34, 211, 238],
       alpha: 1
-    });
-    this.floatingTexts.push({
-      x: startX,
-      y: startY - 22,
-      text: "SLIDE STREAM! ♪",
-      color: [34, 211, 238],
-      alpha: 1,
-      age: 0
     });
   },
 

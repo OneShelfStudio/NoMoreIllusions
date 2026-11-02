@@ -53,14 +53,14 @@ function getMultiBandStateAt(trackIndexOrId, sec) {
 
 function buildConfideOrbChart() {
   const beatSec = 60 / 124;
-  // ONLY 6 Rare Supernova Orbs across the entire 3:39 track (aligned to Ethan's exact EXTRA JUICE / SLIGHT EXTRA JUICE moments)
+  // ONLY Rare Milestone Orbs placed at major musical transitions & drops across the entire 3:39 track
   const specialMoments = [
-    [14.52, "CONSTELLATION_STAR"], // 0:15 Chorus 1 Drop
-    [45.97, "MAGNETAR_WAR"],       // 0:46 Pre-Chorus Swell
-    [75.48, "CONSTELLATION_STAR"], // 1:15 Chorus 2 Drop
-    [137.42, "CONSTELLATION_STAR"],// 2:17 Chorus 3 Drop
-    [169.35, "BINARY_HEART"],      // 2:49 Vocal Battle Swell
-    [183.87, "CONSTELLATION_STAR"] // 3:03 Ending Breakdown Climax
+    [14.52, "CONSTELLATION_STAR"], // 0:14.5 Intro Drop into Chorus 1 (⚡ Electric Overdrive)
+    [45.97, "PRISM_SHATTER"],      // 0:46.0 Pre-Chorus Vocal Surge (✨ Prism Vocal Bloom)
+    [75.48, "MAGNETAR_WAR"],       // 1:15.5 Chorus 2 Drop (💥 Solar Nova Blast)
+    [124.0, "ECLIPSE_DARK"],       // 2:04.0 Hook Vocal Float (🌀 Vortex Slow-Mo)
+    [137.42, "CONSTELLATION_STAR"],// 2:17.5 Chorus 3 Drop (⚡ Electric Overdrive)
+    [183.87, "CONSTELLATION_STAR"] // 3:03.9 Ending Breakdown Climax (⚡ Electric Overdrive)
   ];
   const cues = [];
   const used = new Set();
@@ -129,12 +129,7 @@ function buildConfideOrbChart() {
         : effect === "MAGNETAR_WAR" ? "BLAST"
         : effect === "TRACTOR_REACH" ? "SHIELD"
         : "SCORE_ORB")
-      : (seq % 8 === 2 ? "ELECTRIC_HARMONIC"
-        : seq % 8 === 4 ? "PRISM_HARMONY"
-        : seq % 8 === 6 ? "SLOW_MO"
-        : seq % 8 === 0 ? "BLAST"
-        : seq % 16 === 7 ? "SHIELD"
-        : "SCORE_ORB");
+      : "SCORE_ORB";
     cues.push({
       sequenceIndex: seq,
       timestampSec: quantizeToBeat(anchor ? anchor[0] : t, beatSec),
@@ -154,13 +149,13 @@ function buildConfideOrbChart() {
 
 function buildNumberOneOrbChart() {
   const beatSec = 60 / 88;
-  // ONLY 5 Rare Supernova Orbs across the entire 2:46 track (aligned to Ethan's exact EXTRA JUICE / SLIGHT EXTRA JUICE moments)
+  // ONLY Rare Milestone Orbs placed at major musical transitions & drops across the entire 2:46 track
   const specialMoments = [
-    [44.32, "MAGNETAR_WAR"],       // 0:44 Pre-Chorus 1 Swell
-    [54.55, "CONSTELLATION_STAR"], // 0:54 Chorus 1 Drop
-    [92.05, "PRISM_SHATTER"],      // 1:32 Rap Flow Double-Time
-    [109.09, "CONSTELLATION_STAR"],// 1:49 Chorus 2 Drop
-    [129.55, "CONSTELLATION_STAR"] // 2:09 Ending Breakdown Climax
+    [44.32, "MAGNETAR_WAR"],       // 0:44 Pre-Chorus 1 Swell (💥 Solar Nova Blast)
+    [54.55, "CONSTELLATION_STAR"], // 0:54 Chorus 1 Drop (⚡ Electric Overdrive)
+    [92.05, "PRISM_SHATTER"],      // 1:32 Rap Flow Double-Time (✨ Prism Vocal Bloom)
+    [109.09, "ECLIPSE_DARK"],      // 1:49 Chorus 2 Slow-Mo Pocket (🌀 Vortex Slow-Mo)
+    [129.55, "CONSTELLATION_STAR"] // 2:09 Ending Breakdown Climax (⚡ Electric Overdrive)
   ];
   const cues = [];
   const used = new Set();
@@ -221,12 +216,7 @@ function buildNumberOneOrbChart() {
         : effect === "MAGNETAR_WAR" ? "BLAST"
         : effect === "TRACTOR_REACH" ? "SHIELD"
         : "SCORE_ORB")
-      : (seq % 8 === 2 ? "ELECTRIC_HARMONIC"
-        : seq % 8 === 4 ? "PRISM_HARMONY"
-        : seq % 8 === 6 ? "SLOW_MO"
-        : seq % 8 === 0 ? "BLAST"
-        : seq % 16 === 7 ? "SHIELD"
-        : "SCORE_ORB");
+      : "SCORE_ORB";
     cues.push({
       sequenceIndex: seq,
       timestampSec: quantizeToBeat(anchor ? anchor[0] : t, beatSec),
@@ -249,7 +239,7 @@ const OFFICIAL_TRACKS = [
     id: "track_01",
     index: 1,
     title: "Confide",
-    subtitle: "Official Single • 124 BPM",
+    subtitle: "Official Single",
     bpm: 124,
     durationSec: 219,
     durationLabel: "3:39",
@@ -262,7 +252,7 @@ const OFFICIAL_TRACKS = [
       { t: 0, timeSec: 0, title: "AMBIENT INTRO", subtitle: "SYNTH RESONANCE", effectType: "STANDARD", maxEnemies: 0, enemySpeedMult: 0.70, clearEnemiesOnEnter: true, allowAnomalies: false, juiceTier: "NONE" },
       { t: 7.25, timeSec: 7.25, title: "BASS & GUITAR SWELL", subtitle: "SUB-BASS DRIFT", effectType: "WARP_PULSE", maxEnemies: 1, enemySpeedMult: 0.72, clearEnemiesOnEnter: false, allowAnomalies: false, juiceTier: "SECTION_SHIFT" },
       { t: 14.5, timeSec: 14.5, title: "CHORUS I DROP", subtitle: "SUPERNOVA BURST", effectType: "CONSTELLATION_RUSH", maxEnemies: 2, enemySpeedMult: 0.85, clearEnemiesOnEnter: false, allowAnomalies: true, juiceTier: "EXTRA_JUICE" },
-      { t: 31.0, timeSec: 31.0, title: "VERSE ONE FLOW", subtitle: "124 BPM SYNTH GROOVE", effectType: "STANDARD", maxEnemies: 1, enemySpeedMult: 0.75, clearEnemiesOnEnter: false, allowAnomalies: false, juiceTier: "SECTION_SHIFT" },
+      { t: 31.0, timeSec: 31.0, title: "VERSE ONE FLOW", subtitle: "SYNTH GROOVE", effectType: "STANDARD", maxEnemies: 1, enemySpeedMult: 0.75, clearEnemiesOnEnter: false, allowAnomalies: false, juiceTier: "SECTION_SHIFT" },
       { t: 45.5, timeSec: 45.5, title: "PRE-CHORUS SURGE", subtitle: "HARMONIC RISER", effectType: "SPEED_PORTAL", maxEnemies: 2, enemySpeedMult: 0.82, clearEnemiesOnEnter: false, allowAnomalies: false, juiceTier: "SLIGHT_EXTRA_JUICE" },
       { t: 62.0, timeSec: 62.0, title: "HOOK VOCAL FLOAT", subtitle: "ZERO-BASS PURITY", effectType: "ECLIPSE_VORTEX", maxEnemies: 0, enemySpeedMult: 0.65, clearEnemiesOnEnter: true, allowAnomalies: false, juiceTier: "SECTION_SHIFT" },
       { t: 69.25, timeSec: 69.25, title: "PRE-DROP RISER", subtitle: "ASCENDING STAIRCASE", effectType: "SPEED_PORTAL", maxEnemies: 1, enemySpeedMult: 0.80, clearEnemiesOnEnter: false, allowAnomalies: false, juiceTier: "SLIGHT_EXTRA_JUICE" },
@@ -294,7 +284,7 @@ const OFFICIAL_TRACKS = [
     id: "track_02",
     index: 2,
     title: "Number One",
-    subtitle: "Hypnotic Hip-Hop • 88 BPM",
+    subtitle: "Hypnotic Hip-Hop",
     bpm: 88,
     durationSec: 166,
     durationLabel: "2:46",

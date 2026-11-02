@@ -181,7 +181,7 @@ Object.assign(NoMoreIllusionsApp.prototype, {
     const lyricsEl = document.getElementById("liner-track-lyrics");
 
     if (titleEl) titleEl.textContent = track.title.toUpperCase();
-    if (metaEl) metaEl.textContent = `${track.bpm} BPM • C MINOR • 432Hz ANALOG MASTER`;
+    if (metaEl) metaEl.textContent = `C MINOR • 432Hz ANALOG MASTER`;
 
     const stories = {
       track_01: "Here is where you can put your personal studio story, production notes, or behind-the-scenes memory for your fans about 'Confide'!",
@@ -371,7 +371,7 @@ Object.assign(NoMoreIllusionsApp.prototype, {
     }
     if (metaRowEl) {
       metaRowEl.textContent = isCurUnlocked
-        ? `${Math.round(activeStage.bpm)} BPM • ${activeStage.key || "432Hz MASTER"} • ${starsStr} READY`
+        ? `${activeStage.key || "432Hz MASTER"} • ${starsStr} READY`
         : `🔒 LOCKED • BEAT TRACK 01 OR UNLOCK (1,200 ♪)`;
       metaRowEl.style.color = isCurUnlocked ? "#FACC15" : "#F87171";
     }
@@ -437,7 +437,7 @@ Object.assign(NoMoreIllusionsApp.prototype, {
         ? "TAP TO UNLOCK WITH COLLECTED NOTES"
         : (this.isBandHeroMode
           ? "4-LANE GUITAR HERO RHYTHM RUN"
-          : `${activeRemix.displayName} • ${Math.round(activeStage.bpm)} BPM GROOVE`);
+          : `${activeRemix.displayName} • 432Hz MASTER`);
       launchSub.style.color = isStageUnlocked ? "#FAF8F5" : "#FACC15";
     }
 
@@ -818,7 +818,7 @@ Object.assign(NoMoreIllusionsApp.prototype, {
             <div class="vault-track-icon" style="color:${u ? "#4ADE80" : "#FACC15"};">${u ? "▶" : "🔒"}</div>
             <div style="flex:1;">
               <div class="vault-track-name">${t.title}</div>
-              <div class="vault-track-sub">${u ? `${t.subtitle} • ${t.bpm} BPM` : `${p}% Revealed — Survive stage to unlock`}</div>
+              <div class="vault-track-sub">${u ? `${t.subtitle}` : `${p}% Revealed — Survive stage to unlock`}</div>
             </div>
             <div class="vault-track-dur">${t.durationLabel}</div>
           </div>

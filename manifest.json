@@ -1,7 +1,7 @@
 {
   "name": "No More Illusions",
   "short_name": "No More Illusions",
-  "description": "The Interactive Album Experience by No More Illusions — 126 BPM Audio-Reactive Arcade & Studio Vault.",
+  "description": "The Interactive Album Experience by No More Illusions — Audio-Reactive Arcade & Studio Vault.",
   "start_url": "./index.html",
   "display": "standalone",
   "orientation": "portrait",
