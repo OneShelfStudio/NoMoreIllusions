@@ -1078,6 +1078,7 @@ fun GameScreen(
                             } else {
                                 when (p.powerUpType) {
                                     PowerUpType.ELECTRIC_HARMONIC -> {
+                                        audioEngine.playElectricSurgeStinger()
                                         comboZoomBanner = ComboZoomBannerData(
                                             text = "⚡ 4X OVERDRIVE! (${rhythmCombo}x STREAK)",
                                             subText = "SYNTH AURORA SURGE • +250 PTS",
@@ -1088,6 +1089,7 @@ fun GameScreen(
                                         )
                                     }
                                     PowerUpType.PRISM_HARMONY -> {
+                                        audioEngine.playPrismBloomStinger()
                                         comboZoomBanner = ComboZoomBannerData(
                                             text = "✨ PRISM VOCAL BLOOM! (${rhythmCombo}x STREAK)",
                                             subText = "+20% ART WATERFALL FILL • +250 PTS",
@@ -1098,6 +1100,7 @@ fun GameScreen(
                                         )
                                     }
                                     PowerUpType.SLOW_MO -> {
+                                        audioEngine.playSlowMoStinger()
                                         comboZoomBanner = ComboZoomBannerData(
                                             text = "🌀 VORTEX SLOW-MO! (${rhythmCombo}x STREAK)",
                                             subText = "TIME DILATION FLOW • +250 PTS",
@@ -1108,6 +1111,22 @@ fun GameScreen(
                                         )
                                     }
                                     PowerUpType.BLAST -> {
+                                        audioEngine.playSolarNovaStinger()
+                                        for (s in 0 until 28) {
+                                            val sAngle = kotlin.random.Random.nextFloat() * 2f * kotlin.math.PI.toFloat()
+                                            val sSpd = 260f + kotlin.random.Random.nextFloat() * 320f
+                                            particles.add(
+                                                GameObject(
+                                                    x = p.x,
+                                                    y = p.y,
+                                                    vx = kotlin.math.cos(sAngle) * sSpd,
+                                                    vy = kotlin.math.sin(sAngle) * sSpd,
+                                                    radius = 3.5f + kotlin.random.Random.nextFloat() * 3f,
+                                                    color = if (s % 3 == 0) Color(0xFFFDE047L) else if (s % 3 == 1) Color(0xFF38BDF8L) else Color(0xFFF97316L),
+                                                    life = 1.2f
+                                                )
+                                            )
+                                        }
                                         comboZoomBanner = ComboZoomBannerData(
                                             text = "💥 SOLAR NOVA! (${rhythmCombo}x STREAK)",
                                             subText = "ALL HAZARDS VAPORIZED • +250 PTS",
@@ -1118,6 +1137,7 @@ fun GameScreen(
                                         )
                                     }
                                     PowerUpType.SHIELD -> {
+                                        audioEngine.playAegisStinger()
                                         comboZoomBanner = ComboZoomBannerData(
                                             text = "🛡️ AEGIS BARRIER! (${rhythmCombo}x STREAK)",
                                             subText = "INVINCIBILITY ACTIVE • +250 PTS",

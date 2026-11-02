@@ -286,34 +286,147 @@ Object.assign(NoMoreIllusionsApp.prototype, {
     } catch (e) {}
   },
 
-  synthHarmonicOrbChime(vol = 0.55) {
+  synthHarmonicOrbChime(vol = 0.55, isOnBeat = false, combo = 1) {
     if (!this.audioCtx || this.prefs.sfxMuted) return;
     try {
       if (this.audioCtx.state === "suspended") this.audioCtx.resume();
-      // Musical pentatonic scale matching C minor / Eb major: C5, Eb5, F5, G5, Bb5, C6
-      const scale = [523.25, 622.25, 698.46, 783.99, 932.33, 1046.50];
-      const freq = scale[(this.combo || 1) % scale.length];
+      const now = this.audioCtx.currentTime;
+
+      // 1. Crisp Percussive Transient (Sharp acoustic snare-rim / tambourine snap)
+      this._playAirWhoosh(now, isOnBeat ? 0.045 : 0.032, 1400, 3600, (isOnBeat ? 0.52 : 0.30) * vol);
+
+      // 2. Harmonically Tuned Pentatonic Synthesizer Note (C5, D5, E5, G5, A5, C6, D6, E6)
+      const scale = [523.25, 587.33, 659.25, 783.99, 880.00, 1046.50, 1174.66, 1318.51];
+      const freq = scale[Math.max(0, combo - 1) % scale.length];
 
       const osc = this.audioCtx.createOscillator();
       const osc2 = this.audioCtx.createOscillator();
       const gain = this.audioCtx.createGain();
 
-      osc.type = "sine";
-      osc.frequency.setValueAtTime(freq, this.audioCtx.currentTime);
-      osc2.type = "triangle";
-      osc2.frequency.setValueAtTime(freq * 2, this.audioCtx.currentTime);
+      osc.type = isOnBeat ? "triangle" : "sine";
+      osc.frequency.setValueAtTime(freq, now);
+      osc2.type = "sine";
+      osc2.frequency.setValueAtTime(freq * 2, now);
 
-      gain.gain.setValueAtTime(vol * 0.35, this.audioCtx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, this.audioCtx.currentTime + 0.38);
+      gain.gain.setValueAtTime((isOnBeat ? 0.48 : 0.32) * vol, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + (isOnBeat ? 0.32 : 0.22));
 
       osc.connect(gain);
       osc2.connect(gain);
       gain.connect(this.audioCtx.destination);
 
-      osc.start();
-      osc2.start();
-      osc.stop(this.audioCtx.currentTime + 0.40);
-      osc2.stop(this.audioCtx.currentTime + 0.40);
+      osc.start(now);
+      osc2.start(now);
+      osc.stop(now + 0.35);
+      osc2.stop(now + 0.35);
+    } catch (e) {}
+  },
+
+  synthElectricSurgeStinger(vol = 0.75) {
+    if (!this.audioCtx || this.prefs.sfxMuted) return;
+    try {
+      if (this.audioCtx.state === "suspended") this.audioCtx.resume();
+      const now = this.audioCtx.currentTime;
+      // High-voltage saw synthesizer solo arpeggio: C5 -> G5 -> C6 -> E6
+      const notes = [523.25, 783.99, 1046.50, 1318.51];
+      notes.forEach((f, idx) => {
+        const t0 = now + idx * 0.055;
+        const osc = this.audioCtx.createOscillator();
+        const g = this.audioCtx.createGain();
+        osc.type = "sawtooth";
+        osc.frequency.setValueAtTime(f, t0);
+        g.gain.setValueAtTime(vol * 0.25, t0);
+        g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.42);
+        osc.connect(g);
+        g.connect(this.audioCtx.destination);
+        osc.start(t0);
+        osc.stop(t0 + 0.45);
+      });
+    } catch (e) {}
+  },
+
+  synthPrismBloomStinger(vol = 0.75) {
+    if (!this.audioCtx || this.prefs.sfxMuted) return;
+    try {
+      if (this.audioCtx.state === "suspended") this.audioCtx.resume();
+      const now = this.audioCtx.currentTime;
+      // Lush ethereal vocal pad chord: Major 9th (C4, G4, B4, D5, E5)
+      const chord = [261.63, 392.00, 493.88, 587.33, 659.25];
+      chord.forEach((f, idx) => {
+        const t0 = now + idx * 0.025;
+        const osc = this.audioCtx.createOscillator();
+        const g = this.audioCtx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(f, t0);
+        g.gain.setValueAtTime(vol * 0.22, t0);
+        g.gain.exponentialRampToValueAtTime(0.001, t0 + 1.25);
+        osc.connect(g);
+        g.connect(this.audioCtx.destination);
+        osc.start(t0);
+        osc.stop(t0 + 1.30);
+      });
+    } catch (e) {}
+  },
+
+  synthSlowMoTapeStop(vol = 0.75) {
+    if (!this.audioCtx || this.prefs.sfxMuted) return;
+    try {
+      if (this.audioCtx.state === "suspended") this.audioCtx.resume();
+      const now = this.audioCtx.currentTime;
+      // Analog turntable vinyl tape-stop pitch-dive
+      const osc = this.audioCtx.createOscillator();
+      const g = this.audioCtx.createGain();
+      osc.type = "sawtooth";
+      osc.frequency.setValueAtTime(680, now);
+      osc.frequency.exponentialRampToValueAtTime(55, now + 0.48);
+      g.gain.setValueAtTime(vol * 0.35, now);
+      g.gain.exponentialRampToValueAtTime(0.001, now + 0.50);
+      osc.connect(g);
+      g.connect(this.audioCtx.destination);
+      osc.start(now);
+      osc.stop(now + 0.52);
+    } catch (e) {}
+  },
+
+  synthSolarNovaExplosion(vol = 0.85) {
+    if (!this.audioCtx || this.prefs.sfxMuted) return;
+    try {
+      if (this.audioCtx.state === "suspended") this.audioCtx.resume();
+      const now = this.audioCtx.currentTime;
+      // Deep 808 sub-bass explosion impact
+      this._playAirWhoosh(now, 0.35, 1800, 90, vol * 0.65);
+      const osc = this.audioCtx.createOscillator();
+      const g = this.audioCtx.createGain();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(130, now);
+      osc.frequency.exponentialRampToValueAtTime(32, now + 0.75);
+      g.gain.setValueAtTime(vol * 0.60, now);
+      g.gain.exponentialRampToValueAtTime(0.001, now + 0.80);
+      osc.connect(g);
+      g.connect(this.audioCtx.destination);
+      osc.start(now);
+      osc.stop(now + 0.85);
+    } catch (e) {}
+  },
+
+  synthAegisChime(vol = 0.75) {
+    if (!this.audioCtx || this.prefs.sfxMuted) return;
+    try {
+      if (this.audioCtx.state === "suspended") this.audioCtx.resume();
+      const now = this.audioCtx.currentTime;
+      // Pure crystal singing-bowl bell chime (432 Hz + 864 Hz)
+      [432.00, 864.00].forEach((f, idx) => {
+        const osc = this.audioCtx.createOscillator();
+        const g = this.audioCtx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(f, now);
+        g.gain.setValueAtTime((idx === 0 ? 0.38 : 0.22) * vol, now);
+        g.gain.exponentialRampToValueAtTime(0.001, now + 1.10);
+        osc.connect(g);
+        g.connect(this.audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 1.15);
+      });
     } catch (e) {}
   },
 

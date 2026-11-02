@@ -211,8 +211,9 @@ class NoMoreIllusionsApp {
     this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
     if (this.menuTurntableCanvas && this.menuTurntableCtx) {
-      this.menuTurntableCanvas.width = Math.round(138 * dpr);
-      this.menuTurntableCanvas.height = Math.round(138 * dpr);
+      const ttSize = Math.min(240, Math.max(180, Math.round(Math.min(this.W, this.H) * 0.52)));
+      this.menuTurntableCanvas.width = Math.round(ttSize * dpr);
+      this.menuTurntableCanvas.height = Math.round(ttSize * dpr);
       this.menuTurntableCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
     }
     if (this.hudRevealCanvas && this.hudRevealCtx) {
@@ -263,6 +264,24 @@ class NoMoreIllusionsApp {
 
   bindEvents() {
     window.addEventListener("resize", () => this.resize());
+
+    // Phone / System Hardware Back Button Gesture Interception
+    if (window.history && typeof window.history.replaceState === "function") {
+      try {
+        window.history.replaceState({ screen: "MENU" }, "");
+      } catch (err) {}
+    }
+    window.addEventListener("popstate", (e) => {
+      if (this.gameState === "PLAYING") {
+        this.pauseGame();
+      } else if (this.gameState !== "MENU") {
+        if (this.gameState === "PAUSED" || this.gameState === "COUNTDOWN" || this.gameState === "GAME_OVER" || this.gameState === "TRACK_COMPLETED") {
+          this.trackAudio.pause();
+          this.startLobbyMusic();
+        }
+        this.openScreen("MENU", -1, false);
+      }
+    });
 
     // Interactive Main Menu Turntable Scratch / Flick Controls
     if (this.menuTurntableCanvas) {

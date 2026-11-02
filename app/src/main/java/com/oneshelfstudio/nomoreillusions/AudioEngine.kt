@@ -123,6 +123,43 @@ class AudioEngine(private val context: Context) {
 
     private val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
 
+    fun playElectricSurgeStinger() {
+        if (!isSoundEnabled) return
+        val arps = listOf(1.0f, 1.259f, 1.498f, 1.887f)
+        arps.forEachIndexed { i, rate ->
+            mainHandler.postDelayed({
+                if (isSoundEnabled && focusSound != 0) soundPool.play(focusSound, 0.40f, 0.40f, 1, 0, rate * 1.5f)
+            }, (i * 35).toLong())
+        }
+    }
+
+    fun playPrismBloomStinger() {
+        if (!isSoundEnabled) return
+        val chord = listOf(1.0f, 1.259f, 1.498f, 1.887f, 2.245f)
+        chord.forEach { rate ->
+            if (focusSound != 0) soundPool.play(focusSound, 0.22f, 0.22f, 1, 0, rate)
+        }
+    }
+
+    fun playSlowMoStinger() {
+        if (!isSoundEnabled) return
+        if (nearMissSound != 0) soundPool.play(nearMissSound, 0.45f, 0.45f, 1, 0, 0.65f)
+    }
+
+    fun playSolarNovaStinger() {
+        if (!isSoundEnabled) return
+        if (deathSound != 0) soundPool.play(deathSound, 0.50f, 0.50f, 1, 0, 0.70f)
+        if (powerUpSound != 0) soundPool.play(powerUpSound, 0.45f, 0.45f, 1, 0, 1.8f)
+    }
+
+    fun playAegisStinger() {
+        if (!isSoundEnabled) return
+        if (powerUpSound != 0) soundPool.play(powerUpSound, 0.38f, 0.38f, 1, 0, 1.0f)
+        mainHandler.postDelayed({
+            if (isSoundEnabled && powerUpSound != 0) soundPool.play(powerUpSound, 0.32f, 0.32f, 1, 0, 2.0f)
+        }, 80L)
+    }
+
     /**
      * Signature "Whoosh -> Musical Chime/Beep" transition sound for menus, first-time discovery cards,
      * level completion, and game-over transitions.

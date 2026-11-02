@@ -469,4 +469,48 @@ fun DrawScope.drawNebulaBackground(
             )
         )
     }
+
+    // 10. Screen-Edge Bioluminescent Audio Visualizer Equalizer (Left & Right Edge Bars)
+    val barCount = 18
+    val barH = (size.height * 0.70f) / barCount
+    val startY = size.height * 0.15f
+    val isElectric = isConstellationActive
+    val isPrism = activePhenomenon?.effect == KeyWordEffect.PRISM_SHATTER
+    val isSlowMo = stageMode == StageMode.ABYSSAL_WAVE
+
+    for (b in 0 until barCount) {
+        val norm = b.toFloat() / barCount
+        val bandEnergy = when {
+            norm < 0.35f -> (bass * 0.85f + beatPulse * 0.35f)
+            norm < 0.70f -> (vocal * 0.80f + beatPulse * 0.20f)
+            else -> (high * 0.75f + energy * 0.25f)
+        }
+        val barLen = ((12f + bandEnergy * 42f) * (if (isElectric || isPrism) 1.4f else 1.0f)).coerceIn(4f, size.width * 0.12f)
+        val barY = startY + b * barH
+        val barCol = when {
+            isElectric -> if (b % 2 == 0) Color(0xFFFACC15L) else Color(0xFF38BDF8L)
+            isPrism -> when (b % 3) {
+                0 -> Color(0xFF4ADE80L)
+                1 -> Color(0xFFEC4899L)
+                else -> Color(0xFF38BDF8L)
+            }
+            isSlowMo -> Color(0xFFC084FCL)
+            else -> if (b % 2 == 0) palette.nebTint else palette.starTint
+        }
+
+        // Left Edge Bar
+        drawRoundRect(
+            color = barCol.copy(alpha = (0.35f + bandEnergy * 0.55f).coerceIn(0.2f, 0.95f)),
+            topLeft = Offset(0f, barY + 2f),
+            size = Size(barLen, barH - 4f),
+            cornerRadius = CornerRadius(4f, 4f)
+        )
+        // Right Edge Bar
+        drawRoundRect(
+            color = barCol.copy(alpha = (0.35f + bandEnergy * 0.55f).coerceIn(0.2f, 0.95f)),
+            topLeft = Offset(size.width - barLen, barY + 2f),
+            size = Size(barLen, barH - 4f),
+            cornerRadius = CornerRadius(4f, 4f)
+        )
+    }
 }

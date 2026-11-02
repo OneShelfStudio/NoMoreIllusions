@@ -110,13 +110,104 @@
       flex-direction: column;
       align-items: center;
       text-align: center;
+      position: relative;
+    }
+    .carousel-hero-wrap {
+      position: relative;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 4px;
     }
     #menu-turntable-canvas {
-      width: 132px;
-      height: 132px;
+      width: 216px;
+      height: 216px;
+      max-width: 60vw;
+      max-height: 60vw;
+      aspect-ratio: 1;
       display: block;
-      margin-bottom: 2px;
       touch-action: none;
+      border-radius: 50%;
+      filter: drop-shadow(0 10px 32px rgba(0, 0, 0, 0.8));
+    }
+    .carousel-nav-btn {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: rgba(15, 23, 42, 0.78);
+      border: 1.6px solid rgba(255, 255, 255, 0.28);
+      color: #FAF8F5;
+      font-size: 26px;
+      font-weight: 300;
+      line-height: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.55);
+      transition: all 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+      z-index: 5;
+      user-select: none;
+    }
+    .carousel-nav-btn:hover {
+      background: rgba(30, 41, 59, 0.95);
+      border-color: #FACC15;
+      color: #FACC15;
+      transform: translateY(-50%) scale(1.12);
+    }
+    .carousel-nav-btn:active {
+      transform: translateY(-50%) scale(0.92);
+    }
+    .carousel-nav-btn.prev {
+      left: 10px;
+    }
+    .carousel-nav-btn.next {
+      right: 10px;
+    }
+    .track-dots-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      margin-bottom: 6px;
+    }
+    .track-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.25);
+      transition: all 0.22s ease;
+      cursor: pointer;
+    }
+    .track-dot.active {
+      width: 22px;
+      border-radius: 4px;
+      background: #FACC15;
+      box-shadow: 0 0 10px rgba(250, 204, 21, 0.7);
+    }
+    .track-title-card {
+      margin-bottom: 2px;
+      text-align: center;
+    }
+    .track-title-main {
+      font-size: 21px;
+      font-weight: 900;
+      letter-spacing: 1.8px;
+      color: #FAF8F5;
+      text-shadow: 0 0 18px rgba(56, 189, 248, 0.55);
+      text-transform: uppercase;
+    }
+    .track-meta-row {
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 1.4px;
+      color: #FACC15;
+      margin-top: 1px;
     }
     .title-3d-wrap {
       position: relative;
@@ -282,37 +373,39 @@
 
     .btn-launch-stage {
       width: 100%;
-      height: 58px;
-      border-radius: 2px;
-      background: radial-gradient(ellipse at center, rgba(234, 179, 8, 0.32) 0%, rgba(22, 163, 74, 0.20) 55%, rgba(2, 132, 199, 0.04) 100%);
-      border-top: 1.6px solid rgba(234, 179, 8, 0.85);
-      border-bottom: 1.6px solid rgba(234, 179, 8, 0.85);
-      border-left: none;
-      border-right: none;
+      height: 60px;
+      border-radius: 30px;
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.88), rgba(2, 132, 199, 0.88), rgba(250, 204, 21, 0.78));
+      border: 2px solid rgba(255, 255, 255, 0.65);
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      box-shadow: 0 0 28px rgba(234, 179, 8, 0.22);
-      transition: all 0.15s ease;
-      margin-top: 2px;
+      box-shadow: 0 6px 28px rgba(56, 189, 248, 0.45), inset 0 1px 2px rgba(255, 255, 255, 0.4);
+      transition: all 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+      margin-top: 8px;
+    }
+    .btn-launch-stage:hover {
+      transform: scale(1.02);
+      box-shadow: 0 8px 34px rgba(56, 189, 248, 0.65), inset 0 1px 2px rgba(255, 255, 255, 0.6);
     }
     .btn-launch-stage:active {
-      transform: scale(0.98);
+      transform: scale(0.97);
     }
     .btn-launch-main {
-      font-size: 16px;
+      font-size: 16.5px;
       font-weight: 900;
       letter-spacing: 2.2px;
       color: #FFFFFF;
-      text-shadow: 0 0 12px rgba(250, 204, 21, 0.55);
+      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
     }
     .btn-launch-sub {
-      font-size: 8.5px;
+      font-size: 9px;
       font-weight: 800;
       letter-spacing: 1.4px;
-      color: #4ADE80;
+      color: #FAF8F5;
+      opacity: 0.92;
       margin-top: 2px;
     }
 

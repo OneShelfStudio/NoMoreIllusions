@@ -360,106 +360,189 @@ fun MenuUI(
                 .verticalScroll(rememberScrollState())
                 .padding(top = 34.dp, bottom = 36.dp)
         ) {
-            // BESPOKE HOLOGRAPHIC VINYL TURNTABLE PLATTER + LASER TONE-ARM + RADIAL SPECTRUM
+            // BESPOKE HOLOGRAPHIC VINYL TURNTABLE CAROUSEL SHOWCASE
             val selectedTrackArt = if (selectedTrackIndex == 1) track01Art else track02Art
             val isCurrentTrackUnlocked = selectedTrackIndex == 1 || unlockedTrackCount >= selectedTrackIndex || isVipUnlocked || prefs.getBoolean("art_unlocked_$selectedTrackIndex", false) || prefs.getBoolean("track_unlocked_$selectedTrackIndex", false)
             val platterSpinSpeed = selectedRemixMode.audioSpeed
+            val currentTrackObj = MusicLibrary.getTrack(selectedTrackIndex)
+            val st = trackMasteryStars.getOrElse(selectedTrackIndex - 1) { 0 }.coerceIn(0, 3)
+            val stTxt = buildString { for (s in 1..3) append(if (s <= st) "★" else "☆") }
 
-            Box(
-                modifier = Modifier
-                    .size(136.dp)
-                    .graphicsLayer(scaleX = pulseScale, scaleY = pulseScale),
-                contentAlignment = Alignment.Center
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center,
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Canvas(modifier = Modifier.fillMaxSize()) {
-                    val cx = center.x
-                    val cy = center.y
-                    for (rIdx in 0..2) {
-                        val waveR = 56f + rIdx * 5.4f
-                        val startDeg = ((menuTime * (if (rIdx % 2 == 0) 42f else -36f) * platterSpinSpeed) + rIdx * 60f) % 360f
-                        val ringCol = if (rIdx % 2 == 0) modeAccent else Color(0xFFEAB308L)
-                        for (seg in 0..2) {
-                            drawArc(
-                                color = ringCol.copy(alpha = 0.68f - rIdx * 0.16f),
-                                startAngle = startDeg + seg * 120f,
-                                sweepAngle = 74f,
-                                useCenter = false,
-                                topLeft = Offset(cx - waveR, cy - waveR),
-                                size = androidx.compose.ui.geometry.Size(waveR * 2f, waveR * 2f),
-                                style = Stroke(width = 3.0f - rIdx * 0.5f, cap = StrokeCap.Round)
-                            )
-                        }
-                    }
-
-                    // Obsidian Vinyl Platter + Grooves
-                    drawCircle(color = if (isCurrentTrackUnlocked) Color(0xFF06080FL) else Color(0xFF0C1019L), radius = 53f, center = center)
-                    for (g in 1..4) {
-                        val gr = 29f + g * 5.4f
-                        drawCircle(
-                            color = if (isCurrentTrackUnlocked) modeAccent.copy(alpha = 0.16f + (g % 2) * 0.10f) else Color.White.copy(alpha = 0.05f),
-                            radius = gr,
-                            center = center,
-                            style = Stroke(width = 1.1f)
-                        )
-                    }
-                    drawCircle(
-                        color = if (isCurrentTrackUnlocked) modeAccent.copy(alpha = glowAlpha * 0.65f) else Color(0xFF475569L).copy(alpha = 0.40f),
-                        radius = 54f,
-                        center = center,
-                        style = Stroke(width = 2.2f)
-                    )
-
-                    // Smooth S-Curved Studio Tone-Arm (rests on groove when unlocked, lifts away when locked)
-                    val armPivot = Offset(cx + 54f, cy - 44f)
-                    val stylusTip = if (isCurrentTrackUnlocked) Offset(cx + 26f, cy + 10f) else Offset(cx + 46f, cy - 20f)
-                    val armPath = androidx.compose.ui.graphics.Path().apply {
-                        moveTo(armPivot.x, armPivot.y)
-                        quadraticTo(cx + 50f, cy - 8f, stylusTip.x, stylusTip.y)
-                    }
-                    drawPath(
-                        path = armPath,
-                        color = Color(0xFFFAF8F5L).copy(alpha = if (isCurrentTrackUnlocked) 0.85f else 0.45f),
-                        style = Stroke(width = 2.6f, cap = StrokeCap.Round)
-                    )
-                    drawCircle(color = if (isCurrentTrackUnlocked) modeAccent else Color(0xFF64748BL), radius = 4.5f, center = armPivot)
-                    drawCircle(color = if (isCurrentTrackUnlocked) Color.White else Color(0xFF94A3B8L), radius = 3.2f, center = stylusTip)
-                }
-
-                // Spinning Vinyl Center Label with Signature Band Logo
-                val platterLabelSize = 78.dp
+                // Carousel Prev Track Button
                 Box(
                     modifier = Modifier
-                        .size(platterLabelSize)
-                        .graphicsLayer(
-                            rotationZ = (menuTime * 32f * platterSpinSpeed) % 360f
-                        )
+                        .size(42.dp)
                         .clip(CircleShape)
-                        .background(Color(0xFF060913L))
-                        .border(
-                            width = 2.dp,
-                            color = modeAccent,
-                            shape = CircleShape
-                        ),
+                        .background(Color(0xFF0F172AL).copy(alpha = 0.85f))
+                        .border(1.6.dp, Color.White.copy(alpha = 0.28f), CircleShape)
+                        .clickable {
+                            val prev = if (selectedTrackIndex <= 1) MusicLibrary.TOTAL_TRACKS else selectedTrackIndex - 1
+                            onSelectQuickTrack(prev)
+                        },
                     contentAlignment = Alignment.Center
                 ) {
-                    Image(
-                        bitmap = nmiLogo,
-                        contentDescription = "No More Illusions Official Band Logo",
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(6.dp),
-                        contentScale = ContentScale.Fit
-                    )
-                    // Metallic Spindle Hole Core
+                    Text("‹", color = Color(0xFFFAF8F5L), fontSize = 26.sp, fontWeight = FontWeight.Light)
+                }
+
+                Spacer(modifier = Modifier.width(14.dp))
+
+                // Grand 216.dp Turntable Platter
+                Box(
+                    modifier = Modifier
+                        .size(216.dp)
+                        .graphicsLayer(scaleX = pulseScale, scaleY = pulseScale),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Canvas(modifier = Modifier.fillMaxSize()) {
+                        val cx = center.x
+                        val cy = center.y
+                        for (rIdx in 0..2) {
+                            val waveR = 88f + rIdx * 8.5f
+                            val startDeg = ((menuTime * (if (rIdx % 2 == 0) 42f else -36f) * platterSpinSpeed) + rIdx * 60f) % 360f
+                            val ringCol = if (rIdx % 2 == 0) modeAccent else Color(0xFFEAB308L)
+                            for (seg in 0..2) {
+                                drawArc(
+                                    color = ringCol.copy(alpha = 0.68f - rIdx * 0.16f),
+                                    startAngle = startDeg + seg * 120f,
+                                    sweepAngle = 74f,
+                                    useCenter = false,
+                                    topLeft = Offset(cx - waveR, cy - waveR),
+                                    size = androidx.compose.ui.geometry.Size(waveR * 2f, waveR * 2f),
+                                    style = Stroke(width = 3.2f - rIdx * 0.5f, cap = StrokeCap.Round)
+                                )
+                            }
+                        }
+
+                        // Obsidian Vinyl Platter + Grooves
+                        drawCircle(color = if (isCurrentTrackUnlocked) Color(0xFF06080FL) else Color(0xFF0C1019L), radius = 84f, center = center)
+                        for (g in 1..4) {
+                            val gr = 46f + g * 8.5f
+                            drawCircle(
+                                color = if (isCurrentTrackUnlocked) modeAccent.copy(alpha = 0.16f + (g % 2) * 0.10f) else Color.White.copy(alpha = 0.05f),
+                                radius = gr,
+                                center = center,
+                                style = Stroke(width = 1.1f)
+                            )
+                        }
+                        drawCircle(
+                            color = if (isCurrentTrackUnlocked) modeAccent.copy(alpha = glowAlpha * 0.65f) else Color(0xFF475569L).copy(alpha = 0.40f),
+                            radius = 85f,
+                            center = center,
+                            style = Stroke(width = 2.4f)
+                        )
+
+                        // Smooth S-Curved Studio Tone-Arm
+                        val armPivot = Offset(cx + 84f, cy - 68f)
+                        val stylusTip = if (isCurrentTrackUnlocked) Offset(cx + 42f, cy + 16f) else Offset(cx + 72f, cy - 32f)
+                        val armPath = androidx.compose.ui.graphics.Path().apply {
+                            moveTo(armPivot.x, armPivot.y)
+                            quadraticTo(cx + 78f, cy - 12f, stylusTip.x, stylusTip.y)
+                        }
+                        drawPath(
+                            path = armPath,
+                            color = Color(0xFFFAF8F5L).copy(alpha = if (isCurrentTrackUnlocked) 0.85f else 0.45f),
+                            style = Stroke(width = 2.8f, cap = StrokeCap.Round)
+                        )
+                        drawCircle(color = if (isCurrentTrackUnlocked) modeAccent else Color(0xFF64748BL), radius = 5f, center = armPivot)
+                        drawCircle(color = if (isCurrentTrackUnlocked) Color.White else Color(0xFF94A3B8L), radius = 3.6f, center = stylusTip)
+                    }
+
+                    // Spinning Vinyl Center Label with Selected Track Artwork
+                    val platterLabelSize = 120.dp
                     Box(
                         modifier = Modifier
-                            .size(10.dp)
+                            .size(platterLabelSize)
+                            .graphicsLayer(
+                                rotationZ = (menuTime * 32f * platterSpinSpeed) % 360f
+                            )
                             .clip(CircleShape)
-                            .background(Color(0xFF030508L))
-                            .border(1.2.dp, Color(0xFFFACC15L), CircleShape)
+                            .background(Color(0xFF060913L))
+                            .border(
+                                width = 2.dp,
+                                color = if (isCurrentTrackUnlocked) modeAccent else Color(0xFF475569L),
+                                shape = CircleShape
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Image(
+                            bitmap = selectedTrackArt,
+                            contentDescription = "${currentTrackObj.title} Artwork",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop,
+                            colorFilter = if (!isCurrentTrackUnlocked) ColorFilter.colorMatrix(ColorMatrix().apply { setToSaturation(0.0f) }) else null,
+                            alpha = if (isCurrentTrackUnlocked) 1f else 0.45f
+                        )
+                        // Metallic Spindle Hole Core
+                        Box(
+                            modifier = Modifier
+                                .size(14.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFF030508L))
+                                .border(1.4.dp, Color(0xFFFACC15L), CircleShape)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.width(14.dp))
+
+                // Carousel Next Track Button
+                Box(
+                    modifier = Modifier
+                        .size(42.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFF0F172AL).copy(alpha = 0.85f))
+                        .border(1.6.dp, Color.White.copy(alpha = 0.28f), CircleShape)
+                        .clickable {
+                            val next = if (selectedTrackIndex >= MusicLibrary.TOTAL_TRACKS) 1 else selectedTrackIndex + 1
+                            onSelectQuickTrack(next)
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("›", color = Color(0xFFFAF8F5L), fontSize = 26.sp, fontWeight = FontWeight.Light)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Track Pagination Dots
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                for (idx in 1..MusicLibrary.TOTAL_TRACKS) {
+                    val isSel = idx == selectedTrackIndex
+                    Box(
+                        modifier = Modifier
+                            .size(width = if (isSel) 22.dp else 8.dp, height = 8.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(if (isSel) Color(0xFFFACC15L) else Color.White.copy(alpha = 0.25f))
+                            .clickable { onSelectQuickTrack(idx) }
                     )
                 }
             }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // Editorial Track Title & Metadata Header
+            Text(
+                text = "TRACK 0$selectedTrackIndex: ${currentTrackObj.title.uppercase()}",
+                color = if (isCurrentTrackUnlocked) Color(0xFFFAF8F5L) else Color(0xFF94A3B8L),
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Black,
+                letterSpacing = 1.8.sp
+            )
+            Text(
+                text = if (isCurrentTrackUnlocked) "${currentTrackObj.bpm.toInt()} BPM • 432Hz MASTER • $stTxt READY" else "🔒 LOCKED • BEAT TRACK 01 OR UNLOCK (1,200 ♪)",
+                color = if (isCurrentTrackUnlocked) Color(0xFFFACC15L) else Color(0xFFF87171L),
+                fontSize = 10.sp,
+                fontWeight = FontWeight.ExtraBold,
+                letterSpacing = 1.4.sp
+            )
 
             Spacer(modifier = Modifier.height(10.dp))
 
@@ -488,186 +571,6 @@ fun MenuUI(
                 fontWeight = FontWeight.Black,
                 letterSpacing = 1.4.sp
             )
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            var peekPrizeTrackIdx by remember { mutableStateOf<Int?>(null) }
-
-            // 1. ZERO-READING "TOUCH HERE -> GET THIS" DUAL VINYL STAGE DECK (Track 01 & Track 02 Side-by-Side)
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 4.dp)
-            ) {
-                for (idx in 1..MusicLibrary.TOTAL_TRACKS) {
-                    val t = MusicLibrary.getTrack(idx)
-                    val isSel = idx == selectedTrackIndex
-                    val isTrkUnlocked = idx == 1 || unlockedTrackCount >= idx || isVipUnlocked || prefs.getBoolean("art_unlocked_$idx", false) || prefs.getBoolean("track_unlocked_$idx", false)
-                    val st = trackMasteryStars.getOrElse(idx - 1) { 0 }.coerceIn(0, 3)
-                    val stTxt = buildString { for (s in 1..3) append(if (s <= st) "★" else "☆") }
-                    val discAccent = when {
-                        !isTrkUnlocked -> Color(0xFF475569L)
-                        isSel -> modeAccent
-                        else -> Color(0xFF38BDF8L)
-                    }
-                    val trackArt = if (idx == 1) track01Art else track02Art
-
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .clip(CutCornerShape(topStart = 16.dp, bottomEnd = 16.dp))
-                            .background(
-                                Brush.verticalGradient(
-                                    when {
-                                        !isTrkUnlocked -> listOf(Color(0xFF090D18L), Color(0xFF03050BL))
-                                        isSel -> listOf(discAccent.copy(alpha = 0.24f), Color(0xFF070D1BL))
-                                        else -> listOf(Color(0xFF080E1CL), Color(0xFF040710L))
-                                    }
-                                )
-                            )
-                            .border(
-                                width = if (isSel && isTrkUnlocked) 2.2.dp else 1.2.dp,
-                                color = when {
-                                    !isTrkUnlocked -> Color(0xFF334155L)
-                                    isSel -> discAccent
-                                    else -> Color.White.copy(alpha = 0.18f)
-                                },
-                                shape = CutCornerShape(topStart = 16.dp, bottomEnd = 16.dp)
-                            )
-                            .clickable { onSelectQuickTrack(idx) }
-                            .padding(vertical = 10.dp, horizontal = 8.dp)
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            // Top Row: Track Number + Lock/Unlocked Status Badge
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Text(
-                                    text = "TRACK 0$idx",
-                                    color = if (isTrkUnlocked) (if (isSel) discAccent else Color(0xFF94A3B8L)) else Color(0xFF64748BL),
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Black,
-                                    letterSpacing = 1.sp
-                                )
-                                Box(
-                                    modifier = Modifier
-                                        .clip(CutCornerShape(topEnd = 6.dp, bottomStart = 6.dp))
-                                        .background(if (isTrkUnlocked) Color(0xFF064E3BL) else Color(0xFF1E293BL))
-                                        .border(
-                                            1.dp,
-                                            if (isTrkUnlocked) Color(0xFF4ADE80L) else Color(0xFF64748BL),
-                                            CutCornerShape(topEnd = 6.dp, bottomStart = 6.dp)
-                                        )
-                                        .clickable { peekPrizeTrackIdx = if (peekPrizeTrackIdx == idx) null else idx }
-                                        .padding(horizontal = 6.dp, vertical = 2.dp)
-                                ) {
-                                    Text(
-                                        text = if (isTrkUnlocked) "★ UNLOCKED" else "🔒 ${t.unlockCost} ♪",
-                                        color = if (isTrkUnlocked) Color(0xFF4ADE80L) else Color(0xFFCBD5E1L),
-                                        fontSize = 8.5.sp,
-                                        fontWeight = FontWeight.Black
-                                    )
-                                }
-                            }
-
-                            Spacer(modifier = Modifier.height(6.dp))
-
-                            // Interactive Spinning Vinyl Record Disc with Real Track Picture
-                            SpinningVinylRecord(
-                                trackIndex = idx,
-                                artwork = trackArt,
-                                isUnlocked = isTrkUnlocked,
-                                isSelected = isSel,
-                                spinAngle = (menuTime * 45f * selectedRemixMode.audioSpeed) % 360f,
-                                accentColor = discAccent,
-                                sizeDp = 70,
-                                showLockOverlay = true,
-                                unlockCost = t.unlockCost
-                            )
-
-                            Spacer(modifier = Modifier.height(6.dp))
-
-                            Text(
-                                text = t.title.uppercase(),
-                                color = if (isTrkUnlocked) Color.White else Color(0xFF94A3B8L),
-                                fontSize = 11.5.sp,
-                                fontWeight = FontWeight.Black,
-                                maxLines = 1
-                            )
-                            Text(
-                                text = if (isTrkUnlocked) "$stTxt • READY" else "🔒 BEAT STAGE 1 OR ${t.unlockCost} ♪",
-                                color = if (isTrkUnlocked) Color(0xFF4ADE80L) else Color(0xFF64748BL),
-                                fontSize = 8.5.sp,
-                                fontWeight = FontWeight.Bold,
-                                maxLines = 1
-                            )
-                        }
-                    }
-                }
-            }
-
-            // Visual Tap-to-Peek Prize Card (Opens when tapping status badge on either Vinyl Disc)
-            val peekIdx = peekPrizeTrackIdx
-            if (peekIdx != null) {
-                val peekTrack = MusicLibrary.getTrack(peekIdx)
-                val peekWon = peekIdx == 1 || unlockedTrackCount >= peekIdx || isVipUnlocked || prefs.getBoolean("art_unlocked_$peekIdx", false) || prefs.getBoolean("track_unlocked_$peekIdx", false)
-                val peekArt = if (peekIdx == 1) track01Art else track02Art
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(CutCornerShape(topStart = 12.dp, bottomEnd = 12.dp))
-                        .background(if (peekWon) Color(0xFF0A1224L) else Color(0xFF0F172AL))
-                        .border(1.5.dp, if (peekWon) Color(0xFFFACC15L) else Color(0xFF475569L), CutCornerShape(topStart = 12.dp, bottomEnd = 12.dp))
-                        .clickable { peekPrizeTrackIdx = null }
-                        .padding(horizontal = 12.dp, vertical = 8.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(44.dp)
-                            .clip(CircleShape)
-                            .border(1.5.dp, if (peekWon) Color(0xFFFACC15L) else Color(0xFF64748BL), CircleShape)
-                    ) {
-                        Image(
-                            bitmap = peekArt,
-                            contentDescription = "Track $peekIdx Artwork",
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop,
-                            colorFilter = if (!peekWon) ColorFilter.colorMatrix(ColorMatrix().apply { setToSaturation(0.0f) }) else null,
-                            alpha = if (peekWon) 1f else 0.5f
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = if (peekWon) "★ TRACK 0$peekIdx UNLOCKED & READY!" else "🔒 BEAT TRACK 01 OR UNLOCK FOR ${peekTrack.unlockCost} ♪:",
-                            color = if (peekWon) Color(0xFFFACC15L) else Color(0xFFCBD5E1L),
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Black
-                        )
-                        Text(
-                            text = "💿 \"${peekTrack.title}\" Official Master Track (${peekTrack.bpm.toInt()} BPM • ${peekTrack.durationSec / 60}:${"%02d".format(peekTrack.durationSec % 60)})",
-                            color = Color.White,
-                            fontSize = 9.5.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                    Text(
-                        text = "✕",
-                        color = Color(0xFF94A3B8L),
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Black
-                    )
-                }
-            }
 
             Spacer(modifier = Modifier.height(10.dp))
 
@@ -758,46 +661,50 @@ fun MenuUI(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 3. CUSTOM-SCULPTED CHAMFERED NEON LAUNCH BLADE
+            // 3. GRAND PULSING NEON JEWEL LAUNCH BUTTON
             val isCurrentLaunchUnlocked = selectedTrackIndex == 1 || unlockedTrackCount >= selectedTrackIndex || isVipUnlocked || prefs.getBoolean("art_unlocked_$selectedTrackIndex", false) || prefs.getBoolean("track_unlocked_$selectedTrackIndex", false)
-            val launchAccent = when {
-                !isCurrentLaunchUnlocked -> Color(0xFFF59E0BL)
-                isBandHeroMode -> Color(0xFFFACC15L)
-                else -> modeAccent
-            }
             Box(
                 modifier = Modifier
-                    .fillMaxWidth(0.94f)
-                    .height(54.dp)
-                    .clip(CutCornerShape(topStart = 18.dp, bottomEnd = 18.dp))
+                    .fillMaxWidth(0.92f)
+                    .height(58.dp)
+                    .clip(RoundedCornerShape(29.dp))
                     .background(
-                        Brush.horizontalGradient(
+                        Brush.linearGradient(
                             listOf(
-                                launchAccent.copy(alpha = 0.28f),
-                                Color(0xFF091326L),
-                                launchAccent.copy(alpha = 0.28f)
+                                Color(0xFF10B981L).copy(alpha = 0.88f),
+                                Color(0xFF0284C7L).copy(alpha = 0.88f),
+                                Color(0xFFFACC15L).copy(alpha = 0.78f)
                             )
                         )
                     )
                     .border(
-                        width = 2.4.dp,
-                        brush = Brush.horizontalGradient(
-                            listOf(launchAccent, Color(0xFFFACC15L), launchAccent)
-                        ),
-                        shape = CutCornerShape(topStart = 18.dp, bottomEnd = 18.dp)
+                        width = 2.dp,
+                        color = Color.White.copy(alpha = 0.65f),
+                        shape = RoundedCornerShape(29.dp)
                     )
                     .clickable { onStart() },
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = if (!isCurrentLaunchUnlocked) "🔒 UNLOCK TRACK 0$selectedTrackIndex (${selectedTrack.unlockCost} ♪ OR BEAT STAGE 1)"
-                    else if (isBandHeroMode) "🎸 PLAY CLASSIC MODE • GUITAR HERO STYLE"
-                    else "▶ PLAY TRACK 0$selectedTrackIndex • ${selectedTrack.title.uppercase()}",
-                    color = if (!isCurrentLaunchUnlocked) Color(0xFFFDE68AL) else Color(0xFFFAF8F5L),
-                    fontSize = if (!isCurrentLaunchUnlocked) 11.5.sp else 13.5.sp,
-                    fontWeight = FontWeight.Black,
-                    letterSpacing = if (!isCurrentLaunchUnlocked) 0.8.sp else 1.4.sp
-                )
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = if (!isCurrentLaunchUnlocked) "🔒 UNLOCK TRACK 0$selectedTrackIndex (${selectedTrack.unlockCost} ♪)"
+                        else if (isBandHeroMode) "🎸 PLAY CLASSIC HIGHWAY"
+                        else "▶ PLAY ${selectedTrack.title.uppercase()}",
+                        color = Color.White,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 1.6.sp
+                    )
+                    Text(
+                        text = if (!isCurrentLaunchUnlocked) "TAP TO UNLOCK WITH COLLECTED NOTES"
+                        else if (isBandHeroMode) "4-LANE GUITAR HERO RHYTHM RUN"
+                        else "${selectedRemixMode.displayName} • ${selectedTrack.bpm.toInt()} BPM GROOVE",
+                        color = Color.White.copy(alpha = 0.90f),
+                        fontSize = 8.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 1.sp
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(16.dp))

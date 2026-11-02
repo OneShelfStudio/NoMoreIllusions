@@ -16,7 +16,34 @@ function drawMotes(ctx, motes) {
   for (let i = 0; i < motes.length; i++) {
     const m = motes[i];
     if (m.alpha > 0.01) {
-      if (m.isStarfall) {
+      if (m.isShard) {
+        // High-velocity spinning multifaceted crystal glass shard
+        const a = Math.max(0, Math.min(1, m.alpha));
+        ctx.save();
+        ctx.translate(m.x, m.y);
+        ctx.rotate(m.rot || 0);
+
+        ctx.beginPath();
+        const rad = m.radius || 4;
+        ctx.moveTo(0, -rad * 1.5);
+        ctx.lineTo(rad * 0.9, -rad * 0.3);
+        ctx.lineTo(rad * 0.7, rad * 1.4);
+        ctx.lineTo(-rad * 0.7, rad * 1.2);
+        ctx.lineTo(-rad * 0.8, -rad * 0.4);
+        ctx.closePath();
+
+        ctx.fillStyle = rgba(m.color, a * 0.88);
+        ctx.shadowColor = rgba(m.color, a * 0.8);
+        ctx.shadowBlur = 8;
+        ctx.fill();
+
+        // White specular rim
+        ctx.strokeStyle = `rgba(255, 255, 255, ${a * 0.95})`;
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
+
+        ctx.restore();
+      } else if (m.isStarfall) {
         // Melodic Starfall Petal: vertical aurora tail + swaying diamond core
         const a = Math.max(0, Math.min(1, m.alpha));
         const grad = ctx.createLinearGradient(m.x, m.y - m.radius * 4.2, m.x, m.y);

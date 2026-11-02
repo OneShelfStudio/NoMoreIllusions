@@ -346,22 +346,55 @@ function drawPlayerSprite(
   const R = playerRadius;
 
   if (shieldTimer > 0) {
+    // Hexagonal Crystalline Energy Dome (Aegis Matrix)
+    ctx.save();
+    const shieldR = R * 2.1 + 4 * Math.sin(time * 6);
     ctx.beginPath();
-    ctx.arc(playerX, playerY, R * 1.95 + 4 * Math.sin(time * 8), 0, Math.PI * 2);
-    ctx.strokeStyle = rgba([56, 189, 248], 0.85);
-    ctx.lineWidth = 3.5;
+    for (let h = 0; h < 6; h++) {
+      const ang = (h * Math.PI / 3) + time * 0.85;
+      const hx = playerX + Math.cos(ang) * shieldR;
+      const hy = playerY + Math.sin(ang) * shieldR;
+      if (h === 0) ctx.moveTo(hx, hy);
+      else ctx.lineTo(hx, hy);
+    }
+    ctx.closePath();
+    ctx.strokeStyle = "rgba(56, 189, 248, 0.95)";
+    ctx.lineWidth = 3.0;
+    ctx.shadowColor = "#38BDF8";
+    ctx.shadowBlur = 14;
     ctx.stroke();
-    ctx.beginPath();
-    ctx.arc(playerX, playerY, R * 1.95, 0, Math.PI * 2);
-    ctx.fillStyle = "rgba(56,189,248,0.10)";
+
+    ctx.fillStyle = "rgba(56, 189, 248, 0.12)";
     ctx.fill();
+    ctx.restore();
   }
   if (overdriveTimer > 0) {
+    // Crackling Electric Plasma Field & Overdrive Lightning Sparks
+    ctx.save();
+    const overR = R * 2.4 + 6 * Math.sin(time * 12);
     ctx.beginPath();
-    ctx.arc(playerX, playerY, R * 2.25 + 7 * Math.sin(time * 14), 0, Math.PI * 2);
-    ctx.strokeStyle = rgba([249, 115, 22], 0.9);
-    ctx.lineWidth = 5;
+    ctx.arc(playerX, playerY, overR, 0, Math.PI * 2);
+    ctx.strokeStyle = "rgba(250, 204, 21, 0.92)";
+    ctx.lineWidth = 4.0;
+    ctx.shadowColor = "#FACC15";
+    ctx.shadowBlur = 18;
     ctx.stroke();
+
+    for (let a = 0; a < 6; a++) {
+      const ang = a * (Math.PI / 3) + time * 4.5;
+      const ax = playerX + Math.cos(ang) * (R * 1.2);
+      const ay = playerY + Math.sin(ang) * (R * 1.2);
+      const bx = playerX + Math.cos(ang + 0.3) * (R * 2.2);
+      const by = playerY + Math.sin(ang + 0.3) * (R * 2.2);
+      ctx.beginPath();
+      ctx.moveTo(ax, ay);
+      ctx.lineTo((ax + bx) * 0.5 + (Math.sin(time * 15 + a) * 8), (ay + by) * 0.5 + (Math.cos(time * 15 + a) * 8));
+      ctx.lineTo(bx, by);
+      ctx.strokeStyle = a % 2 === 0 ? "#FFFFFF" : "#FACC15";
+      ctx.lineWidth = 2.0;
+      ctx.stroke();
+    }
+    ctx.restore();
   }
   if (magnetTimer > 0) {
     ctx.beginPath();

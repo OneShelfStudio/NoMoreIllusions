@@ -10,7 +10,7 @@
   <title>No More Illusions — Interactive Album Experience</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="apple-touch-icon" href="assets/nmi_logo.png" />
-  <link rel="stylesheet" href="styles.css?v=35" />
+  <link rel="stylesheet" href="styles.css?v=37" />
   <meta name="google-adsense-account" content="ca-pub-7651037308656903" />
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7651037308656903" data-ad-client="ca-pub-7651037308656903" data-ad-frequency-hint="30s" crossorigin="anonymous"></script>
   <script>
@@ -43,29 +43,36 @@
       </div>
     </div>
 
-    <!-- Center Turntable & 3D Title -->
+    <!-- Center Turntable & Luxury Carousel Showcase -->
     <div class="menu-center-hero">
-      <canvas id="menu-turntable-canvas" width="138" height="138"></canvas>
+      <div class="carousel-hero-wrap">
+        <button class="carousel-nav-btn prev" onclick="window.app.prevStage(event)" title="Previous Track" aria-label="Previous Track">‹</button>
+        <canvas id="menu-turntable-canvas" width="220" height="220"></canvas>
+        <button class="carousel-nav-btn next" onclick="window.app.nextStage(event)" title="Next Track" aria-label="Next Track">›</button>
+      </div>
+      <!-- Track Pagination Dots -->
+      <div id="menu-track-dots" class="track-dots-row"></div>
+
+      <!-- Track Editorial Header -->
+      <div id="menu-track-title-card" class="track-title-card">
+        <div id="menu-track-title-main" class="track-title-main">CONFIDE IN YOU</div>
+        <div id="menu-track-meta-row" class="track-meta-row">124 BPM • D MINOR • 432Hz MASTER</div>
+      </div>
+
       <div class="title-3d-wrap">
         <div class="title-3d-shadow">No Morē Illusīons</div>
         <div id="menu-title-main" class="title-3d-main">No Morē Illusīons</div>
       </div>
       <div id="menu-sub-banner" class="menu-sub-banner">BEST SCORE: <span id="menu-best-score">0</span></div>
-
-      <!-- 1. Frameless Curiosity Peek Header ("What Can I Unlock?") -->
-      <div id="menu-rewards-dropdown-wrap" style="margin-top:6px;width:100%;max-width:430px;"></div>
     </div>
 
     <!-- Frameless Vinyl Stage Selector & Custom Vinyl-Groove Launch Emblem -->
     <div style="width:100%;max-width:430px;display:flex;flex-direction:column;align-items:center;">
       <div id="menu-console-card" class="console-card">
-        <!-- 1. Song Selector (Frameless Vinyl Stage Track Header) -->
-        <div id="menu-track-deck-row" style="width:100%;"></div>
-
-        <!-- 2. Speed & Mode Selector (Frameless Laser Hairline Header) -->
+        <!-- 1. Speed & Mode Selector (Sculpted Neon Gems) -->
         <div id="menu-remix-pills" style="width:100%;"></div>
 
-        <!-- 3. Custom Vinyl-Groove Stage Launch Emblem -->
+        <!-- 2. Grand Pulsing Neon Jewel Stage Launch Emblem -->
         <div id="btn-launch-stage" class="btn-launch-stage" onclick="window.app.startStage()">
           <div id="menu-launch-main" class="btn-launch-main">▶ &nbsp;PLAY TRACK 1 &nbsp;◀</div>
           <div id="menu-launch-sub" class="btn-launch-sub">NORMAL • 1.0x PTS • 1 RUN UNLOCK</div>
@@ -347,40 +354,40 @@
        8. HOW TO PLAY MODAL
        ====================================================================== -->
   <div id="screen-HOW_TO_PLAY" class="screen-overlay modal-backdrop">
-    <div id="htp-modal-card" class="glass-modal-card" style="max-width:328px;max-height:92vh;overflow-y:auto;padding:16px;text-align:center;">
-      <div style="font-size:10px;font-weight:900;letter-spacing:1.6px;color:#FACC15;">★ STAGE BRIEFING ★</div>
-      <div class="guide-title" style="font-size:18px;margin-top:2px;">HOW TO PLAY</div>
-      <div id="htp-sub-header" style="font-size:10px;color:#94A3B8;font-weight:600;margin-top:2px;margin-bottom:12px;">Glide smoothly to the rhythm of the music</div>
+    <div id="htp-modal-card" class="glass-modal-card" style="max-width:328px;max-height:92vh;overflow-y:auto;padding:18px 16px;text-align:center;">
+      <div style="font-size:10px;font-weight:900;letter-spacing:1.8px;color:#FACC15;">★ STAGE BRIEFING ★</div>
+      <div class="guide-title" style="font-size:20px;margin-top:2px;font-weight:900;letter-spacing:1px;">HOW TO PLAY</div>
+      <div id="htp-sub-header" style="font-size:10.5px;color:#94A3B8;font-weight:700;margin-top:2px;margin-bottom:14px;">Feel the rhythm • Ride the groove</div>
 
       <!-- 1. GATHER BEAT NOTES -->
-      <div class="guide-item" style="border-color:rgba(250,204,21,0.45);padding:8px 10px;margin-bottom:7px;text-align:left;">
-        <div class="guide-icon-badge" style="background:rgba(250,204,21,0.18);border:1.5px solid #FACC15;color:#FACC15;width:28px;height:28px;font-size:13px;">🎵</div>
+      <div class="guide-item" style="border-color:rgba(250,204,21,0.45);padding:9px 11px;margin-bottom:8px;text-align:left;">
+        <div class="guide-icon-badge" style="background:rgba(250,204,21,0.18);border:1.5px solid #FACC15;color:#FACC15;width:30px;height:30px;font-size:14px;">🎵</div>
         <div>
-          <div class="guide-text-title" style="color:#FACC15;font-size:11px;">1. GATHER BEAT NOTES</div>
-          <div class="guide-text-body" style="font-size:10px;">
-            Glide into incoming notes on the beat to charge your combo streak.
+          <div class="guide-text-title" style="color:#FACC15;font-size:11.5px;font-weight:900;">1. GATHER BEAT NOTES</div>
+          <div class="guide-text-body" style="font-size:10px;color:#CBD5E1;">
+            Glide smoothly into incoming notes to build combos and unlock album art.
           </div>
         </div>
       </div>
 
       <!-- 2. AVOID ENEMIES -->
-      <div class="guide-item" style="border-color:rgba(239,68,68,0.45);padding:8px 10px;margin-bottom:7px;text-align:left;">
-        <div class="guide-icon-badge" style="background:rgba(239,68,68,0.18);border:1.5px solid #EF4444;color:#EF4444;width:28px;height:28px;font-size:13px;">👾</div>
+      <div class="guide-item" style="border-color:rgba(239,68,68,0.45);padding:9px 11px;margin-bottom:8px;text-align:left;">
+        <div class="guide-icon-badge" style="background:rgba(239,68,68,0.18);border:1.5px solid #EF4444;color:#EF4444;width:30px;height:30px;font-size:14px;">👾</div>
         <div>
-          <div class="guide-text-title" style="color:#EF4444;font-size:11px;">2. AVOID ENEMIES</div>
-          <div class="guide-text-body" style="font-size:10px;">
-            Dodge red enemy hazards to protect your streak and health.
+          <div class="guide-text-title" style="color:#EF4444;font-size:11.5px;font-weight:900;">2. AVOID ENEMIES</div>
+          <div class="guide-text-body" style="font-size:10px;color:#CBD5E1;">
+            Dodge red hazard spikes to keep your shield intact and streak alive.
           </div>
         </div>
       </div>
 
       <!-- 3. HIT SPECIAL PEGS -->
-      <div class="guide-item" style="border-color:rgba(56,189,248,0.45);padding:8px 10px;margin-bottom:14px;text-align:left;">
-        <div class="guide-icon-badge" style="background:rgba(56,189,248,0.18);border:1.5px solid #38BDF8;color:#38BDF8;width:28px;height:28px;font-size:13px;">⚡</div>
+      <div class="guide-item" style="border-color:rgba(56,189,248,0.45);padding:9px 11px;margin-bottom:14px;text-align:left;">
+        <div class="guide-icon-badge" style="background:rgba(56,189,248,0.18);border:1.5px solid #38BDF8;color:#38BDF8;width:30px;height:30px;font-size:14px;">⚡</div>
         <div>
-          <div class="guide-text-title" style="color:#38BDF8;font-size:11px;">3. HIT SPECIAL PEGS</div>
-          <div class="guide-text-body" style="font-size:10px;">
-            Catch 💥 Bomb and ⚡ Electric pegs to wipe enemies &amp; transform the stage.
+          <div class="guide-text-title" style="color:#38BDF8;font-size:11.5px;font-weight:900;">3. HIT SPECIAL PEGS</div>
+          <div class="guide-text-body" style="font-size:10px;color:#CBD5E1;">
+            Hit ⚡ Electric, 🌸 Vocal Bloom, 🌀 Slow-Mo, and ☀️ Nova pegs to transform the audio world!
           </div>
         </div>
       </div>
@@ -535,16 +542,16 @@
     </div>
   </div>
 
-  <script src="multi_band_data.js?v=36"></script>
-  <script src="music_library.js?v=36"></script>
-  <script src="background_renderer.js?v=36"></script>
-  <script src="beat_orb_renderer.js?v=36"></script>
-  <script src="game_renderer.js?v=36"></script>
-  <script src="engine.js?v=36"></script>
-  <script src="audio_synth.js?v=36"></script>
-  <script src="game_physics.js?v=36"></script>
-  <script src="ui_screens.js?v=36"></script>
-  <script src="tutorial_overlay.js?v=36"></script>
+  <script src="multi_band_data.js?v=37"></script>
+  <script src="music_library.js?v=37"></script>
+  <script src="background_renderer.js?v=37"></script>
+  <script src="beat_orb_renderer.js?v=37"></script>
+  <script src="game_renderer.js?v=37"></script>
+  <script src="engine.js?v=37"></script>
+  <script src="audio_synth.js?v=37"></script>
+  <script src="game_physics.js?v=37"></script>
+  <script src="ui_screens.js?v=37"></script>
+  <script src="tutorial_overlay.js?v=37"></script>
   <script>
     (function () {
       const CURRENT_WEB_BUILD = "nmi-v36-combo-zoom-waterfall";
