@@ -58,6 +58,12 @@ Object.assign(NoMoreIllusionsApp.prototype, {
     if (this.eclipseModeTimer > 0) this.eclipseModeTimer = Math.max(0, this.eclipseModeTimer - dt);
     if (this.constellationRushTimer > 0) this.constellationRushTimer = Math.max(0, this.constellationRushTimer - dt);
     if (this.choreoBannerTimer > 0) this.choreoBannerTimer = Math.max(0, this.choreoBannerTimer - dt);
+
+    // Synchronized Musical Section Drop Ignition Check
+    if (this.primedSectionEffect && this.trackElapsedSec >= this.primedSectionEffect.targetSec) {
+      this.igniteSectionEffect(this.primedSectionEffect.type);
+      this.primedSectionEffect = null;
+    }
     if (this.vocalStreamContrailTimer > 0) this.vocalStreamContrailTimer = Math.max(0, this.vocalStreamContrailTimer - dt);
     if (this.screenShake > 0) this.screenShake = Math.max(0, this.screenShake - dt * 32);
 
@@ -344,18 +350,28 @@ Object.assign(NoMoreIllusionsApp.prototype, {
         if (hasWaterfall) {
           // Constant downward velocity with graceful sinusoidal S-curve sway
           const arcOffset = Math.sin(Math.min(1, Math.max(0, s)) * Math.PI) * (pu.swoopCurve || 0) * (this.W * 0.20);
-          pu.x = pu.spawnX + s * (pu.exitX - pu.spawnX) + arcOffset;
-          pu.y = pu.spawnY + s * (pu.exitY - pu.spawnY);
+          pu.baseX = pu.spawnX + s * (pu.exitX - pu.spawnX) + arcOffset;
+          pu.baseY = pu.spawnY + s * (pu.exitY - pu.spawnY);
         } else {
           // Gentle breathing hover for static ambient items
           const goalX = (pu.targetX || pu.x) + Math.cos(this.time * 1.8 + (pu.phase || 0)) * 4.5;
           const goalY = (pu.targetY || pu.y) + Math.sin(this.time * 2.1 + (pu.phase || 0)) * 4.5;
-          pu.x += (goalX - pu.x) * 0.16;
-          pu.y += (goalY - pu.y) * 0.16;
+          pu.baseX = (pu.baseX !== undefined ? pu.baseX : pu.x) + (goalX - pu.x) * 0.16;
+          pu.baseY = (pu.baseY !== undefined ? pu.baseY : pu.y) + (goalY - pu.y) * 0.16;
         }
+
+        // Integrate natural physics elastic bounce momentum & displacement
+        pu.bvx = (pu.bvx || 0) * 0.90;
+        pu.bvy = (pu.bvy || 0) * 0.90;
+        pu.bounceOffsetX = ((pu.bounceOffsetX || 0) + pu.bvx * worldDt) * 0.92;
+        pu.bounceOffsetY = ((pu.bounceOffsetY || 0) + pu.bvy * worldDt) * 0.92;
+        pu.squish = (pu.squish || 0) * 0.86;
+
+        pu.x = pu.baseX + pu.bounceOffsetX;
+        pu.y = pu.baseY + pu.bounceOffsetY;
       }
 
-      // Elastic Note-on-Note Mutual Bouncing & Anti-Overlap Physics
+      // Natural Physics Elastic Ricochet & Anti-Overlap Bouncing
       if (this.powerUps.length > 1) {
         for (let a = 0; a < this.powerUps.length; a++) {
           for (let b = a + 1; b < this.powerUps.length; b++) {
@@ -364,15 +380,45 @@ Object.assign(NoMoreIllusionsApp.prototype, {
             const dx = pB.x - pA.x;
             const dy = pB.y - pA.y;
             const dist = Math.hypot(dx, dy);
-            const minDist = (pA.radius + pB.radius) * 1.35;
+            const minDist = (pA.radius + pB.radius) * 1.22;
             if (dist < minDist && dist > 0.001) {
               const overlap = minDist - dist;
               const nx = dx / dist;
               const ny = dy / dist;
-              pA.x -= nx * overlap * 0.5;
-              pA.y -= ny * overlap * 0.5;
-              pB.x += nx * overlap * 0.5;
-              pB.y += ny * overlap * 0.5;
+
+              // Instant position separation along normal
+              pA.bounceOffsetX = (pA.bounceOffsetX || 0) - nx * overlap * 0.5;
+              pA.bounceOffsetY = (pA.bounceOffsetY || 0) - ny * overlap * 0.5;
+              pB.bounceOffsetX = (pB.bounceOffsetX || 0) + nx * overlap * 0.5;
+              pB.bounceOffsetY = (pB.bounceOffsetY || 0) + ny * overlap * 0.5;
+              pA.x = pA.baseX + pA.bounceOffsetX;
+              pA.y = pA.baseY + pA.bounceOffsetY;
+              pB.x = pB.baseX + pB.bounceOffsetX;
+              pB.y = pB.baseY + pB.bounceOffsetY;
+
+              // Relative velocity along normal
+              const vRelX = (pA.bvx || 0) - (pB.bvx || 0);
+              const vRelY = (pA.bvy || 0) - (pB.bvy || 0);
+              const vNorm = vRelX * nx + vRelY * ny;
+
+              // Elastic impulse with restitution e = 0.85
+              const e = 0.85;
+              const impulse = Math.max(140.0, -vNorm * (1 + e) * 0.5 + overlap * 32.0);
+
+              pA.bvx = (pA.bvx || 0) - nx * impulse;
+              pA.bvy = (pA.bvy || 0) - ny * impulse;
+              pB.bvx = (pB.bvx || 0) + nx * impulse;
+              pB.bvy = (pB.bvy || 0) + ny * impulse;
+
+              // Visual Squish & Stretch deformation along impact axis
+              pA.squish = 0.35;
+              pA.squishAngle = Math.atan2(ny, nx);
+              pB.squish = 0.35;
+              pB.squishAngle = Math.atan2(-ny, -nx);
+
+              if (Math.random() < 0.6) {
+                this.playSfx("click", 0.30);
+              }
             }
           }
         }
@@ -821,126 +867,81 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       const specialPts = Math.round(250 * this.combo * diffMult);
       this.score += specialPts;
 
-      let col = [56, 189, 248];
-      if (pu.type === "ELECTRIC_HARMONIC") {
-        this.synthElectricSurgeStinger(0.85);
-        this.overdriveTimer = Math.max(this.overdriveTimer, 8.0);
-        this.electricSurgeTimer = Math.max(this.electricSurgeTimer || 0, 8.0);
-        this.screenShake = Math.max(this.screenShake, 18);
-        col = [250, 204, 21];
-        this.shockwaves.push({ x: pu.x, y: pu.y, radius: 14, maxRadius: 650, color: col, alpha: 1 });
-        this.shockwaves.push({ x: pu.x, y: pu.y, radius: 10, maxRadius: 450, color: [56, 189, 248], alpha: 1 });
-        for (let m = 0; m < 20; m++) {
-          const a = (m / 20) * Math.PI * 2;
-          this.spawnBurstMotes(pu.x + Math.cos(a) * 24, pu.y + Math.sin(a) * 24, m % 2 === 0 ? [250, 204, 21] : [56, 189, 248], 3);
-        }
-        this.comboZoomBanner = {
-          text: `⚡ 4X OVERDRIVE! (${this.combo}x STREAK)`,
-          subText: "SYNTH AURORA SURGE • +250 PTS",
-          color: [250, 204, 21],
-          timer: 1.6,
-          maxTimer: 1.6,
-          isBroken: false
-        };
-      } else if (pu.type === "PRISM_HARMONY") {
-        this.synthPrismBloomStinger(0.85);
-        this.screenShake = Math.max(this.screenShake, 12);
-        this.prismBloomTimer = Math.max(this.prismBloomTimer || 0, 8.0);
-        this.prismSurgeBonus = Math.min(1.0, (this.prismSurgeBonus || 0) + 0.20);
-        this.unlockedArtPercent = Math.min(1.0, (this.unlockedArtPercent || 0.2) + 0.20);
-        col = [74, 222, 128];
-        this.shockwaves.push({ x: pu.x, y: pu.y, radius: 14, maxRadius: 550, color: col, alpha: 1 });
-        this.shockwaves.push({ x: pu.x, y: pu.y, radius: 10, maxRadius: 360, color: [236, 72, 153], alpha: 1 });
-        for (let m = 0; m < 18; m++) {
-          const a = (m / 18) * Math.PI * 2;
-          const rainbowCols = [[74, 222, 128], [56, 189, 248], [236, 72, 153], [250, 204, 21], [192, 132, 252]];
-          this.spawnBurstMotes(pu.x + Math.cos(a) * 22, pu.y + Math.sin(a) * 22, rainbowCols[m % rainbowCols.length], 3);
-        }
-        this.comboZoomBanner = {
-          text: `✨ PRISM VOCAL BLOOM! (${this.combo}x STREAK)`,
-          subText: "+20% ART WATERFALL FILL • +250 PTS",
-          color: [74, 222, 128],
-          timer: 1.6,
-          maxTimer: 1.6,
-          isBroken: false
-        };
-      } else if (pu.type === "SLOW_MO") {
-        this.synthSlowMoTapeStop(0.85);
-        this.slowMoTimer = Math.max(this.slowMoTimer, 6.0);
-        col = [192, 132, 252];
-        this.shockwaves.push({ x: pu.x, y: pu.y, radius: 14, maxRadius: 450, color: col, alpha: 1 });
-        this.comboZoomBanner = {
-          text: `🌀 VORTEX SLOW-MO! (${this.combo}x STREAK)`,
-          subText: "TIME DILATION FLOW • +250 PTS",
-          color: [192, 132, 252],
-          timer: 1.6,
-          maxTimer: 1.6,
-          isBroken: false
-        };
-      } else if (pu.type === "BLAST" || pu.type === "OVERDRIVE") {
-        this.synthSolarNovaExplosion(0.95);
-        col = [249, 115, 22];
-        this.solarNovaFlash = 1.0;
-        this.screenShake = Math.max(this.screenShake, 24);
-        let vaporizedCount = 0;
-        for (let k = 0; k < this.enemies.length; k++) {
-          const en = this.enemies[k];
-          this.score += 200 * Math.max(1, this.combo);
-          // Scatter ricocheting crystal glass shards
-          for (let s = 0; s < 14; s++) {
-            const ang = Math.random() * Math.PI * 2;
-            const spd = 140 + Math.random() * 320;
-            this.motes.push({
-              x: en.x,
-              y: en.y,
-              vx: Math.cos(ang) * spd,
-              vy: Math.sin(ang) * spd,
-              radius: 4.0 + Math.random() * 4.0,
-              color: s % 2 === 0 ? [250, 204, 21] : [249, 115, 22],
-              alpha: 1.0,
-              decay: 0.85 + Math.random() * 0.45,
-              isShard: true,
-              rot: Math.random() * 6.28,
-              vRot: (Math.random() - 0.5) * 14
-            });
-          }
-          this.shockwaves.push({ x: en.x, y: en.y, radius: 8, maxRadius: 180, color: [250, 204, 21], alpha: 1 });
-          vaporizedCount++;
-        }
-        this.enemies = [];
-        this.telegraphs = [];
-        this.shockwaves.push({ x: pu.x, y: pu.y, radius: 14, maxRadius: 850, color: col, alpha: 1 });
-        this.comboZoomBanner = {
-          text: `💥 SOLAR NOVA! (${this.combo}x STREAK)`,
-          subText: `${vaporizedCount > 0 ? vaporizedCount + ' HAZARDS' : 'ALL HAZARDS'} VAPORIZED • +250 PTS`,
-          color: [249, 115, 22],
-          timer: 1.6,
-          maxTimer: 1.6,
-          isBroken: false
-        };
+      // Find upcoming musical section transition
+      const curTrack = (typeof OFFICIAL_TRACKS !== "undefined" ? OFFICIAL_TRACKS[this.selectedStageIndex] : null) || {};
+      const sections = curTrack.sections || [];
+      const nextSection = sections.find(s => s.timeSec > this.trackElapsedSec - 0.20);
+      const targetSec = nextSection ? nextSection.timeSec : (pu.targetBeatSec || this.trackElapsedSec);
+
+      if (targetSec <= this.trackElapsedSec + 0.15) {
+        // Already at or past the section drop downbeat — ignite immediately!
+        this.igniteSectionEffect(pu.type);
       } else {
-        this.synthAegisChime(0.85);
-        this.shieldTimer = Math.max(this.shieldTimer, 6.0);
-        col = [56, 189, 248];
-        this.shockwaves.push({
-          x: pu.x,
-          y: pu.y,
-          radius: 10,
-          maxRadius: 280,
-          color: col,
-          alpha: 1
-        });
-        this.comboZoomBanner = {
-          text: `🛡️ AEGIS BARRIER! (${this.combo}x STREAK)`,
-          subText: "INVINCIBILITY SHIELD ACTIVE • +250 PTS",
-          color: [56, 189, 248],
-          timer: 1.6,
-          maxTimer: 1.6,
-          isBroken: false
+        // Prime the section drop: Player's core charges up with harmonic energy!
+        this.primedSectionEffect = {
+          type: pu.type,
+          targetSec: targetSec,
+          title: nextSection ? nextSection.title : "SECTION DROP"
         };
+        this.playSfx("click", 0.45);
+        this.screenShake = 6;
+        this.spawnBurstMotes(pu.x, pu.y, [250, 204, 21], 12);
       }
-      this.spawnBurstMotes(pu.x, pu.y, col, 12);
     }
+  },
+
+  igniteSectionEffect(type) {
+    this.triggerHaptic([45, 30, 60]);
+    this.screenShake = 22;
+    this.pulsePoints += 25;
+
+    let col = [250, 204, 21];
+    if (type === "ELECTRIC_HARMONIC") {
+      this.synthElectricSurgeStinger(0.9);
+      this.overdriveTimer = 5.0;
+      this.electricSurgeTimer = 5.0;
+      col = [250, 204, 21];
+      this.shockwaves.push({ x: this.playerX, y: this.playerY, radius: 14, maxRadius: 750, color: col, alpha: 1 });
+      this.shockwaves.push({ x: this.playerX, y: this.playerY, radius: 10, maxRadius: 500, color: [56, 189, 248], alpha: 1 });
+    } else if (type === "PRISM_HARMONY") {
+      this.synthPrismBloomStinger(0.9);
+      this.prismBloomTimer = 5.0;
+      this.prismSurgeBonus = Math.min(1.0, (this.prismSurgeBonus || 0) + 0.20);
+      this.unlockedArtPercent = Math.min(1.0, (this.unlockedArtPercent || 0.2) + 0.20);
+      col = [74, 222, 128];
+      this.shockwaves.push({ x: this.playerX, y: this.playerY, radius: 14, maxRadius: 650, color: col, alpha: 1 });
+      this.shockwaves.push({ x: this.playerX, y: this.playerY, radius: 10, maxRadius: 420, color: [236, 72, 153], alpha: 1 });
+    } else if (type === "SLOW_MO") {
+      this.synthSlowMoTapeStop(0.9);
+      this.slowMoTimer = 5.0;
+      col = [192, 132, 252];
+      this.shockwaves.push({ x: this.playerX, y: this.playerY, radius: 14, maxRadius: 550, color: col, alpha: 1 });
+    } else if (type === "BLAST" || type === "OVERDRIVE") {
+      this.synthSolarNovaExplosion(0.95);
+      this.solarNovaFlash = 1.0;
+      col = [249, 115, 22];
+      this.shockwaves.push({ x: this.playerX, y: this.playerY, radius: 20, maxRadius: 900, color: [255, 255, 255], alpha: 1 });
+      for (let k = 0; k < this.enemies.length; k++) {
+        const en = this.enemies[k];
+        this.score += 200 * Math.max(1, this.combo);
+        for (let s = 0; s < 10; s++) {
+          const ang = Math.random() * Math.PI * 2;
+          const spd = 140 + Math.random() * 260;
+          this.motes.push({
+            x: en.x, y: en.y, vx: Math.cos(ang) * spd, vy: Math.sin(ang) * spd,
+            radius: 3.5 + Math.random() * 3.5, color: [250, 204, 21], alpha: 1.0,
+            decay: 0.9, isShard: true, rot: Math.random() * 6.28, vRot: 6
+          });
+        }
+      }
+      this.enemies = [];
+    } else if (type === "SHIELD") {
+      this.shieldTimer = Math.max(this.shieldTimer, 12.0);
+      this.playSfx("shield", 0.9);
+      col = [56, 189, 248];
+      this.shockwaves.push({ x: this.playerX, y: this.playerY, radius: 14, maxRadius: 450, color: col, alpha: 1 });
+    }
+    this.spawnBurstMotes(this.playerX, this.playerY, col, 24);
   },
 
   // Silenced in v11 so zero popups cover the open stage during gameplay
