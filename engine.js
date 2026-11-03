@@ -651,6 +651,7 @@ class NoMoreIllusionsApp {
     this.overdriveTimer = 0;
     this.overdriveDuration = 9.0;
     this.endlessLoopCount = 0;
+    const mode = this.getRemixMode();
     this.isEndlessMode = (mode.id === "ENDLESS");
 
     this.lobbyAudio.pause();
@@ -658,7 +659,6 @@ class NoMoreIllusionsApp {
     this.trackAudio.src = stage.src;
     this.trackAudio.currentTime = 0;
     this.trackAudio.muted = this.prefs.musicMuted;
-    const mode = this.getRemixMode();
     try {
       this.trackAudio.preservesPitch = false;
       this.trackAudio.webkitPreservesPitch = false;

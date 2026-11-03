@@ -219,9 +219,11 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       else if (this.electricSurgeTimer > 0 || this.overdriveTimer > 0) html += `<span class="pu-badge" style="background:rgba(250,204,21,0.2);border:1px solid #FACC15;color:#FACC15;padding:2px 6px;border-radius:6px;font-size:9px;font-weight:900;">4X MULT</span>`;
       if (this.prismBloomTimer > 0) html += `<span class="pu-badge" style="background:rgba(74,222,128,0.2);border:1px solid #4ADE80;color:#4ADE80;padding:2px 6px;border-radius:6px;font-size:9px;font-weight:900;">PRISM</span>`;
       if (this.slowMoTimer > 0) html += `<span class="pu-badge" style="background:rgba(192,132,252,0.2);border:1px solid #C084FC;color:#C084FC;padding:2px 6px;border-radius:6px;font-size:9px;font-weight:900;">SLOW-MO</span>`;
-      if (badgesEl.dataset.last !== html) {
+      const lastHtml = badgesEl.dataset ? badgesEl.dataset.last : badgesEl._lastHtml;
+      if (lastHtml !== html) {
         badgesEl.innerHTML = html;
-        badgesEl.dataset.last = html;
+        if (badgesEl.dataset) badgesEl.dataset.last = html;
+        else badgesEl._lastHtml = html;
       }
     }
 
