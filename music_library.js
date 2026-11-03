@@ -162,7 +162,7 @@ function buildNumberOneOrbChart() {
   let beatTime = 2.0 * beatSec; // Start at beat 2
   let seq = 1;
 
-  // Track cadence cycles for verses and chorus (Ethan Stark Vocal & Hi-Hat Sync)
+  // Track cadence cycles for verses and chorus (Ethan Correa Vocal & Hi-Hat Sync)
   let verseCadenceIdx = 0;
   // Dynamic syncopated verse cadences (in fraction of beats):
   // Alternating between driving 4-on-the-floor, vocal syncopation (8th notes), and groove pickups
