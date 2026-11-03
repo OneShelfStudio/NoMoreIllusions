@@ -232,39 +232,34 @@ Object.assign(NoMoreIllusionsApp.prototype, {
     } catch (e) {}
   },
 
-  synthHarmonicOrbChime(vol = 0.55, isOnBeat = false, combo = 1) {
+  synthHarmonicOrbChime(vol = 0.18, isOnBeat = false, combo = 1) {
     if (!this.audioCtx || this.prefs.sfxMuted) return;
     try {
       if (this.audioCtx.state === "suspended") this.audioCtx.resume();
       const now = this.audioCtx.currentTime;
 
-      // 1. Crisp Percussive Transient (Sharp acoustic snare-rim / tambourine snap)
-      this._playAirWhoosh(now, isOnBeat ? 0.045 : 0.032, 1400, 3600, (isOnBeat ? 0.52 : 0.30) * vol);
+      // 1. Ultra-subtle, velvet percussive transient (soft tactile tap, never overpowering)
+      this._playAirWhoosh(now, isOnBeat ? 0.020 : 0.014, 1200, 2400, (isOnBeat ? 0.08 : 0.04) * vol);
 
-      // 2. Harmonically Tuned Pentatonic Synthesizer Note (C5, D5, E5, G5, A5, C6, D6, E6)
+      // 2. Harmonically Tuned Pentatonic Chime (Gentle pure sine, tucked beneath music)
       const scale = [523.25, 587.33, 659.25, 783.99, 880.00, 1046.50, 1174.66, 1318.51];
       const freq = scale[Math.max(0, combo - 1) % scale.length];
 
       const osc = this.audioCtx.createOscillator();
-      const osc2 = this.audioCtx.createOscillator();
       const gain = this.audioCtx.createGain();
 
-      osc.type = isOnBeat ? "triangle" : "sine";
+      osc.type = "sine";
       osc.frequency.setValueAtTime(freq, now);
-      osc2.type = "sine";
-      osc2.frequency.setValueAtTime(freq * 2, now);
 
-      gain.gain.setValueAtTime((isOnBeat ? 0.48 : 0.32) * vol, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + (isOnBeat ? 0.32 : 0.22));
+      const peakGain = (isOnBeat ? 0.16 : 0.10) * vol;
+      gain.gain.setValueAtTime(peakGain, now);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + (isOnBeat ? 0.18 : 0.12));
 
       osc.connect(gain);
-      osc2.connect(gain);
       gain.connect(this.audioCtx.destination);
 
       osc.start(now);
-      osc2.start(now);
-      osc.stop(now + 0.35);
-      osc2.stop(now + 0.35);
+      osc.stop(now + 0.20);
     } catch (e) {}
   },
 
@@ -380,19 +375,19 @@ Object.assign(NoMoreIllusionsApp.prototype, {
     if (!this.audioCtx || this.prefs.sfxMuted) return;
     try {
       if (this.audioCtx.state === "suspended") this.audioCtx.resume();
-      // Lush velvet minor 9th chord: C4, Eb4, G4, Bb4, D5
+      // Lush velvet minor 9th chord: C4, Eb4, G4, Bb4, D5 (gentle background bloom)
       const chord = [261.63, 311.13, 392.00, 466.16, 587.33];
       chord.forEach((freq, idx) => {
         const osc = this.audioCtx.createOscillator();
         const gain = this.audioCtx.createGain();
         osc.type = "sine";
-        osc.frequency.setValueAtTime(freq, this.audioCtx.currentTime + idx * 0.035);
-        gain.gain.setValueAtTime(0.12, this.audioCtx.currentTime + idx * 0.035);
-        gain.gain.exponentialRampToValueAtTime(0.001, this.audioCtx.currentTime + 0.85);
+        osc.frequency.setValueAtTime(freq, this.audioCtx.currentTime + idx * 0.025);
+        gain.gain.setValueAtTime(0.035, this.audioCtx.currentTime + idx * 0.025);
+        gain.gain.exponentialRampToValueAtTime(0.0001, this.audioCtx.currentTime + 0.65);
         osc.connect(gain);
         gain.connect(this.audioCtx.destination);
-        osc.start(this.audioCtx.currentTime + idx * 0.035);
-        osc.stop(this.audioCtx.currentTime + 0.90);
+        osc.start(this.audioCtx.currentTime + idx * 0.025);
+        osc.stop(this.audioCtx.currentTime + 0.70);
       });
     } catch (e) {}
   },

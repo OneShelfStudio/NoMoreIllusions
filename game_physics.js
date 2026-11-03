@@ -551,7 +551,7 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       if (dist < this.playerRadius * 0.82 + e.radius * 0.82) {
         if (this.overdriveTimer > 0) {
           // Vaporize enemy in Overdrive (does NOT end Overdrive)!
-          this.playSfx("orb", 0.75);
+          this.playSfx("orb", 0.25);
           this.triggerHaptic([30]);
           const vapPts = 150 * Math.max(2, this.combo);
           this.score += vapPts;
@@ -857,7 +857,11 @@ Object.assign(NoMoreIllusionsApp.prototype, {
     this.combo = Math.min(16, prevCombo + 1);
     if (this.combo > this.maxComboRun) this.maxComboRun = this.combo;
     this.comboTimer = 5.0; // generous 5s window to maintain flow
-    this.synthComboChordStinger(this.combo);
+
+    // Harmonious milestones: bloom the chord stinger only at x4, x8, x12, x16 combos
+    if (this.combo >= 4 && this.combo % 4 === 0 && this.combo > prevCombo) {
+      this.synthComboChordStinger(this.combo);
+    }
 
     // Streaming notes together charges the thick Neon Contrail
     this.vocalStreamContrailTimer = (pu.isVocalStream || (this.multiBandState && this.multiBandState.vocal >= 0.42))
@@ -880,7 +884,7 @@ Object.assign(NoMoreIllusionsApp.prototype, {
     }
 
     if (pu.type === "SCORE_ORB") {
-      this.synthHarmonicOrbChime(0.72, isAtStrikeLine, this.combo);
+      this.synthHarmonicOrbChime(0.18, isAtStrikeLine, this.combo);
       this.triggerHaptic([isAtStrikeLine ? 24 : 14]);
 
       const basePts = isAtStrikeLine ? 120 : 60;
