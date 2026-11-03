@@ -162,6 +162,44 @@
       } else {
         if (typeof onReward === "function") onReward();
       }
+    },
+
+    /**
+     * Platform & Cloud Data Persistence
+     * Uses CrazyGames SDK Data Module when available with synchronized LocalStorage fallback.
+     */
+    async saveData(key, value) {
+      const valStr = typeof value === "string" ? value : JSON.stringify(value);
+      try {
+        localStorage.setItem(key, valStr);
+      } catch (e) {}
+
+      if (this.platform === "crazygames" && this.crazyGamesReady && window.CrazyGames && window.CrazyGames.SDK && window.CrazyGames.SDK.data) {
+        try {
+          await window.CrazyGames.SDK.data.setItem(key, valStr);
+        } catch (e) {
+          console.warn("[PlatformSDK] Cloud save warning:", e);
+        }
+      }
+    },
+
+    async loadData(key, defaultVal = null) {
+      let localVal = null;
+      try {
+        localVal = localStorage.getItem(key);
+      } catch (e) {}
+
+      if (this.platform === "crazygames" && this.crazyGamesReady && window.CrazyGames && window.CrazyGames.SDK && window.CrazyGames.SDK.data) {
+        try {
+          const cloudVal = await window.CrazyGames.SDK.data.getItem(key);
+          if (cloudVal !== null && cloudVal !== undefined) {
+            try { localStorage.setItem(key, cloudVal); } catch (e) {}
+            return cloudVal;
+          }
+        } catch (e) {}
+      }
+
+      return localVal !== null ? localVal : defaultVal;
     }
   };
 
