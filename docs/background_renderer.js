@@ -103,6 +103,10 @@ function drawNebulaBackground(ctx, W, H, palette, stars, time, beatPulse, multiB
   const novaFlash = Math.max(0, Math.min(1, specialVisuals.solarNovaFlash || 0));
   const unblurPercent = Math.max(0.12, Math.min(1.0, specialVisuals.unblurPercent || 0.20));
 
+  const centerX = W / 2;
+  const centerY = H / 2;
+  const maxDim = Math.max(W, H);
+
   // 1. Deep Obsidian Space Base (with Dynamic Special Phase Tints)
   const bgGrad = ctx.createLinearGradient(0, 0, 0, H);
   if (isElectric) {

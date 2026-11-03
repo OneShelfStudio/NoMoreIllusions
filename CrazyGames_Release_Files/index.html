@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="No More Illusions" />
+  <meta name="theme-color" content="#04020B" />
+  <title>No More Illusions — Interactive Album Experience</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="assets/nmi_logo.png" />
+  <link rel="stylesheet" href="styles.css?v=44" />
+</head>
+<body>
+  <!-- Full-Screen 60FPS Audio-Reactive Game & Nebula Canvas -->
+  <canvas id="game-canvas"></canvas>
+
+  <!-- ======================================================================
+       1. MENU SCREEN (Magic Tiles Inspired Zero-Scroll Luxury Viewport)
+       ====================================================================== -->
+  <div id="screen-MENU" class="screen-overlay" style="display:flex;">
+    <!-- Top Bar -->
+    <div class="menu-top-bar">
+      <div class="pill-currency" onclick="window.app.openScreen('CUSTOMIZER', 0)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="#FACC15"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+        <span id="menu-points-val" style="font-size:15px;font-weight:900;color:#FAF8F5;">350</span>
+        <span style="font-size:9px;font-weight:800;color:#94A3B8;letter-spacing:1.2px;">NOTES</span>
+        <span id="menu-vip-badge" class="pill-vip-badge"></span>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div id="menu-lobby-pill" class="pill-lobby" onclick="window.app.cycleLobbyTheme()">
+          <span id="menu-lobby-dot" class="lobby-dot"></span>
+          <span id="menu-lobby-text">VELVET SYNTH ↻</span>
+        </div>
+        <button class="menu-settings-icon-btn" onclick="window.app.openScreen('SETTINGS')" title="Settings" aria-label="Settings">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Center Turntable & Track Showcase (Scaled 165px for zero-scroll on all phones) -->
+    <div class="menu-center-hero">
+      <div class="carousel-hero-wrap">
+        <button class="carousel-nav-btn prev" onclick="window.app.prevStage(event)" title="Previous Track" aria-label="Previous Track">‹</button>
+        <canvas id="menu-turntable-canvas" width="170" height="170"></canvas>
+        <button class="carousel-nav-btn next" onclick="window.app.nextStage(event)" title="Next Track" aria-label="Next Track">›</button>
+      </div>
+      <!-- Track Pagination Dots -->
+      <div id="menu-track-dots" class="track-dots-row"></div>
+
+      <!-- Track Metadata -->
+      <div id="menu-track-title-card" class="track-title-card">
+        <div id="menu-track-title-main" class="track-title-main">CONFIDE</div>
+        <div id="menu-track-meta-row" class="track-meta-row">ETHAN STARK • STUDIO MASTER</div>
+      </div>
+
+      <!-- Alternate Cover Art Toggle (Shown only for Track 2) -->
+      <div id="menu-alt-cover-toggle-wrap" style="display:none;margin-top:4px;">
+        <button id="menu-alt-cover-btn" class="pill-alt-cover" onclick="window.app.toggleAltCover()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2a10 10 0 1 0 10 10c0-1.1-.9-2-2-2h-3.5a1.5 1.5 0 0 1-1.5-1.5V7a3 3 0 0 0-3-3z"/></svg>&nbsp; ALT COVER: <span id="menu-alt-cover-name">ORIGINAL</span> ↻
+        </button>
+      </div>
+    </div>
+
+    <!-- Action Section: Speed Selector + Launch Button + Social Dock -->
+    <div style="width:100%;max-width:410px;display:flex;flex-direction:column;align-items:center;gap:6px;">
+      <!-- Speed / Remix Selector (4 Clean Soft Neon Pills: Chill, Normal, Fast, Endless!) -->
+      <div id="menu-remix-pills" style="width:100%;"></div>
+
+      <!-- Grand Pulsing Launch Button -->
+      <div id="btn-launch-stage" class="btn-launch-stage" onclick="window.app.startStage()">
+        <div id="menu-launch-main" class="btn-launch-main">▶ &nbsp;PLAY CONFIDE &nbsp;◀</div>
+        <div id="menu-launch-sub" class="btn-launch-sub">NORMAL • 1.0x PTS • 1 RUN UNLOCK</div>
+      </div>
+
+      <!-- Official Artist Links Footer (1:1 SocialBrandIcons.kt — Ultra-Compact Zero Scroll) -->
+      <div class="menu-social-dock">
+        <span class="menu-social-dock-label">STREAM &amp; FOLLOW</span>
+        <div class="menu-social-icons">
+          <a class="menu-social-icon-btn yt" href="https://youtube.com/@nomoreillusions?si=p4sS722A3v1-B2rO" target="_blank" rel="noopener" title="YouTube">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M21.8 8.001a2.75 2.75 0 0 0-1.94-1.94C18.14 5.6 12 5.6 12 5.6s-6.14 0-7.86.46a2.75 2.75 0 0 0-1.94 1.94C1.74 9.72 1.74 12 1.74 12s0 2.28.46 3.999a2.75 2.75 0 0 0 1.94 1.94c1.72.46 7.86.46 7.86.46s6.14 0 7.86-.46a2.75 2.75 0 0 0 1.94-1.94C22.26 14.28 22.26 12 22.26 12s0-2.28-.46-3.999zM9.95 15.02V8.98L15.2 12l-5.25 3.02z"/></svg>
+          </a>
+          <a class="menu-social-icon-btn sp" href="https://open.spotify.com/artist/6tR26L15vR8nE2T6A4A383" target="_blank" rel="noopener" title="Spotify">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><path d="M4.5 9.5c4.8-1.6 10.4-1.2 15 1.2"/><path d="M5.8 13.2c3.8-1.2 8.2-.9 11.8 1"/><path d="M7.2 16.8c2.9-.8 6.2-.6 8.9.8"/></svg>
+          </a>
+          <a class="menu-social-icon-btn ap" href="https://music.apple.com/us/artist/no-more-illusions/1781131407" target="_blank" rel="noopener" title="Apple Music">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+          </a>
+          <a class="menu-social-icon-btn ig" href="https://www.instagram.com/nomoreillusionsmusic" target="_blank" rel="noopener" title="Instagram">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+          </a>
+          <a class="menu-social-icon-btn tt" href="https://www.tiktok.com/@nomoreillusionsmusic" target="_blank" rel="noopener" title="TikTok">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64c.298 0 .592.046.87.136V9.4a6.34 6.34 0 0 0-.87-.06A6.33 6.33 0 0 0 3.15 15.7 6.34 6.34 0 0 0 9.48 22a6.32 6.32 0 0 0 6.33-6.33V9.05a8.28 8.28 0 0 0 3.78.93V6.69z"/></svg>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Magic Tiles 3 Inspired Bottom Navigation Bar (Handcrafted Vector Outline SVGs — Zero Raw Emojis!) -->
+    <div class="magic-bottom-nav">
+      <div class="nav-tab active" onclick="window.app.openScreen('MENU')">
+        <svg class="nav-tab-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+          <polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>
+        <span class="nav-tab-label">HOME</span>
+      </div>
+      <div class="nav-tab" onclick="window.app.openScreen('CUSTOMIZER', 0)">
+        <svg class="nav-tab-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3L12 3z"/>
+        </svg>
+        <span class="nav-tab-label">SKINS &amp; FX</span>
+      </div>
+      <div class="nav-tab" onclick="window.app.openScreen('CUSTOMIZER', 1)">
+        <svg class="nav-tab-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="9"/>
+          <circle cx="12" cy="12" r="3"/>
+          <circle cx="12" cy="12" r="1" fill="currentColor"/>
+          <path d="M12 3a9 9 0 0 1 9 9" stroke-dasharray="2 3"/>
+        </svg>
+        <span class="nav-tab-label">VAULT</span>
+      </div>
+      <div class="nav-tab" onclick="window.app.openScreen('CUSTOMIZER', 2)">
+        <svg class="nav-tab-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+        </svg>
+        <span class="nav-tab-label">EXCLUSIVES</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================================
+       2. IN-GAME HUD OVERLAY (Magic Tiles 3 Inspired Progress Bar & Angled Judgement)
+       ====================================================================== -->
+  <div id="screen-PLAYING" class="screen-overlay">
+    <!-- Top Horizontal Progress Bar & Milestones (Screenshot 1) -->
+    <div class="hud-magic-header">
+      <div class="hud-pill-badge">
+        <svg class="hud-pill-icon" width="13" height="13" viewBox="0 0 24 24" fill="#FACC15"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+        <span id="hud-points-tally" class="hud-pill-text">0</span>
+      </div>
+
+      <div class="hud-progress-track-wrap">
+        <div class="hud-progress-track">
+          <div id="hud-top-progress-fill" class="hud-progress-fill"></div>
+        </div>
+        <!-- 6 Milestone Markers across the track: 3 Stars + 3 Crowns (Vector SVGs — Zero Emojis) -->
+        <div class="hud-milestones-row">
+          <div id="hud-star-1" class="hud-milestone-marker star" title="Star 1">
+            <svg class="marker-svg" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          </div>
+          <div id="hud-star-2" class="hud-milestone-marker star" title="Star 2">
+            <svg class="marker-svg" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          </div>
+          <div id="hud-star-3" class="hud-milestone-marker star" title="Star 3">
+            <svg class="marker-svg" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+          </div>
+          <div id="hud-crown-1" class="hud-milestone-marker crown" title="Crown 1">
+            <svg class="marker-svg" viewBox="0 0 24 24"><path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/></svg>
+          </div>
+          <div id="hud-crown-2" class="hud-milestone-marker crown" title="Crown 2">
+            <svg class="marker-svg" viewBox="0 0 24 24"><path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/></svg>
+          </div>
+          <div id="hud-crown-3" class="hud-milestone-marker crown" title="Crown 3">
+            <svg class="marker-svg" viewBox="0 0 24 24"><path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/></svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="hud-right-group">
+        <button class="btn-pause-icon" onclick="window.app.pauseGame()" title="Pause">
+          <img src="assets/btn_icon_pause.png" alt="Pause" />
+        </button>
+      </div>
+    </div>
+
+    <!-- Centered Upper-Middle Judgement, Score & Multiplier (Screenshot 1) -->
+    <div id="hud-center-score-hud" class="hud-center-score-hud">
+      <div id="hud-score-val" class="hud-big-score-digits">0</div>
+      <div id="hud-rating-pill" class="hud-rating-pill">
+        <span id="hud-rating-text" class="hud-rating-text">PERFECT</span>
+      </div>
+      <div id="hud-combo-mult-row" class="hud-combo-mult-row">
+        <span id="hud-combo-mult-val">× 1</span>
+      </div>
+      <div id="hud-endless-crown-pill" class="hud-endless-crown-pill" style="display:none;">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="#FACC15"><path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/></svg>
+        <span id="hud-endless-crown-val">×1</span>
+      </div>
+
+      <!-- 5-Star Band Hero Overdrive Gauge & 24K Trigger (Screenshot 1 / Band Hero Spec) -->
+      <div id="hud-overdrive-container" class="hud-overdrive-container">
+        <div class="hud-od-gauge-wrap" title="Collect on-beat notes to charge 24K Overdrive!">
+          <div class="hud-od-stars-row">
+            <div id="od-star-1" class="od-star">
+              <svg class="od-star-svg" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+            </div>
+            <div id="od-star-2" class="od-star">
+              <svg class="od-star-svg" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+            </div>
+            <div id="od-star-3" class="od-star">
+              <svg class="od-star-svg" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+            </div>
+            <div id="od-star-4" class="od-star">
+              <svg class="od-star-svg" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+            </div>
+            <div id="od-star-5" class="od-star">
+              <svg class="od-star-svg" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+            </div>
+          </div>
+          <div class="hud-od-fill-track">
+            <div id="hud-od-fill-bar" class="hud-od-fill-bar"></div>
+          </div>
+        </div>
+        <button id="btn-24k-overdrive" class="btn-24k-overdrive" onclick="window.app.activate24KOverdrive()" style="display:none;" title="Tap to Unleash 24K Golden Multipliers &amp; Invulnerability!">
+          <svg class="od-btn-sparkle" width="13" height="13" viewBox="0 0 24 24" fill="#0B0715"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          <span id="od-btn-label" class="od-btn-text">24K OVERDRIVE</span>
+          <svg class="od-btn-sparkle" width="13" height="13" viewBox="0 0 24 24" fill="#0B0715"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================================
+       3. PAUSED MODAL
+       ====================================================================== -->
+  <div id="screen-PAUSED" class="screen-overlay modal-backdrop">
+    <div class="glass-modal-card" style="text-align:center;">
+      <div class="modal-title" style="color:#38BDF8;">STAGE PAUSED</div>
+      <p style="font-size:12px;color:#94A3B8;">Take a breath. Your stage progress and combo multiplier are held in stasis.</p>
+      <button class="btn-action-primary" onclick="window.app.resumeGame()">▶  RESUME STAGE</button>
+      <button class="btn-action-secondary" onclick="window.app.startStage()">↻  RESTART TRACK</button>
+      <button class="btn-action-secondary" onclick="window.app.openScreen('MENU')">⌂  MAIN STAGE MENU</button>
+    </div>
+  </div>
+
+  <!-- ======================================================================
+       4. GAME OVER MODAL
+       ====================================================================== -->
+  <div id="screen-GAME_OVER" class="screen-overlay modal-backdrop">
+    <div class="glass-modal-card" style="text-align:center;">
+      <div class="modal-title" style="color:#F43F5E;">SIGNAL INTERRUPTED</div>
+      <div style="font-size:34px;font-weight:900;color:#F8FAFC;" id="gameover-score-val">0</div>
+      <div style="font-size:11px;font-weight:800;color:#FACC15;letter-spacing:1.3px;" id="gameover-best-val">BEST RECORD: 0</div>
+      <button id="gameover-notes-btn" class="btn-action-primary" onclick="window.app.reviveWithNotes()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>&nbsp; USE 250 NOTES TO REVIVE
+      </button>
+      <button id="gameover-revive-btn" class="btn-ad-reward" onclick="window.app.reviveWithAd()">
+        <span style="display:flex;align-items:center;gap:10px;">
+          <span class="ad-badge">AD</span>
+          <span style="display:flex;flex-direction:column;">
+            <span class="ad-main">WATCH AD TO REVIVE</span>
+            <span class="ad-sub">SPONSORED VIDEO • INSTANT REVIVE</span>
+          </span>
+        </span>
+        <span style="color:#FACC15;font-size:14px;font-weight:900;">▶</span>
+      </button>
+      <button class="btn-action-secondary" style="border-color:rgba(74,222,128,0.6);color:#4ADE80;" onclick="window.app.replayFromGameOver()">↻  REPLAY TRACK</button>
+      
+      <!-- Viral Social Sharing CTA Card -->
+      <div class="viral-social-cta-card" style="margin: 8px 0;">
+        <div class="viral-social-cta-title">SHARE YOUR RUN &amp; TAG THE ARTIST</div>
+        <div class="viral-social-cta-body">Post your gameplay video with <b>#NoMoreIllusions</b> &amp; tag <b>@EthanKStark</b> on TikTok &amp; Instagram for a chance to be featured in the official game credits!</div>
+        <button class="btn-share-social" onclick="window.app.shareRunToSocials()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13"/></svg>&nbsp; SHARE TO TIKTOK / INSTAGRAM
+        </button>
+      </div>
+
+      <button class="btn-action-secondary" onclick="window.app.openScreen('CUSTOMIZER', 0)">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/></svg>&nbsp; ALBUM &amp; VAULT
+      </button>
+      <button class="btn-action-secondary" onclick="window.app.openScreen('MENU')">MAIN MENU</button>
+    </div>
+  </div>
+
+  <!-- ======================================================================
+       5. TRACK COMPLETED CELEBRATION MODAL (De-Cluttered, Elegant Visual Celebration)
+       ====================================================================== -->
+  <div id="screen-TRACK_COMPLETED" class="screen-overlay modal-backdrop">
+    <div class="glass-modal-card victory-card">
+      <div class="victory-header-badge">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="#FACC15"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>&nbsp; CONGRATS! TRACK COMPLETE &nbsp;<svg width="12" height="12" viewBox="0 0 24 24" fill="#FACC15"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+      </div>
+
+      <!-- Centerpiece: Unveiled Album Artwork with Golden Ambient Halo -->
+      <div class="victory-album-art-wrap">
+        <img id="tc-album-art-img" src="assets/nmi_logo.png" alt="Unlocked Artwork" class="victory-album-art" />
+      </div>
+
+      <div id="tc-track-title" class="victory-track-title">TRACK 1: "CONFIDE"</div>
+      <div class="victory-track-sub">OFFICIAL STUDIO MASTER UNLOCKED &amp; SAVED TO VAULT</div>
+
+      <!-- 3-Column Stats Grid (Score, Streak, Notes Earned) -->
+      <div class="victory-stats-grid">
+        <div class="v-stat-col">
+          <div class="v-stat-label">TOTAL SCORE</div>
+          <div id="tc-score-val" class="v-stat-val text-cyan">0</div>
+        </div>
+        <div class="v-stat-col">
+          <div class="v-stat-label">BEST STREAK</div>
+          <div id="tc-combo-val" class="v-stat-val text-green">1x</div>
+        </div>
+        <div class="v-stat-col">
+          <div class="v-stat-label">NOTES EARNED</div>
+          <div id="tc-earned-val" class="v-stat-val text-gold">+650</div>
+        </div>
+      </div>
+
+      <!-- Interactive Spinning Star Emblem for Newly Unlocked Vault Secret (Compact) -->
+      <div id="tc-star-btn" onclick="window.app.toggleVictoryExclusivePopup(true)"
+           style="background:rgba(20,16,6,0.95);border:1.5px solid #FACC15;border-radius:14px;padding:7px 12px;display:flex;align-items:center;gap:10px;text-align:left;margin-bottom:8px;cursor:pointer;box-shadow:0 0 18px rgba(250,204,21,0.22);">
+        <div style="width:36px;height:36px;border-radius:50%;background:radial-gradient(circle,#FEF08A 10%,#EAB308 55%,#713F12 100%);border:1.5px solid #FFFFFF;display:flex;align-items:center;justify-content:center;color:#090602;flex-shrink:0;animation:spinSlow 5s linear infinite;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="#090602"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+        </div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:9px;font-weight:900;color:#FACC15;letter-spacing:0.6px;">NEW VAULT SECRET UNLOCKED!</div>
+          <div style="font-size:11px;font-weight:800;color:#FAF8F5;margin-top:1px;">Tap to Read Artist Note &amp; Story →</div>
+        </div>
+      </div>
+
+      <!-- Pop-up Modal when the player taps the Spinning Star Emblem -->
+      <div id="tc-excl-popup" style="display:none;background:rgba(8,12,26,0.98);border:1.8px solid #FACC15;border-radius:16px;padding:12px 14px;text-align:left;margin-bottom:8px;box-shadow:0 0 28px rgba(250,204,21,0.35);">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div id="tc-excl-badge" style="font-size:9px;font-weight:900;color:#FACC15;letter-spacing:1.0px;">VAULT EXCLUSIVE UNLOCKED</div>
+          <span onclick="window.app.toggleVictoryExclusivePopup(false)" style="font-size:10px;font-weight:900;color:#38BDF8;cursor:pointer;padding:2px 6px;">CLOSE</span>
+        </div>
+        <div id="tc-excl-title" style="font-size:13px;font-weight:900;color:#F8FAFC;margin:4px 0 6px;">Artist Fan Note: 'Confide'</div>
+        <div id="tc-excl-body" style="font-size:11px;color:#E2E8F0;line-height:1.45;"></div>
+        <div id="tc-excl-quote" style="font-size:9.5px;font-weight:800;font-style:italic;color:#38BDF8;margin-top:6px;"></div>
+      </div>
+
+      <!-- Two Clear Primary Actions (Replay / Next Track & Open Vault) -->
+      <div class="victory-actions-stack">
+        <button id="tc-next-replay-btn" class="btn-action-primary v-main-btn" onclick="window.app.startStage()">
+          ▶ &nbsp;PLAY AGAIN / NEXT TRACK
+        </button>
+        <button class="btn-action-gold v-sec-btn" onclick="window.app.openScreen('CUSTOMIZER', 1)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/></svg>&nbsp; OPEN ARTIST VAULT
+        </button>
+      </div>
+
+      <!-- Subtle Share CTA to tag artist + Return to Main Menu -->
+      <div class="victory-share-row">
+        <button class="btn-share-social-subtle" onclick="window.app.shareRunToSocials()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13"/></svg>&nbsp; Tag @EthanKStark #NoMoreIllusions
+        </button>
+        <button class="btn-text-subtle" onclick="window.app.openScreen('MENU')">
+          Main Menu
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================================
+       6. ARTIST SPECIALS, ALBUM VAULT & STUDIO CUSTOMIZER
+       ====================================================================== -->
+  <div id="screen-CUSTOMIZER" class="screen-overlay modal-backdrop">
+    <div class="glass-modal-card" style="max-height:92vh;overflow-y:auto;">
+      <div class="modal-header-row">
+        <div>
+          <div id="cust-modal-title" class="modal-title" style="font-size:16px;color:#FACC15;">STUDIO VAULT &amp; SKINS</div>
+          <div style="font-size:9.5px;color:#94A3B8;font-weight:700;">COSMETICS, MASTER TRACKS &amp; ARTIST SECRETS</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span id="cust-points-val" style="font-size:13px;font-weight:900;color:#FACC15;">350 NOTES</span>
+          <button class="btn-close-pill" style="color:#FACC15;border-color:#FACC15;" onclick="window.app.openVipPasscode()">VIP</button>
+          <button class="btn-close-pill" onclick="window.app.openScreen('MENU')">DONE</button>
+        </div>
+      </div>
+
+      <!-- 3-Segment Top Pill Navigation: [SKINS & FX] [ARTIST VAULT] [EXCLUSIVES] -->
+      <div class="cust-tabs-row" style="margin-bottom:10px;">
+        <div id="cust-tab-0" class="cust-tab active" onclick="window.app.setCustomizerTab(0)">SKINS &amp; FX</div>
+        <div id="cust-tab-1" class="cust-tab" onclick="window.app.setCustomizerTab(1)">ARTIST VAULT</div>
+        <div id="cust-tab-2" class="cust-tab" onclick="window.app.setCustomizerTab(2)">EXCLUSIVES</div>
+      </div>
+
+      <!-- Tab 0: Skins & FX (Hero Cores, Trails, Themes — No Enemies) -->
+      <div id="cust-view-skins" style="display:block;">
+        <div class="preview-stage-box" style="margin-bottom:8px;">
+          <canvas id="customizer-preview-canvas"></canvas>
+          <div class="preview-badge-tl">LIVE COSMETICS PREVIEW</div>
+          <div class="preview-badge-br">DRAG HERE TO TEST</div>
+        </div>
+        <!-- Sub-category Filter: Cores, Trails, Themes -->
+        <div style="display:flex;gap:6px;margin-bottom:8px;">
+          <button id="cust-sub-0" class="btn-close-pill" style="flex:1;background:rgba(56,189,248,0.22);color:#38BDF8;border-color:#38BDF8;" onclick="window.app.setSkinsSubCategory(0)">CORES</button>
+          <button id="cust-sub-1" class="btn-close-pill" style="flex:1;color:#94A3B8;" onclick="window.app.setSkinsSubCategory(1)">TRAILS</button>
+          <button id="cust-sub-2" class="btn-close-pill" style="flex:1;color:#94A3B8;" onclick="window.app.setSkinsSubCategory(2)">THEMES</button>
+        </div>
+        <div id="cust-items-list"></div>
+        <div style="height:24px;"></div>
+      </div>
+
+      <!-- Tab 1: Artist Vault (2 Tracks, Alternate Lotus Cover, Coming Soon) -->
+      <div id="cust-view-vault" style="display:none;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin:4px 0 8px;">
+          <span style="font-size:10.5px;font-weight:900;letter-spacing:1.1px;color:#FACC15;">OFFICIAL STUDIO RELEASES</span>
+          <button class="btn-close-pill" style="color:#38BDF8;border-color:#38BDF8;" onclick="window.app.openScreen('DEMO_PLAYER')">STUDIO DECK →</button>
+        </div>
+        <div id="cust-vault-tracks" style="margin-bottom:12px;"></div>
+
+        <!-- Coming Soon & Future Additions Card -->
+        <div style="background:linear-gradient(135deg,rgba(30,16,60,0.85),rgba(15,23,42,0.92));border:1.5px dashed rgba(250,204,21,0.55);border-radius:16px;padding:12px 14px;margin-bottom:12px;text-align:left;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="#FACC15"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/></svg>
+            <div>
+              <div style="font-size:12px;font-weight:900;color:#FACC15;letter-spacing:0.8px;">FUTURE TRACKS &amp; ARTIST ADDITIONS</div>
+              <div style="font-size:9.5px;font-weight:800;color:#38BDF8;">COMING SOON TO NO MORE ILLUSIONS</div>
+            </div>
+          </div>
+          <div style="font-size:11px;color:#CBD5E1;line-height:1.5;margin-top:8px;">
+            Ethan Stark is producing upcoming studio singles and stem packs. VIP Passcode holders will unlock new stages automatically as they release!
+          </div>
+          <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">
+            <span class="vip-pill" style="font-size:8.5px;padding:4px 8px;">TRACK 03 (IN PRODUCTION)</span>
+            <span class="vip-pill" style="font-size:8.5px;padding:4px 8px;">ISOLATED STEMS</span>
+            <span class="vip-pill" style="font-size:8.5px;padding:4px 8px;">VIP FAN PASS</span>
+          </div>
+        </div>
+        <div style="height:24px;"></div>
+      </div>
+
+      <!-- Tab 2: Artist Exclusives & Production Secrets -->
+      <div id="cust-view-exclusives" style="display:none;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin:4px 0 8px;">
+          <span style="font-size:10.5px;font-weight:900;letter-spacing:1.1px;color:#FACC15;">ARTIST SECRETS &amp; LINER NOTES</span>
+          <button class="btn-close-pill" style="color:#FACC15;border-color:#FACC15;" onclick="window.app.openLinerNotes()">LYRICS</button>
+        </div>
+        <div id="cust-specials-list"></div>
+        <div style="height:24px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================================
+       7. STUDIO DEMO DECK (1:1 Port of MusicDemoScreen.kt)
+       ====================================================================== -->
+  <div id="screen-DEMO_PLAYER" class="screen-overlay modal-backdrop">
+    <div class="glass-modal-card">
+      <div class="modal-header-row">
+        <div>
+          <div class="modal-title" style="font-size:16px;color:#FACC15;">ALBUM VAULT DECK</div>
+          <div style="font-size:10px;color:#94A3B8;font-weight:700;">OFFICIAL MASTER TRACK PLAYBACK</div>
+        </div>
+        <button class="btn-close-pill" onclick="window.app.openScreen('MENU')">CLOSE</button>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:14px;background:rgba(10,7,24,0.9);padding:12px;border-radius:18px;border:1px solid rgba(250,204,21,0.35);">
+        <img src="assets/nmi_logo.png" alt="Logo" style="width:68px;height:68px;border-radius:14px;border:1.5px solid #38BDF8;" />
+        <div style="flex:1;">
+          <div id="demo-active-title" style="font-size:17px;font-weight:900;color:#F8FAFC;">Confide</div>
+          <div style="font-size:11px;color:#94A3B8;font-weight:700;">No More Illusions • Studio Master</div>
+          <div id="demo-active-status" style="font-size:9.5px;font-weight:900;color:#FACC15;margin-top:4px;">LOCKED</div>
+        </div>
+      </div>
+
+      <!-- Seek Bar -->
+      <div>
+        <div style="width:100%;height:6px;background:rgba(255,255,255,0.12);border-radius:4px;overflow:hidden;">
+          <div id="demo-seek-fill" style="width:0%;height:100%;background:linear-gradient(90deg,#38BDF8,#FACC15);"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:#94A3B8;font-weight:700;margin-top:4px;">
+          <span id="demo-time-cur">0:00</span>
+          <span id="demo-time-dur">2:59</span>
+        </div>
+      </div>
+
+      <!-- Transport Controls -->
+      <div style="display:flex;align-items:center;justify-content:space-around;">
+        <button class="btn-close-pill" onclick="window.app.seekDemoBy(-10)">-10s</button>
+        <button id="demo-play-btn" class="btn-action-primary" style="width:160px;height:44px;border-radius:50px;" onclick="window.app.toggleDemoPlayPause()">▶</button>
+        <button class="btn-close-pill" onclick="window.app.seekDemoBy(10)">+10s</button>
+      </div>
+      <div style="text-align:center;">
+        <span id="demo-loop-btn" style="font-size:10px;font-weight:900;color:#94A3B8;cursor:pointer;" onclick="window.app.toggleDemoLoop()">LOOP: OFF</span>
+      </div>
+
+      <div id="demo-track-list"></div>
+    </div>
+  </div>
+
+  <!-- ======================================================================
+       8. HOW TO PLAY MODAL
+       ====================================================================== -->
+  <div id="screen-HOW_TO_PLAY" class="screen-overlay modal-backdrop">
+    <div id="htp-modal-card" class="glass-modal-card" style="max-width:328px;max-height:92vh;overflow-y:auto;padding:18px 16px;text-align:center;">
+      <div style="font-size:10px;font-weight:900;letter-spacing:1.8px;color:#FACC15;">STAGE BRIEFING</div>
+      <div class="guide-title" style="font-size:20px;margin-top:2px;font-weight:900;letter-spacing:1px;">HOW TO PLAY</div>
+      <div id="htp-sub-header" style="font-size:10.5px;color:#94A3B8;font-weight:700;margin-top:2px;margin-bottom:14px;">Feel the rhythm • Ride the groove</div>
+
+      <!-- 1. GATHER BEAT NOTES -->
+      <div class="guide-item" style="border-color:rgba(250,204,21,0.45);padding:9px 11px;margin-bottom:8px;text-align:left;">
+        <div class="guide-icon-badge" style="background:rgba(250,204,21,0.18);border:1.5px solid #FACC15;color:#FACC15;width:30px;height:30px;display:flex;align-items:center;justify-content:center;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="#FACC15"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+        </div>
+        <div>
+          <div class="guide-text-title" style="color:#FACC15;font-size:11.5px;font-weight:900;">1. GATHER BEAT NOTES</div>
+          <div class="guide-text-body" style="font-size:10px;color:#CBD5E1;">
+            Glide smoothly into incoming notes to build combos and unlock album art.
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. AVOID ENEMIES -->
+      <div class="guide-item" style="border-color:rgba(239,68,68,0.45);padding:9px 11px;margin-bottom:8px;text-align:left;">
+        <div class="guide-icon-badge" style="background:rgba(239,68,68,0.18);border:1.5px solid #EF4444;color:#EF4444;width:30px;height:30px;display:flex;align-items:center;justify-content:center;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2" stroke-linecap="round"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        </div>
+        <div>
+          <div class="guide-text-title" style="color:#EF4444;font-size:11.5px;font-weight:900;">2. AVOID ENEMIES</div>
+          <div class="guide-text-body" style="font-size:10px;color:#CBD5E1;">
+            Dodge red hazard spikes to keep your shield intact and streak alive.
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. HIT SPECIAL PEGS -->
+      <div class="guide-item" style="border-color:rgba(56,189,248,0.45);padding:9px 11px;margin-bottom:14px;text-align:left;">
+        <div class="guide-icon-badge" style="background:rgba(56,189,248,0.18);border:1.5px solid #38BDF8;color:#38BDF8;width:30px;height:30px;display:flex;align-items:center;justify-content:center;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="#38BDF8"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+        </div>
+        <div>
+          <div class="guide-text-title" style="color:#38BDF8;font-size:11.5px;font-weight:900;">3. HIT SPECIAL PEGS</div>
+          <div class="guide-text-body" style="font-size:10px;color:#CBD5E1;">
+            Hit Electric, Vocal Bloom, Slow-Mo, and Nova pegs to transform the audio world!
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:8px;">
+        <button class="btn-action-secondary" onclick="window.app.dismissHowToPlay(true, true)" style="flex:1;height:42px;font-size:9.5px;letter-spacing:0.5px;">
+          DON'T SHOW AGAIN
+        </button>
+        <button id="htp-primary-btn" class="btn-action-primary" onclick="window.app.dismissHowToPlay(true, false)" style="flex:1.2;height:42px;background:linear-gradient(90deg,#22C55E,#0EA5E9);font-size:11px;font-weight:900;">
+          DROP IN ▶
+        </button>
+      </div>
+    </div>
+  </div>
+    </div>
+  </div>
+
+  <!-- Countdown Overlay -->
+  <div id="screen-COUNTDOWN">
+    <div id="countdown-val" class="countdown-number">3</div>
+    <div class="countdown-label">GET READY TO GROOVE</div>
+  </div>
+
+  
+  <!-- ======================================================================
+       9. SETTINGS MODAL
+       ====================================================================== -->
+  <div id="screen-SETTINGS" class="screen-overlay modal-backdrop">
+    <div class="glass-modal-card" style="max-width:420px;">
+      <div class="modal-header-row">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <button class="carousel-nav-btn" onclick="window.app.openScreen('MENU')" title="Back to Menu" style="width:32px;height:32px;font-size:16px;">‹</button>
+          <div class="modal-title" style="font-size:16px;color:#C084FC;">SETTINGS</div>
+        </div>
+        <button class="btn-close-pill" onclick="window.app.openScreen('MENU')">DONE</button>
+      </div>
+
+      <!-- Settings List with Magic Tiles 3 Soft Rounded Pill Cards & Vector Glyph Badges -->
+      <div class="cust-item-row">
+        <div style="width:34px;height:34px;border-radius:50%;background:rgba(56,189,248,0.18);border:1px solid rgba(56,189,248,0.4);display:flex;align-items:center;justify-content:center;color:#38BDF8;flex-shrink:0;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+        </div>
+        <div style="flex:1;">
+          <div class="cust-item-name">Master Music</div>
+          <div class="cust-item-sub">Studio Album &amp; Ambient Beds</div>
+        </div>
+        <button id="settings-music-btn" class="toggle-pill on" onclick="window.app.toggleMusicMute()">ON</button>
+      </div>
+
+      <div class="cust-item-row">
+        <div style="width:34px;height:34px;border-radius:50%;background:rgba(192,132,252,0.18);border:1px solid rgba(192,132,252,0.4);display:flex;align-items:center;justify-content:center;color:#C084FC;flex-shrink:0;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M2 10v4M6 7v10M10 4v16M14 8v8M18 11v2M22 6v12"/></svg>
+        </div>
+        <div style="flex:1;">
+          <div class="cust-item-name">Harmonic SFX</div>
+          <div class="cust-item-sub">Beat Chimes &amp; 24K Overdrive FX</div>
+        </div>
+        <button id="settings-sfx-btn" class="toggle-pill on" onclick="window.app.toggleSfxMute()">ON</button>
+      </div>
+
+      <div class="cust-item-row">
+        <div style="width:34px;height:34px;border-radius:50%;background:rgba(250,204,21,0.18);border:1px solid rgba(250,204,21,0.45);display:flex;align-items:center;justify-content:center;color:#FACC15;flex-shrink:0;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="7.5" cy="15.5" r="4.5"/><path d="m21 3-9.5 9.5M15.5 7.5l3 3M18 5l2 2"/></svg>
+        </div>
+        <div style="flex:1;">
+          <div class="cust-item-name">Artist VIP Passcode</div>
+          <div class="cust-item-sub">Unlock all songs, skins &amp; themes</div>
+        </div>
+        <button class="toggle-pill on" style="border-color:#FACC15;color:#FACC15;background:rgba(250,204,21,0.15);" onclick="window.app.openVipPasscode()">ENTER</button>
+      </div>
+
+      <div class="cust-item-row" onclick="window.app.openScreen('HOW_TO_PLAY')">
+        <div style="width:34px;height:34px;border-radius:50%;background:rgba(74,222,128,0.18);border:1px solid rgba(74,222,128,0.4);display:flex;align-items:center;justify-content:center;color:#4ADE80;flex-shrink:0;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01"/></svg>
+        </div>
+        <div style="flex:1;">
+          <div class="cust-item-name">Interactive Briefing</div>
+          <div class="cust-item-sub">How To Play &amp; Rhythm Controls</div>
+        </div>
+        <button class="toggle-pill" style="border-color:rgba(74,222,128,0.6);color:#4ADE80;">VIEW</button>
+      </div>
+
+      <button class="btn-action-primary" onclick="window.app.openScreen('MENU')">SAVE &amp; RETURN</button>
+    </div>
+  </div>
+
+  
+  <!-- ======================================================================
+       10. ARTIST LINER NOTES & PRODUCTION VAULT
+       ====================================================================== -->
+  <div id="screen-LINER_NOTES" class="screen-overlay modal-backdrop">
+    <div class="glass-modal-card" style="max-width:440px;">
+      <div class="modal-header-row">
+        <div>
+          <div id="liner-track-title" class="modal-title" style="color:#FACC15;font-size:18px;">CONFIDE</div>
+          <div id="liner-track-meta" style="font-size:10px;color:#94A3B8;font-weight:700;">C MINOR • STUDIO MASTER</div>
+        </div>
+        <button class="btn-close-pill" onclick="window.app.closeLinerNotes()">CLOSE</button>
+      </div>
+
+      <!-- Studio Production Story Card -->
+      <div style="background:rgba(10,7,24,0.85);border:1.2px solid rgba(250,204,21,0.35);border-radius:16px;padding:12px 14px;">
+        <div style="font-size:10px;font-weight:900;letter-spacing:1.4px;color:#FACC15;margin-bottom:4px;">PRODUCTION STORY &amp; INSPIRATION</div>
+        <div id="liner-track-story" style="font-size:11.5px;color:#CBD5E1;line-height:1.55;">
+          Written and recorded during late-night studio sessions exploring connection, vulnerability, and navigating illusions in modern life. The production fuses analog synth beds with punchy 808 percussion and soaring vocal melodies.
+        </div>
+      </div>
+
+      <!-- Lyric Excerpt Card -->
+      <div style="background:rgba(10,7,24,0.85);border:1.2px solid rgba(56,189,248,0.35);border-radius:16px;padding:12px 14px;">
+        <div style="font-size:10px;font-weight:900;letter-spacing:1.4px;color:#38BDF8;margin-bottom:4px;">OFFICIAL LYRICS</div>
+        <div id="liner-track-lyrics" style="font-size:12px;color:#E0F2FE;font-style:italic;line-height:1.6;white-space:pre-line;">
+          "Hold on through the twilight haze...
+          Breaking down the walls we raise.
+          Confide in me when shadows fall,
+          No more illusions through it all."
+        </div>
+      </div>
+
+      <!-- Sonic Specs Badge Row -->
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <div style="flex:1;min-width:90px;background:rgba(15,23,42,0.8);border:1px solid rgba(148,163,184,0.25);border-radius:10px;padding:6px;text-align:center;">
+          <div style="font-size:8px;font-weight:800;color:#94A3B8;">SYNTH ENGINES</div>
+          <div style="font-size:10.5px;font-weight:900;color:#38BDF8;">ANALOG JUNO + MOOG</div>
+        </div>
+        <div style="flex:1;min-width:90px;background:rgba(15,23,42,0.8);border:1px solid rgba(148,163,184,0.25);border-radius:10px;padding:6px;text-align:center;">
+          <div style="font-size:8px;font-weight:800;color:#94A3B8;">MASTERING</div>
+          <div style="font-size:10.5px;font-weight:900;color:#FACC15;">-14 LUFS EBU R128</div>
+        </div>
+        <div style="flex:1;min-width:90px;background:rgba(15,23,42,0.8);border:1px solid rgba(148,163,184,0.25);border-radius:10px;padding:6px;text-align:center;">
+          <div style="font-size:8px;font-weight:800;color:#94A3B8;">VOCAL CADENCE</div>
+          <div style="font-size:10.5px;font-weight:900;color:#4ADE80;">STUDIO LEAD VOCAL</div>
+        </div>
+      </div>
+
+      <button class="btn-action-primary" onclick="window.app.closeLinerNotes()">RETURN TO VAULT</button>
+    </div>
+  </div>
+
+  <!-- Artist VIP Passcode Modal -->
+  <div id="vip-modal" class="center-overlay" onclick="if(event.target===this)window.app.closeVipPasscode()">
+    <div class="glass-modal-card" style="max-width:360px;text-align:center;border-color:#FACC15;">
+      <div class="modal-title" style="color:#FACC15;">ARTIST VIP PASSCODE</div>
+      <div style="font-size:11px;color:#CBD5E1;">Unlocks every song, hero skin, trail &amp; stage theme + 50,000 Notes.</div>
+      <input id="vip-input" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ENTER PASSCODE"
+             onkeydown="if(event.key==='Enter')window.app.submitVipPasscode()" />
+      <div id="vip-error" style="display:none;font-size:10.5px;font-weight:900;color:#F43F5E;">INVALID PASSCODE — TRY AGAIN</div>
+      <button class="btn-action-gold" onclick="window.app.submitVipPasscode()">UNLOCK ALL</button>
+      <button class="btn-action-secondary" onclick="window.app.closeVipPasscode()">CANCEL</button>
+    </div>
+  </div>
+
+  <!-- Web/iOS House Promo (AdMob only serves inside the native Android app) -->
+  <div id="house-ad-overlay" class="center-overlay">
+    <div class="glass-modal-card" style="max-width:360px;text-align:center;border-color:#FACC15;">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <span class="ad-badge">SPONSORED</span>
+        <span style="font-size:11px;font-weight:900;color:#FACC15;">REVIVING IN <span id="house-ad-count">5</span>s</span>
+      </div>
+      <img src="assets/nmi_logo.png" alt="No More Illusions" style="width:110px;height:110px;border-radius:20px;margin:6px auto;border:2px solid #FACC15;" />
+      <div class="modal-title" style="color:#F8FAFC;font-size:16px;">STREAM NO MORE ILLUSIONS</div>
+      <div style="font-size:11px;color:#CBD5E1;">Hear "Confide" &amp; "Number One" in full on your favorite platform.</div>
+      <div style="display:flex;gap:8px;justify-content:center;">
+        <a class="btn-close-pill" style="text-decoration:none;color:#1ED760;border-color:#1ED760;" href="https://open.spotify.com/artist/6tR26L15vR8nE2T6A4A383" target="_blank" rel="noopener">SPOTIFY</a>
+        <a class="btn-close-pill" style="text-decoration:none;color:#FA243C;border-color:#FA243C;" href="https://music.apple.com/us/artist/no-more-illusions/1781131407" target="_blank" rel="noopener">APPLE MUSIC</a>
+        <a class="btn-close-pill" style="text-decoration:none;color:#FF4444;border-color:#FF4444;" href="https://youtube.com/@nomoreillusions?si=p4sS722A3v1-B2rO" target="_blank" rel="noopener">YOUTUBE</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- First-Time Contextual Discovery Overlay (Auto-Pauses Once Per Mechanic, Then Gone Forever) -->
+  <div id="discovery-modal" class="center-overlay" style="z-index:999;">
+    <div id="disc-card" class="glass-modal-card" style="max-width:395px;text-align:center;border-color:#FACC15;">
+      <div id="disc-badge" style="display:inline-block;background:rgba(250,204,21,0.14);border:1px solid #FACC15;border-radius:50px;padding:4px 12px;font-size:9px;font-weight:900;color:#FACC15;letter-spacing:1.2px;margin:0 auto 4px;">
+        NEW MECHANIC DISCOVERED
+      </div>
+      <canvas id="disc-spotlight-canvas" width="320" height="94" style="width:100%;height:94px;border-radius:14px;border:1px solid rgba(255,255,255,0.15);margin:4px 0;"></canvas>
+      <div id="disc-title" class="modal-title" style="font-size:17px;color:#F8FAFC;">STATIONARY BEAT CHAINS</div>
+      <div id="disc-sub" style="font-size:11px;font-weight:800;color:#22D3EE;margin-top:-2px;">Hit Sequenced Notes On Time To The Music</div>
+      <div id="disc-body" style="font-size:11.5px;color:#E2E8F0;line-height:1.5;text-align:left;background:rgba(6,10,22,0.85);padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);"></div>
+      <div id="disc-tip" style="font-size:10px;font-weight:900;color:#FACC15;background:rgba(250,204,21,0.12);border:1px solid rgba(250,204,21,0.4);border-radius:10px;padding:6px 10px;"></div>
+      <button id="disc-btn" class="btn-action-gold" onclick="window.app.dismissDiscoveryModal()">▶  GOT IT — RESUME STAGE</button>
+    </div>
+  </div>
+
+  <script src="platform_sdk.js?v=44"></script>
+  <script src="multi_band_data.js?v=44"></script>
+  <script src="music_library.js?v=44"></script>
+  <script src="background_renderer.js?v=44"></script>
+  <script src="beat_orb_renderer.js?v=44"></script>
+  <script src="game_renderer.js?v=44"></script>
+  <script src="engine.js?v=44"></script>
+  <script src="audio_synth.js?v=44"></script>
+  <script src="game_physics.js?v=44"></script>
+  <script src="ui_screens.js?v=44"></script>
+  <script src="tutorial_overlay.js?v=44"></script>
+  <script>
+    (function () {
+      const CURRENT_WEB_BUILD = "nmi-v44-bugfixes";
+      if ("serviceWorker" in navigator) {
+        let refreshing = false;
+        navigator.serviceWorker.addEventListener("controllerchange", () => {
+          if (!refreshing) {
+            // Never interrupt an active gameplay run!
+            if (window.app && (window.app.gameState === "PLAYING" || window.app.gameState === "COUNTDOWN")) {
+              return;
+            }
+            refreshing = true;
+            window.location.reload();
+          }
+        });
+        window.addEventListener("load", () => {
+          const prevBuild = localStorage.getItem("nmi_web_build_version");
+          if (prevBuild !== CURRENT_WEB_BUILD && "caches" in window) {
+            localStorage.setItem("nmi_web_build_version", CURRENT_WEB_BUILD);
+            caches.keys().then((keys) => Promise.all(keys.map((k) => k !== CURRENT_WEB_BUILD ? caches.delete(k) : null))).catch(() => {});
+          }
+          navigator.serviceWorker.register("sw.js", { updateViaCache: "none" })
+            .then((reg) => reg.update())
+            .catch(() => {});
+        });
+      }
+    })();
+  </script>
+</body>
+</html>

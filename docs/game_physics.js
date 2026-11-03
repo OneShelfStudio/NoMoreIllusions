@@ -741,7 +741,8 @@ Object.assign(NoMoreIllusionsApp.prototype, {
     );
     const isVocalStream = Boolean(cue.isVocalStream) || isFluidMoment;
 
-    let startX, startY, receptorX, receptorY, spawnBeatSec, expireBeatSec;
+    let startX, startY, receptorX, receptorY, spawnBeatSec, expireBeatSec, exitX, exitY;
+    let swoopCurve = 0;
     let fluidMode = 0;
 
     if (this.isBandHeroMode) {
@@ -765,7 +766,7 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       receptorX = normX * this.W;
       receptorY = this.H * 0.58;
 
-      const swoopCurve = isFluidMoment
+      swoopCurve = isFluidMoment
         ? (seqIdx % 2 === 0 ? 0.36 : -0.36)
         : (((seqIdx % 5) - 2) * 0.12);
 
