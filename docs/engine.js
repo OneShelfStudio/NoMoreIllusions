@@ -51,7 +51,8 @@ class NoMoreIllusionsApp {
       sfxMuted: localStorage.getItem("nmi_sfx_muted") === "true",
       seenHowToPlay: localStorage.getItem("nmi_seen_htp") === "true",
       vipUnlocked: localStorage.getItem("nmi_vip") === "true",
-      endlessBestLoop: parseInt(localStorage.getItem("nmi_endless_best_loop") || "0", 10)
+      endlessBestLoop: parseInt(localStorage.getItem("nmi_endless_best_loop") || "0", 10),
+      track02AltCover: localStorage.getItem("nmi_track02_alt_cover") === "true"
     };
     this.showRewardsPeek = false;
     this.showTrackDropdown = false;
@@ -168,6 +169,7 @@ class NoMoreIllusionsApp {
       logo: "assets/nmi_logo.png",
       track_01: "assets/track_01.webp",
       track_02: "assets/track_02.webp",
+      album_art: "assets/album_art.jpg",
       hero_cyan: "assets/mandala_hero_cyber.png",
       hero_gold: "assets/mandala_hero_solar.png",
       hero_prism: "assets/mandala_hero_prism.png",
@@ -200,6 +202,7 @@ class NoMoreIllusionsApp {
     localStorage.setItem("nmi_lobby_idx", String(this.prefs.lobbyThemeIndex));
     localStorage.setItem("nmi_music_muted", String(this.prefs.musicMuted));
     localStorage.setItem("nmi_sfx_muted", String(this.prefs.sfxMuted));
+    localStorage.setItem("nmi_track02_alt_cover", String(this.prefs.track02AltCover));
   }
 
   resize() {
@@ -882,7 +885,9 @@ class NoMoreIllusionsApp {
       const allGold = OFFICIAL_TRACKS.every((t) => (this.prefs.trackMasteryMedals[t.id] || 0) >= 3);
       const effectiveTime = this.time + (this.turntableAngle || 0) * 0.45;
       const curTrack = OFFICIAL_TRACKS[this.selectedStageIndex] || OFFICIAL_TRACKS[0];
-      const trackImg = this.images[curTrack.id] || this.images.logo;
+      const trackImg = (curTrack.id === "track_02" && this.prefs.track02AltCover && this.images.album_art)
+        ? this.images.album_art
+        : (this.images[curTrack.id] || this.images.logo);
       const isLocked = !this.prefs.unlockedTracks.includes(curTrack.id) && !this.prefs.isVip;
       drawMenuTurntable(this.menuTurntableCtx, trackImg, effectiveTime, allGold, isLocked);
     }
@@ -1149,7 +1154,9 @@ class NoMoreIllusionsApp {
       : 0;
 
     const curTrack = OFFICIAL_TRACKS[this.selectedStageIndex] || OFFICIAL_TRACKS[0];
-    const trackImg = this.images[curTrack.id] || this.images.logo;
+    const trackImg = (curTrack.id === "track_02" && this.prefs.track02AltCover && this.images.album_art)
+      ? this.images.album_art
+      : (this.images[curTrack.id] || this.images.logo);
     const specialVisuals = {
       isElectric: Boolean(this.electricSurgeTimer > 0 || this.overdriveTimer > 0),
       isPrism: Boolean(this.prismBloomTimer > 0),

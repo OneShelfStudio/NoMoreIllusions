@@ -6,6 +6,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.CutCornerShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -119,96 +120,85 @@ fun HUD(
             }
         }
         Column(modifier = Modifier.fillMaxWidth()) {
-            // 1. Hairline Track Progress Bar along the very top edge
+            // 1. Magic Tiles Milestone Header (★ ★ ★ 👑 👑 👑)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(3.dp)
-                    .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.12f))
+                    .height(28.dp),
+                contentAlignment = Alignment.CenterStart
             ) {
+                // Background Track Line
                 Box(
                     modifier = Modifier
-                        .fillMaxHeight()
-                        .fillMaxWidth(trackProgress.coerceIn(0f, 1f))
+                        .fillMaxWidth()
+                        .height(3.dp)
                         .clip(CircleShape)
-                        .background(
-                            Brush.horizontalGradient(
-                                listOf(Color(0xFF38BDF8L), Color(0xFFFACC15L))
+                        .background(Color.White.copy(alpha = 0.16f))
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .fillMaxWidth(trackProgress.coerceIn(0f, 1f))
+                            .clip(CircleShape)
+                            .background(
+                                Brush.horizontalGradient(
+                                    listOf(Color(0xFF38BDF8L), Color(0xFFFACC15L), Color(0xFFEC4899L))
+                                )
                             )
-                        )
+                    )
+                }
+
+                // Milestones: 3 Stars (16.6%, 33.3%, 50%) and 3 Crowns (66.6%, 83.3%, 98%)
+                val milestones = listOf(
+                    Pair(0.166f, "★"),
+                    Pair(0.333f, "★"),
+                    Pair(0.500f, "★"),
+                    Pair(0.666f, "👑"),
+                    Pair(0.833f, "👑"),
+                    Pair(0.980f, "👑")
                 )
+                BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+                    val trackW = maxWidth
+                    for ((pct, icon) in milestones) {
+                        val isUnlocked = trackProgress >= pct
+                        val iconX = trackW * pct - 9.dp
+                        Text(
+                            text = icon,
+                            color = if (isUnlocked) Color(0xFFFACC15L) else Color.White.copy(alpha = 0.32f),
+                            fontSize = if (icon == "★") 12.sp else 11.sp,
+                            fontWeight = FontWeight.Black,
+                            modifier = Modifier
+                                .offset(x = iconX)
+                                .graphicsLayer {
+                                    if (isUnlocked) {
+                                        scaleX = 1.25f
+                                        scaleY = 1.25f
+                                    }
+                                }
+                        )
+                    }
+                }
             }
 
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(4.dp))
 
-            // 2. Frameless Top Row: Score + Dynamic Combo Streak on Left, Compact Pause Icon on Right
+            // 2. Upper Row: Power-up badges & Pause Button
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = "%,d".format(score),
-                        color = Color.White,
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Black,
-                        style = TextStyle(
-                            shadow = Shadow(
-                                color = Color.Black.copy(alpha = 0.85f),
-                                offset = Offset(0f, 2f),
-                                blurRadius = 6f
-                            )
-                        )
-                    )
-                    if (multiplier > 1) {
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "x$multiplier",
-                            color = Color(0xFFFACC15L),
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Black,
-                            style = TextStyle(
-                                shadow = Shadow(
-                                    color = Color.Black.copy(alpha = 0.85f),
-                                    offset = Offset(0f, 2f),
-                                    blurRadius = 5f
-                                )
-                            )
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Box(
-                        modifier = Modifier
-                            .clip(CircleShape)
-                            .background(if (rhythmCombo >= 8) Color(0x33FACC15L) else if (rhythmCombo > 1) Color(0x3338BDF8L) else Color(0x22FFFFFFL))
-                            .border(1.dp, (if (rhythmCombo >= 8) Color(0xFFFACC15L) else if (rhythmCombo > 1) Color(0xFF38BDF8L) else Color.White.copy(alpha = 0.25f)), CircleShape)
-                            .padding(horizontal = 7.dp, vertical = 2.dp)
-                    ) {
-                        Text(
-                            text = if (rhythmCombo >= 8) "🔥 $rhythmCombo STREAK" else if (rhythmCombo > 1) "⚡ $rhythmCombo COMBO" else "♪ 1x STREAK",
-                            color = if (rhythmCombo >= 8) Color(0xFFFACC15L) else if (rhythmCombo > 1) Color(0xFF38BDF8L) else Color.White.copy(alpha = 0.70f),
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Black,
-                            letterSpacing = 0.5.sp
-                        )
-                    }
                     if (shieldTime > 0f) {
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "🛡️",
-                            fontSize = 13.sp
-                        )
+                        Text(text = "🛡️", fontSize = 13.sp)
+                        Spacer(modifier = Modifier.width(6.dp))
                     }
                     if (starPowerTime > 0f) {
+                        Text(text = "⚡ 4X", color = Color(0xFFFACC15L), fontSize = 11.sp, fontWeight = FontWeight.Black)
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "★",
-                            color = Color(0xFFFACC15L),
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Black
-                        )
+                    }
+                    if (slowMoTime > 0f) {
+                        Text(text = "🌀 50%", color = Color(0xFFC084FCL), fontSize = 11.sp, fontWeight = FontWeight.Black)
                     }
                 }
 
@@ -217,6 +207,100 @@ fun HUD(
                     onClick = onPause,
                     modifier = Modifier.size(34.dp)
                 )
+            }
+        }
+
+        // 3. Center Magic Tiles Score & Angled Judgment Badges
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = 46.dp)
+        ) {
+            // Big Score Digits
+            Text(
+                text = "%,d".format(score),
+                color = Color.White,
+                fontSize = 36.sp,
+                fontWeight = FontWeight.Black,
+                letterSpacing = 1.sp,
+                style = TextStyle(
+                    shadow = Shadow(
+                        color = Color.Black.copy(alpha = 0.85f),
+                        offset = Offset(0f, 3f),
+                        blurRadius = 8f
+                    )
+                )
+            )
+
+            // Angled Rating Badge (e.g. PERFECT / GREAT)
+            val hasRecentHit = rhythmCombo > 1 || (comboBanner != null && comboBanner.timer > 0f)
+            if (hasRecentHit) {
+                Spacer(modifier = Modifier.height(2.dp))
+                val isBroken = comboBanner?.isBroken == true
+                Box(
+                    modifier = Modifier
+                        .graphicsLayer(rotationZ = -3f)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(
+                            if (isBroken) Color(0xEB1E080EL)
+                            else Color(0x33EC4899L)
+                        )
+                        .border(
+                            1.2.dp,
+                            if (isBroken) Color(0xFFF43F5EL) else Color(0xFFEC4899L),
+                            RoundedCornerShape(8.dp)
+                        )
+                        .padding(horizontal = 10.dp, vertical = 2.dp)
+                ) {
+                    Text(
+                        text = if (isBroken) "MISS" else (comboBanner?.text ?: "PERFECT"),
+                        color = if (isBroken) Color(0xFFF43F5EL) else Color(0xFFF472B6L),
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 1.2.sp
+                    )
+                }
+            }
+
+            // Soft Multiplier Row (× 3)
+            val displayMult = if (multiplier > 1) multiplier else if (rhythmCombo > 1) (rhythmCombo / 4 + 1).coerceIn(1, 8) else 1
+            if (displayMult > 1) {
+                Spacer(modifier = Modifier.height(2.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = "×",
+                        color = Color.White.copy(alpha = 0.70f),
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.width(3.dp))
+                    Text(
+                        text = "$displayMult",
+                        color = Color.White,
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.Black
+                    )
+                }
+            }
+
+            // Endless Mode Loop Counter
+            if (endlessLoopCount > 0) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Box(
+                    modifier = Modifier
+                        .clip(CircleShape)
+                        .background(Color(0x33FACC15L))
+                        .border(1.dp, Color(0xFFFACC15L), CircleShape)
+                        .padding(horizontal = 8.dp, vertical = 2.dp)
+                ) {
+                    Text(
+                        text = "👑 LOOP ${endlessLoopCount + 1}",
+                        color = Color(0xFFFACC15L),
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Black
+                    )
+                }
             }
         }
     }

@@ -274,8 +274,7 @@ fun StudioCustomizerSuite(
             val categories = listOf(
                 Triple(0, "🌌 STAGE PALETTES (6 THEMES)", Color(0xFF38BDF8L)),
                 Triple(1, "🛸 HERO AVATARS (6 CORES)", Color(0xFF4ADE80L)),
-                Triple(2, "👾 ENEMY SWARMS (4 STYLES)", Color(0xFFF43F5EL)),
-                Triple(3, "★ VAULT REELS & BOOKLETS", Color(0xFFFACC15L))
+                Triple(2, "★ VAULT REELS & BOOKLETS", Color(0xFFFACC15L))
             )
 
             // Live Interactive Optical Illusion Simulation Box
@@ -595,57 +594,8 @@ fun StudioCustomizerSuite(
                         modifier = Modifier.weight(1f)
                     ) { applyOrUnlock("HERO_SERAPH", 500, newHero = "SERAPH") }
                 }
-            } else if (selectedCategoryIndex == 2) {
-                // SECTION 3: ENEMY HAZARD SWARM
-                Row(modifier = Modifier.fillMaxWidth()) {
-                    ThemeCard(
-                        title = "BALANCED",
-                        subtitle = "Full Spectrum",
-                        isSelected = enemyStyle == "BALANCED",
-                        isUnlocked = "ENEMY_BALANCED" in unlockedSet,
-                        costNotes = 0,
-                        accentColor = Color(0xFF22C55EL),
-                        modifier = Modifier.weight(1f)
-                    ) { applyOrUnlock("ENEMY_BALANCED", 0, newEnemy = "BALANCED") }
-
-                    Spacer(modifier = Modifier.width(8.dp))
-
-                    ThemeCard(
-                        title = "PULSARS",
-                        subtitle = "Chrono-Saw Swarm",
-                        isSelected = enemyStyle == "PULSARS",
-                        isUnlocked = "ENEMY_PULSARS" in unlockedSet,
-                        costNotes = 150,
-                        accentColor = Color(0xFF8B5CF6L),
-                        modifier = Modifier.weight(1f)
-                    ) { applyOrUnlock("ENEMY_PULSARS", 150, newEnemy = "PULSARS") }
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(modifier = Modifier.fillMaxWidth()) {
-                    ThemeCard(
-                        title = "SEEKERS",
-                        subtitle = "Fractured Seraphs",
-                        isSelected = enemyStyle == "SEEKERS",
-                        isUnlocked = "ENEMY_SEEKERS" in unlockedSet,
-                        costNotes = 250,
-                        accentColor = Color(0xFFEC4899L),
-                        modifier = Modifier.weight(1f)
-                    ) { applyOrUnlock("ENEMY_SEEKERS", 250, newEnemy = "SEEKERS") }
-
-                    Spacer(modifier = Modifier.width(8.dp))
-
-                    ThemeCard(
-                        title = "WANDERERS",
-                        subtitle = "Void Leviathans",
-                        isSelected = enemyStyle == "WANDERERS",
-                        isUnlocked = "ENEMY_WANDERERS" in unlockedSet,
-                        costNotes = 300,
-                        accentColor = Color(0xFF10B981L),
-                        modifier = Modifier.weight(1f)
-                    ) { applyOrUnlock("ENEMY_WANDERERS", 300, newEnemy = "WANDERERS") }
-                }
             } else {
-                // SECTION 4: INTERACTIVE ARTIST VAULT EXCLUSIVES
+                // SECTION 3: INTERACTIVE ARTIST VAULT EXCLUSIVES
                 Row(modifier = Modifier.fillMaxWidth()) {
                     ThemeCard(
                         title = "VAULT TAPE DECK",

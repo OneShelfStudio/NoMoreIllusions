@@ -481,7 +481,7 @@ fun MusicDemoScreen(
                                             .padding(horizontal = 6.dp, vertical = 2.dp)
                                     ) {
                                         Text(
-                                            text = "TRACK %02d • 432Hz MASTER".format(selected.index),
+                                            text = "TRACK %02d • STUDIO MASTER".format(selected.index),
                                             color = Color(0xFFA5B4FCL),
                                             fontSize = 9.sp,
                                             fontWeight = FontWeight.Black,

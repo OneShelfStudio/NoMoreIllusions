@@ -127,27 +127,53 @@ Object.assign(NoMoreIllusionsApp.prototype, {
   },
 
   updateLiveHUD() {
-    const progress = Math.max(0, Math.min(1, this.trackElapsedSec / Math.max(1, this.activeTrackDurationSec)));
+    const totalDur = Math.max(1, this.activeTrackDurationSec || 179);
+    const elapsed = this.survivalSeconds || this.trackElapsedSec || 0;
+    const progress = Math.max(0, Math.min(1, elapsed / totalDur));
 
     const progFill = document.getElementById("hud-top-progress-fill");
     if (progFill) progFill.style.width = `${(progress * 100).toFixed(1)}%`;
 
+    // Milestone Stars & Crowns (Magic Tiles 3 Style)
+    const s1 = document.getElementById("hud-ms-star-1");
+    const s2 = document.getElementById("hud-ms-star-2");
+    const s3 = document.getElementById("hud-ms-star-3");
+    const c1 = document.getElementById("hud-ms-crown-1");
+    const c2 = document.getElementById("hud-ms-crown-2");
+    const c3 = document.getElementById("hud-ms-crown-3");
+    if (s1) s1.classList.toggle("unlocked", progress >= 0.166);
+    if (s2) s2.classList.toggle("unlocked", progress >= 0.333);
+    if (s3) s3.classList.toggle("unlocked", progress >= 0.500);
+    if (c1) c1.classList.toggle("unlocked", progress >= 0.666);
+    if (c2) c2.classList.toggle("unlocked", progress >= 0.833);
+    if (c3) c3.classList.toggle("unlocked", progress >= 0.980);
+
+    // Endless Mode Loop Counter Pill
+    const endlessLoop = Math.floor(elapsed / totalDur);
+    const endlessPill = document.getElementById("hud-endless-crown-pill");
+    const endlessVal = document.getElementById("hud-endless-loop-val");
+    if (endlessPill) {
+      if (this.isEndlessMode || endlessLoop > 0) {
+        endlessPill.style.display = "inline-flex";
+        if (endlessVal) endlessVal.textContent = String(endlessLoop + 1);
+      } else {
+        endlessPill.style.display = "none";
+      }
+    }
+
+    // Center Big Score Display
     const scoreEl = document.getElementById("hud-score-val");
     if (scoreEl) scoreEl.textContent = Number(this.score || 0).toLocaleString();
 
-    const comboChip = document.getElementById("hud-combo-chip");
-    const comboVal = document.getElementById("hud-combo-val");
-    if (comboChip && comboVal) {
-      comboChip.style.display = "inline-flex";
-      const effMult = this.combo * (this.constellationRushTimer > 0 ? 2 : 1);
-      if (effMult > 1) {
-        comboChip.style.borderColor = effMult >= 8 ? "#FACC15" : "#38BDF8";
-        comboChip.style.background = effMult >= 8 ? "rgba(250, 204, 21, 0.16)" : "rgba(56, 189, 248, 0.14)";
-        comboVal.textContent = effMult >= 8 ? `🔥 x${effMult} STREAK` : `⚡ x${effMult} COMBO`;
-      } else {
-        comboChip.style.borderColor = "rgba(255, 255, 255, 0.18)";
-        comboChip.style.background = "rgba(15, 23, 42, 0.60)";
-        comboVal.textContent = `♪ 1x STREAK`;
+    // Multiplier Row (× 1 ... × 8)
+    const multVal = document.getElementById("hud-combo-mult-val");
+    const multRow = document.getElementById("hud-combo-mult-row");
+    const curCombo = this.combo || 1;
+    if (multVal) {
+      const calcMult = Math.max(1, Math.min(8, Math.floor(curCombo / 4) + 1));
+      multVal.textContent = String(calcMult);
+      if (multRow) {
+        multRow.style.opacity = curCombo > 1 ? "1" : "0.45";
       }
     }
 
@@ -164,10 +190,77 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       }
     }
 
-    // Hide distracting upper-left capsule during active play to keep playfield pristine
     const unlockCapsule = document.getElementById("hud-unlock-capsule");
     if (unlockCapsule) {
       unlockCapsule.style.display = "none";
+    }
+  },
+
+  triggerRatingPopup(ratingText, combo = 1) {
+    const pill = document.getElementById("hud-rating-pill");
+    const textEl = document.getElementById("hud-rating-text");
+    const multVal = document.getElementById("hud-combo-mult-val");
+    const multRow = document.getElementById("hud-combo-mult-row");
+    if (!pill || !textEl) return;
+    textEl.textContent = ratingText;
+    if (ratingText === "PERFECT") {
+      pill.style.borderColor = "rgba(236,72,153,0.8)";
+      textEl.style.color = "#F472B6";
+    } else {
+      pill.style.borderColor = "rgba(56,189,248,0.8)";
+      textEl.style.color = "#38BDF8";
+    }
+    if (multVal) {
+      const mult = Math.max(1, Math.min(8, Math.floor(combo / 4) + 1));
+      multVal.textContent = String(mult);
+      if (multRow) multRow.style.opacity = combo > 1 ? "1" : "0.45";
+    }
+    pill.classList.remove("rating-pop");
+    void pill.offsetWidth;
+    pill.classList.add("rating-pop");
+  },
+
+  triggerComboBreak() {
+    const pill = document.getElementById("hud-rating-pill");
+    const textEl = document.getElementById("hud-rating-text");
+    const multVal = document.getElementById("hud-combo-mult-val");
+    const multRow = document.getElementById("hud-combo-mult-row");
+    if (multVal) multVal.textContent = "1";
+    if (multRow) multRow.style.opacity = "0.3";
+    if (pill && textEl) {
+      textEl.textContent = "MISS";
+      textEl.style.color = "#F43F5E";
+      pill.style.borderColor = "rgba(244,63,94,0.6)";
+      pill.classList.remove("rating-pop");
+      void pill.offsetWidth;
+      pill.classList.add("rating-pop");
+    }
+  },
+
+  toggleAltCover() {
+    this.unlockAudioOnFirstGesture();
+    this.playSfx("click");
+    this.prefs.track02AltCover = !this.prefs.track02AltCover;
+    this.savePrefs();
+    this.syncUI();
+  },
+
+  shareRunToSocials() {
+    this.playSfx("click");
+    const track = OFFICIAL_TRACKS[this.selectedStageIndex] || OFFICIAL_TRACKS[0];
+    const scoreFmt = Number(this.score || 0).toLocaleString();
+    const shareText = `🎵 Just scored ${scoreFmt} on "${track.title}" in No More Illusions! Tagging @EthanKStark #NoMoreIllusions 🚀 Check out the gamified album:`;
+    const shareUrl = "https://oneshelfstudio.github.io/NoMoreIllusions/";
+    if (navigator.share) {
+      navigator.share({
+        title: "No More Illusions — Beat Run",
+        text: shareText,
+        url: shareUrl
+      }).catch(() => {});
+    } else if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(`${shareText} ${shareUrl}`).then(() => {
+        alert("Copied run details & tags to clipboard! Tag @EthanKStark on TikTok / Instagram #NoMoreIllusions");
+      }).catch(() => {});
     }
   },
 
@@ -181,16 +274,16 @@ Object.assign(NoMoreIllusionsApp.prototype, {
     const lyricsEl = document.getElementById("liner-track-lyrics");
 
     if (titleEl) titleEl.textContent = track.title.toUpperCase();
-    if (metaEl) metaEl.textContent = `C MINOR • 432Hz ANALOG MASTER`;
+    if (metaEl) metaEl.textContent = `C MINOR • STUDIO MASTER`;
 
     const stories = {
-      track_01: "Here is where you can put your personal studio story, production notes, or behind-the-scenes memory for your fans about 'Confide'!",
-      track_02: "Here is where you can put your personal studio story, production notes, or behind-the-scenes memory for your fans about 'Number One'!"
+      track_01: "Written and produced during late-night studio sessions exploring connection, vulnerability, and navigating illusions in modern life. The track fuses warm analog synth pads with crisp 808 percussion.",
+      track_02: "An upbeat, hypnotic anthem celebrating artistic independence, relentless drive, and staying true to personal vision against all odds."
     };
 
     const lyrics = {
-      track_01: "Here is where you can put the official lyrics, chorus breakdown, or personal liner notes for 'Confide' for your fans!",
-      track_02: "Here is where you can put the official lyrics, chorus breakdown, or personal liner notes for 'Number One' for your fans!"
+      track_01: `"Hold on through the twilight haze...\nBreaking down the walls we raise.\nConfide in me when shadows fall,\nNo more illusions through it all."`,
+      track_02: `"Step into the light, make the moment count...\nEvery single obstacle we're climbing the mount.\nNumber one in the arena, sound ringing clear,\nEchoes of the rhythm taking over the year."`
     };
 
     if (storyEl) storyEl.textContent = stories[track.id] || stories.track_01;
@@ -218,8 +311,8 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       } catch (err) {}
     }
     if (stateName === "CUSTOMIZER") {
-      this.customizerTab = typeof customTab === "number" ? customTab : -1;
-      setTimeout(() => this.resize(), 20);
+      this.customizerTab = (typeof customTab === "number" && customTab >= 0) ? customTab : 0;
+      if (this.customizerTab === 0) setTimeout(() => this.resize(), 20);
     }
     if (stateName === "DEMO_PLAYER") {
       this.selectDemoTrack(this.demoTrackIndex, false);
@@ -371,9 +464,24 @@ Object.assign(NoMoreIllusionsApp.prototype, {
     }
     if (metaRowEl) {
       metaRowEl.textContent = isCurUnlocked
-        ? `${activeStage.key || "432Hz MASTER"} • ${starsStr} READY`
+        ? `${activeStage.key || "STUDIO MASTER"} • ${starsStr} READY`
         : `🔒 LOCKED • BEAT TRACK 01 OR UNLOCK (1,200 ♪)`;
       metaRowEl.style.color = isCurUnlocked ? "#FACC15" : "#F87171";
+    }
+
+    const altCoverBtn = document.getElementById("menu-alt-cover-btn");
+    const altCoverLabel = document.getElementById("menu-alt-cover-label");
+    if (altCoverBtn) {
+      if (this.selectedStageIndex === 1) {
+        altCoverBtn.style.display = "inline-flex";
+        if (altCoverLabel) {
+          altCoverLabel.textContent = this.prefs.track02AltCover ? "✓ ALT LOTUS COVER" : "🎨 ALT COVER";
+        }
+        altCoverBtn.style.borderColor = this.prefs.track02AltCover ? "#FACC15" : "rgba(255,255,255,0.25)";
+        altCoverBtn.style.background = this.prefs.track02AltCover ? "rgba(250,204,21,0.22)" : "rgba(255,255,255,0.08)";
+      } else {
+        altCoverBtn.style.display = "none";
+      }
     }
 
     // 2. 4 SCULPTED CHAMFERED NEON MODE GEMS (#menu-remix-pills: Chill, Normal, Fast, Band Hero!)
@@ -437,7 +545,7 @@ Object.assign(NoMoreIllusionsApp.prototype, {
         ? "TAP TO UNLOCK WITH COLLECTED NOTES"
         : (this.isBandHeroMode
           ? "4-LANE GUITAR HERO RHYTHM RUN"
-          : `${activeRemix.displayName} • 432Hz MASTER`);
+          : `${activeRemix.displayName} • STUDIO MASTER`);
       launchSub.style.color = isStageUnlocked ? "#FAF8F5" : "#FACC15";
     }
 
@@ -545,8 +653,13 @@ Object.assign(NoMoreIllusionsApp.prototype, {
   setCustomizerTab(tabIdx) {
     this.playSfx("whoosh_modal", 0.72);
     this.customizerTab = tabIdx;
-    this.showCustomizerCatDropdown = false;
-    if (tabIdx >= 0) setTimeout(() => this.resize(), 20);
+    if (tabIdx === 0) setTimeout(() => this.resize(), 20);
+    this.syncCustomizerUI();
+  },
+
+  setSkinsSubCategory(subIdx) {
+    this.playSfx("click");
+    this.skinsSubCategory = subIdx;
     this.syncCustomizerUI();
   },
 
@@ -575,129 +688,133 @@ Object.assign(NoMoreIllusionsApp.prototype, {
     const ptsEl = document.getElementById("cust-points-val");
     if (ptsEl) ptsEl.textContent = `♪ ${this.prefs.points}`;
 
-    const catOptions = [
-      { id: -1, label: "★ ARTIST VAULT & MYSTERY ENVELOPES", col: "#FACC15" },
-      { id: 0, label: "🛸 HERO AVATAR CORES (5 SKINS)", col: "#38BDF8" },
-      { id: 1, label: "✨ RHYTHM SILK TRAILS (5 WAKE FX)", col: "#4ADE80" },
-      { id: 2, label: "🌌 STAGE NEBULA PALETTES (5 THEMES)", col: "#C084FC" }
-    ];
-    const activeCat = catOptions.find(c => c.id === this.customizerTab) || catOptions[0];
-    const catWrap = document.getElementById("cust-category-dropdown-wrap");
-    if (catWrap) {
-      catWrap.innerHTML = `
-        <div style="padding:2px 0;">
-          <div onclick="window.app.toggleCustomizerCatDropdown()"
-               style="padding:8px 4px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;">
-            <div style="text-align:left;min-width:0;flex:1;">
-              <div style="font-size:8.5px;font-weight:800;color:#94A3B8;letter-spacing:1.1px;">🎨 SELECT CATEGORY • TAP TO SWITCH VIEW</div>
-              <div style="font-size:13.5px;font-weight:900;color:${activeCat.col};margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-                ${activeCat.label}
-              </div>
-            </div>
-            <span style="font-size:11px;font-weight:900;color:${activeCat.col};margin-left:8px;white-space:nowrap;">
-              ${this.showCustomizerCatDropdown ? "CLOSE ▴" : "SWITCH ▾"}
-            </span>
-          </div>
-          <div style="height:1.4px;background:linear-gradient(90deg,transparent,${activeCat.col},transparent);"></div>
-          ${this.showCustomizerCatDropdown ? `
-            <div style="padding:8px 2px 6px;display:flex;flex-direction:column;gap:6px;">
-              ${catOptions.map(c => {
-                const isSel = c.id === this.customizerTab;
-                return `
-                  <div onclick="window.app.setCustomizerTab(${c.id})"
-                       style="padding:8px 4px;border-bottom:1px solid ${isSel ? c.col : "rgba(255,255,255,0.10)"};display:flex;align-items:center;justify-content:space-between;cursor:pointer;">
-                    <span style="font-size:11.5px;font-weight:900;color:${isSel ? c.col : "#FAF8F5"};">${c.label}</span>
-                    <span style="font-size:9.5px;font-weight:900;color:${isSel ? c.col : "#94A3B8"};">${isSel ? "✓ ACTIVE" : "OPEN →"}</span>
-                  </div>
-                `;
-              }).join("")}
-            </div>
-          ` : ""}
-        </div>
-      `;
+    const tab = (typeof this.customizerTab === "number" && this.customizerTab >= 0) ? this.customizerTab : 0;
+    const sub = (typeof this.skinsSubCategory === "number") ? this.skinsSubCategory : 0;
+
+    // 1. Sync Tab Buttons
+    [0, 1, 2].forEach(i => {
+      const btn = document.getElementById(`cust-tab-${i}`);
+      if (btn) btn.classList.toggle("active", i === tab);
+    });
+
+    // 2. Toggle Tab Views
+    const skinsView = document.getElementById("cust-view-skins");
+    const vaultView = document.getElementById("cust-view-vault");
+    const exclView = document.getElementById("cust-view-exclusives");
+    if (skinsView) skinsView.style.display = tab === 0 ? "block" : "none";
+    if (vaultView) vaultView.style.display = tab === 1 ? "block" : "none";
+    if (exclView) exclView.style.display = tab === 2 ? "block" : "none";
+
+    const titleEl = document.getElementById("cust-modal-title");
+    const subTitleEl = document.getElementById("cust-modal-sub");
+    if (titleEl) {
+      titleEl.textContent = tab === 0 ? "✨ HERO SKINS & FX" : tab === 1 ? "💿 ARTIST ALBUM VAULT" : "🌟 ARTIST EXCLUSIVES";
+    }
+    if (subTitleEl) {
+      subTitleEl.textContent = tab === 0 ? "CUSTOM CORES, SILK TRAILS & NEBULA PALETTES" : tab === 1 ? "OFFICIAL STUDIO MASTERS & BONUS ART" : "LINER NOTES, STUDIO DIARIES & VIP PASSES";
     }
 
-    const specialsWrap = document.getElementById("cust-specials-wrap");
-    const cosmeticsWrap = document.getElementById("cust-cosmetics-wrap");
-    if (this.customizerTab === -1) {
-      if (specialsWrap) specialsWrap.style.display = "block";
-      if (cosmeticsWrap) cosmeticsWrap.style.display = "none";
+    // 3. Tab 0: Skins & FX (No Enemies!)
+    if (tab === 0) {
+      [0, 1, 2].forEach(s => {
+        const subBtn = document.getElementById(`cust-sub-${s}`);
+        if (subBtn) {
+          const isAct = s === sub;
+          subBtn.style.color = isAct ? (s === 0 ? "#38BDF8" : s === 1 ? "#4ADE80" : "#C084FC") : "#94A3B8";
+          subBtn.style.background = isAct ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.03)";
+          subBtn.style.borderColor = isAct ? (s === 0 ? "#38BDF8" : s === 1 ? "#4ADE80" : "#C084FC") : "rgba(255,255,255,0.18)";
+        }
+      });
+
+      const itemsBySub = [
+        [
+          { id: "skin_cyan", cat: "skin", name: "Cyber Cyan Core", sub: "Standard Resonance Core", price: 0, col: "#38BDF8" },
+          { id: "skin_gold", cat: "skin", name: "Solar Gold Core", sub: "24K Harmonic Sunburst", price: 200, col: "#FACC15" },
+          { id: "skin_prism", cat: "skin", name: "Prism Nova Core", sub: "Magenta Crystal Matrix", price: 450, col: "#EC4899" },
+          { id: "skin_emerald", cat: "skin", name: "Aurora Emerald Core", sub: "Harmonic Bio-Resonance", price: 350, col: "#10B981" },
+          { id: "skin_blood", cat: "skin", name: "Eclipse Void Core", sub: "Dark Singularity Aura", price: 600, col: "#F43F5E" }
+        ],
+        [
+          { id: "trail_cyan", cat: "trail", name: "Aether Ribbon", sub: "Cyan & Indigo Silk Trail", price: 0, col: "#38BDF8" },
+          { id: "trail_gold", cat: "trail", name: "Solar Flare Wake", sub: "Liquid Gold Stardust", price: 250, col: "#FACC15" },
+          { id: "trail_emerald", cat: "trail", name: "Aurora Emerald", sub: "Bioluminescent Synth Wave", price: 400, col: "#34D399" },
+          { id: "trail_prism", cat: "trail", name: "Prismatic Mirage", sub: "Magenta & Violet Light Cascade", price: 450, col: "#C084FC" },
+          { id: "trail_laser", cat: "trail", name: "Laser Stream", sub: "High-Energy Electric Beam", price: 550, col: "#22D3EE" }
+        ],
+        [
+          { id: "theme_nebula", cat: "theme", name: "Deep Space Nebula", sub: "Signature No More Illusions Stage", price: 0, col: "#6366F1" },
+          { id: "theme_sunset", cat: "theme", name: "Sunset Horizon", sub: "Crimson & Gold Synthwave", price: 300, col: "#F43F5E" },
+          { id: "theme_matrix", cat: "theme", name: "Cyber Grid", sub: "Emerald Quantum Matrix", price: 500, col: "#10B981" },
+          { id: "theme_blood", cat: "theme", name: "Blood Moon Eclipse", sub: "Crimson Stasis Chamber", price: 550, col: "#BE123C" },
+          { id: "theme_gold", cat: "theme", name: "24K Gold Master Stage", sub: "All-Gold Concert Hall", price: 750, col: "#EAB308" }
+        ]
+      ];
+
+      const activeItems = itemsBySub[sub] || itemsBySub[0];
+      const itemsContainer = document.getElementById("cust-items-list");
+      if (itemsContainer) {
+        itemsContainer.innerHTML = activeItems.map((it) => {
+          const isUnlocked = this.prefs.unlockedItems.includes(it.id);
+          const isSelected = (it.cat === "skin" && this.prefs.selectedSkin === it.id) ||
+                             (it.cat === "trail" && this.prefs.selectedTrail === it.id) ||
+                             (it.cat === "theme" && this.prefs.selectedTheme === it.id);
+          const canAfford = this.prefs.points >= it.price;
+          const btnLabel = isSelected ? "EQUIPPED" : isUnlocked ? "EQUIP" : `♪ ${it.price}`;
+          const btnClass = isSelected ? "cust-btn equipped" : isUnlocked ? "cust-btn equip" : (canAfford ? "cust-btn buy" : "cust-btn locked");
+          return `
+            <div class="cust-item-row ${isSelected ? "selected" : ""}">
+              <div class="cust-swatch" style="background:${it.col};box-shadow:0 0 12px ${it.col};"></div>
+              <div style="flex:1;">
+                <div class="cust-item-name">${it.name}</div>
+                <div class="cust-item-sub">${it.sub}</div>
+              </div>
+              <button class="${btnClass}" onclick="window.app.buyOrEquipItem('${it.id}', ${it.price}, '${it.cat}')">${btnLabel}</button>
+            </div>
+          `;
+        }).join("");
+      }
+    }
+
+    // 4. Tab 1: Artist Vault (2 Tracks, Alternate Lotus Cover for Track 2)
+    if (tab === 1) {
+      const vaultListEl = document.getElementById("cust-vault-tracks");
+      if (vaultListEl) {
+        vaultListEl.innerHTML = OFFICIAL_TRACKS.map((t, idx) => {
+          const isUnlocked = this.prefs.unlockedTracks.includes(t.id);
+          const bestProg = Math.max(isUnlocked ? 1 : 0, this.prefs.trackBestProgress[t.id] || 0);
+          const pct = Math.round(bestProg * 100);
+          const hasAltCover = t.id === "track_02";
+          return `
+            <div class="vault-track-row ${isUnlocked ? "unlocked" : "locked"}" style="flex-direction:column;align-items:stretch;gap:6px;">
+              <div style="display:flex;align-items:center;gap:10px;cursor:pointer;" onclick="${isUnlocked ? `window.app.openTrackInDemo(${idx})` : ""}">
+                <div class="vault-track-icon">${isUnlocked ? "▶" : "🔒"}</div>
+                <div style="flex:1;min-width:0;">
+                  <div class="vault-track-name">${t.title}</div>
+                  <div class="vault-track-sub" style="color:${isUnlocked ? "#4ADE80" : "#94A3B8"};">
+                    ${isUnlocked ? "UNLOCKED • TAP TO LISTEN FULL TRACK" : `Complete Stage (${pct}% Revealed) to unlock`}
+                  </div>
+                </div>
+                <div class="vault-track-dur">${t.durationLabel}</div>
+              </div>
+              ${hasAltCover ? `
+                <div style="display:flex;justify-content:flex-end;margin-top:2px;">
+                  <button class="btn-close-pill" style="font-size:9.5px;color:${this.prefs.track02AltCover ? "#FACC15" : "#38BDF8"};border-color:${this.prefs.track02AltCover ? "#FACC15" : "rgba(56,189,248,0.5)"};background:${this.prefs.track02AltCover ? "rgba(250,204,21,0.18)" : "transparent"};"
+                          onclick="window.app.toggleAltCover()">
+                    🎨 ${this.prefs.track02AltCover ? "✓ ALT LOTUS COVER ACTIVE" : "USE ALTERNATE LOTUS ART"}
+                  </button>
+                </div>
+              ` : ""}
+            </div>
+          `;
+        }).join("");
+      }
+    }
+
+    // 5. Tab 2: Artist Exclusives
+    if (tab === 2) {
       if (typeof this.renderArtistSpecialsVault === "function") {
         this.renderArtistSpecialsVault();
       }
-    } else {
-      if (specialsWrap) specialsWrap.style.display = "none";
-      if (cosmeticsWrap) cosmeticsWrap.style.display = "block";
-    }
-
-    // Unlocked Track Vault Cards
-    const vaultListEl = document.getElementById("cust-vault-tracks");
-    if (vaultListEl) {
-      vaultListEl.innerHTML = OFFICIAL_TRACKS.map((t, idx) => {
-        const isUnlocked = this.prefs.unlockedTracks.includes(t.id);
-        const bestProg = Math.max(isUnlocked ? 1 : 0, this.prefs.trackBestProgress[t.id] || 0);
-        const pct = Math.round(bestProg * 100);
-        return `
-          <div class="vault-track-row ${isUnlocked ? "unlocked" : "locked"}" onclick="${isUnlocked ? `window.app.openTrackInDemo(${idx})` : ""}">
-            <div class="vault-track-icon">${isUnlocked ? "▶" : "🔒"}</div>
-            <div style="flex:1;min-width:0;">
-              <div class="vault-track-name">${t.title}</div>
-              <div class="vault-track-sub" style="color:${isUnlocked ? "#4ADE80" : "#94A3B8"};">
-                ${isUnlocked ? "UNLOCKED • TAP TO LISTEN FULL TRACK" : `Complete Stage (${pct}% Revealed) to unlock`}
-              </div>
-            </div>
-            <div class="vault-track-dur">${t.durationLabel}</div>
-          </div>
-        `;
-      }).join("");
-    }
-
-    const itemsByTab = [
-      [
-        { id: "skin_cyan", cat: "skin", name: "Cyber Cyan Core", sub: "Standard Resonance Core", price: 0, col: "#38BDF8" },
-        { id: "skin_gold", cat: "skin", name: "Solar Gold Core", sub: "24K Harmonic Sunburst", price: 200, col: "#FACC15" },
-        { id: "skin_prism", cat: "skin", name: "Prism Nova Core", sub: "Magenta Crystal Matrix", price: 450, col: "#EC4899" },
-        { id: "skin_emerald", cat: "skin", name: "Aurora Emerald Core", sub: "Harmonic Bio-Resonance", price: 350, col: "#10B981" },
-        { id: "skin_blood", cat: "skin", name: "Eclipse Void Core", sub: "Dark Singularity Aura", price: 600, col: "#F43F5E" }
-      ],
-      [
-        { id: "trail_cyan", cat: "trail", name: "Aether Ribbon", sub: "Cyan & Indigo Silk Trail", price: 0, col: "#38BDF8" },
-        { id: "trail_gold", cat: "trail", name: "Solar Flare Wake", sub: "Liquid Gold Stardust", price: 250, col: "#FACC15" },
-        { id: "trail_emerald", cat: "trail", name: "Aurora Emerald", sub: "Bioluminescent Synth Wave", price: 400, col: "#34D399" },
-        { id: "trail_prism", cat: "trail", name: "Prismatic Mirage", sub: "Magenta & Violet Light Cascade", price: 450, col: "#C084FC" },
-        { id: "trail_laser", cat: "trail", name: "Laser Stream", sub: "High-Energy Electric Beam", price: 550, col: "#22D3EE" }
-      ],
-      [
-        { id: "theme_nebula", cat: "theme", name: "Deep Space Nebula", sub: "Signature No More Illusions Stage", price: 0, col: "#6366F1" },
-        { id: "theme_sunset", cat: "theme", name: "Sunset Horizon", sub: "Crimson & Gold Synthwave", price: 300, col: "#F43F5E" },
-        { id: "theme_matrix", cat: "theme", name: "Cyber Grid", sub: "Emerald Quantum Matrix", price: 500, col: "#10B981" },
-        { id: "theme_blood", cat: "theme", name: "Blood Moon Eclipse", sub: "Crimson Stasis Chamber", price: 550, col: "#BE123C" },
-        { id: "theme_gold", cat: "theme", name: "24K Gold Master Stage", sub: "All-Gold Concert Hall", price: 750, col: "#EAB308" }
-      ]
-    ];
-
-    const activeItems = itemsByTab[this.customizerTab] || itemsByTab[0];
-    const itemsContainer = document.getElementById("cust-items-list");
-    if (itemsContainer) {
-      itemsContainer.innerHTML = activeItems.map((it) => {
-        const isUnlocked = this.prefs.unlockedItems.includes(it.id);
-        const isSelected = (it.cat === "skin" && this.prefs.selectedSkin === it.id) ||
-                           (it.cat === "trail" && this.prefs.selectedTrail === it.id) ||
-                           (it.cat === "theme" && this.prefs.selectedTheme === it.id);
-        const canAfford = this.prefs.points >= it.price;
-        const btnLabel = isSelected ? "EQUIPPED" : isUnlocked ? "EQUIP" : `♪ ${it.price}`;
-        const btnClass = isSelected ? "cust-btn equipped" : isUnlocked ? "cust-btn equip" : (canAfford ? "cust-btn buy" : "cust-btn locked");
-        return `
-          <div class="cust-item-row ${isSelected ? "selected" : ""}">
-            <div class="cust-swatch" style="background:${it.col};box-shadow:0 0 12px ${it.col};"></div>
-            <div style="flex:1;">
-              <div class="cust-item-name">${it.name}</div>
-              <div class="cust-item-sub">${it.sub}</div>
-            </div>
-            <button class="${btnClass}" onclick="window.app.buyOrEquipItem('${it.id}', ${it.price}, '${it.cat}')">${btnLabel}</button>
-          </div>
-        `;
-      }).join("");
     }
   },
 

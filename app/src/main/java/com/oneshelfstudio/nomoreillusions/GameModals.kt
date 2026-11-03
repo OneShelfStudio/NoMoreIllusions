@@ -1,5 +1,6 @@
 package com.oneshelfstudio.nomoreillusions
 
+import android.content.Intent
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -28,6 +29,7 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -184,6 +186,68 @@ fun GameOverUI(
                 fontSize = 15.sp,
                 modifier = Modifier.fillMaxWidth().height(46.dp)
             )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // Viral Social Sharing CTA Card
+            val context = LocalContext.current
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color(0xFF1E143CL).copy(alpha = 0.85f))
+                    .border(1.2.dp, Color(0xFFFACC15L), RoundedCornerShape(12.dp))
+                    .padding(8.dp)
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = "SHARE YOUR RUN & TAG THE ARTIST",
+                        color = Color(0xFFFACC15L),
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 0.6.sp
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = "Post with #NoMoreIllusions & tag @EthanKStark on TikTok / IG for official credit!",
+                        color = Color(0xFFCBD5E1L),
+                        fontSize = 8.5.sp,
+                        textAlign = TextAlign.Center,
+                        lineHeight = 11.5.sp
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(34.dp)
+                            .clip(RoundedCornerShape(17.dp))
+                            .background(
+                                Brush.horizontalGradient(
+                                    listOf(Color(0xFFEC4899L), Color(0xFF8B5CF6L), Color(0xFFFACC15L))
+                                )
+                            )
+                            .clickable {
+                                val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                    type = "text/plain"
+                                    putExtra(
+                                        Intent.EXTRA_TEXT,
+                                        "🎵 Just scored %,d in No More Illusions! Tagging @EthanKStark #NoMoreIllusions 🚀 Check out the gamified album: https://oneshelfstudio.github.io/NoMoreIllusions/".format(score)
+                                    )
+                                }
+                                context.startActivity(Intent.createChooser(shareIntent, "Share Run"))
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "🚀 SHARE TO TIKTOK / INSTAGRAM",
+                            color = Color.White,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Black,
+                            letterSpacing = 0.6.sp
+                        )
+                    }
+                }
+            }
 
             Spacer(modifier = Modifier.height(10.dp))
 
@@ -460,6 +524,68 @@ fun LevelCompleteUI(
                         letterSpacing = 0.6.sp,
                         textAlign = TextAlign.Center
                     )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // Viral Social Sharing CTA Card
+            val context = LocalContext.current
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color(0xFF1E143CL).copy(alpha = 0.85f))
+                    .border(1.2.dp, Color(0xFFFACC15L), RoundedCornerShape(12.dp))
+                    .padding(8.dp)
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = "SHARE YOUR WIN & TAG THE ARTIST",
+                        color = Color(0xFFFACC15L),
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 0.6.sp
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = "Post with #NoMoreIllusions & tag @EthanKStark on TikTok / IG for official credit!",
+                        color = Color(0xFFCBD5E1L),
+                        fontSize = 8.5.sp,
+                        textAlign = TextAlign.Center,
+                        lineHeight = 11.5.sp
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(34.dp)
+                            .clip(RoundedCornerShape(17.dp))
+                            .background(
+                                Brush.horizontalGradient(
+                                    listOf(Color(0xFFEC4899L), Color(0xFF8B5CF6L), Color(0xFFFACC15L))
+                                )
+                            )
+                            .clickable {
+                                val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                    type = "text/plain"
+                                    putExtra(
+                                        Intent.EXTRA_TEXT,
+                                        "🎵 Just won Track 0%d in No More Illusions with %,d pts! Tagging @EthanKStark #NoMoreIllusions 🚀 Stream the gamified album: https://oneshelfstudio.github.io/NoMoreIllusions/".format(trackIndex, score)
+                                    )
+                                }
+                                context.startActivity(Intent.createChooser(shareIntent, "Share Run"))
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "🚀 SHARE TO TIKTOK / INSTAGRAM",
+                            color = Color.White,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Black,
+                            letterSpacing = 0.6.sp
+                        )
+                    }
                 }
             }
 

@@ -248,14 +248,9 @@ fun MenuUI(
 ) {
     val context = LocalContext.current
     val prefs = remember { context.getSharedPreferences("pulse_prefs", android.content.Context.MODE_PRIVATE) }
-    val unlockedExclusivesCount = remember(highScore, pulsePoints, isVipUnlocked) {
-        if (isVipUnlocked) ARTIST_EXCLUSIVES_CATALOG.size
-        else countUnlockedExclusives(prefs, highScore, pulsePoints)
-    }
     val nmiLogo = ImageBitmap.imageResource(id = R.drawable.nmi_logo)
     val track01Art = ImageBitmap.imageResource(id = R.drawable.track_01)
     val track02Art = ImageBitmap.imageResource(id = R.drawable.track_02)
-    val socialLinks = remember { MusicLibrary.officialSocialLinks }
     val selectedTrack = remember(selectedTrackIndex) { MusicLibrary.getTrack(selectedTrackIndex) }
 
     val infiniteTransition = rememberInfiniteTransition(label = "menu")
@@ -357,11 +352,11 @@ fun MenuUI(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(top = 34.dp, bottom = 36.dp)
+                .padding(top = 18.dp, bottom = 0.dp)
         ) {
             // BESPOKE HOLOGRAPHIC VINYL TURNTABLE CAROUSEL SHOWCASE
-            val selectedTrackArt = if (selectedTrackIndex == 1) track01Art else track02Art
+            val isTrack02AltCover = prefs.getBoolean("track02_alt_cover", false)
+            val selectedTrackArt = if (selectedTrackIndex == 1) track01Art else if (isTrack02AltCover) nmiLogo else track02Art
             val isCurrentTrackUnlocked = selectedTrackIndex == 1 || unlockedTrackCount >= selectedTrackIndex || isVipUnlocked || prefs.getBoolean("art_unlocked_$selectedTrackIndex", false) || prefs.getBoolean("track_unlocked_$selectedTrackIndex", false)
             val platterSpinSpeed = selectedRemixMode.audioSpeed
             val currentTrackObj = MusicLibrary.getTrack(selectedTrackIndex)
@@ -391,10 +386,10 @@ fun MenuUI(
 
                 Spacer(modifier = Modifier.width(14.dp))
 
-                // Grand 216.dp Turntable Platter
+                // Grand 165.dp Turntable Platter
                 Box(
                     modifier = Modifier
-                        .size(216.dp)
+                        .size(165.dp)
                         .graphicsLayer(scaleX = pulseScale, scaleY = pulseScale),
                     contentAlignment = Alignment.Center
                 ) {
@@ -402,7 +397,7 @@ fun MenuUI(
                         val cx = center.x
                         val cy = center.y
                         for (rIdx in 0..2) {
-                            val waveR = 88f + rIdx * 8.5f
+                            val waveR = 66f + rIdx * 6.5f
                             val startDeg = ((menuTime * (if (rIdx % 2 == 0) 42f else -36f) * platterSpinSpeed) + rIdx * 60f) % 360f
                             val ringCol = if (rIdx % 2 == 0) modeAccent else Color(0xFFEAB308L)
                             for (seg in 0..2) {
@@ -537,12 +532,33 @@ fun MenuUI(
                 letterSpacing = 1.8.sp
             )
             Text(
-                text = if (isCurrentTrackUnlocked) "432Hz MASTER • $stTxt READY" else "🔒 LOCKED • BEAT TRACK 01 OR UNLOCK (1,200 ♪)",
+                text = if (isCurrentTrackUnlocked) "STUDIO MASTER • $stTxt READY" else "🔒 LOCKED • BEAT TRACK 01 OR UNLOCK (1,200 ♪)",
                 color = if (isCurrentTrackUnlocked) Color(0xFFFACC15L) else Color(0xFFF87171L),
                 fontSize = 10.sp,
                 fontWeight = FontWeight.ExtraBold,
                 letterSpacing = 1.4.sp
             )
+
+            if (selectedTrackIndex == 2) {
+                Spacer(modifier = Modifier.height(3.dp))
+                Box(
+                    modifier = Modifier
+                        .clip(CircleShape)
+                        .background(if (isTrack02AltCover) Color(0x33FACC15L) else Color(0x1AFFFFFFL))
+                        .border(1.dp, if (isTrack02AltCover) Color(0xFFFACC15L) else Color.White.copy(alpha = 0.25f), CircleShape)
+                        .clickable {
+                            prefs.edit().putBoolean("track02_alt_cover", !isTrack02AltCover).apply()
+                        }
+                        .padding(horizontal = 10.dp, vertical = 2.5.dp)
+                ) {
+                    Text(
+                        text = if (isTrack02AltCover) "✓ ALT LOTUS COVER ACTIVE" else "🎨 ALT COVER",
+                        color = if (isTrack02AltCover) Color(0xFFFACC15L) else Color(0xFFCBD5E1L),
+                        fontSize = 8.5.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
 
             Spacer(modifier = Modifier.height(10.dp))
 
@@ -698,7 +714,7 @@ fun MenuUI(
                     Text(
                         text = if (!isCurrentLaunchUnlocked) "TAP TO UNLOCK WITH COLLECTED NOTES"
                         else if (isBandHeroMode) "4-LANE GUITAR HERO RHYTHM RUN"
-                        else "${selectedRemixMode.displayName} • 432Hz MASTER",
+                        else "${selectedRemixMode.displayName} • STUDIO MASTER",
                         color = Color.White.copy(alpha = 0.90f),
                         fontSize = 8.5.sp,
                         fontWeight = FontWeight.Bold,
@@ -707,52 +723,47 @@ fun MenuUI(
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.weight(1f))
 
-            // 2 Frameless Floating Stage Cards (Album & Vault + Studio VIP)
+            // Magic Tiles Style Bottom Navigation Bar (4 Sleek Touch Targets)
             Row(
-                horizontalArrangement = Arrangement.spacedBy(14.dp),
-                verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 8.dp)
+                    .background(Color(0xF00A0618L))
+                    .border(1.dp, Color(0x33EC4899L), RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
+                    .padding(vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceAround,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                MenuBentoTile(
-                    title = "💿 ALBUM & VAULT",
-                    subtitle = "Songs & Fan Notes",
-                    accent = Color(0xFFEAB308L),
-                    onClick = onMusicDemo,
-                    modifier = Modifier.weight(1f)
-                )
-                MenuBentoTile(
-                    title = "🎚️ STUDIO & VIP",
-                    subtitle = "Audio & Upgrades",
-                    accent = Color(0xFF38BDF8L),
-                    onClick = onSettings,
-                    modifier = Modifier.weight(1f)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Authentic Vector Brand Icon Dock (Spotify, Apple Music, YouTube, Instagram, TikTok)
-            Text(
-                text = "STREAM & FOLLOW NO MORE ILLUSIONS",
-                color = Color(0xFFEAB308L).copy(alpha = 0.82f),
-                fontSize = 9.sp,
-                fontWeight = FontWeight.Black,
-                letterSpacing = 1.4.sp
-            )
-            Spacer(modifier = Modifier.height(6.dp))
-            SocialBrandIconRow(
-                links = socialLinks,
-                showLabels = false,
-                onOpenUrl = { url ->
-                    runCatching {
-                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
-                    }
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.clickable { /* Already on Home */ }
+                ) {
+                    Text("🏠", fontSize = 18.sp)
+                    Text("HOME", color = Color(0xFFEC4899L), fontSize = 9.sp, fontWeight = FontWeight.Black)
                 }
-            )
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.clickable { onMusicDemo() }
+                ) {
+                    Text("✨", fontSize = 18.sp)
+                    Text("SKINS & FX", color = Color(0xFF94A3B8L), fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                }
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.clickable { onMusicDemo() }
+                ) {
+                    Text("💿", fontSize = 18.sp)
+                    Text("VAULT", color = Color(0xFF94A3B8L), fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                }
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.clickable { onSettings() }
+                ) {
+                    Text("🌟", fontSize = 18.sp)
+                    Text("EXCLUSIVES", color = Color(0xFF94A3B8L), fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                }
+            }
         }
     }
 }

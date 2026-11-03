@@ -273,7 +273,7 @@ fun TrackListGrid(
             ) {
                 Column {
                     Text(
-                        text = "TRACK %02d • 432Hz MASTER".format(t.index),
+                        text = "TRACK %02d • STUDIO MASTER".format(t.index),
                         color = if (selected) Color(0xFF4ADE80L) else Color(0xFFA5B4FCL),
                         fontWeight = FontWeight.Black,
                         fontSize = 10.sp
