@@ -203,7 +203,7 @@ object MusicLibrary {
             val inOutro = t >= 207.8f
 
             var matchedIdx = -1
-            var bestDist = beatSec * 1.2f
+            var bestDist = beatSec * 0.9f
             for (i in specialMoments.indices) {
                 if (i !in usedAnchors) {
                     val d = abs(specialMoments[i].timestampSec - t)
@@ -275,7 +275,7 @@ object MusicLibrary {
             cues.add(
                 BeatOrbCue(
                     sequenceIndex = seq,
-                    timestampSec = quantizeToBeat(anchor?.timestampSec ?: t, beatSec),
+                    timestampSec = t,
                     normX = nx,
                     normY = ny,
                     powerUpType = pType,
@@ -296,7 +296,7 @@ object MusicLibrary {
 
     /**
      * Builds the Beat-Quantized Orb Chart for Track 02: Number One (88.0 BPM, beat = 0.6818s).
-     * Restricted to 5 milestone Supernova moments matched to Ethan's exact notes!
+     * Enhanced with Ethan Stark vocal cadence tracking and open hi-hat pocket groove!
      */
     private fun buildNumberOneOrbChart(): List<BeatOrbCue> {
         val beatSec = 60f / 88f // 0.6818s
@@ -309,22 +309,35 @@ object MusicLibrary {
             KeyWordAnchor(129.55f, KeyWordEffect.CONSTELLATION_STAR) // 2:09.5 Ending Breakdown Climax (⚡ Electric Overdrive)
         )
 
-        val cues = ArrayList<BeatOrbCue>(160)
+        val cues = ArrayList<BeatOrbCue>(260)
         val usedAnchors = HashSet<Int>()
-        var beatIdx = 3
+        var beatTime = 2.0f * beatSec
         var seq = 1
         var prevX = 0.50f
         var prevY = 0.52f
-        while (beatIdx * beatSec <= 161.0f) {
-            val t = beatIdx * beatSec
+
+        var verseCadenceIdx = 0
+        val verseStepPatterns = listOf(
+            floatArrayOf(1.0f, 1.0f, 1.0f, 1.0f),      // Bar 1: Steady 4-beat pulse
+            floatArrayOf(1.0f, 1.0f, 0.5f, 1.5f),      // Bar 2: Vocal syncopation on 3.5
+            floatArrayOf(1.0f, 0.5f, 0.5f, 1.0f, 1.0f), // Bar 3: Quick vocal rhyme bounce
+            floatArrayOf(1.5f, 0.5f, 1.0f, 1.0f)       // Bar 4: Vocal hold with delayed entry
+        )
+        val chorusStepPattern = floatArrayOf(0.75f, 0.75f, 0.5f, 1.0f, 1.0f)
+        var chorusStepToggle = 0
+
+        while (beatTime <= 161.5f) {
+            val t = beatTime
             val inIntroOrOutro = t < 9.8f || t >= 152.5f
-            val inHush = (t in 51.0f..53.5f) || (t in 105.0f..107.8f)
+            val isVerse = (t in 22.0f..44.0f) || (t in 76.0f..91.5f)
+            val isPreChorus = (t in 44.0f..51.0f) || (t in 101.0f..105.0f)
+            val inHush = (t in 51.0f..54.3f) || (t in 105.0f..108.8f)
             val isRap = t in 91.5f..98.5f
-            val isChorus = (t in 54.5f..75.5f) || (t in 109.0f..129.0f)
-            val isClimax = t in 129.0f..152.4f
+            val isChorus = (t in 54.5f..76.0f) || (t in 109.0f..129.0f)
+            val isClimax = t in 129.0f..152.0f
 
             var matchedIdx = -1
-            var bestDist = beatSec * 1.1f
+            var bestDist = beatSec * 0.9f
             for (i in specialMoments.indices) {
                 if (i !in usedAnchors) {
                     val d = abs(specialMoments[i].timestampSec - t)
@@ -347,7 +360,6 @@ object MusicLibrary {
             val stepInPhrase = (seq - 1) % 4
             val (rawX, rawY) = when {
                 isRap -> {
-                    // Tight sequential rhythm wave across the center during Ethan's 1:32 Rap!
                     val dir = if (phraseIdx % 2 == 0) 1f else -1f
                     val lx = 0.50f + dir * ((stepInPhrase - 1.5f) * 0.14f)
                     val ly = 0.36f + (stepInPhrase * 0.08f)
@@ -356,12 +368,23 @@ object MusicLibrary {
                 inIntroOrOutro || inHush -> {
                     0.50f + 0.15f * cos(seq * 0.65f) to 0.50f + 0.09f * sin(seq * 0.65f)
                 }
-                isClimax || isChorus -> {
-                    val dir = if (phraseIdx % 2 == 0) 1f else -1f
-                    val arcT = (stepInPhrase / 3f) - 0.5f
-                    val cx = 0.50f + dir * arcT * 0.44f
-                    val cy = 0.48f + cos(phraseIdx * 1.05f + stepInPhrase * 0.65f) * 0.17f
+                isChorus -> {
+                    val chorusPositions = floatArrayOf(0.40f, 0.70f, 0.25f, 0.60f, 0.80f, 0.30f)
+                    val cx = chorusPositions[(seq - 1) % chorusPositions.size]
+                    val cy = 0.44f + 0.15f * sin(seq * 0.8f)
                     cx.coerceIn(0.20f, 0.80f) to cy.coerceIn(0.28f, 0.72f)
+                }
+                isVerse -> {
+                    val barProg = (seq % 8) / 8.0f
+                    val vx = 0.30f + 0.40f * (0.5f + 0.5f * sin(barProg * 6.28318f))
+                    val vy = 0.42f + 0.12f * cos(barProg * 3.14159f)
+                    vx.coerceIn(0.22f, 0.78f) to vy.coerceIn(0.30f, 0.72f)
+                }
+                isPreChorus || isClimax -> {
+                    val prog = (seq % 6) / 6.0f
+                    val px = if (phraseIdx % 2 == 0) (0.25f + prog * 0.50f) else (0.75f - prog * 0.50f)
+                    val py = 0.38f + 0.22f * prog
+                    px.coerceIn(0.20f, 0.80f) to py.coerceIn(0.28f, 0.72f)
                 }
                 else -> {
                     val ribbonPhase = seq * 0.46f
@@ -398,13 +421,26 @@ object MusicLibrary {
                 )
             )
             seq++
-            beatIdx += when {
-                inIntroOrOutro || inHush -> 3 // Calm, spacious breathing room
-                isRap -> 1                    // Every quarter-note beat during Rap flow at 1:32!
-                isClimax -> 1                 // Every quarter-note beat during Ending Breakdown at 2:09!
-                isChorus -> 1                 // Every quarter-note beat (0.68s) during Chorus groove!
-                else -> 2                     // Smooth 2-beat (1.36s) 88 BPM hip-hop pocket
+
+            val stepBeats = when {
+                inIntroOrOutro -> 2.0f
+                inHush -> 2.5f
+                isChorus -> {
+                    val sb = chorusStepPattern[chorusStepToggle % chorusStepPattern.size]
+                    chorusStepToggle++
+                    sb
+                }
+                isRap -> 0.5f
+                isVerse -> {
+                    val activeBar = verseStepPatterns[verseCadenceIdx % verseStepPatterns.size]
+                    val sb = activeBar[(seq - 1) % activeBar.size]
+                    if ((seq - 1) % activeBar.size == 0) verseCadenceIdx++
+                    sb
+                }
+                isClimax -> 0.75f
+                else -> 1.0f
             }
+            beatTime += stepBeats * beatSec
         }
         return cues
     }
