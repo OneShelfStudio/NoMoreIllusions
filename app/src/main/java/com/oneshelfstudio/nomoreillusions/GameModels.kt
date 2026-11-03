@@ -194,6 +194,8 @@ data class GameObject(
     var exitX: Float = 0f,
     var exitY: Float = 0f,
     var swoopCurve: Float = 0f,
+    var baseX: Float = 0f,
+    var baseY: Float = 0f,
     var bvx: Float = 0f,
     var bvy: Float = 0f,
     var bounceOffsetX: Float = 0f,

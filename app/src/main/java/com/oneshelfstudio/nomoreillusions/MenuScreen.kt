@@ -723,7 +723,7 @@ fun MenuUI(
 
             Spacer(modifier = Modifier.height(6.dp))
 
-            // Artist Social Links Dock (Official Ethan Stark / No More Illusions)
+            // Artist Social Links Dock (Official Ethan Correa / No More Illusions)
             Row(
                 modifier = Modifier
                     .clip(RoundedCornerShape(50))

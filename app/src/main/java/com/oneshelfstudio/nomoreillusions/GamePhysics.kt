@@ -465,8 +465,8 @@ fun stepNebulousBeatOrbs(
             if (hasWaterfall) {
                 // Constant downward velocity with graceful sinusoidal S-curve sway
                 val arcOffset = sin(s.coerceIn(0f, 1f) * PI.toFloat()) * orb.swoopCurve * (screenWidth * 0.20f)
-                orb.x = orb.spawnX + s * (orb.exitX - orb.spawnX) + arcOffset
-                orb.y = orb.spawnY + s * (orb.exitY - orb.spawnY)
+                orb.baseX = orb.spawnX + s * (orb.exitX - orb.spawnX) + arcOffset
+                orb.baseY = orb.spawnY + s * (orb.exitY - orb.spawnY)
             } else {
                 val exitX = 2f * orb.anchorX - orb.spawnX
                 val exitY = 2f * orb.anchorY - orb.spawnY
@@ -475,23 +475,34 @@ fun stepNebulousBeatOrbs(
                 val perpX = -chordY * 0.35f
                 val perpY = chordX * 0.35f
                 val arcOffset = sin(s.coerceIn(0f, 1f) * PI.toFloat()) * orb.swoopCurve
-                orb.x = orb.spawnX + s * chordX + perpX * arcOffset
-                orb.y = orb.spawnY + s * chordY + perpY * arcOffset
+                orb.baseX = orb.spawnX + s * chordX + perpX * arcOffset
+                orb.baseY = orb.spawnY + s * chordY + perpY * arcOffset
             }
 
-            // Integrate elastic bounce impulse offset and decay smoothly without rigid snap
+            // Critically-damped spring pulling bounce offset back to zero (smoothly returns orb to track lane)
+            // F = -k * offset - c * velocity; with k = 25f, critical damping c = 10f (damping ratio zeta = 1.0)
+            val ax = -25f * orb.bounceOffsetX - 10f * orb.bvx
+            val ay = -25f * orb.bounceOffsetY - 10f * orb.bvy
+            orb.bvx += ax * dt
+            orb.bvy += ay * dt
             orb.bounceOffsetX += orb.bvx * dt
             orb.bounceOffsetY += orb.bvy * dt
-            orb.bvx *= 0.96f
-            orb.bvy *= 0.96f
-            orb.bounceOffsetX *= 0.985f
-            orb.bounceOffsetY *= 0.985f
-            orb.x += orb.bounceOffsetX
-            orb.y += orb.bounceOffsetY
+
+            // Bounded deflection safeguard so orbs never drift off-screen
+            val maxDeflection = orb.radius * 1.5f
+            val deflDist = kotlin.math.hypot(orb.bounceOffsetX, orb.bounceOffsetY)
+            if (deflDist > maxDeflection && deflDist > 0.001f) {
+                val sc = maxDeflection / deflDist
+                orb.bounceOffsetX *= sc
+                orb.bounceOffsetY *= sc
+            }
+
+            orb.x = orb.baseX + orb.bounceOffsetX
+            orb.y = orb.baseY + orb.bounceOffsetY
 
             // Smoothly decay squish deformation
             if (orb.squish > 0.001f) {
-                orb.squish *= 0.88f
+                orb.squish *= 0.85f
             } else {
                 orb.squish = 0f
             }
@@ -506,39 +517,53 @@ fun stepNebulousBeatOrbs(
                     val dx = b.x - a.x
                     val dy = b.y - a.y
                     val dist = kotlin.math.hypot(dx, dy)
-                    val minDist = (a.radius + b.radius) * 1.15f
-                    if (dist < minDist && dist > 0.001f) {
+                    val minDist = a.radius + b.radius // Exact physical touch distance (no bloated forcefield)
+                    if (dist < minDist && dist > 0.0001f) {
                         val overlap = minDist - dist
                         val nx = dx / dist
                         val ny = dy / dist
 
-                        // Positional separation along normal
-                        a.bounceOffsetX -= nx * overlap * 0.52f
-                        a.bounceOffsetY -= ny * overlap * 0.52f
-                        b.bounceOffsetX += nx * overlap * 0.52f
-                        b.bounceOffsetY += ny * overlap * 0.52f
-                        a.x += a.bounceOffsetX
-                        a.y += a.bounceOffsetY
-                        b.x += b.bounceOffsetX
-                        b.y += b.bounceOffsetY
+                        // Symmetrical position separation to immediately resolve overlap
+                        a.bounceOffsetX -= nx * overlap * 0.5f
+                        a.bounceOffsetY -= ny * overlap * 0.5f
+                        b.bounceOffsetX += nx * overlap * 0.5f
+                        b.bounceOffsetY += ny * overlap * 0.5f
+
+                        // Update current coordinates directly
+                        a.x = a.baseX + a.bounceOffsetX
+                        a.y = a.baseY + a.bounceOffsetY
+                        b.x = b.baseX + b.bounceOffsetX
+                        b.y = b.baseY + b.bounceOffsetY
 
                         // Relative velocity along collision normal
                         val relVx = b.bvx - a.bvx
                         val relVy = b.bvy - a.bvy
                         val velAlongNormal = relVx * nx + relVy * ny
 
-                        val restitution = 0.72f
-                        val impulseMag = maxOf(90f, -(1f + restitution) * velAlongNormal * 0.5f + overlap * 25f)
-                        a.bvx -= nx * impulseMag
-                        a.bvy -= ny * impulseMag
-                        b.bvx += nx * impulseMag
-                        b.bvy += ny * impulseMag
+                        // ONLY apply repulsive elastic impulse if moving towards each other!
+                        if (velAlongNormal < 0f) {
+                            val restitution = 0.65f
+                            val impulseMag = -(1f + restitution) * velAlongNormal * 0.5f
+                            a.bvx -= nx * impulseMag
+                            a.bvy -= ny * impulseMag
+                            b.bvx += nx * impulseMag
+                            b.bvy += ny * impulseMag
 
-                        // Trigger squish deformation along collision axis
-                        a.squish = 0.32f
-                        a.squishAngle = atan2(ny, nx)
-                        b.squish = 0.32f
-                        b.squishAngle = atan2(-ny, -nx)
+                            // Trigger squish deformation along collision axis
+                            val impactSpeed = kotlin.math.abs(velAlongNormal)
+                            val squishIntensity = (0.15f + (impactSpeed / 400f) * 0.20f).coerceIn(0.12f, 0.35f)
+                            a.squish = squishIntensity
+                            a.squishAngle = atan2(ny, nx)
+                            b.squish = squishIntensity
+                            b.squishAngle = atan2(-ny, -nx)
+                        } else if (overlap > 0.5f) {
+                            // If overlapping with near-zero separating velocity, apply smooth parting nudge
+                            val partingNudge = 15f * (overlap / minDist).coerceIn(0.1f, 1f)
+                            a.bvx -= nx * partingNudge
+                            a.bvy -= ny * partingNudge
+                            b.bvx += nx * partingNudge
+                            b.bvy += ny * partingNudge
+                        }
                     }
                 }
             }

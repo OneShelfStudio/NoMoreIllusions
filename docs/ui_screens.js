@@ -296,7 +296,7 @@ Object.assign(NoMoreIllusionsApp.prototype, {
     this.playSfx("click");
     const track = OFFICIAL_TRACKS[this.selectedStageIndex] || OFFICIAL_TRACKS[0];
     const scoreFmt = Number(this.score || 0).toLocaleString();
-    const shareText = `Just scored ${scoreFmt} on "${track.title}" in No More Illusions! Tagging @EthanKStark #NoMoreIllusions Check out the gamified album:`;
+    const shareText = `Just scored ${scoreFmt} on "${track.title}" in No More Illusions! Tagging @EthanCorrea #NoMoreIllusions Check out the gamified album:`;
     const shareUrl = "https://oneshelfstudio.github.io/NoMoreIllusions/";
     if (navigator.share) {
       navigator.share({
@@ -306,7 +306,7 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       }).catch(() => {});
     } else if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(`${shareText} ${shareUrl}`).then(() => {
-        alert("Copied run details & tags to clipboard! Tag @EthanKStark on TikTok / Instagram #NoMoreIllusions");
+        alert("Copied run details & tags to clipboard! Tag @EthanCorrea on TikTok / Instagram #NoMoreIllusions");
       }).catch(() => {});
     }
   },

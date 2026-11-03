@@ -399,18 +399,36 @@ Object.assign(NoMoreIllusionsApp.prototype, {
           pu.baseY = (pu.baseY !== undefined ? pu.baseY : pu.y) + (goalY - pu.y) * 0.16;
         }
 
-        // Integrate natural physics elastic bounce momentum & persistent displacement
-        pu.bvx = (pu.bvx || 0) * 0.96;
-        pu.bvy = (pu.bvy || 0) * 0.96;
-        pu.bounceOffsetX = ((pu.bounceOffsetX || 0) + pu.bvx * worldDt) * 0.985;
-        pu.bounceOffsetY = ((pu.bounceOffsetY || 0) + pu.bvy * worldDt) * 0.985;
-        pu.squish = (pu.squish || 0) * 0.88;
+        // Critically-damped spring pulling bounce offset back to zero (smoothly returns orb to track lane)
+        // F = -k * offset - c * velocity; with k = 25.0, critical damping c = 10.0 (damping ratio zeta = 1.0)
+        const ax = -25.0 * (pu.bounceOffsetX || 0) - 10.0 * (pu.bvx || 0);
+        const ay = -25.0 * (pu.bounceOffsetY || 0) - 10.0 * (pu.bvy || 0);
+        pu.bvx = (pu.bvx || 0) + ax * worldDt;
+        pu.bvy = (pu.bvy || 0) + ay * worldDt;
+        pu.bounceOffsetX = (pu.bounceOffsetX || 0) + pu.bvx * worldDt;
+        pu.bounceOffsetY = (pu.bounceOffsetY || 0) + pu.bvy * worldDt;
+
+        // Bounded deflection safeguard so orbs never drift off-screen
+        const maxDeflection = pu.radius * 1.5;
+        const deflDist = Math.hypot(pu.bounceOffsetX, pu.bounceOffsetY);
+        if (deflDist > maxDeflection && deflDist > 0.001) {
+          const sc = maxDeflection / deflDist;
+          pu.bounceOffsetX *= sc;
+          pu.bounceOffsetY *= sc;
+        }
 
         pu.x = pu.baseX + pu.bounceOffsetX;
         pu.y = pu.baseY + pu.bounceOffsetY;
+
+        // Smoothly decay squish deformation
+        if (pu.squish > 0.001) {
+          pu.squish *= 0.85;
+        } else {
+          pu.squish = 0;
+        }
       }
 
-      // Natural Physics Elastic Ricochet & Anti-Overlap Bouncing
+      // Natural Physics Elastic Ricochet Bouncing between colliding Orbs
       if (this.powerUps.length > 1) {
         for (let a = 0; a < this.powerUps.length; a++) {
           for (let b = a + 1; b < this.powerUps.length; b++) {
@@ -419,44 +437,54 @@ Object.assign(NoMoreIllusionsApp.prototype, {
             const dx = pB.x - pA.x;
             const dy = pB.y - pA.y;
             const dist = Math.hypot(dx, dy);
-            const minDist = (pA.radius + pB.radius) * 1.15;
-            if (dist < minDist && dist > 0.001) {
+            const minDist = pA.radius + pB.radius; // Exact physical touch distance (no bloated forcefield)
+            if (dist < minDist && dist > 0.0001) {
               const overlap = minDist - dist;
               const nx = dx / dist;
               const ny = dy / dist;
 
-              // True elastic position separation along collision normal
-              pA.bounceOffsetX = (pA.bounceOffsetX || 0) - nx * overlap * 0.52;
-              pA.bounceOffsetY = (pA.bounceOffsetY || 0) - ny * overlap * 0.52;
-              pB.bounceOffsetX = (pB.bounceOffsetX || 0) + nx * overlap * 0.52;
-              pB.bounceOffsetY = (pB.bounceOffsetY || 0) + ny * overlap * 0.52;
+              // Symmetrical position separation to immediately resolve overlap
+              pA.bounceOffsetX = (pA.bounceOffsetX || 0) - nx * overlap * 0.5;
+              pA.bounceOffsetY = (pA.bounceOffsetY || 0) - ny * overlap * 0.5;
+              pB.bounceOffsetX = (pB.bounceOffsetX || 0) + nx * overlap * 0.5;
+              pB.bounceOffsetY = (pB.bounceOffsetY || 0) + ny * overlap * 0.5;
+
+              // Update current coordinates directly
               pA.x = pA.baseX + pA.bounceOffsetX;
               pA.y = pA.baseY + pA.bounceOffsetY;
               pB.x = pB.baseX + pB.bounceOffsetX;
               pB.y = pB.baseY + pB.bounceOffsetY;
 
-              // Relative velocity along normal
+              // Relative velocity along collision normal
               const vRelX = (pB.bvx || 0) - (pA.bvx || 0);
               const vRelY = (pB.bvy || 0) - (pA.bvy || 0);
               const vNorm = vRelX * nx + vRelY * ny;
 
-              // Elastic impulse with restitution e = 0.72
-              const e = 0.72;
-              const impulse = Math.max(90.0, -vNorm * (1 + e) * 0.5 + overlap * 25.0);
+              // ONLY apply repulsive elastic impulse if moving towards each other!
+              if (vNorm < 0) {
+                const e = 0.65;
+                const impulse = -(1 + e) * vNorm * 0.5;
+                pA.bvx = (pA.bvx || 0) - nx * impulse;
+                pA.bvy = (pA.bvy || 0) - ny * impulse;
+                pB.bvx = (pB.bvx || 0) + nx * impulse;
+                pB.bvy = (pB.bvy || 0) + ny * impulse;
 
-              pA.bvx = (pA.bvx || 0) - nx * impulse;
-              pA.bvy = (pA.bvy || 0) - ny * impulse;
-              pB.bvx = (pB.bvx || 0) + nx * impulse;
-              pB.bvy = (pB.bvy || 0) + ny * impulse;
+                // Trigger squish deformation along collision axis
+                const impactSpeed = Math.abs(vNorm);
+                const squishIntensity = Math.min(0.35, Math.max(0.12, 0.15 + (impactSpeed / 400.0) * 0.20));
+                pA.squish = squishIntensity;
+                pA.squishAngle = Math.atan2(ny, nx);
+                pB.squish = squishIntensity;
+                pB.squishAngle = Math.atan2(-ny, -nx);
 
-              // Visual Squish & Stretch deformation along impact axis
-              pA.squish = 0.32;
-              pA.squishAngle = Math.atan2(ny, nx);
-              pB.squish = 0.32;
-              pB.squishAngle = Math.atan2(-ny, -nx);
-
-              if (Math.random() < 0.6) {
-                this.playSfx("click", 0.25);
+                this.playSfx("click", 0.15);
+              } else if (overlap > 0.5) {
+                // If overlapping with near-zero separating velocity, apply smooth parting nudge
+                const partingNudge = 15.0 * Math.min(1.0, Math.max(0.1, overlap / minDist));
+                pA.bvx = (pA.bvx || 0) - nx * partingNudge;
+                pA.bvy = (pA.bvy || 0) - ny * partingNudge;
+                pB.bvx = (pB.bvx || 0) + nx * partingNudge;
+                pB.bvy = (pB.bvy || 0) + ny * partingNudge;
               }
             }
           }

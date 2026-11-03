@@ -209,7 +209,7 @@ fun GameOverUI(
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = "Post with #NoMoreIllusions & tag @EthanKStark on TikTok / IG for official credit!",
+                        text = "Post with #NoMoreIllusions & tag @EthanCorrea on TikTok / IG for official credit!",
                         color = Color(0xFFCBD5E1L),
                         fontSize = 8.5.sp,
                         textAlign = TextAlign.Center,
@@ -231,7 +231,7 @@ fun GameOverUI(
                                     type = "text/plain"
                                     putExtra(
                                         Intent.EXTRA_TEXT,
-                                        "Just scored %,d in No More Illusions! Tagging @EthanKStark #NoMoreIllusions Check out the gamified album: https://oneshelfstudio.github.io/NoMoreIllusions/".format(score)
+                                        "Just scored %,d in No More Illusions! Tagging @EthanCorrea #NoMoreIllusions Check out the gamified album: https://oneshelfstudio.github.io/NoMoreIllusions/".format(score)
                                     )
                                 }
                                 context.startActivity(Intent.createChooser(shareIntent, "Share Run"))
@@ -505,7 +505,7 @@ fun LevelCompleteUI(
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = "Post with #NoMoreIllusions & tag @EthanKStark on TikTok / IG for official credit!",
+                        text = "Post with #NoMoreIllusions & tag @EthanCorrea on TikTok / IG for official credit!",
                         color = Color(0xFFCBD5E1L),
                         fontSize = 8.5.sp,
                         textAlign = TextAlign.Center,
@@ -527,7 +527,7 @@ fun LevelCompleteUI(
                                     type = "text/plain"
                                     putExtra(
                                         Intent.EXTRA_TEXT,
-                                        "Just won Track 0%d in No More Illusions with %,d pts! Tagging @EthanKStark #NoMoreIllusions Stream the gamified album: https://oneshelfstudio.github.io/NoMoreIllusions/".format(trackIndex, score)
+                                        "Just won Track 0%d in No More Illusions with %,d pts! Tagging @EthanCorrea #NoMoreIllusions Stream the gamified album: https://oneshelfstudio.github.io/NoMoreIllusions/".format(trackIndex, score)
                                     )
                                 }
                                 context.startActivity(Intent.createChooser(shareIntent, "Share Run"))

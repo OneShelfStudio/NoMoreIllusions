@@ -296,7 +296,7 @@ object MusicLibrary {
 
     /**
      * Builds the Beat-Quantized Orb Chart for Track 02: Number One (88.0 BPM, beat = 0.6818s).
-     * Enhanced with Ethan Stark vocal cadence tracking and open hi-hat pocket groove!
+     * Enhanced with Ethan Correa vocal cadence tracking and open hi-hat pocket groove!
      */
     private fun buildNumberOneOrbChart(): List<BeatOrbCue> {
         val beatSec = 60f / 88f // 0.6818s
