@@ -79,6 +79,9 @@ Object.assign(NoMoreIllusionsApp.prototype, {
             maxTimer: 1.4,
             isBroken: true
           };
+          if (typeof this.triggerComboBreak === "function") {
+            this.triggerComboBreak();
+          }
         }
         this.combo = 1;
       }
@@ -332,6 +335,9 @@ Object.assign(NoMoreIllusionsApp.prototype, {
           this.comboTimer = 0;
           this.triggerHaptic([32]);
           this.screenShake = Math.max(this.screenShake, 3.5);
+          if (typeof this.triggerComboBreak === "function") {
+            this.triggerComboBreak();
+          }
         }
         this.powerUps.splice(i, 1);
         continue;
@@ -841,6 +847,10 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       const pts = Math.max(10, Math.round(basePts * this.combo * (this.constellationRushTimer > 0 ? 2 : 1) * diffMult));
       this.score += pts;
 
+      if (typeof this.triggerRatingPopup === "function") {
+        this.triggerRatingPopup(isAtStrikeLine ? "PERFECT" : "GREAT", this.combo);
+      }
+
       if (isAtStrikeLine && this.combo >= 6 && this.orbsCollectedRun % 8 === 0) {
         this.spawnMelodicStarfallCascade();
       }
@@ -866,6 +876,10 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       this.triggerHaptic([32]);
       const specialPts = Math.round(250 * this.combo * diffMult);
       this.score += specialPts;
+
+      if (typeof this.triggerRatingPopup === "function") {
+        this.triggerRatingPopup("PERFECT", this.combo);
+      }
 
       // Find upcoming musical section transition
       const curTrack = (typeof OFFICIAL_TRACKS !== "undefined" ? OFFICIAL_TRACKS[this.selectedStageIndex] : null) || {};
