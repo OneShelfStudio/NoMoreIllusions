@@ -13,6 +13,7 @@ captures/
 .cxx
 *.apk
 *.aab
+*.zip
 release/
 *.keystore
 *.jks

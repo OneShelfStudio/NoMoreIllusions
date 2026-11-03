@@ -585,6 +585,7 @@ class NoMoreIllusionsApp {
   }
 
   executeStageRun() {
+    if (window.PlatformSDK) window.PlatformSDK.gameplayStart();
     const stage = OFFICIAL_TRACKS[this.selectedStageIndex] || OFFICIAL_TRACKS[0];
 
     this.score = 0;
@@ -764,16 +765,29 @@ class NoMoreIllusionsApp {
   reviveWithAd() {
     if (this.reviveUsedThisRun) return;
     this.playSfx("click");
-    // Real Google rewarded ad (H5 Games Ads) when one is ready on the approved domain
-    if (typeof this.pendingShowRewardAd === "function") {
-      const show = this.pendingShowRewardAd;
-      this.pendingShowRewardAd = null;
-      try { show(); return; } catch (e) {}
+    if (window.PlatformSDK && typeof window.PlatformSDK.showRewarded === "function") {
+      window.PlatformSDK.showRewarded(
+        () => {
+          this.reviveUsedThisRun = true;
+          this.performRevive();
+        },
+        () => {}
+      );
+    } else {
+      this.showHousePromoRevive(() => {
+        this.reviveUsedThisRun = true;
+        this.performRevive();
+      });
     }
-    // Fallback: 5-second No More Illusions house promo (no third-party ad available)
+  }
+
+  showHousePromoRevive(onReward, onDismiss) {
     const overlay = document.getElementById("house-ad-overlay");
     const countEl = document.getElementById("house-ad-count");
-    if (!overlay) { this.reviveUsedThisRun = true; this.performRevive(); return; }
+    if (!overlay) {
+      if (typeof onReward === "function") onReward();
+      return;
+    }
     overlay.style.display = "flex";
     let remaining = 5;
     if (countEl) countEl.textContent = String(remaining);
@@ -784,8 +798,7 @@ class NoMoreIllusionsApp {
       if (remaining <= 0) {
         clearInterval(this.houseAdTimer);
         overlay.style.display = "none";
-        this.reviveUsedThisRun = true;
-        this.performRevive();
+        if (typeof onReward === "function") onReward();
       }
     }, 1000);
   }
@@ -855,11 +868,13 @@ class NoMoreIllusionsApp {
     }
 
     this.savePrefs();
+    if (window.PlatformSDK) window.PlatformSDK.gameplayStop();
     this.gameState = "TRACK_COMPLETED";
     this.syncUI();
   }
 
   triggerGameOver() {
+    if (window.PlatformSDK) window.PlatformSDK.gameplayStop();
     const stage = OFFICIAL_TRACKS[this.selectedStageIndex];
     this.trackAudio.pause();
     this.playSfx("whoosh_gameover", 0.82);

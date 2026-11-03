@@ -9,38 +9,14 @@ Object.assign(NoMoreIllusionsApp.prototype, {
     this.h5AdsEnabled = /(^|\.)digital-dads-llc\.com$/i.test(location.hostname) || H5_TEST_MODE;
     this.pendingShowRewardAd = null;
     this.gameOverCount = 0;
-    if (!this.h5AdsEnabled) return;
-    try {
-      let s = document.querySelector('script[src*="adsbygoogle.js"]');
-      if (!s) {
-        s = document.createElement("script");
-        s.async = true;
-        s.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${PUB_ID}`;
-        s.crossOrigin = "anonymous";
-        s.setAttribute("data-ad-client", PUB_ID);
-        s.setAttribute("data-ad-frequency-hint", "30s");
-        document.head.appendChild(s);
-      }
-      if (H5_TEST_MODE) s.setAttribute("data-adbreak-test", "on");
-      window.adsbygoogle = window.adsbygoogle || [];
-      if (typeof window.adBreak !== "function") {
-        window.adBreak = window.adConfig = function (o) { window.adsbygoogle.push(o); };
-      }
-      window.adConfig({
-        preloadAdBreaks: "on",
-        sound: (this.prefs && this.prefs.musicMuted) ? "off" : "on",
-        onReady: () => { this.h5AdsReady = true; }
-      });
-    } catch (e) {
-      this.h5AdsEnabled = false;
+    // Initialize Universal Web Platform SDK (Poki & CrazyGames)
+    if (window.PlatformSDK && typeof window.PlatformSDK.init === "function") {
+      window.PlatformSDK.init();
     }
   },
 
   syncH5SoundState() {
-    if (!this.h5AdsEnabled || typeof window.adConfig !== "function") return;
-    try {
-      window.adConfig({ sound: (this.prefs && this.prefs.musicMuted) ? "off" : "on" });
-    } catch (e) {}
+    // Handled directly by PlatformSDK pauseAllAudioForAd / resumeAudioAfterAd
   },
 
   pauseAllAudioForAd() {
@@ -56,47 +32,17 @@ Object.assign(NoMoreIllusionsApp.prototype, {
     else this.updateLobbyPlayback();
   },
 
-  // Ask Google for a rewarded placement as soon as the Game Over screen appears.
-  // beforeReward only fires when an ad is actually ready; we hold showAdFn until the player taps the AD button.
   prepareRewardedRevive() {
-    this.pendingShowRewardAd = null;
-    if (!this.h5AdsEnabled || this.reviveUsedThisRun || typeof window.adBreak !== "function") return;
-    let granted = false;
-    try {
-      window.adBreak({
-        type: "reward",
-        name: "revive_player",
-        beforeAd: () => this.pauseAllAudioForAd(),
-        afterAd: () => this.resumeAudioAfterAd(),
-        beforeReward: (showAdFn) => { this.pendingShowRewardAd = showAdFn; },
-        adDismissed: () => { granted = false; },
-        adViewed: () => { granted = true; },
-        adBreakDone: () => {
-          this.pendingShowRewardAd = null;
-          if (granted && this.gameState === "GAME_OVER") {
-            this.reviveUsedThisRun = true;
-            this.performRevive();
-          }
-        }
-      });
-    } catch (e) {}
+    // Rewarded ads are triggered on demand via PlatformSDK.showRewarded
   },
 
-  // Interstitial between runs (every 3rd replay after a Game Over — matches Android cadence)
+  // Interstitial commercial break between runs (every 3rd replay after Game Over)
   showInterstitialThen(next) {
-    if (!this.h5AdsEnabled || typeof window.adBreak !== "function") { next(); return; }
-    let done = false;
-    const finish = () => { if (!done) { done = true; next(); } };
-    try {
-      window.adBreak({
-        type: "next",
-        name: "replay_track",
-        beforeAd: () => this.pauseAllAudioForAd(),
-        afterAd: () => { this.audioPausedForAd = false; },
-        adBreakDone: finish
-      });
-      setTimeout(finish, 6000); // never block gameplay if the ad API stalls
-    } catch (e) { finish(); }
+    if (window.PlatformSDK && typeof window.PlatformSDK.showCommercial === "function") {
+      window.PlatformSDK.showCommercial(next);
+    } else {
+      next();
+    }
   },
 
   initSfxPool() {
