@@ -11,12 +11,8 @@
   <link rel="manifest" href="manifest.json" />
   <link rel="apple-touch-icon" href="assets/nmi_logo.png" />
   <link rel="stylesheet" href="styles.css?v=42" />
-  <meta name="google-adsense-account" content="ca-pub-7651037308656903" />
-  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7651037308656903" data-ad-client="ca-pub-7651037308656903" data-ad-frequency-hint="30s" crossorigin="anonymous"></script>
-  <script>
-    window.adsbygoogle = window.adsbygoogle || [];
-    window.adBreak = window.adConfig = function (o) { window.adsbygoogle.push(o); };
-  </script>
+  <!-- Universal Web Game Platform SDK (Poki & CrazyGames Ready — Zero AdSense) -->
+  <script src="platform_sdk.js?v=43"></script>
 </head>
 <body>
   <!-- Full-Screen 60FPS Audio-Reactive Game & Nebula Canvas -->
@@ -719,19 +715,20 @@
     </div>
   </div>
 
-  <script src="multi_band_data.js?v=42"></script>
-  <script src="music_library.js?v=42"></script>
-  <script src="background_renderer.js?v=42"></script>
-  <script src="beat_orb_renderer.js?v=42"></script>
-  <script src="game_renderer.js?v=42"></script>
-  <script src="engine.js?v=42"></script>
-  <script src="audio_synth.js?v=42"></script>
-  <script src="game_physics.js?v=42"></script>
-  <script src="ui_screens.js?v=42"></script>
-  <script src="tutorial_overlay.js?v=42"></script>
+  <script src="platform_sdk.js?v=43"></script>
+  <script src="multi_band_data.js?v=43"></script>
+  <script src="music_library.js?v=43"></script>
+  <script src="background_renderer.js?v=43"></script>
+  <script src="beat_orb_renderer.js?v=43"></script>
+  <script src="game_renderer.js?v=43"></script>
+  <script src="engine.js?v=43"></script>
+  <script src="audio_synth.js?v=43"></script>
+  <script src="game_physics.js?v=43"></script>
+  <script src="ui_screens.js?v=43"></script>
+  <script src="tutorial_overlay.js?v=43"></script>
   <script>
     (function () {
-      const CURRENT_WEB_BUILD = "nmi-v42-vector-custom-perfection";
+      const CURRENT_WEB_BUILD = "nmi-v43-platform-sdk-ready";
       if ("serviceWorker" in navigator) {
         let refreshing = false;
         navigator.serviceWorker.addEventListener("controllerchange", () => {
