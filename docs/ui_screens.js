@@ -614,20 +614,28 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       sfxToggle.className = `toggle-pill ${this.prefs.sfxMuted ? "off" : "on"}`;
     }
 
-    // Game Over Screen
+    // Game Over Screen (Clean Progression & Save Flow — Zero Ad Prompts)
     if (this.gameState === "GAME_OVER") {
       const goScore = document.getElementById("gameover-score-val");
       if (goScore) goScore.textContent = String(this.score);
       const goBest = document.getElementById("gameover-best-val");
       if (goBest) goBest.textContent = `BEST RECORD: ${this.prefs.highScore}`;
-      const reviveBtn = document.getElementById("gameover-revive-btn");
-      if (reviveBtn) reviveBtn.style.display = this.reviveUsedThisRun ? "none" : "flex";
+
+      const saveText = document.getElementById("gameover-save-text");
+      const earned = Math.max(5, Math.floor(this.score / 10));
+      if (saveText) saveText.textContent = `PROGRESS & +${earned} NOTES SAVED`;
+
+      const checkpointBtn = document.getElementById("gameover-checkpoint-btn");
+      if (checkpointBtn) {
+        checkpointBtn.style.display = this.reviveUsedThisRun ? "none" : "flex";
+      }
+
       const notesBtn = document.getElementById("gameover-notes-btn");
       if (notesBtn) {
         const canAfford = this.prefs.points >= 250;
         notesBtn.innerHTML = canAfford
-          ? `USE 250 NOTES TO REVIVE <span style="opacity:0.75;font-weight:700;">&nbsp;(YOU HAVE ${this.prefs.points})</span>`
-          : `NEED 250 NOTES <span style="opacity:0.75;font-weight:700;">&nbsp;(YOU HAVE ${this.prefs.points})</span>`;
+          ? `USE 250 NOTES TO CONTINUE <span style="opacity:0.75;font-weight:700;">&nbsp;(YOU HAVE ${this.prefs.points})</span>`
+          : `NEED 250 NOTES TO CONTINUE <span style="opacity:0.75;font-weight:700;">&nbsp;(YOU HAVE ${this.prefs.points})</span>`;
         notesBtn.style.opacity = canAfford ? "1" : "0.6";
       }
     }

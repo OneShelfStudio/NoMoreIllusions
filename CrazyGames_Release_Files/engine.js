@@ -190,19 +190,26 @@ class NoMoreIllusionsApp {
   // H5_TEST_MODE serves Google test ads until H5 Games access is approved; flip to false afterwards.
   // ==========================================================================
   savePrefs() {
-    localStorage.setItem("nmi_high_score", String(this.prefs.highScore));
-    localStorage.setItem("nmi_points", String(this.prefs.points));
-    localStorage.setItem("nmi_skin", this.prefs.selectedSkin);
-    localStorage.setItem("nmi_trail", this.prefs.selectedTrail);
-    localStorage.setItem("nmi_theme", this.prefs.selectedTheme);
-    localStorage.setItem("nmi_unlocked_items", JSON.stringify(this.prefs.unlockedItems));
-    localStorage.setItem("nmi_unlocked_tracks", JSON.stringify(this.prefs.unlockedTracks));
-    localStorage.setItem("nmi_track_progress", JSON.stringify(this.prefs.trackBestProgress));
-    localStorage.setItem("nmi_track_medals", JSON.stringify(this.prefs.trackMasteryMedals));
-    localStorage.setItem("nmi_lobby_idx", String(this.prefs.lobbyThemeIndex));
-    localStorage.setItem("nmi_music_muted", String(this.prefs.musicMuted));
-    localStorage.setItem("nmi_sfx_muted", String(this.prefs.sfxMuted));
-    localStorage.setItem("nmi_track02_alt_cover", String(this.prefs.track02AltCover));
+    try {
+      localStorage.setItem("nmi_high_score", String(this.prefs.highScore));
+      localStorage.setItem("nmi_points", String(this.prefs.points));
+      localStorage.setItem("nmi_skin", this.prefs.selectedSkin);
+      localStorage.setItem("nmi_trail", this.prefs.selectedTrail);
+      localStorage.setItem("nmi_theme", this.prefs.selectedTheme);
+      localStorage.setItem("nmi_unlocked_items", JSON.stringify(this.prefs.unlockedItems));
+      localStorage.setItem("nmi_unlocked_tracks", JSON.stringify(this.prefs.unlockedTracks));
+      localStorage.setItem("nmi_track_progress", JSON.stringify(this.prefs.trackBestProgress));
+      localStorage.setItem("nmi_track_medals", JSON.stringify(this.prefs.trackMasteryMedals));
+      localStorage.setItem("nmi_lobby_idx", String(this.prefs.lobbyThemeIndex));
+      localStorage.setItem("nmi_music_muted", String(this.prefs.musicMuted));
+      localStorage.setItem("nmi_sfx_muted", String(this.prefs.sfxMuted));
+      localStorage.setItem("nmi_track02_alt_cover", String(this.prefs.track02AltCover));
+    } catch (e) {}
+
+    // Cloud Data Persistence via Universal PlatformSDK (CrazyGames Data Module + LocalStorage sync)
+    if (window.PlatformSDK && typeof window.PlatformSDK.saveData === "function") {
+      window.PlatformSDK.saveData("nmi_profile", this.prefs);
+    }
   }
 
   resize() {
@@ -762,48 +769,26 @@ class NoMoreIllusionsApp {
 
   // Rewarded "Ad" revive. AdMob only serves inside the native Android app, so on Web/iOS this shows a
   // 5-second house promo for No More Illusions' streaming links instead of a third-party ad.
-  reviveWithAd() {
-    if (this.reviveUsedThisRun) return;
-    this.playSfx("click");
-    if (window.PlatformSDK && typeof window.PlatformSDK.showRewarded === "function") {
-      window.PlatformSDK.showRewarded(
-        () => {
-          this.reviveUsedThisRun = true;
-          this.performRevive();
-        },
-        () => {}
-      );
-    } else {
-      this.showHousePromoRevive(() => {
-        this.reviveUsedThisRun = true;
-        this.performRevive();
-      });
+  reviveWithCheckpoint() {
+    if (this.reviveUsedThisRun) {
+      this.replayFromGameOver();
+      return;
     }
+    this.playSfx("click");
+    this.reviveUsedThisRun = true;
+    this.savePrefs();
+    this.performRevive();
+  }
+
+  reviveWithAd() {
+    this.reviveWithCheckpoint();
   }
 
   showHousePromoRevive(onReward, onDismiss) {
-    const overlay = document.getElementById("house-ad-overlay");
-    const countEl = document.getElementById("house-ad-count");
-    if (!overlay) {
-      if (typeof onReward === "function") onReward();
-      return;
-    }
-    overlay.style.display = "flex";
-    let remaining = 5;
-    if (countEl) countEl.textContent = String(remaining);
-    if (this.houseAdTimer) clearInterval(this.houseAdTimer);
-    this.houseAdTimer = setInterval(() => {
-      remaining--;
-      if (countEl) countEl.textContent = String(Math.max(0, remaining));
-      if (remaining <= 0) {
-        clearInterval(this.houseAdTimer);
-        overlay.style.display = "none";
-        if (typeof onReward === "function") onReward();
-      }
-    }, 1000);
+    if (typeof onReward === "function") onReward();
   }
 
-  revivePlayer() { this.reviveWithAd(); }
+  revivePlayer() { this.reviveWithCheckpoint(); }
 
   performRevive() {
     this.playSfx("powerup");
