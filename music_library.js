@@ -73,7 +73,7 @@ function buildConfideOrbChart() {
     const inChorus = (t >= 14.5 && t <= 31.0) || (t >= 75.5 && t <= 93.0) || (t >= 137.5 && t <= 155.0) || (t >= 183.5 && t <= 201.0);
     const inOutro = t >= 207.8;
 
-    let matchedIdx = -1, bestDist = beatSec * 1.4;
+    let matchedIdx = -1, bestDist = beatSec * 0.9;
     for (let i = 0; i < specialMoments.length; i++) {
       if (!used.has(i)) {
         const d = Math.abs(specialMoments[i][0] - t);
@@ -132,9 +132,9 @@ function buildConfideOrbChart() {
       : "SCORE_ORB";
     cues.push({
       sequenceIndex: seq,
-      timestampSec: quantizeToBeat(anchor ? anchor[0] : t, beatSec),
-      normX: nx,
-      normY: ny,
+      timestampSec: parseFloat(t.toFixed(3)),
+      normX: parseFloat(nx.toFixed(3)),
+      normY: parseFloat(ny.toFixed(3)),
       powerUpType: puType,
       keyWordEffect: effect,
       isGoldenCue: effect === "CONSTELLATION_STAR"
@@ -148,7 +148,7 @@ function buildConfideOrbChart() {
 }
 
 function buildNumberOneOrbChart() {
-  const beatSec = 60 / 88;
+  const beatSec = 60 / 88; // 0.681818s
   // ONLY Rare Milestone Orbs placed at major musical transitions & drops across the entire 2:46 track
   const specialMoments = [
     [44.32, "MAGNETAR_WAR"],       // 0:44 Pre-Chorus 1 Swell (💥 Solar Nova Blast)
@@ -159,17 +159,34 @@ function buildNumberOneOrbChart() {
   ];
   const cues = [];
   const used = new Set();
-  let beatIdx = 2, seq = 1;
-  while (beatIdx * beatSec <= 162.0) {
-    const t = beatIdx * beatSec;
-    const isIntro = t <= 6.5;
-    const isHush = (t >= 51.0 && t <= 54.3) || (t >= 105.0 && t <= 108.8);
-    const isRap = t >= 91.5 && t <= 98.5;
+  let beatTime = 2.0 * beatSec; // Start at beat 2
+  let seq = 1;
+
+  // Track cadence cycles for verses and chorus (Ethan Stark Vocal & Hi-Hat Sync)
+  let verseCadenceIdx = 0;
+  // Dynamic syncopated verse cadences (in fraction of beats):
+  // Alternating between driving 4-on-the-floor, vocal syncopation (8th notes), and groove pickups
+  const verseStepPatterns = [
+    [1.0, 1.0, 1.0, 1.0],      // Bar 1: Steady 4-beat pulse following 808
+    [1.0, 1.0, 0.5, 1.5],      // Bar 2: Vocal syncopation on the 3.5 (8th note pickup)
+    [1.0, 0.5, 0.5, 1.0, 1.0], // Bar 3: Quick vocal rhyme bounce
+    [1.5, 0.5, 1.0, 1.0]       // Bar 4: Vocal hold with delayed entry
+  ];
+
+  let chorusStepToggle = 0;
+
+  while (beatTime <= 161.5) {
+    const t = beatTime;
+    const isIntro = t <= 9.75;
+    const isVerse = (t > 22.0 && t <= 44.0) || (t >= 76.0 && t <= 91.5);
+    const isPreChorus = (t > 44.0 && t <= 51.0) || (t > 101.0 && t <= 105.0);
+    const isHush = (t > 51.0 && t <= 54.3) || (t > 105.0 && t <= 108.8);
     const isChorus = (t >= 54.5 && t <= 76.0) || (t >= 109.0 && t <= 129.0);
+    const isRap = t >= 91.5 && t <= 98.5;
     const isClimax = t >= 129.0 && t <= 152.0;
     const isOutro = t >= 152.5;
 
-    let matchedIdx = -1, bestDist = beatSec * 1.4;
+    let matchedIdx = -1, bestDist = beatSec * 0.9;
     for (let i = 0; i < specialMoments.length; i++) {
       if (!used.has(i)) {
         const d = Math.abs(specialMoments[i][0] - t);
@@ -186,29 +203,30 @@ function buildNumberOneOrbChart() {
     let nx, ny;
     if (isRap) {
       // Snappy double-time 4-note zig-zag ladder
-      nx = (stepInPhrase % 2 === 0) ? 0.30 : 0.70;
-      ny = Math.max(0.28, Math.min(0.72, 0.34 + (stepInPhrase * 0.11)));
-    } else if (isHush || isOutro || isIntro) {
-      const arcAngle = stepInPhrase * (Math.PI * 0.5) + phraseIdx * 0.5;
-      nx = Math.max(0.28, Math.min(0.72, 0.50 + 0.15 * Math.cos(arcAngle)));
-      ny = Math.max(0.32, Math.min(0.68, 0.48 + 0.11 * Math.sin(arcAngle)));
+      nx = (seq % 2 === 0) ? 0.32 : 0.68;
+      ny = Math.max(0.28, Math.min(0.72, 0.35 + (stepInPhrase * 0.10)));
+    } else if (isChorus) {
+      // Chorus: Wide stereo bouncing echoing Ethan's open hi-hat pattern
+      const chorusPositions = [0.40, 0.70, 0.25, 0.60, 0.80, 0.30];
+      nx = chorusPositions[(seq - 1) % chorusPositions.length];
+      ny = 0.44 + 0.15 * Math.sin(seq * 0.8);
+    } else if (isVerse) {
+      // Verse: Smooth rhythmic wave tracking vocal delivery
+      const barProg = (seq % 8) / 8.0;
+      nx = 0.30 + 0.40 * (0.5 + 0.5 * Math.sin(barProg * Math.PI * 2));
+      ny = 0.42 + 0.12 * Math.cos(barProg * Math.PI);
+    } else if (isPreChorus || isClimax) {
+      // Ascending energy staircases
+      const prog = (seq % 6) / 6.0;
+      nx = (phraseIdx % 2 === 0) ? (0.25 + prog * 0.50) : (0.75 - prog * 0.50);
+      ny = 0.38 + 0.22 * prog;
     } else {
-      const patternType = phraseIdx % 4;
-      const prog = stepInPhrase / 3.0;
-      if (patternType === 0) {
-        nx = 0.24 + prog * 0.52;
-        ny = 0.38 + 0.12 * Math.sin(prog * Math.PI);
-      } else if (patternType === 1) {
-        nx = 0.76 - prog * 0.52;
-        ny = 0.62 - 0.12 * Math.sin(prog * Math.PI);
-      } else if (patternType === 2) {
-        nx = 0.28 + prog * 0.44;
-        ny = 0.64 - prog * 0.28;
-      } else {
-        nx = 0.50 + 0.24 * Math.cos((prog - 0.5) * Math.PI);
-        ny = 0.32 + prog * 0.34;
-      }
+      // Intro, Hush, Outro: gentle floating central orbit
+      const arcAngle = seq * 0.65;
+      nx = 0.50 + 0.16 * Math.cos(arcAngle);
+      ny = 0.48 + 0.10 * Math.sin(arcAngle);
     }
+
     const puType = effect !== "NONE"
       ? (effect === "CONSTELLATION_STAR" ? "ELECTRIC_HARMONIC"
         : effect === "PRISM_SHATTER" ? "PRISM_HARMONY"
@@ -217,18 +235,43 @@ function buildNumberOneOrbChart() {
         : effect === "TRACTOR_REACH" ? "SHIELD"
         : "SCORE_ORB")
       : "SCORE_ORB";
+
     cues.push({
       sequenceIndex: seq,
-      timestampSec: quantizeToBeat(anchor ? anchor[0] : t, beatSec),
-      normX: nx,
-      normY: ny,
+      timestampSec: parseFloat((anchor ? anchor[0] : t).toFixed(3)),
+      normX: parseFloat(nx.toFixed(3)),
+      normY: parseFloat(ny.toFixed(3)),
       powerUpType: puType,
       keyWordEffect: effect,
       isGoldenCue: effect === "CONSTELLATION_STAR"
     });
     seq++;
-    // 88 BPM has 0.68s per beat — step every 1 beat in rap/climax/chorus, every 2 beats in verses, 3 in hush/outro
-    beatIdx += (isRap || isClimax || isChorus) ? 1 : ((isHush || isOutro || isIntro) ? 3 : 2);
+
+    // Calculate next step interval (in beats)
+    let stepBeats = 1.0;
+    if (isIntro || isOutro) {
+      stepBeats = 2.0; // relaxed intro/outro
+    } else if (isHush) {
+      stepBeats = 2.5; // atmospheric breath
+    } else if (isChorus) {
+      // Ethan's open hi-hat pattern
+      const pattern = [0.75, 0.75, 0.5, 1.0, 1.0];
+      stepBeats = pattern[chorusStepToggle % pattern.length];
+      chorusStepToggle++;
+    } else if (isRap) {
+      stepBeats = 0.5; // Rapid 8th notes during double-time rap
+    } else if (isVerse) {
+      // Rhythmic vocal cadence pattern
+      const activeBar = verseStepPatterns[verseCadenceIdx % verseStepPatterns.length];
+      stepBeats = activeBar[(seq - 1) % activeBar.length] || 1.0;
+      if ((seq - 1) % activeBar.length === 0) verseCadenceIdx++;
+    } else if (isClimax) {
+      stepBeats = 0.75; // Driving climax pulse
+    } else {
+      stepBeats = 1.0; // Pre-chorus / build: solid quarter notes
+    }
+
+    beatTime += stepBeats * beatSec;
   }
   return cues;
 }
