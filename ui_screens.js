@@ -134,13 +134,13 @@ Object.assign(NoMoreIllusionsApp.prototype, {
     const progFill = document.getElementById("hud-top-progress-fill");
     if (progFill) progFill.style.width = `${(progress * 100).toFixed(1)}%`;
 
-    // Milestone Stars & Crowns (Magic Tiles 3 Style)
-    const s1 = document.getElementById("hud-ms-star-1");
-    const s2 = document.getElementById("hud-ms-star-2");
-    const s3 = document.getElementById("hud-ms-star-3");
-    const c1 = document.getElementById("hud-ms-crown-1");
-    const c2 = document.getElementById("hud-ms-crown-2");
-    const c3 = document.getElementById("hud-ms-crown-3");
+    // Milestone Stars & Crowns (Magic Tiles 3 Style — Check both standard and ms IDs)
+    const s1 = document.getElementById("hud-star-1") || document.getElementById("hud-ms-star-1");
+    const s2 = document.getElementById("hud-star-2") || document.getElementById("hud-ms-star-2");
+    const s3 = document.getElementById("hud-star-3") || document.getElementById("hud-ms-star-3");
+    const c1 = document.getElementById("hud-crown-1") || document.getElementById("hud-ms-crown-1");
+    const c2 = document.getElementById("hud-crown-2") || document.getElementById("hud-ms-crown-2");
+    const c3 = document.getElementById("hud-crown-3") || document.getElementById("hud-ms-crown-3");
     if (s1) s1.classList.toggle("unlocked", progress >= 0.166);
     if (s2) s2.classList.toggle("unlocked", progress >= 0.333);
     if (s3) s3.classList.toggle("unlocked", progress >= 0.500);
@@ -148,16 +148,49 @@ Object.assign(NoMoreIllusionsApp.prototype, {
     if (c2) c2.classList.toggle("unlocked", progress >= 0.833);
     if (c3) c3.classList.toggle("unlocked", progress >= 0.980);
 
-    // Endless Mode Loop Counter Pill
-    const endlessLoop = Math.floor(elapsed / totalDur);
+    // Endless Mode Loop Counter Pill (Magic Tiles Accelerating Style)
     const endlessPill = document.getElementById("hud-endless-crown-pill");
-    const endlessVal = document.getElementById("hud-endless-loop-val");
+    const endlessVal = document.getElementById("hud-endless-crown-val") || document.getElementById("hud-endless-loop-val");
     if (endlessPill) {
-      if (this.isEndlessMode || endlessLoop > 0) {
+      const isEndless = this.getRemixMode().id === "ENDLESS" || this.isEndlessMode;
+      const loopNum = (this.endlessLoopCount || 0) + 1;
+      const curRate = (this.trackAudio && this.trackAudio.playbackRate) ? this.trackAudio.playbackRate : 1.0;
+      const speedPct = Math.round((curRate - 1.0) * 100);
+      if (isEndless) {
         endlessPill.style.display = "inline-flex";
-        if (endlessVal) endlessVal.textContent = String(endlessLoop + 1);
+        if (endlessVal) endlessVal.textContent = `LOOP ${loopNum} • +${speedPct}% SPEED`;
       } else {
         endlessPill.style.display = "none";
+      }
+    }
+
+    // Band Hero 5-Star Overdrive Meter & 24K Overdrive Trigger Button
+    const odProg = this.overdriveProgress || 0;
+    const odFilledCount = Math.floor(odProg * 5);
+    for (let st = 1; st <= 5; st++) {
+      const starEl = document.getElementById(`od-star-${st}`);
+      if (starEl) {
+        starEl.classList.toggle("charged", st <= odFilledCount || this.is24KOverdrive);
+      }
+    }
+    const odFillBar = document.getElementById("hud-od-fill-bar");
+    if (odFillBar) {
+      odFillBar.style.width = `${(odProg * 100).toFixed(1)}%`;
+    }
+    const odBtn = document.getElementById("btn-24k-overdrive");
+    const odBtnLabel = document.getElementById("od-btn-label");
+    if (odBtn) {
+      if (this.is24KOverdrive) {
+        odBtn.style.display = "inline-flex";
+        odBtn.classList.add("active-rush");
+        if (odBtnLabel) odBtnLabel.textContent = `24K ACTIVE • ${(this.overdriveTimer || 0).toFixed(1)}s`;
+      } else if (odProg >= 0.60) {
+        odBtn.style.display = "inline-flex";
+        odBtn.classList.remove("active-rush");
+        if (odBtnLabel) odBtnLabel.textContent = "24K OVERDRIVE";
+      } else {
+        odBtn.style.display = "none";
+        odBtn.classList.remove("active-rush");
       }
     }
 
@@ -170,20 +203,22 @@ Object.assign(NoMoreIllusionsApp.prototype, {
     const multRow = document.getElementById("hud-combo-mult-row");
     const curCombo = this.combo || 1;
     if (multVal) {
-      const calcMult = Math.max(1, Math.min(8, Math.floor(curCombo / 4) + 1));
-      multVal.textContent = String(calcMult);
+      const baseMult = Math.max(1, Math.min(8, Math.floor(curCombo / 4) + 1));
+      const mult = this.is24KOverdrive ? Math.min(8, baseMult * 4) : baseMult;
+      multVal.textContent = String(mult);
       if (multRow) {
-        multRow.style.opacity = curCombo > 1 ? "1" : "0.45";
+        multRow.style.opacity = curCombo > 1 || this.is24KOverdrive ? "1" : "0.45";
       }
     }
 
     const badgesEl = document.getElementById("hud-powerup-badges");
     if (badgesEl) {
       let html = "";
-      if (this.shieldTimer > 0) html += `<span title="Aegis Shield">🛡️</span>`;
-      if (this.electricSurgeTimer > 0 || this.overdriveTimer > 0) html += `<span title="Electric Overdrive" style="color:#FACC15;font-weight:900;">⚡ 4X</span>`;
-      if (this.prismBloomTimer > 0) html += `<span title="Prism Vocal Bloom" style="color:#4ADE80;font-weight:900;">✨ PRISM</span>`;
-      if (this.slowMoTimer > 0) html += `<span title="Vortex Slow-Mo" style="color:#C084FC;font-weight:900;">🌀 50%</span>`;
+      if (this.shieldTimer > 0) html += `<span class="pu-badge" style="background:rgba(56,189,248,0.2);border:1px solid #38BDF8;color:#38BDF8;padding:2px 6px;border-radius:6px;font-size:9px;font-weight:900;">SHIELD</span>`;
+      if (this.is24KOverdrive) html += `<span class="pu-badge" style="background:rgba(250,204,21,0.25);border:1px solid #FACC15;color:#FACC15;padding:2px 6px;border-radius:6px;font-size:9px;font-weight:900;">24K OVERDRIVE</span>`;
+      else if (this.electricSurgeTimer > 0 || this.overdriveTimer > 0) html += `<span class="pu-badge" style="background:rgba(250,204,21,0.2);border:1px solid #FACC15;color:#FACC15;padding:2px 6px;border-radius:6px;font-size:9px;font-weight:900;">4X MULT</span>`;
+      if (this.prismBloomTimer > 0) html += `<span class="pu-badge" style="background:rgba(74,222,128,0.2);border:1px solid #4ADE80;color:#4ADE80;padding:2px 6px;border-radius:6px;font-size:9px;font-weight:900;">PRISM</span>`;
+      if (this.slowMoTimer > 0) html += `<span class="pu-badge" style="background:rgba(192,132,252,0.2);border:1px solid #C084FC;color:#C084FC;padding:2px 6px;border-radius:6px;font-size:9px;font-weight:900;">SLOW-MO</span>`;
       if (badgesEl.dataset.last !== html) {
         badgesEl.innerHTML = html;
         badgesEl.dataset.last = html;
@@ -203,17 +238,27 @@ Object.assign(NoMoreIllusionsApp.prototype, {
     const multRow = document.getElementById("hud-combo-mult-row");
     if (!pill || !textEl) return;
     textEl.textContent = ratingText;
-    if (ratingText === "PERFECT") {
-      pill.style.borderColor = "rgba(236,72,153,0.8)";
+    textEl.className = "hud-rating-text";
+    if (ratingText.includes("24K")) {
+      pill.style.borderColor = "rgba(250,204,21,1)";
+      textEl.style.color = "#FACC15";
+    } else if (ratingText === "PERFECT") {
+      pill.style.borderColor = "rgba(236,72,153,0.85)";
       textEl.style.color = "#F472B6";
+    } else if (ratingText === "SHIELD") {
+      pill.style.borderColor = "rgba(245,158,11,0.85)";
+      textEl.style.color = "#F59E0B";
+      textEl.classList.add("shield");
     } else {
-      pill.style.borderColor = "rgba(56,189,248,0.8)";
+      pill.style.borderColor = "rgba(56,189,248,0.85)";
       textEl.style.color = "#38BDF8";
+      textEl.classList.add("great");
     }
     if (multVal) {
-      const mult = Math.max(1, Math.min(8, Math.floor(combo / 4) + 1));
+      const baseMult = Math.max(1, Math.min(8, Math.floor(combo / 4) + 1));
+      const mult = this.is24KOverdrive ? Math.min(8, baseMult * 4) : baseMult;
       multVal.textContent = String(mult);
-      if (multRow) multRow.style.opacity = combo > 1 ? "1" : "0.45";
+      if (multRow) multRow.style.opacity = combo > 1 || this.is24KOverdrive ? "1" : "0.45";
     }
     pill.classList.remove("rating-pop");
     void pill.offsetWidth;
@@ -249,7 +294,7 @@ Object.assign(NoMoreIllusionsApp.prototype, {
     this.playSfx("click");
     const track = OFFICIAL_TRACKS[this.selectedStageIndex] || OFFICIAL_TRACKS[0];
     const scoreFmt = Number(this.score || 0).toLocaleString();
-    const shareText = `🎵 Just scored ${scoreFmt} on "${track.title}" in No More Illusions! Tagging @EthanKStark #NoMoreIllusions 🚀 Check out the gamified album:`;
+    const shareText = `Just scored ${scoreFmt} on "${track.title}" in No More Illusions! Tagging @EthanKStark #NoMoreIllusions Check out the gamified album:`;
     const shareUrl = "https://oneshelfstudio.github.io/NoMoreIllusions/";
     if (navigator.share) {
       navigator.share({
@@ -465,7 +510,7 @@ Object.assign(NoMoreIllusionsApp.prototype, {
     if (metaRowEl) {
       metaRowEl.textContent = isCurUnlocked
         ? `${activeStage.key || "STUDIO MASTER"} • ${starsStr} READY`
-        : `🔒 LOCKED • BEAT TRACK 01 OR UNLOCK (1,200 ♪)`;
+        : `LOCKED • BEAT TRACK 01 OR UNLOCK (1,200 NOTES)`;
       metaRowEl.style.color = isCurUnlocked ? "#FACC15" : "#F87171";
     }
 
@@ -475,7 +520,7 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       if (this.selectedStageIndex === 1) {
         altCoverBtn.style.display = "inline-flex";
         if (altCoverLabel) {
-          altCoverLabel.textContent = this.prefs.track02AltCover ? "✓ ALT LOTUS COVER" : "🎨 ALT COVER";
+          altCoverLabel.textContent = this.prefs.track02AltCover ? "✓ ALT LOTUS COVER" : "ALT COVER";
         }
         altCoverBtn.style.borderColor = this.prefs.track02AltCover ? "#FACC15" : "rgba(255,255,255,0.25)";
         altCoverBtn.style.background = this.prefs.track02AltCover ? "rgba(250,204,21,0.22)" : "rgba(255,255,255,0.08)";
@@ -484,13 +529,14 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       }
     }
 
-    // 2. 4 SCULPTED CHAMFERED NEON MODE GEMS (#menu-remix-pills: Chill, Normal, Fast, Band Hero!)
+    // 2. 4 SCULPTED CHAMFERED NEON MODE GEMS (#menu-remix-pills: Chill, Normal, Fast, Endless!)
     const remixPillsEl = document.getElementById("menu-remix-pills");
     if (remixPillsEl) {
       const gems = [
-        { id: "SLOWED", label: "🌙 CHILL", sub: "0.5x • 2 Runs", col: "#38BDF8" },
-        { id: "ORIGINAL", label: "⚡ NORMAL", sub: "1.0x • 1 Run", col: "#4ADE80" },
-        { id: "OVERCLOCK", label: "🔥 FAST", sub: "1.5x Score", col: "#F43F5E" }
+        { id: "SLOWED", label: "CHILL", sub: "0.5x • 2 Runs", col: "#38BDF8" },
+        { id: "ORIGINAL", label: "NORMAL", sub: "1.0x • 1 Run", col: "#4ADE80" },
+        { id: "OVERCLOCK", label: "FAST", sub: "1.5x Score", col: "#F43F5E" },
+        { id: "ENDLESS", label: "ENDLESS", sub: "+6% Spd/Loop", col: "#A855F7" }
       ];
       const gemsHtml = gems.map(g => {
         const isAct = !this.isBandHeroMode && activeRemix.id === g.id;
@@ -513,8 +559,8 @@ Object.assign(NoMoreIllusionsApp.prototype, {
                     clip-path:polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
                     background:${bhActive ? "rgba(250,204,21,0.26)" : "#160B24"};
                     border:${bhActive ? "2px solid #FACC15" : "1px solid rgba(236,72,153,0.48)"};">
-          <div style="font-size:9.5px;font-weight:900;color:${bhActive ? "#FACC15" : "#F472B6"};white-space:nowrap;">🎸 CLASSIC</div>
-          <div style="font-size:7px;font-weight:800;color:#CBD5E1;margin-top:2px;white-space:nowrap;">${bhActive ? "Guitar Hero ON" : "Guitar Hero Style"}</div>
+          <div style="font-size:9.5px;font-weight:900;color:${bhActive ? "#FACC15" : "#F472B6"};white-space:nowrap;">CLASSIC</div>
+          <div style="font-size:7px;font-weight:800;color:#CBD5E1;margin-top:2px;white-space:nowrap;">${bhActive ? "Highway Mode" : "4-Lane Highway"}</div>
         </div>
       `;
 
@@ -534,9 +580,9 @@ Object.assign(NoMoreIllusionsApp.prototype, {
     const launchMain = document.getElementById("menu-launch-main");
     if (launchMain) {
       launchMain.innerHTML = !isStageUnlocked
-        ? `🔒 &nbsp;UNLOCK TRACK 0${this.selectedStageIndex + 1} (1,200 ♪)`
+        ? `UNLOCK TRACK 0${this.selectedStageIndex + 1} (1,200 NOTES)`
         : (this.isBandHeroMode
-          ? `🎸 &nbsp;PLAY CLASSIC HIGHWAY`
+          ? `PLAY CLASSIC HIGHWAY`
           : `▶ &nbsp;PLAY ${activeStage.title.toUpperCase()}`);
     }
     const launchSub = document.getElementById("menu-launch-sub");
@@ -578,8 +624,8 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       if (notesBtn) {
         const canAfford = this.prefs.points >= 250;
         notesBtn.innerHTML = canAfford
-          ? `♪ USE 250 NOTES TO REVIVE <span style="opacity:0.75;font-weight:700;">&nbsp;(YOU HAVE ${this.prefs.points})</span>`
-          : `NEED 250 ♪ NOTES <span style="opacity:0.75;font-weight:700;">&nbsp;(YOU HAVE ${this.prefs.points})</span>`;
+          ? `USE 250 NOTES TO REVIVE <span style="opacity:0.75;font-weight:700;">&nbsp;(YOU HAVE ${this.prefs.points})</span>`
+          : `NEED 250 NOTES <span style="opacity:0.75;font-weight:700;">&nbsp;(YOU HAVE ${this.prefs.points})</span>`;
         notesBtn.style.opacity = canAfford ? "1" : "0.6";
       }
     }
@@ -587,11 +633,19 @@ Object.assign(NoMoreIllusionsApp.prototype, {
     // VIP badge on menu
     const vipBadge = document.getElementById("menu-vip-badge");
     if (vipBadge) {
-      vipBadge.textContent = this.prefs.vipUnlocked ? "• ★ VIP UNLOCKED" : "";
+      vipBadge.textContent = this.prefs.vipUnlocked ? "• VIP UNLOCKED" : "";
     }
 
     // Track Completed Screen (Visual-First Premiere Celebration)
     if (this.gameState === "TRACK_COMPLETED") {
+      const tcArt = document.getElementById("tc-album-art-img");
+      if (tcArt) {
+        let artSrc = activeStage.coverArt || "assets/nmi_logo.png";
+        if (this.selectedStageIndex === 1 && this.prefs.track02AltCover && activeStage.coverArtAlt) {
+          artSrc = activeStage.coverArtAlt;
+        }
+        tcArt.src = artSrc;
+      }
       const tcTitle = document.getElementById("tc-track-title");
       if (tcTitle) tcTitle.textContent = `TRACK ${this.selectedStageIndex + 1}: "${activeStage.title.toUpperCase()}"`;
       const popupEl = document.getElementById("tc-excl-popup");
@@ -606,7 +660,7 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       const tcEarned = document.getElementById("tc-earned-val");
       if (tcEarned) {
         const totalEarned = this.lastRunEarnedNotes || (Math.max(50, Math.floor(this.score / 8)) + 500);
-        tcEarned.textContent = `+♪ ${totalEarned}`;
+        tcEarned.textContent = `+${totalEarned} NOTES`;
       }
       if (typeof this.getPrimarySpotlightExclusive === "function") {
         const excl = this.getPrimarySpotlightExclusive(this.selectedStageIndex);
@@ -615,7 +669,7 @@ Object.assign(NoMoreIllusionsApp.prototype, {
           const tEl = document.getElementById("tc-excl-title");
           const bodyEl = document.getElementById("tc-excl-body");
           const qEl = document.getElementById("tc-excl-quote");
-          if (bEl) bEl.textContent = `★ VAULT EXCLUSIVE UNLOCKED • ${excl.categoryBadge}`;
+          if (bEl) bEl.textContent = `VAULT EXCLUSIVE UNLOCKED • ${excl.categoryBadge}`;
           if (tEl) tEl.textContent = excl.title;
           if (bodyEl) bodyEl.textContent = excl.unlockedBody;
           if (qEl) qEl.textContent = excl.unlockedQuote;
@@ -686,7 +740,7 @@ Object.assign(NoMoreIllusionsApp.prototype, {
 
   syncCustomizerUI() {
     const ptsEl = document.getElementById("cust-points-val");
-    if (ptsEl) ptsEl.textContent = `♪ ${this.prefs.points}`;
+    if (ptsEl) ptsEl.textContent = `${this.prefs.points} NOTES`;
 
     const tab = (typeof this.customizerTab === "number" && this.customizerTab >= 0) ? this.customizerTab : 0;
     const sub = (typeof this.skinsSubCategory === "number") ? this.skinsSubCategory : 0;
@@ -708,7 +762,7 @@ Object.assign(NoMoreIllusionsApp.prototype, {
     const titleEl = document.getElementById("cust-modal-title");
     const subTitleEl = document.getElementById("cust-modal-sub");
     if (titleEl) {
-      titleEl.textContent = tab === 0 ? "✨ HERO SKINS & FX" : tab === 1 ? "💿 ARTIST ALBUM VAULT" : "🌟 ARTIST EXCLUSIVES";
+      titleEl.textContent = tab === 0 ? "HERO SKINS & FX" : tab === 1 ? "ARTIST ALBUM VAULT" : "ARTIST EXCLUSIVES";
     }
     if (subTitleEl) {
       subTitleEl.textContent = tab === 0 ? "CUSTOM CORES, SILK TRAILS & NEBULA PALETTES" : tab === 1 ? "OFFICIAL STUDIO MASTERS & BONUS ART" : "LINER NOTES, STUDIO DIARIES & VIP PASSES";
@@ -759,7 +813,7 @@ Object.assign(NoMoreIllusionsApp.prototype, {
                              (it.cat === "trail" && this.prefs.selectedTrail === it.id) ||
                              (it.cat === "theme" && this.prefs.selectedTheme === it.id);
           const canAfford = this.prefs.points >= it.price;
-          const btnLabel = isSelected ? "EQUIPPED" : isUnlocked ? "EQUIP" : `♪ ${it.price}`;
+          const btnLabel = isSelected ? "EQUIPPED" : isUnlocked ? "EQUIP" : `${it.price} NOTES`;
           const btnClass = isSelected ? "cust-btn equipped" : isUnlocked ? "cust-btn equip" : (canAfford ? "cust-btn buy" : "cust-btn locked");
           return `
             <div class="cust-item-row ${isSelected ? "selected" : ""}">
@@ -787,7 +841,7 @@ Object.assign(NoMoreIllusionsApp.prototype, {
           return `
             <div class="vault-track-row ${isUnlocked ? "unlocked" : "locked"}" style="flex-direction:column;align-items:stretch;gap:6px;">
               <div style="display:flex;align-items:center;gap:10px;cursor:pointer;" onclick="${isUnlocked ? `window.app.openTrackInDemo(${idx})` : ""}">
-                <div class="vault-track-icon">${isUnlocked ? "▶" : "🔒"}</div>
+                <div class="vault-track-icon">${isUnlocked ? "▶" : "•"}</div>
                 <div style="flex:1;min-width:0;">
                   <div class="vault-track-name">${t.title}</div>
                   <div class="vault-track-sub" style="color:${isUnlocked ? "#4ADE80" : "#94A3B8"};">
@@ -800,7 +854,7 @@ Object.assign(NoMoreIllusionsApp.prototype, {
                 <div style="display:flex;justify-content:flex-end;margin-top:2px;">
                   <button class="btn-close-pill" style="font-size:9.5px;color:${this.prefs.track02AltCover ? "#FACC15" : "#38BDF8"};border-color:${this.prefs.track02AltCover ? "#FACC15" : "rgba(56,189,248,0.5)"};background:${this.prefs.track02AltCover ? "rgba(250,204,21,0.18)" : "transparent"};"
                           onclick="window.app.toggleAltCover()">
-                    🎨 ${this.prefs.track02AltCover ? "✓ ALT LOTUS COVER ACTIVE" : "USE ALTERNATE LOTUS ART"}
+                    ${this.prefs.track02AltCover ? "✓ ALT LOTUS COVER ACTIVE" : "USE ALTERNATE LOTUS ART"}
                   </button>
                 </div>
               ` : ""}
@@ -903,7 +957,7 @@ Object.assign(NoMoreIllusionsApp.prototype, {
 
     const statusEl = document.getElementById("demo-active-status");
     if (statusEl) {
-      statusEl.textContent = isUnlocked ? "★ UNLOCKED IN ALBUM VAULT" : `🔒 LOCKED (${Math.round(bestProg * 100)}% REVEALED)`;
+      statusEl.textContent = isUnlocked ? "UNLOCKED IN ALBUM VAULT" : `LOCKED (${Math.round(bestProg * 100)}% REVEALED)`;
       statusEl.style.color = isUnlocked ? "#4ADE80" : "#FACC15";
     }
 
@@ -932,7 +986,7 @@ Object.assign(NoMoreIllusionsApp.prototype, {
         const p = Math.round(Math.max(u ? 1 : 0, this.prefs.trackBestProgress[t.id] || 0) * 100);
         return `
           <div class="vault-track-row ${sel ? "selected" : ""}" onclick="window.app.selectDemoTrack(${idx}, true)">
-            <div class="vault-track-icon" style="color:${u ? "#4ADE80" : "#FACC15"};">${u ? "▶" : "🔒"}</div>
+            <div class="vault-track-icon" style="color:${u ? "#4ADE80" : "#FACC15"};">${u ? "▶" : "•"}</div>
             <div style="flex:1;">
               <div class="vault-track-name">${t.title}</div>
               <div class="vault-track-sub">${u ? `${t.subtitle}` : `${p}% Revealed — Survive stage to unlock`}</div>
