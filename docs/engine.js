@@ -645,6 +645,12 @@ class NoMoreIllusionsApp {
     this.constellationRushTimer = 0;
     this.activeTrackDurationSec = stage.durationSec;
     this.trackElapsedSec = 0;
+    this.overdriveProgress = 0.0;
+    this.is24KOverdrive = false;
+    this.overdriveTimer = 0;
+    this.overdriveDuration = 9.0;
+    this.endlessLoopCount = 0;
+    this.isEndlessMode = (mode.id === "ENDLESS");
 
     this.lobbyAudio.pause();
     this.demoAudio.pause();
@@ -680,13 +686,48 @@ class NoMoreIllusionsApp {
     this.syncUI();
   }
 
+  activate24KOverdrive() {
+    if (this.gameState !== "PLAYING") return;
+    if (this.is24KOverdrive) return;
+    if ((this.overdriveProgress || 0) < 0.60) return;
+
+    this.is24KOverdrive = true;
+    this.overdriveDuration = 9.0;
+    this.overdriveTimer = this.overdriveDuration;
+    this.screenShake = 16;
+    this.triggerHaptic([40, 60, 40]);
+    this.playSfx("levelup", 0.95);
+    this.synthComboChordStinger(16);
+
+    // Spawn 24K golden stardust cascade
+    this.spawnBurstMotes(this.playerX, this.playerY, [250, 204, 21], 24);
+    for (let i = 0; i < 20; i++) {
+      this.motes.push({
+        x: Math.random() * this.W,
+        y: Math.random() * this.H * 0.5,
+        vx: (Math.random() - 0.5) * 60,
+        vy: 40 + Math.random() * 80,
+        color: [250, 204, 21],
+        radius: 2.5 + Math.random() * 3,
+        alpha: 1,
+        isStarfall: true,
+        swayPhase: Math.random() * 6.28
+      });
+    }
+
+    if (typeof this.triggerRatingPopup === "function") {
+      this.triggerRatingPopup("24K OVERDRIVE", this.combo);
+    }
+    this.updateLiveHUD();
+  }
+
   advanceEndlessLoop() {
     this.endlessLoopCount = (this.endlessLoopCount || 0) + 1;
     if (this.endlessLoopCount + 1 > (this.prefs.endlessBestLoop || 0)) {
       this.prefs.endlessBestLoop = this.endlessLoopCount + 1;
       localStorage.setItem("nmi_endless_best_loop", String(this.prefs.endlessBestLoop));
     }
-    const newSpeed = Math.min(1.65, 1.0 + this.endlessLoopCount * 0.08);
+    const newSpeed = Math.min(1.80, 1.0 + this.endlessLoopCount * 0.06);
     this.nextBeatCueIndex = 0;
     this.lastTriggeredSectionTime = -1;
     this.trackElapsedSec = 0;
@@ -702,7 +743,8 @@ class NoMoreIllusionsApp {
     } catch (e) {}
     this.screenShake = Math.max(this.screenShake, 12);
     this.shockwaves.push({ x: this.W / 2, y: this.H * 0.45, radius: 12, maxRadius: Math.max(this.W, this.H) * 0.85, color: [250, 204, 21], alpha: 1 });
-    this.showToast("∞", `ENDLESS LOOP #${this.endlessLoopCount + 1}!`, `SONG SPEED ESCALATED TO ${newSpeed.toFixed(2)}x • +${bonus} PTS`, "#FACC15", 3.2);
+    const speedPct = Math.round((newSpeed - 1.0) * 100);
+    this.showToast("♾️", `ENDLESS LOOP #${this.endlessLoopCount + 1}!`, `SONG SPEED ESCALATED +${speedPct}% • +${bonus} PTS`, "#FACC15", 3.2);
   }
 
   // Revive using 250 ♪ Notes (1:1 with Android GameOverUI)

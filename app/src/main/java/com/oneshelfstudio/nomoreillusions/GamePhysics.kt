@@ -479,13 +479,13 @@ fun stepNebulousBeatOrbs(
                 orb.y = orb.spawnY + s * chordY + perpY * arcOffset
             }
 
-            // Integrate elastic bounce impulse offset and decay back to waterfall path
+            // Integrate elastic bounce impulse offset and decay smoothly without rigid snap
             orb.bounceOffsetX += orb.bvx * dt
             orb.bounceOffsetY += orb.bvy * dt
-            orb.bvx *= 0.92f
-            orb.bvy *= 0.92f
-            orb.bounceOffsetX *= 0.94f
-            orb.bounceOffsetY *= 0.94f
+            orb.bvx *= 0.96f
+            orb.bvy *= 0.96f
+            orb.bounceOffsetX *= 0.985f
+            orb.bounceOffsetY *= 0.985f
             orb.x += orb.bounceOffsetX
             orb.y += orb.bounceOffsetY
 
@@ -506,45 +506,39 @@ fun stepNebulousBeatOrbs(
                     val dx = b.x - a.x
                     val dy = b.y - a.y
                     val dist = kotlin.math.hypot(dx, dy)
-                    val minDist = (a.radius + b.radius) * 1.35f
+                    val minDist = (a.radius + b.radius) * 1.15f
                     if (dist < minDist && dist > 0.001f) {
                         val overlap = minDist - dist
                         val nx = dx / dist
                         val ny = dy / dist
 
-                        // Positional separation to prevent interpenetration
-                        a.x -= nx * overlap * 0.5f
-                        a.y -= ny * overlap * 0.5f
-                        b.x += nx * overlap * 0.5f
-                        b.y += ny * overlap * 0.5f
-                        a.bounceOffsetX -= nx * overlap * 0.5f
-                        a.bounceOffsetY -= ny * overlap * 0.5f
-                        b.bounceOffsetX += nx * overlap * 0.5f
-                        b.bounceOffsetY += ny * overlap * 0.5f
+                        // Positional separation along normal
+                        a.bounceOffsetX -= nx * overlap * 0.52f
+                        a.bounceOffsetY -= ny * overlap * 0.52f
+                        b.bounceOffsetX += nx * overlap * 0.52f
+                        b.bounceOffsetY += ny * overlap * 0.52f
+                        a.x += a.bounceOffsetX
+                        a.y += a.bounceOffsetY
+                        b.x += b.bounceOffsetX
+                        b.y += b.bounceOffsetY
 
-                        // Calculate relative velocities along collision normal
-                        val vxA = (b.spawnX - a.spawnX) * 0.1f + a.bvx
-                        val vyA = 120f + a.bvy
-                        val vxB = (a.spawnX - b.spawnX) * 0.1f + b.bvx
-                        val vyB = 120f + b.bvy
-                        val relVx = vxB - vxA
-                        val relVy = vyB - vyA
+                        // Relative velocity along collision normal
+                        val relVx = b.bvx - a.bvx
+                        val relVy = b.bvy - a.bvy
                         val velAlongNormal = relVx * nx + relVy * ny
 
-                        if (velAlongNormal < 0f) {
-                            val restitution = 0.85f
-                            val impulseMag = maxOf(140f, -(1f + restitution) * velAlongNormal)
-                            a.bvx -= nx * impulseMag * 0.5f
-                            a.bvy -= ny * impulseMag * 0.5f
-                            b.bvx += nx * impulseMag * 0.5f
-                            b.bvy += ny * impulseMag * 0.5f
+                        val restitution = 0.72f
+                        val impulseMag = maxOf(90f, -(1f + restitution) * velAlongNormal * 0.5f + overlap * 25f)
+                        a.bvx -= nx * impulseMag
+                        a.bvy -= ny * impulseMag
+                        b.bvx += nx * impulseMag
+                        b.bvy += ny * impulseMag
 
-                            // Trigger squish deformation along collision axis
-                            a.squish = 0.35f
-                            a.squishAngle = atan2(ny, nx)
-                            b.squish = 0.35f
-                            b.squishAngle = atan2(-ny, -nx)
-                        }
+                        // Trigger squish deformation along collision axis
+                        a.squish = 0.32f
+                        a.squishAngle = atan2(ny, nx)
+                        b.squish = 0.32f
+                        b.squishAngle = atan2(-ny, -nx)
                     }
                 }
             }

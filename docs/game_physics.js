@@ -67,23 +67,47 @@ Object.assign(NoMoreIllusionsApp.prototype, {
     if (this.vocalStreamContrailTimer > 0) this.vocalStreamContrailTimer = Math.max(0, this.vocalStreamContrailTimer - dt);
     if (this.screenShake > 0) this.screenShake = Math.max(0, this.screenShake - dt * 32);
 
+    // 24-Karat Overdrive Timer Decay & Golden Spark Rush
+    if (this.is24KOverdrive) {
+      this.overdriveTimer = Math.max(0, (this.overdriveTimer || 9.0) - dt);
+      this.overdriveProgress = this.overdriveTimer / (this.overdriveDuration || 9.0);
+      if (this.overdriveTimer <= 0) {
+        this.is24KOverdrive = false;
+        this.overdriveProgress = 0;
+        this.playSfx("click", 0.4);
+      }
+    }
+
     if (this.comboTimer > 0) {
-      this.comboTimer -= dt;
-      if (this.comboTimer <= 0) {
-        if (this.combo > 1) {
-          this.comboZoomBanner = {
-            text: "💔 STREAK TIMEOUT",
-            subText: "FLOW INTERRUPTED",
-            color: [239, 68, 68],
-            timer: 1.4,
-            maxTimer: 1.4,
-            isBroken: true
-          };
-          if (typeof this.triggerComboBreak === "function") {
-            this.triggerComboBreak();
+      if (this.is24KOverdrive) {
+        this.comboTimer = 4.0; // Invulnerable streak during 24K Overdrive!
+      } else {
+        this.comboTimer -= dt;
+        if (this.comboTimer <= 0) {
+          if (this.combo > 5) {
+            // Band Hero Grace Protection: Decay by 2 rather than instant wipe to 1
+            this.combo = Math.max(1, this.combo - 2);
+            this.comboTimer = 3.5;
+            if (typeof this.triggerRatingPopup === "function") {
+              this.triggerRatingPopup("SHIELD", this.combo);
+            }
+          } else {
+            if (this.combo > 1) {
+              this.comboZoomBanner = {
+                text: "💔 STREAK TIMEOUT",
+                subText: "FLOW INTERRUPTED",
+                color: [239, 68, 68],
+                timer: 1.2,
+                maxTimer: 1.2,
+                isBroken: true
+              };
+              if (typeof this.triggerComboBreak === "function") {
+                this.triggerComboBreak();
+              }
+            }
+            this.combo = 1;
           }
         }
-        this.combo = 1;
       }
     }
 
@@ -329,12 +353,21 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       const isExpiredByTtl = (this.isBandHeroMode && u > 1.24) || (pu.expireBeatSec > 0 && this.trackElapsedSec > pu.expireBeatSec);
       const isPastBottom = !this.isBandHeroMode && (pu.y >= (this.H + 45) || u >= 2.05);
       if (isExpiredByTtl || isPastBottom || pu.age >= pu.maxLifetime) {
-        // Uncollected note escaped: Stop the streak and give crisp feedback!
-        if (this.combo > 1) {
-          this.combo = 1;
-          this.comboTimer = 0;
-          this.triggerHaptic([32]);
-          this.screenShake = Math.max(this.screenShake, 3.5);
+        // Uncollected note escaped: Band Hero Forgiving Grace Protection!
+        if (this.is24KOverdrive) {
+          // Complete combo streak invulnerability during 24K Overdrive!
+        } else if (this.combo > 5) {
+          // Forgiving streak decay: decay by 2 rather than wiping to 1
+          this.combo = Math.max(1, this.combo - 2);
+          this.comboTimer = 4.0;
+          this.triggerHaptic([20]);
+          if (typeof this.triggerRatingPopup === "function") {
+            this.triggerRatingPopup("SHIELD", this.combo);
+          }
+        } else if (this.combo > 1) {
+          this.combo = Math.max(1, this.combo - 1);
+          this.comboTimer = 3.0;
+          this.triggerHaptic([28]);
           if (typeof this.triggerComboBreak === "function") {
             this.triggerComboBreak();
           }
@@ -366,12 +399,12 @@ Object.assign(NoMoreIllusionsApp.prototype, {
           pu.baseY = (pu.baseY !== undefined ? pu.baseY : pu.y) + (goalY - pu.y) * 0.16;
         }
 
-        // Integrate natural physics elastic bounce momentum & displacement
-        pu.bvx = (pu.bvx || 0) * 0.90;
-        pu.bvy = (pu.bvy || 0) * 0.90;
-        pu.bounceOffsetX = ((pu.bounceOffsetX || 0) + pu.bvx * worldDt) * 0.92;
-        pu.bounceOffsetY = ((pu.bounceOffsetY || 0) + pu.bvy * worldDt) * 0.92;
-        pu.squish = (pu.squish || 0) * 0.86;
+        // Integrate natural physics elastic bounce momentum & persistent displacement
+        pu.bvx = (pu.bvx || 0) * 0.96;
+        pu.bvy = (pu.bvy || 0) * 0.96;
+        pu.bounceOffsetX = ((pu.bounceOffsetX || 0) + pu.bvx * worldDt) * 0.985;
+        pu.bounceOffsetY = ((pu.bounceOffsetY || 0) + pu.bvy * worldDt) * 0.985;
+        pu.squish = (pu.squish || 0) * 0.88;
 
         pu.x = pu.baseX + pu.bounceOffsetX;
         pu.y = pu.baseY + pu.bounceOffsetY;
@@ -386,30 +419,30 @@ Object.assign(NoMoreIllusionsApp.prototype, {
             const dx = pB.x - pA.x;
             const dy = pB.y - pA.y;
             const dist = Math.hypot(dx, dy);
-            const minDist = (pA.radius + pB.radius) * 1.22;
+            const minDist = (pA.radius + pB.radius) * 1.15;
             if (dist < minDist && dist > 0.001) {
               const overlap = minDist - dist;
               const nx = dx / dist;
               const ny = dy / dist;
 
-              // Instant position separation along normal
-              pA.bounceOffsetX = (pA.bounceOffsetX || 0) - nx * overlap * 0.5;
-              pA.bounceOffsetY = (pA.bounceOffsetY || 0) - ny * overlap * 0.5;
-              pB.bounceOffsetX = (pB.bounceOffsetX || 0) + nx * overlap * 0.5;
-              pB.bounceOffsetY = (pB.bounceOffsetY || 0) + ny * overlap * 0.5;
+              // True elastic position separation along collision normal
+              pA.bounceOffsetX = (pA.bounceOffsetX || 0) - nx * overlap * 0.52;
+              pA.bounceOffsetY = (pA.bounceOffsetY || 0) - ny * overlap * 0.52;
+              pB.bounceOffsetX = (pB.bounceOffsetX || 0) + nx * overlap * 0.52;
+              pB.bounceOffsetY = (pB.bounceOffsetY || 0) + ny * overlap * 0.52;
               pA.x = pA.baseX + pA.bounceOffsetX;
               pA.y = pA.baseY + pA.bounceOffsetY;
               pB.x = pB.baseX + pB.bounceOffsetX;
               pB.y = pB.baseY + pB.bounceOffsetY;
 
               // Relative velocity along normal
-              const vRelX = (pA.bvx || 0) - (pB.bvx || 0);
-              const vRelY = (pA.bvy || 0) - (pB.bvy || 0);
+              const vRelX = (pB.bvx || 0) - (pA.bvx || 0);
+              const vRelY = (pB.bvy || 0) - (pA.bvy || 0);
               const vNorm = vRelX * nx + vRelY * ny;
 
-              // Elastic impulse with restitution e = 0.85
-              const e = 0.85;
-              const impulse = Math.max(140.0, -vNorm * (1 + e) * 0.5 + overlap * 32.0);
+              // Elastic impulse with restitution e = 0.72
+              const e = 0.72;
+              const impulse = Math.max(90.0, -vNorm * (1 + e) * 0.5 + overlap * 25.0);
 
               pA.bvx = (pA.bvx || 0) - nx * impulse;
               pA.bvy = (pA.bvy || 0) - ny * impulse;
@@ -417,13 +450,13 @@ Object.assign(NoMoreIllusionsApp.prototype, {
               pB.bvy = (pB.bvy || 0) + ny * impulse;
 
               // Visual Squish & Stretch deformation along impact axis
-              pA.squish = 0.35;
+              pA.squish = 0.32;
               pA.squishAngle = Math.atan2(ny, nx);
-              pB.squish = 0.35;
+              pB.squish = 0.32;
               pB.squishAngle = Math.atan2(-ny, -nx);
 
               if (Math.random() < 0.6) {
-                this.playSfx("click", 0.30);
+                this.playSfx("click", 0.25);
               }
             }
           }
@@ -838,30 +871,40 @@ Object.assign(NoMoreIllusionsApp.prototype, {
 
     const mode = this.getRemixMode();
     const diffMult = (mode.scoreMult || 1.0) * (this.prefs.difficulty === "EASY" ? 0.55 : (this.prefs.difficulty === "HARD" ? 1.35 : 1.0));
+    const odMult = this.is24KOverdrive ? (this.combo >= 8 ? 8 : 4) : 1;
+
+    // Charge 5-Star Overdrive Meter with on-beat note hits
+    if (!this.is24KOverdrive) {
+      this.overdriveProgress = Math.min(1.0, (this.overdriveProgress || 0) + (isAtStrikeLine ? 0.05 : 0.035));
+    }
 
     if (pu.type === "SCORE_ORB") {
       this.synthHarmonicOrbChime(0.72, isAtStrikeLine, this.combo);
       this.triggerHaptic([isAtStrikeLine ? 24 : 14]);
 
       const basePts = isAtStrikeLine ? 120 : 60;
-      const pts = Math.max(10, Math.round(basePts * this.combo * (this.constellationRushTimer > 0 ? 2 : 1) * diffMult));
+      const pts = Math.max(10, Math.round(basePts * this.combo * (this.constellationRushTimer > 0 ? 2 : 1) * odMult * diffMult));
       this.score += pts;
 
       if (typeof this.triggerRatingPopup === "function") {
-        this.triggerRatingPopup(isAtStrikeLine ? "PERFECT" : "GREAT", this.combo);
+        const ratingStr = this.is24KOverdrive ? "24K PERFECT" : (isAtStrikeLine ? "PERFECT" : "GREAT");
+        this.triggerRatingPopup(ratingStr, this.combo);
       }
 
       if (isAtStrikeLine && this.combo >= 6 && this.orbsCollectedRun % 8 === 0) {
         this.spawnMelodicStarfallCascade();
       }
 
-      this.spawnBurstMotes(pu.x, pu.y, isAtStrikeLine ? [74, 222, 128] : [250, 204, 21], 6);
+      const burstCol = this.is24KOverdrive
+        ? [250, 204, 21]
+        : (isAtStrikeLine ? [74, 222, 128] : [250, 204, 21]);
+      this.spawnBurstMotes(pu.x, pu.y, burstCol, this.is24KOverdrive ? 10 : 6);
       this.shockwaves.push({
         x: pu.x,
         y: (this.isBandHeroMode && isAtStrikeLine) ? strikeY : pu.y,
         radius: 8,
         maxRadius: isAtStrikeLine ? 115 : 75,
-        color: isAtStrikeLine ? [74, 222, 128] : [250, 204, 21],
+        color: burstCol,
         alpha: 1
       });
 

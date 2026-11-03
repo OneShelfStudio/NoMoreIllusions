@@ -392,6 +392,7 @@ fun GameScreen(
     var cameraPunch by remember { mutableFloatStateOf(0f) }
     var goldenOverdriveIntensity by remember { mutableFloatStateOf(0f) }
     var starPowerTime by remember { mutableFloatStateOf(0f) }
+    var overdriveProgress by remember { mutableFloatStateOf(0f) }
     var beatFlashIntensity by remember { mutableFloatStateOf(0f) }
     var gameTime by remember { mutableFloatStateOf(0f) }
     var levelPlayTime by remember { mutableFloatStateOf(0f) }
@@ -474,6 +475,7 @@ fun GameScreen(
         cameraPunch = 0f
         goldenOverdriveIntensity = 0f
         starPowerTime = 0f
+        overdriveProgress = 0f
         beatFlashIntensity = 0f
         lastTriggeredSectionSec = -1f
         activeSectionLabel = "INTRO"
@@ -951,10 +953,15 @@ fun GameScreen(
                     magnetActive = magnetTime > 0f && !isBandHeroMode,
                     isBandHeroMode = isBandHeroMode,
                     onBeatMissed = {
-                        if (rhythmCombo > 0) {
+                        if (isGoldenActive) {
+                            // protected during 24K Overdrive rush!
+                        } else if (rhythmCombo > 5) {
+                            rhythmCombo = maxOf(1, rhythmCombo - 2)
+                            shakeAmount = maxOf(shakeAmount, 2f)
+                        } else if (rhythmCombo > 0) {
+                            rhythmCombo = maxOf(0, rhythmCombo - 1)
                             shakeAmount = maxOf(shakeAmount, 3.5f)
                         }
-                        rhythmCombo = 0
                     }
                 )
                 stepTetheredSatellites(
@@ -1094,6 +1101,9 @@ fun GameScreen(
 
                         if (!isSupernovaOrb) {
                             triggerHaptic(if (isCaughtOnBeat) 24L else 12L)
+                            if (!isGoldenActive) {
+                                overdriveProgress = (overdriveProgress + (if (isCaughtOnBeat) 0.05f else 0.035f)).coerceAtMost(1f)
+                            }
                             val mult = if (isGoldenActive) maxOf(scoreMultiplier, 4) else scoreMultiplier
                             val gainedPts = ((if (isCaughtOnBeat) 100 else 45) * mult * (1f + (rhythmCombo.coerceAtMost(12) * 0.10f)) * difficultyScoreMultiplier).toInt()
                             score += gainedPts
@@ -1522,7 +1532,14 @@ fun GameScreen(
                 slowMoTime = slowMoTime,
                 magnetTime = magnetTime,
                 endlessLoopCount = if (selectedRemixMode == TrackRemixMode.ENDLESS) lastLoopCycleSeen else 0,
+                overdriveProgress = overdriveProgress,
+                is24KOverdrive = starPowerTime > 0f || activeStageMode == StageMode.GOLDEN_OVERDRIVE,
                 comboBanner = null,
+                onActivate24K = {
+                    starPowerTime = 9.0f
+                    overdriveProgress = 0f
+                    shakeAmount = maxOf(shakeAmount, 16f)
+                },
                 onPause = { if (gameState == GameState.PLAYING) gameState = GameState.PAUSED }
             )
         }

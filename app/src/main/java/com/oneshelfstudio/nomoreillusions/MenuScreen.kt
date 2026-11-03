@@ -41,6 +41,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
@@ -193,19 +194,15 @@ fun SpinningVinylRecord(
                     modifier = Modifier.padding(2.dp)
                 ) {
                     Text(
-                        text = "🔒",
-                        fontSize = (sizeDp * 0.20f).sp
-                    )
-                    Text(
                         text = "LOCKED",
                         color = Color(0xFFE2E8F0L),
-                        fontSize = (sizeDp * 0.10f).sp,
+                        fontSize = (sizeDp * 0.12f).sp,
                         fontWeight = FontWeight.Black,
                         letterSpacing = 0.5.sp
                     )
                     if (unlockCost > 0) {
                         Text(
-                            text = "$unlockCost ♪",
+                            text = "$unlockCost NOTES",
                             color = Color(0xFFFACC15L),
                             fontSize = (sizeDp * 0.09f).sp,
                             fontWeight = FontWeight.ExtraBold
@@ -310,7 +307,7 @@ fun MenuUI(
                     .padding(horizontal = 4.dp, vertical = 6.dp)
             ) {
                 Text(
-                    text = "♪ $pulsePoints NOTES",
+                    text = "$pulsePoints NOTES",
                     color = Color(0xFFFACC15L),
                     fontSize = 11.5.sp,
                     fontWeight = FontWeight.Black,
@@ -318,7 +315,7 @@ fun MenuUI(
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = if (isVipUnlocked) "• ★ VIP" else "• 🔑 VIP",
+                    text = if (isVipUnlocked) "• VIP ACTIVE" else "• VIP PASS",
                     color = if (isVipUnlocked) Color(0xFF4ADE80L) else Color(0xFFC084FCL),
                     fontSize = 9.5.sp,
                     fontWeight = FontWeight.Black
@@ -532,7 +529,7 @@ fun MenuUI(
                 letterSpacing = 1.8.sp
             )
             Text(
-                text = if (isCurrentTrackUnlocked) "STUDIO MASTER • $stTxt READY" else "🔒 LOCKED • BEAT TRACK 01 OR UNLOCK (1,200 ♪)",
+                text = if (isCurrentTrackUnlocked) "STUDIO MASTER • $stTxt READY" else "LOCKED • BEAT TRACK 01 OR UNLOCK (1,200 NOTES)",
                 color = if (isCurrentTrackUnlocked) Color(0xFFFACC15L) else Color(0xFFF87171L),
                 fontSize = 10.sp,
                 fontWeight = FontWeight.ExtraBold,
@@ -552,7 +549,7 @@ fun MenuUI(
                         .padding(horizontal = 10.dp, vertical = 2.5.dp)
                 ) {
                     Text(
-                        text = if (isTrack02AltCover) "✓ ALT LOTUS COVER ACTIVE" else "🎨 ALT COVER",
+                        text = if (isTrack02AltCover) "✓ ALT LOTUS COVER ACTIVE" else "ALT COVER",
                         color = if (isTrack02AltCover) Color(0xFFFACC15L) else Color(0xFFCBD5E1L),
                         fontSize = 8.5.sp,
                         fontWeight = FontWeight.Bold
@@ -596,9 +593,10 @@ fun MenuUI(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 val modes = listOf(
-                    Triple("🌙 CHILL", "0.5x • 2 Runs", TrackRemixMode.SLOWED),
-                    Triple("⚡ NORMAL", "1.0x • 1 Run", TrackRemixMode.ORIGINAL),
-                    Triple("🔥 FAST", "1.5x Score", TrackRemixMode.OVERCLOCK)
+                    Triple("CHILL", "0.5x • 2 Runs", TrackRemixMode.SLOWED),
+                    Triple("NORMAL", "1.0x • 1 Run", TrackRemixMode.ORIGINAL),
+                    Triple("FAST", "1.5x Score", TrackRemixMode.OVERCLOCK),
+                    Triple("ENDLESS", "+6% Spd/Loop", TrackRemixMode.ENDLESS)
                 )
                 modes.forEach { (label, sub, mode) ->
                     val isActive = !isBandHeroMode && selectedRemixMode == mode
@@ -659,14 +657,14 @@ fun MenuUI(
                         .padding(vertical = 8.dp, horizontal = 4.dp)
                 ) {
                     Text(
-                        text = "🎸 CLASSIC",
+                        text = "CLASSIC",
                         color = if (isBandHeroMode) bhCol else Color(0xFFF472B6L),
                         fontSize = 9.sp,
                         fontWeight = FontWeight.Black,
                         maxLines = 1
                     )
                     Text(
-                        text = if (isBandHeroMode) "Guitar Hero ON" else "Guitar Hero Style",
+                        text = if (isBandHeroMode) "Highway Mode" else "4-Lane Highway",
                         color = Color(0xFFCBD5E1L),
                         fontSize = 7.sp,
                         fontWeight = FontWeight.Bold,
@@ -703,9 +701,9 @@ fun MenuUI(
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
-                        text = if (!isCurrentLaunchUnlocked) "🔒 UNLOCK TRACK 0$selectedTrackIndex (${selectedTrack.unlockCost} ♪)"
-                        else if (isBandHeroMode) "🎸 PLAY CLASSIC HIGHWAY"
-                        else "▶ PLAY ${selectedTrack.title.uppercase()}",
+                        text = if (!isCurrentLaunchUnlocked) "UNLOCK TRACK 0$selectedTrackIndex (${selectedTrack.unlockCost} NOTES)"
+                        else if (isBandHeroMode) "PLAY CLASSIC HIGHWAY"
+                        else "PLAY ${selectedTrack.title.uppercase()}",
                         color = Color.White,
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Black,
@@ -723,9 +721,52 @@ fun MenuUI(
                 }
             }
 
+            Spacer(modifier = Modifier.height(6.dp))
+
+            // Artist Social Links Dock (Official Ethan Stark / No More Illusions)
+            Row(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(50))
+                    .background(Color(0xB30F172A))
+                    .border(1.dp, Color.White.copy(alpha = 0.14f), RoundedCornerShape(50))
+                    .padding(horizontal = 12.dp, vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = "STREAM & FOLLOW",
+                    color = Color(0xFF94A3B8L),
+                    fontSize = 7.5.sp,
+                    fontWeight = FontWeight.Black,
+                    letterSpacing = 0.8.sp
+                )
+                MusicLibrary.officialSocialLinks.forEach { link ->
+                    val accent = Color(link.accentHex)
+                    Box(
+                        modifier = Modifier
+                            .size(24.dp)
+                            .clip(CircleShape)
+                            .background(Color.White.copy(alpha = 0.08f))
+                            .border(1.dp, accent.copy(alpha = 0.65f), CircleShape)
+                            .clickable {
+                                try {
+                                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(link.url)))
+                                } catch (_: Exception) {}
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        BrandVectorGlyph(
+                            brand = link.label,
+                            tint = accent,
+                            size = 13.dp
+                        )
+                    }
+                }
+            }
+
             Spacer(modifier = Modifier.weight(1f))
 
-            // Magic Tiles Style Bottom Navigation Bar (4 Sleek Touch Targets)
+            // Magic Tiles Style Bottom Navigation Bar (Handcrafted Vector Outline SVGs — Zero Raw Emojis!)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -739,30 +780,93 @@ fun MenuUI(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier.clickable { /* Already on Home */ }
                 ) {
-                    Text("🏠", fontSize = 18.sp)
-                    Text("HOME", color = Color(0xFFEC4899L), fontSize = 9.sp, fontWeight = FontWeight.Black)
+                    BottomNavGlyph(type = "HOME", isSelected = true)
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text("HOME", color = Color(0xFFFACC15L), fontSize = 8.5.sp, fontWeight = FontWeight.Black)
                 }
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier.clickable { onMusicDemo() }
                 ) {
-                    Text("✨", fontSize = 18.sp)
-                    Text("SKINS & FX", color = Color(0xFF94A3B8L), fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                    BottomNavGlyph(type = "SKINS", isSelected = false)
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text("SKINS & FX", color = Color(0xFF94A3B8L), fontSize = 8.5.sp, fontWeight = FontWeight.Bold)
                 }
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier.clickable { onMusicDemo() }
                 ) {
-                    Text("💿", fontSize = 18.sp)
-                    Text("VAULT", color = Color(0xFF94A3B8L), fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                    BottomNavGlyph(type = "VAULT", isSelected = false)
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text("VAULT", color = Color(0xFF94A3B8L), fontSize = 8.5.sp, fontWeight = FontWeight.Bold)
                 }
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier.clickable { onSettings() }
                 ) {
-                    Text("🌟", fontSize = 18.sp)
-                    Text("EXCLUSIVES", color = Color(0xFF94A3B8L), fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                    BottomNavGlyph(type = "EXCLUSIVES", isSelected = false)
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text("EXCLUSIVES", color = Color(0xFF94A3B8L), fontSize = 8.5.sp, fontWeight = FontWeight.Bold)
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun BottomNavGlyph(type: String, isSelected: Boolean) {
+    val tint = if (isSelected) Color(0xFFFACC15L) else Color(0xFF94A3B8L)
+    Canvas(modifier = Modifier.size(19.dp)) {
+        val w = size.width
+        val h = size.height
+        when (type) {
+            "HOME" -> {
+                val path = Path().apply {
+                    moveTo(w * 0.5f, h * 0.15f)
+                    lineTo(w * 0.85f, h * 0.45f)
+                    lineTo(w * 0.72f, h * 0.45f)
+                    lineTo(w * 0.72f, h * 0.85f)
+                    lineTo(w * 0.28f, h * 0.85f)
+                    lineTo(w * 0.28f, h * 0.45f)
+                    lineTo(w * 0.15f, h * 0.45f)
+                    close()
+                }
+                drawPath(path, color = tint, style = Stroke(width = 1.8.dp.toPx()))
+            }
+            "SKINS" -> {
+                val path = Path().apply {
+                    moveTo(w * 0.5f, h * 0.10f)
+                    lineTo(w * 0.60f, h * 0.40f)
+                    lineTo(w * 0.90f, h * 0.50f)
+                    lineTo(w * 0.60f, h * 0.60f)
+                    lineTo(w * 0.5f, h * 0.90f)
+                    lineTo(w * 0.40f, h * 0.60f)
+                    lineTo(w * 0.10f, h * 0.50f)
+                    lineTo(w * 0.40f, h * 0.40f)
+                    close()
+                }
+                drawPath(path, color = tint, style = Stroke(width = 1.8.dp.toPx()))
+            }
+            "VAULT" -> {
+                drawCircle(color = tint, radius = w * 0.42f, style = Stroke(width = 1.8.dp.toPx()))
+                drawCircle(color = tint, radius = w * 0.16f, style = Stroke(width = 1.5.dp.toPx()))
+                drawCircle(color = tint, radius = w * 0.05f)
+            }
+            "EXCLUSIVES" -> {
+                val path = Path().apply {
+                    moveTo(w * 0.5f, h * 0.10f)
+                    lineTo(w * 0.62f, h * 0.35f)
+                    lineTo(w * 0.90f, h * 0.38f)
+                    lineTo(w * 0.70f, h * 0.58f)
+                    lineTo(w * 0.76f, h * 0.85f)
+                    lineTo(w * 0.5f, h * 0.72f)
+                    lineTo(w * 0.24f, h * 0.85f)
+                    lineTo(w * 0.30f, h * 0.58f)
+                    lineTo(w * 0.10f, h * 0.38f)
+                    lineTo(w * 0.38f, h * 0.35f)
+                    close()
+                }
+                drawPath(path, color = tint, style = Stroke(width = 1.8.dp.toPx()))
             }
         }
     }
@@ -868,19 +972,19 @@ fun HowToPlayUI(
             Spacer(modifier = Modifier.height(16.dp))
 
             InstructionItem(
-                "🎵 1. GATHER NOTES",
+                "1. GATHER NOTES",
                 "Glide into notes along the steady rhythm of the music. Catch them on beat to build your combo and unlock new songs!"
             )
             InstructionItem(
-                "👾 2. AVOID ENEMIES",
+                "2. AVOID ENEMIES",
                 "Dodge red enemy hazards to protect your streak and multiplier."
             )
             InstructionItem(
-                "⚡ 3. HIT SPECIAL PEGS",
+                "3. HIT SPECIAL PEGS",
                 "Hit electric harmonic pegs and bomb pegs to clear enemies and transform the stage with spectacular visual surges!"
             )
             InstructionItem(
-                "🎸 4. CLASSIC MODE (Guitar Hero Style)",
+                "4. CLASSIC MODE (Guitar Hero Style)",
                 "Toggle Classic Mode on the main menu anytime to play vertical highway rhythm lanes!"
             )
             Spacer(modifier = Modifier.height(20.dp))
@@ -1021,7 +1125,7 @@ fun SettingsUI(
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
                     Text(
-                        text = if (vipSuccess || isVipUnlocked) "★ ARTIST VIP PASSCODE ACTIVE (ALL UNLOCKED!)" else "🔑 ARTIST VIP PASSCODE (UNLOCK ALL OPTIONS)",
+                        text = if (vipSuccess || isVipUnlocked) "ARTIST VIP PASSCODE ACTIVE (ALL UNLOCKED!)" else "ARTIST VIP PASSCODE (UNLOCK ALL OPTIONS)",
                         color = if (vipSuccess || isVipUnlocked) Color(0xFF4ADE80L) else Color(0xFFFACC15L),
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Black,

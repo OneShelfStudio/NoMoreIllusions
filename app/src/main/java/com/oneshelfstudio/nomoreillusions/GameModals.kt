@@ -150,15 +150,15 @@ fun GameOverUI(
                         Text("BEST SCORE: %,d".format(highScore), color = Color(0xFFA5B4FCL), fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
                     }
                     Spacer(modifier = Modifier.height(2.dp))
-                    Text("♪ NOTES BALANCE: %,d ♪".format(pulsePoints), color = Color(0xFFFACC15L), fontSize = 11.5.sp, fontWeight = FontWeight.Black)
+                    Text("NOTES BALANCE: %,d".format(pulsePoints), color = Color(0xFFFACC15L), fontSize = 11.5.sp, fontWeight = FontWeight.Black)
                 }
             }
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // 1. Revive Using 250 ♪ Notes (Primary Note Revive Option)
+            // 1. Revive Using 250 Notes (Primary Note Revive Option)
             ArcadePillButton(
-                text = if (canContinue) "♪ USE 250 NOTES TO REVIVE" else "NEED 250 ♪ NOTES TO REVIVE",
+                text = if (canContinue) "USE 250 NOTES TO REVIVE" else "NEED 250 NOTES TO REVIVE",
                 pillBitmap = btnPillCyan,
                 onClick = { if (canContinue) onContinue() else onBuyPoints() },
                 enabled = true,
@@ -231,7 +231,7 @@ fun GameOverUI(
                                     type = "text/plain"
                                     putExtra(
                                         Intent.EXTRA_TEXT,
-                                        "🎵 Just scored %,d in No More Illusions! Tagging @EthanKStark #NoMoreIllusions 🚀 Check out the gamified album: https://oneshelfstudio.github.io/NoMoreIllusions/".format(score)
+                                        "Just scored %,d in No More Illusions! Tagging @EthanKStark #NoMoreIllusions Check out the gamified album: https://oneshelfstudio.github.io/NoMoreIllusions/".format(score)
                                     )
                                 }
                                 context.startActivity(Intent.createChooser(shareIntent, "Share Run"))
@@ -239,7 +239,7 @@ fun GameOverUI(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "🚀 SHARE TO TIKTOK / INSTAGRAM",
+                            text = "SHARE TO TIKTOK / INSTAGRAM",
                             color = Color.White,
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Black,
@@ -415,7 +415,7 @@ fun LevelCompleteUI(
                     .padding(horizontal = 14.dp, vertical = 6.dp)
             ) {
                 Text(
-                    text = "SCORE: %,d  •  STREAK: x%d  •  +%,d ♪".format(score, maxCombo, notesEarned),
+                    text = "SCORE: %,d  •  STREAK: x%d  •  +%,d NOTES".format(score, maxCombo, notesEarned),
                     color = Color(0xFFE2E8F0L),
                     fontSize = 10.5.sp,
                     fontWeight = FontWeight.Black
@@ -457,9 +457,9 @@ fun LevelCompleteUI(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "★♪",
+                        text = "★",
                         color = Color(0xFF020617L),
-                        fontSize = 16.sp,
+                        fontSize = 18.sp,
                         fontWeight = FontWeight.Black,
                         modifier = Modifier.graphicsLayer(rotationZ = (spinDeg * 0.35f) % 360f)
                     )
@@ -467,7 +467,7 @@ fun LevelCompleteUI(
                 Spacer(modifier = Modifier.width(10.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "✨ NEW VAULT SECRET UNLOCKED!",
+                        text = "NEW VAULT SECRET UNLOCKED!",
                         color = Color(0xFFFACC15L),
                         fontSize = 10.5.sp,
                         fontWeight = FontWeight.Black,
@@ -479,50 +479,6 @@ fun LevelCompleteUI(
                         color = Color.White.copy(alpha = 0.90f),
                         fontSize = 9.5.sp,
                         fontWeight = FontWeight.SemiBold
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // Prominent Alternate Mode Button: "PLAY MY MUSIC: BAND HERO STYLE" (4-Lane Highway Edition)
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(CutCornerShape(topStart = 14.dp, bottomEnd = 14.dp))
-                    .background(
-                        Brush.horizontalGradient(
-                            listOf(Color(0xFF2E1065L), Color(0xFF0F172AL), Color(0xFF4C0519L))
-                        )
-                    )
-                    .border(
-                        width = 2.dp,
-                        brush = Brush.horizontalGradient(
-                            listOf(Color(0xFFEC4899L), Color(0xFFFACC15L), Color(0xFF38BDF8L))
-                        ),
-                        shape = CutCornerShape(topStart = 14.dp, bottomEnd = 14.dp)
-                    )
-                    .clickable { onPlayBandHeroStyle() }
-                    .padding(vertical = 10.dp, horizontal = 14.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = "🎸 PLAY MY MUSIC: BAND HERO STYLE",
-                        color = Color(0xFFFACC15L),
-                        fontSize = 12.5.sp,
-                        fontWeight = FontWeight.Black,
-                        letterSpacing = 0.8.sp,
-                        textAlign = TextAlign.Center
-                    )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = "4-LANE RHYTHM HIGHWAY EDITION • TAP TO LAUNCH",
-                        color = Color(0xFF38BDF8L),
-                        fontSize = 9.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 0.6.sp,
-                        textAlign = TextAlign.Center
                     )
                 }
             }
@@ -571,7 +527,7 @@ fun LevelCompleteUI(
                                     type = "text/plain"
                                     putExtra(
                                         Intent.EXTRA_TEXT,
-                                        "🎵 Just won Track 0%d in No More Illusions with %,d pts! Tagging @EthanKStark #NoMoreIllusions 🚀 Stream the gamified album: https://oneshelfstudio.github.io/NoMoreIllusions/".format(trackIndex, score)
+                                        "Just won Track 0%d in No More Illusions with %,d pts! Tagging @EthanKStark #NoMoreIllusions Stream the gamified album: https://oneshelfstudio.github.io/NoMoreIllusions/".format(trackIndex, score)
                                     )
                                 }
                                 context.startActivity(Intent.createChooser(shareIntent, "Share Run"))
@@ -579,7 +535,7 @@ fun LevelCompleteUI(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "🚀 SHARE TO TIKTOK / INSTAGRAM",
+                            text = "SHARE TO TIKTOK / INSTAGRAM",
                             color = Color.White,
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Black,
@@ -592,7 +548,7 @@ fun LevelCompleteUI(
             Spacer(modifier = Modifier.height(10.dp))
 
             ArcadePillButton(
-                text = if (nextTrack != null) "▶ PLAY TRACK ${trackIndex + 1}" else "★ LISTEN IN ALBUM DECK",
+                text = if (nextTrack != null) "▶ PLAY TRACK ${trackIndex + 1}" else "↻ REPLAY TRACK",
                 pillBitmap = btnPillGreen,
                 onClick = onNextTrack,
                 modifier = Modifier.fillMaxWidth().height(46.dp),
@@ -600,11 +556,21 @@ fun LevelCompleteUI(
             )
             Spacer(modifier = Modifier.height(8.dp))
             ArcadePillButton(
-                text = "BACK TO MAIN MENU",
+                text = "OPEN ARTIST VAULT",
                 pillBitmap = btnPillGold,
-                onClick = onBackToAlbum,
+                onClick = onOpenArtistVault,
                 modifier = Modifier.fillMaxWidth().height(42.dp),
                 fontSize = 12.sp
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = "Return to Main Menu",
+                color = Color(0xFF94A3B8L),
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier
+                    .clickable { onBackToAlbum() }
+                    .padding(vertical = 4.dp)
             )
         }
 
@@ -632,7 +598,7 @@ fun LevelCompleteUI(
                         .padding(18.dp)
                 ) {
                     Text(
-                        text = "★ VAULT EXCLUSIVE UNLOCKED ★",
+                        text = "VAULT EXCLUSIVE UNLOCKED",
                         color = Color(0xFFFACC15L),
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Black,
@@ -673,7 +639,7 @@ fun LevelCompleteUI(
                     }
                     Spacer(modifier = Modifier.height(12.dp))
                     ArcadePillButton(
-                        text = "★ OPEN ARTIST VAULT",
+                        text = "OPEN ARTIST VAULT",
                         pillBitmap = btnPillGold,
                         onClick = {
                             showExclusivePopup = false
