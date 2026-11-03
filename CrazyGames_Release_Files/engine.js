@@ -575,7 +575,7 @@ class NoMoreIllusionsApp {
         this.playSfx("click", 0.7);
       } else if (count === 0) {
         if (countValEl) countValEl.textContent = "DROP!";
-        this.playSfx("orb", 0.85);
+        this.playSfx("orb", 0.25);
       } else {
         clearInterval(this.countdownTimerId);
         if (countdownEl) countdownEl.style.display = "none";
