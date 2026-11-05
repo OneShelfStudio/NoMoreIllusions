@@ -599,7 +599,7 @@ fun StudioCustomizerSuite(
                 Row(modifier = Modifier.fillMaxWidth()) {
                     ThemeCard(
                         title = "VAULT TAPE DECK",
-                        subtitle = "Slowed & Nightcore",
+                        subtitle = "Nightcore & Turntable",
                         isSelected = "VAULT_DEMO" in unlockedSet,
                         isUnlocked = "VAULT_DEMO" in unlockedSet,
                         costNotes = 500,
@@ -619,64 +619,15 @@ fun StudioCustomizerSuite(
                     Spacer(modifier = Modifier.width(8.dp))
 
                     ThemeCard(
-                        title = "LYRIC BOOKLET",
-                        subtitle = "Director's Liner Notes",
-                        isSelected = "VAULT_LYRICS" in unlockedSet,
-                        isUnlocked = "VAULT_LYRICS" in unlockedSet,
-                        costNotes = 500,
+                        title = "MORE ARTIST EXCLUSIVES",
+                        subtitle = "Coming in Next Release",
+                        isSelected = false,
+                        isUnlocked = false,
+                        costNotes = 0,
                         accentColor = Color(0xFF38BDF8L),
                         modifier = Modifier.weight(1f)
                     ) {
-                        if ("VAULT_LYRICS" in unlockedSet) {
-                            activeVaultModal = "VAULT_LYRICS"
-                        } else {
-                            applyOrUnlock("VAULT_LYRICS", 500)
-                            if ("VAULT_LYRICS" in unlockedSet || pulsePoints >= 500) {
-                                activeVaultModal = "VAULT_LYRICS"
-                            }
-                        }
-                    }
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(modifier = Modifier.fillMaxWidth()) {
-                    ThemeCard(
-                        title = "ERA STORYBOARD",
-                        subtitle = "Studio Session Cards",
-                        isSelected = "VAULT_POLAROIDS" in unlockedSet,
-                        isUnlocked = "VAULT_POLAROIDS" in unlockedSet,
-                        costNotes = 600,
-                        accentColor = Color(0xFFE879F9L),
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        if ("VAULT_POLAROIDS" in unlockedSet) {
-                            activeVaultModal = "VAULT_POLAROIDS"
-                        } else {
-                            applyOrUnlock("VAULT_POLAROIDS", 600)
-                            if ("VAULT_POLAROIDS" in unlockedSet || pulsePoints >= 600) {
-                                activeVaultModal = "VAULT_POLAROIDS"
-                            }
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.width(8.dp))
-
-                    ThemeCard(
-                        title = "4K ART & VINYL",
-                        subtitle = "Holographic Foil Showcase",
-                        isSelected = "VAULT_WALLPAPER" in unlockedSet,
-                        isUnlocked = "VAULT_WALLPAPER" in unlockedSet,
-                        costNotes = 600,
-                        accentColor = Color(0xFF4ADE80L),
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        if ("VAULT_WALLPAPER" in unlockedSet) {
-                            activeVaultModal = "VAULT_WALLPAPER"
-                        } else {
-                            applyOrUnlock("VAULT_WALLPAPER", 600)
-                            if ("VAULT_WALLPAPER" in unlockedSet || pulsePoints >= 600) {
-                                activeVaultModal = "VAULT_WALLPAPER"
-                            }
-                        }
+                        statusBanner = "MORE RELEASES TO COME • Master tracks to unlock upon release!"
                     }
                 }
             }

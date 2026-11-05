@@ -1075,18 +1075,12 @@ fun GameScreen(
                         }
                         val leadDur = (p.targetBeatSec - p.spawnBeatSec).coerceAtLeast(0.45f)
                         val uHit = (trackSec - p.spawnBeatSec) / leadDur
+                        // Strict musical timing: Special/Supernova orbs MUST be hit within the musical transition window (+/- 220ms)!
+                        val isHitWithinWindow = abs(trackSec - p.targetBeatSec) <= 0.22f || (isBandHeroMode && uHit in 0.85f..1.15f)
                         val isCaughtOnBeat = if (isBandHeroMode) {
-                            uHit in 0.78f..1.18f ||
-                                abs(p.y - screenHeight * 0.65f) <= 74f ||
-                                abs(trackSec - p.targetBeatSec) <= 0.25f ||
-                                isSupernovaOrb ||
-                                p.powerUpType != PowerUpType.NONE
+                            isHitWithinWindow || abs(p.y - screenHeight * 0.65f) <= 52f
                         } else {
-                            // Original Free-Roam Stage: Orbs stay on screen for 8 beats and pulse on every beat!
-                            liveBeatPhase <= 0.34f ||
-                                liveBeatPhase >= 0.74f ||
-                                isSupernovaOrb ||
-                                p.powerUpType != PowerUpType.NONE
+                            isHitWithinWindow || liveBeatPhase <= 0.25f || liveBeatPhase >= 0.80f
                         }
                         if (isCaughtOnBeat) {
                             onBeatHitsThisRun++
@@ -1101,12 +1095,16 @@ fun GameScreen(
                         )
 
                         if (isCaughtOnBeat) {
-                            beatFlashIntensity = maxOf(beatFlashIntensity, if (isSupernovaOrb) 0.45f else 0.25f)
-                            goldenOverdriveIntensity = maxOf(goldenOverdriveIntensity, if (isSupernovaOrb) 0.90f else 0.45f)
-                            cameraPunch = maxOf(cameraPunch, if (isSupernovaOrb) 0.025f else 0.014f)
+                            // High-energy on-beat transition ignition!
+                            beatFlashIntensity = maxOf(beatFlashIntensity, if (isSupernovaOrb) 0.70f else 0.35f)
+                            goldenOverdriveIntensity = maxOf(goldenOverdriveIntensity, if (isSupernovaOrb) 1.0f else 0.55f)
+                            cameraPunch = maxOf(cameraPunch, if (isSupernovaOrb) 0.038f else 0.018f)
                             scoreMultiplier = maxOf(scoreMultiplier, if (isSupernovaOrb || rhythmCombo >= 12) 4 else 2)
-                            multiplierTime = maxOf(multiplierTime, 6.5f)
-                            shockwaves.add(Shockwave(p.x, p.y, 0f, 130f, Color(0xFFFACC15L), 0.55f))
+                            multiplierTime = maxOf(multiplierTime, 7.5f)
+                            shockwaves.add(Shockwave(p.x, p.y, 0f, 160f, Color(0xFFFACC15L), 0.65f))
+                        } else {
+                            // Off-beat premature tap: subtle fizzle without special overdrive activation
+                            shockwaves.add(Shockwave(p.x, p.y, 0f, 45f, Color(0x6694A3B8L), 0.25f))
                         }
 
                         if (!isSupernovaOrb) {
@@ -1443,6 +1441,15 @@ fun GameScreen(
             player.y = screenHeight * 0.65f
             targetX = player.x
             targetY = player.y
+        }
+
+        // Translucent Beat-Synchronized Music Video B-Roll Overlay
+        if ((gameState == GameState.PLAYING || gameState == GameState.PAUSED) && isBrollEnabled) {
+            BrollVideoOverlay(
+                isActive = brollActive,
+                clipIndex = brollClipIndex,
+                isGoldRush = goldenOverdriveIntensity > 0.15f
+            )
         }
 
         GamePlayfieldCanvas(

@@ -944,23 +944,20 @@ fun DrawScope.drawFloatingTexts(floatingTexts: List<FloatingText>) {
             if (alpha <= 5) return@forEach
 
             if (ft.isLarge && ft.subtitle.isNotEmpty()) {
+                // Relocated to top safe header (< 9% screen height) so it NEVER obscures incoming falling orbs
                 val cx = size.width * 0.5f
-                val cy = size.height * 0.205f
-                cachedBannerPaint.textSize = 32f
-                cachedBannerPaint.color = android.graphics.Color.argb((alpha * 0.70f).toInt(), 79, 70, 229)
-                canvas.nativeCanvas.drawText(ft.text, cx + 2.5f, cy + 2.5f, cachedBannerPaint)
+                val cy = size.height * 0.085f
+                cachedBannerPaint.textSize = 20f
+                cachedBannerPaint.color = android.graphics.Color.argb((alpha * 0.45f).toInt(), 4, 8, 18)
+                canvas.nativeCanvas.drawText(ft.text, cx + 1.5f, cy + 1.5f, cachedBannerPaint)
 
                 cachedBannerPaint.color = android.graphics.Color.argb(
-                    alpha,
+                    (alpha * 0.90f).toInt(),
                     (ft.color.red * 255).toInt(),
                     (ft.color.green * 255).toInt(),
                     (ft.color.blue * 255).toInt()
                 )
                 canvas.nativeCanvas.drawText(ft.text, cx, cy, cachedBannerPaint)
-
-                cachedSubPaint.textSize = 19f
-                cachedSubPaint.color = android.graphics.Color.argb((alpha * 0.88f).toInt(), 226, 232, 240)
-                canvas.nativeCanvas.drawText(ft.subtitle, cx, cy + 20f, cachedSubPaint)
             } else {
                 val riseY = ft.y - (1f - lifeEase) * 36f
                 cachedSubPaint.textSize = if (ft.isLarge) 28f else 22f

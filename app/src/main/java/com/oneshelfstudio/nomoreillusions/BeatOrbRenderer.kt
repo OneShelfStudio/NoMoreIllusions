@@ -24,7 +24,7 @@ fun DrawScope.drawPowerUps(
     val h = size.height
     if (w <= 0f || h <= 0f) return
     val beatKick = if (beatPhase >= 0f) exp(-beatPhase * 5.2f).coerceIn(0f, 1f) else 0.25f
-    val isGoldStage = goldenOverdriveIntensity > 0.35f
+    val isGoldStage = goldenOverdriveIntensity > 0.15f
 
     val laneColors = listOf(
         Color(0xFF22C55EL), // Lane 1: Emerald Fret

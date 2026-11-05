@@ -493,21 +493,16 @@ fun stepNebulousBeatOrbs(
             orb.trajVx = if (dt > 0.0001f) (orb.baseX - oldBaseX) / dt else 0f
             orb.trajVy = if (dt > 0.0001f) (orb.baseY - oldBaseY) / dt else 160f
 
-            // Pure natural deflection drift: smooth linear drag and gentle lane recovery
+            // Pure natural deflection drift: smooth linear drag without artificial spring-back snapping
             orb.bounceOffsetX += orb.bvx * dt
             orb.bounceOffsetY += orb.bvy * dt
 
-            // Gentle physical damping and subtle spring return to charted trajectory path
-            val dragFactor = (1f - 2.2f * dt).coerceIn(0.85f, 1.0f)
+            // Natural velocity damping so deflected orbs coast smoothly away
+            val dragFactor = (1f - 1.2f * dt).coerceIn(0.92f, 1.0f)
             orb.bvx *= dragFactor
             orb.bvy *= dragFactor
 
-            // Natural restoring acceleration towards lane center
-            val restoreStiffness = 5.0f
-            orb.bvx -= orb.bounceOffsetX * restoreStiffness * dt
-            orb.bvy -= orb.bounceOffsetY * restoreStiffness * dt
-
-            val maxDeflection = 110f
+            val maxDeflection = 120f
             val deflDist = kotlin.math.hypot(orb.bounceOffsetX, orb.bounceOffsetY)
             if (deflDist > maxDeflection && deflDist > 0.001f) {
                 val sc = maxDeflection / deflDist
@@ -526,7 +521,7 @@ fun stepNebulousBeatOrbs(
             }
         }
 
-        // Natural Physics Elastic Ricochet Bouncing between colliding Orbs
+        // Natural Physics 2D Elastic Ricochet Bouncing between colliding Orbs
         if (powerUps.size > 1) {
             for (i in 0 until powerUps.size) {
                 for (j in i + 1 until powerUps.size) {
@@ -535,17 +530,22 @@ fun stepNebulousBeatOrbs(
                     val dx = b.x - a.x
                     val dy = b.y - a.y
                     val dist = kotlin.math.hypot(dx, dy)
-                    val minDist = a.radius + b.radius // Exact physical touch boundary
+                    
+                    // Bounding radius scaled by perspective position down the highway
+                    val aScale = 0.65f + 0.50f * (a.y / screenHeight.coerceAtLeast(1f)).coerceIn(0f, 1f)
+                    val bScale = 0.65f + 0.50f * (b.y / screenHeight.coerceAtLeast(1f)).coerceIn(0f, 1f)
+                    val minDist = a.radius * aScale + b.radius * bScale
+
                     if (dist < minDist && dist > 0.0001f) {
                         val overlap = minDist - dist
                         val nx = dx / dist
                         val ny = dy / dist
 
-                        // Symmetrical position separation to immediately resolve overlap
-                        a.bounceOffsetX -= nx * overlap * 0.5f
-                        a.bounceOffsetY -= ny * overlap * 0.5f
-                        b.bounceOffsetX += nx * overlap * 0.5f
-                        b.bounceOffsetY += ny * overlap * 0.5f
+                        // Symmetrical position separation to immediately resolve overlap completely
+                        a.bounceOffsetX -= nx * overlap * 0.55f
+                        a.bounceOffsetY -= ny * overlap * 0.55f
+                        b.bounceOffsetX += nx * overlap * 0.55f
+                        b.bounceOffsetY += ny * overlap * 0.55f
 
                         // Update current coordinates directly
                         a.x = a.baseX + a.bounceOffsetX
@@ -563,7 +563,7 @@ fun stepNebulousBeatOrbs(
                         val relVy = vBy - vAy
                         val velAlongNormal = relVx * nx + relVy * ny
 
-                        val restitution = 0.85f
+                        val restitution = 0.88f
                         if (velAlongNormal < 0f) {
                             // Approaching: exchange momentum along normal
                             val impulse = -(1f + restitution) * velAlongNormal * 0.5f
@@ -572,8 +572,8 @@ fun stepNebulousBeatOrbs(
                             b.bvx += impulse * nx
                             b.bvy += impulse * ny
                         } else {
-                            // Separating or resting contact: apply gentle repulsive impulse
-                            val separationImpulse = maxOf(45f, overlap * 9f)
+                            // Separating or resting contact: apply gentle repulsive impulse along normal
+                            val separationImpulse = maxOf(40f, overlap * 8f)
                             a.bvx -= nx * separationImpulse * 0.5f
                             a.bvy -= ny * separationImpulse * 0.5f
                             b.bvx += nx * separationImpulse * 0.5f

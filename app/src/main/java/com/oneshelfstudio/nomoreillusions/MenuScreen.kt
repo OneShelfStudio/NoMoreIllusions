@@ -766,17 +766,27 @@ fun MenuUI(
 
             Spacer(modifier = Modifier.weight(1f))
 
-            // Modern Bottom Navigation Dock: 3 Clear Destinations (Zero Fake Home Button, Proper Safe-Area Padding)
+            // Elevated Bottom Navigation Dock with Consistent HOME & Destination Access
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color(0xF00A0618L))
-                    .border(1.dp, Color(0x33EC4899L), RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
+                    .padding(horizontal = 14.dp, vertical = 12.dp)
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(Color(0xF2080D1CL))
+                    .border(1.2.dp, Color(0x40FACC15L), RoundedCornerShape(20.dp))
                     .navigationBarsPadding()
-                    .padding(vertical = 8.dp),
+                    .padding(horizontal = 10.dp, vertical = 10.dp),
                 horizontalArrangement = Arrangement.SpaceAround,
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.clickable { /* Already Home */ }
+                ) {
+                    BottomNavGlyph(type = "HOME", isSelected = true)
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text("HOME", color = Color(0xFFFACC15L), fontSize = 8.5.sp, fontWeight = FontWeight.Black)
+                }
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier.clickable { onMusicDemo() }
@@ -791,7 +801,7 @@ fun MenuUI(
                 ) {
                     BottomNavGlyph(type = "VAULT", isSelected = false)
                     Spacer(modifier = Modifier.height(2.dp))
-                    Text("ARTIST VAULT", color = Color(0xFFFACC15L), fontSize = 8.5.sp, fontWeight = FontWeight.Black)
+                    Text("ARTIST VAULT", color = Color(0xFF94A3B8L), fontSize = 8.5.sp, fontWeight = FontWeight.Bold)
                 }
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,

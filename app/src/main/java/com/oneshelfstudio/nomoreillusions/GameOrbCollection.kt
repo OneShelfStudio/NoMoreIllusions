@@ -451,7 +451,7 @@ internal fun spawnStationaryBeatOrbsForFrame(
     while (
         nextOrbCueIdx < chart.size &&
         powerUps.size < maxActiveOrbs &&
-        (trackSec >= chart[nextOrbCueIdx].timestampSec - effectiveLeadTime || (powerUps.isEmpty() && trackSec + effectiveLeadTime * 1.45f >= chart[nextOrbCueIdx].timestampSec))
+        trackSec >= chart[nextOrbCueIdx].timestampSec - effectiveLeadTime
     ) {
         val prevCueSec = if (nextOrbCueIdx > 0) chart[nextOrbCueIdx - 1].timestampSec else 0f
         val cue = chart[nextOrbCueIdx]
@@ -560,10 +560,9 @@ internal fun spawnStationaryBeatOrbsForFrame(
             }
 
             // Relaxed, readable tempo pacing: 4.6 to 5.4 seconds to traverse the arena
-            val noteLeadBeats = 4.2f + (cue.sequenceIndex % 4) * 0.25f
-            val noteLeadTime = (beatGridStep * noteLeadBeats).coerceIn(2.2f, 3.4f)
+            val noteLeadTime = if (isBandHeroMode) effectiveLeadTime else (beatGridStep * (4.2f + (cue.sequenceIndex % 4) * 0.25f)).coerceIn(2.2f, 3.4f)
             val spawnSec = quantizedBeatSec - noteLeadTime
-            val expireSec = quantizedBeatSec + noteLeadTime + 0.35f
+            val expireSec = quantizedBeatSec + (if (isBandHeroMode) 0.45f else noteLeadTime + 0.35f)
 
             powerUps.add(
                 GameObject(
