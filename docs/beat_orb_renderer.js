@@ -151,18 +151,20 @@ function drawShockwaves(ctx, shockwaves) {
   for (let i = 0; i < shockwaves.length; i++) {
     const sw = shockwaves[i];
     const p = Math.max(0, Math.min(1, sw.radius / sw.maxRadius));
-    const swAlpha = Math.pow(1 - p, 1.5);
+    const swAlpha = Math.pow(1 - p, 2.0);
     if (swAlpha > 0.01) {
+      // Soft localized ripple ring (velvety, zero harsh edges)
       ctx.beginPath();
       ctx.arc(sw.x, sw.y, sw.radius, 0, Math.PI * 2);
-      ctx.strokeStyle = rgba(sw.color, swAlpha * 0.35);
-      ctx.lineWidth = (1 - p) * 26 + 6;
+      ctx.strokeStyle = rgba(sw.color, swAlpha * 0.50);
+      ctx.lineWidth = (1 - p) * 5 + 1.5;
       ctx.stroke();
 
+      // Delicate inner starlight gleam
       ctx.beginPath();
-      ctx.arc(sw.x, sw.y, sw.radius, 0, Math.PI * 2);
-      ctx.strokeStyle = rgba([255, 255, 255], swAlpha * 0.9);
-      ctx.lineWidth = (1 - p) * 6 + 1.5;
+      ctx.arc(sw.x, sw.y, Math.max(1, sw.radius * 0.82), 0, Math.PI * 2);
+      ctx.strokeStyle = rgba([255, 255, 255], swAlpha * 0.85);
+      ctx.lineWidth = (1 - p) * 1.8 + 0.8;
       ctx.stroke();
     }
   }
@@ -343,12 +345,13 @@ function drawPowerUps(ctx, powerUps, playerX, playerY, time, trackSec, beatPulse
     const isVortex = pu.type === "SLOW_MO";
     const isNova = pu.type === "BLAST" || pu.type === "OVERDRIVE";
     const isAegis = pu.type === "SHIELD";
-    const isSpecialType = isElectric || isPrism || isVortex || isNova || isAegis;
     const isGoldRush = Boolean(
       isConstellationActive ||
+      pu.isGoldTransmuted ||
       (typeof window !== "undefined" && window.app && window.app.is24KOverdrive)
     );
-    const isSupernova = !isSpecialType && (pu.isSupernova || pu.keyWordEffect === "CONSTELLATION_STAR" || isGoldRush);
+    const isSpecialType = !isGoldRush && (isElectric || isPrism || isVortex || isNova || isAegis);
+    const isSupernova = isGoldRush || pu.isGoldTransmuted || pu.isSupernova || pu.keyWordEffect === "CONSTELLATION_STAR";
     const laneIdx = Math.max(0, Math.min(3, (pu.phraseBeatNum || 1) - 1));
 
     const effectCol = isGoldRush
@@ -914,6 +917,27 @@ function drawPowerUps(ctx, powerUps, playerX, playerY, time, trackSec, beatPulse
       ctx.shadowBlur = 0;
       ctx.textBaseline = "alphabetic";
     }
+    // Feature Music Video Orb (Sleek stylized camera glyph)
+    if (pu.isMusicVideoOrb) {
+      ctx.save();
+      ctx.fillStyle = "rgba(255, 255, 255, 0.92)";
+      ctx.shadowColor = "rgba(250, 204, 21, 0.85)";
+      ctx.shadowBlur = 8;
+      const s = coreRad * 0.40;
+      // Camera body
+      ctx.beginPath();
+      ctx.rect(cx - s * 0.8, cy - s * 0.5, s * 1.2, s * 1.0);
+      ctx.fill();
+      // Triangle lens
+      ctx.beginPath();
+      ctx.moveTo(cx + s * 0.45, cy);
+      ctx.lineTo(cx + s * 0.95, cy - s * 0.45);
+      ctx.lineTo(cx + s * 0.95, cy + s * 0.45);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+
     ctx.restore();
   }
 }

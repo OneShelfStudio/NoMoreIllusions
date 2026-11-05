@@ -493,16 +493,19 @@ fun stepNebulousBeatOrbs(
             orb.trajVx = if (dt > 0.0001f) (orb.baseX - oldBaseX) / dt else 0f
             orb.trajVy = if (dt > 0.0001f) (orb.baseY - oldBaseY) / dt else 160f
 
-            // Loosened physical spring return (k=4.5f, c=3.2f): natural 2D ricochet deflection
-            val ax = -4.5f * orb.bounceOffsetX - 3.2f * orb.bvx
-            val ay = -4.5f * orb.bounceOffsetY - 3.2f * orb.bvy
-            orb.bvx += ax * dt
-            orb.bvy += ay * dt
+            // Pure natural deflection drift: smooth linear drag without any spring oscillation loops
             orb.bounceOffsetX += orb.bvx * dt
             orb.bounceOffsetY += orb.bvy * dt
 
-            // Expanded deflection boundary: allow dynamic 2D billiard-ball ricochets
-            val maxDeflection = 130f
+            val dragFactor = Math.pow(0.55, (dt * 4.0).toDouble()).toFloat()
+            orb.bvx *= dragFactor
+            orb.bvy *= dragFactor
+
+            val alignFactor = Math.pow(0.70, (dt * 3.0).toDouble()).toFloat()
+            orb.bounceOffsetX *= alignFactor
+            orb.bounceOffsetY *= alignFactor
+
+            val maxDeflection = 85f
             val deflDist = kotlin.math.hypot(orb.bounceOffsetX, orb.bounceOffsetY)
             if (deflDist > maxDeflection && deflDist > 0.001f) {
                 val sc = maxDeflection / deflDist
@@ -548,36 +551,27 @@ fun stepNebulousBeatOrbs(
                         b.x = b.baseX + b.bounceOffsetX
                         b.y = b.baseY + b.bounceOffsetY
 
-                        // Full 2D physical velocity momentum exchange (trajectory + bounce velocity)
-                        val vA_x = a.trajVx + a.bvx
-                        val vA_y = a.trajVy + a.bvy
-                        val vB_x = b.trajVx + b.bvx
-                        val vB_y = b.trajVy + b.bvy
-
-                        val relVx = vB_x - vA_x
-                        val relVy = vB_y - vA_y
+                        // Pure Billiard-Ball Deflection: Bounces off along collision normal without speed change
+                        val relVx = b.bvx - a.bvx
+                        val relVy = b.bvy - a.bvy
                         val velAlongNormal = relVx * nx + relVy * ny
 
-                        // Elastic Billiard-Ball Ricochet along collision normal:
-                        // Natural angular deflection based on incoming trajectory angles!
-                        val restitution = 0.78f
-                        val impulseMag = if (velAlongNormal < 0f) {
-                            -(1f + restitution) * velAlongNormal * 0.5f
+                        if (velAlongNormal < 0f) {
+                            a.bvx += velAlongNormal * nx * 0.95f
+                            a.bvy += velAlongNormal * ny * 0.95f
+                            b.bvx -= velAlongNormal * nx * 0.95f
+                            b.bvy -= velAlongNormal * ny * 0.95f
                         } else {
-                            maxOf(130f, overlap * 25f)
+                            val gentleNudge = minOf(32f, overlap * 6f)
+                            a.bvx -= nx * gentleNudge
+                            a.bvy -= ny * gentleNudge
+                            b.bvx += nx * gentleNudge
+                            b.bvy += ny * gentleNudge
                         }
 
-                        a.bvx -= nx * impulseMag
-                        a.bvy -= ny * impulseMag
-                        b.bvx += nx * impulseMag
-                        b.bvy += ny * impulseMag
-
-                        // Visceral squish deformation along collision axis
-                        val impactSpeed = maxOf(kotlin.math.abs(velAlongNormal), impulseMag)
-                        val squishIntensity = (0.15f + (impactSpeed / 350f) * 0.20f).coerceIn(0.12f, 0.38f)
-                        a.squish = squishIntensity
+                        a.squish = 0.12f
                         a.squishAngle = atan2(ny, nx)
-                        b.squish = squishIntensity
+                        b.squish = 0.12f
                         b.squishAngle = atan2(-ny, -nx)
                     }
                 }

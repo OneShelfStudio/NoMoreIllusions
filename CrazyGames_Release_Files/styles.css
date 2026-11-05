@@ -1767,24 +1767,169 @@
 
     .menu-content, .customizer-panel, .settings-panel, .vault-modal-content { padding-bottom: 74px !important; }
 
-    /* Translucent Live Music Video B-Roll Hologram Layer */
-    .broll-overlay-video {
+    /* Translucent Vintage Music Video B-Roll Hologram Layer */
+    .broll-overlay-container {
       position: fixed;
       inset: 0;
       width: 100vw;
       height: 100vh;
-      object-fit: cover;
       pointer-events: none;
       z-index: 3;
-      mix-blend-mode: screen;
       opacity: 0;
-      transition: opacity 0.65s cubic-bezier(0.4, 0, 0.2, 1), filter 0.5s ease;
-      filter: contrast(1.22) saturate(1.3) brightness(0.85);
+      transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+      overflow: hidden;
+      mix-blend-mode: screen;
     }
-    .broll-overlay-video.active {
-      opacity: 0.26;
+    .broll-overlay-container.active {
+      opacity: 0.38;
     }
-    .broll-overlay-video.gold-rush {
-      opacity: 0.36;
-      filter: contrast(1.35) saturate(1.5) brightness(1.15) sepia(0.55) hue-rotate(-12deg);
+    .broll-overlay-container.gold-rush {
+      opacity: 0.52;
+      filter: sepia(0.55) saturate(1.85) contrast(1.25) brightness(1.1);
+    }
+    .broll-overlay-video {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      pointer-events: none;
+      filter: contrast(1.25) saturate(1.22) brightness(0.92);
+    }
+    .broll-scanlines {
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        rgba(0, 0, 0, 0.28) 0px,
+        rgba(0, 0, 0, 0.28) 2px,
+        transparent 2px,
+        transparent 4px
+      );
+      pointer-events: none;
+      z-index: 2;
+    }
+    .broll-vignette {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at center, transparent 40%, rgba(6, 4, 18, 0.65) 100%);
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    /* ==========================================================================
+       SLEEK FLOATING 24K ENERGY CAPSULE (Off to Right Edge, Zero Screen Clutter)
+       ========================================================================== */
+    .hud-overdrive-side-capsule {
+      position: fixed;
+      right: 12px;
+      top: 36%;
+      width: 34px;
+      height: 112px;
+      z-index: 15;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-end;
+      cursor: pointer;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .hud-overdrive-side-capsule:active {
+      transform: scale(0.92);
+    }
+    .hud-capsule-glass {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      border-radius: 20px;
+      background: rgba(11, 15, 30, 0.72);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1.5px solid rgba(250, 204, 21, 0.42);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5), inset 0 0 8px rgba(0, 0, 0, 0.6);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      align-items: center;
+    }
+    .hud-capsule-fill {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 0%;
+      background: linear-gradient(0deg, #D97706 0%, #F59E0B 50%, #FACC15 85%, #FEF08A 100%);
+      border-radius: 0 0 18px 18px;
+      box-shadow: 0 0 14px rgba(250, 204, 21, 0.85);
+      transition: height 0.22s ease-out;
+    }
+    .hud-capsule-icon-wrap {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 3;
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .hud-capsule-bolt-svg {
+      width: 16px;
+      height: 16px;
+      fill: #FEF08A;
+      filter: drop-shadow(0 0 4px rgba(250, 204, 21, 0.8));
+      transition: transform 0.25s ease, fill 0.25s ease;
+    }
+    .hud-capsule-glow-aura {
+      position: absolute;
+      inset: -6px;
+      border-radius: 26px;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      background: radial-gradient(circle, rgba(250, 204, 21, 0.55) 0%, rgba(250, 204, 21, 0) 72%);
+    }
+
+    /* CHARGED READY STATE (100% Filled Overdrive) */
+    .hud-overdrive-side-capsule.charged-ready .hud-capsule-glass {
+      border-color: #FEF08A;
+      box-shadow: 0 0 20px rgba(250, 204, 21, 0.9), inset 0 0 12px rgba(254, 240, 138, 0.8);
+      animation: capsulePulse 1.2s ease-in-out infinite alternate;
+    }
+    .hud-overdrive-side-capsule.charged-ready .hud-capsule-bolt-svg {
+      fill: #FFFFFF;
+      transform: scale(1.22);
+      filter: drop-shadow(0 0 8px rgba(255, 255, 255, 1));
+      animation: boltFlash 0.6s ease-in-out infinite alternate;
+    }
+    .hud-overdrive-side-capsule.charged-ready .hud-capsule-glow-aura {
+      opacity: 1;
+      animation: auraBreathe 1.2s ease-in-out infinite alternate;
+    }
+    .hud-overdrive-side-capsule.active-rush .hud-capsule-glass {
+      border-color: #FFFFFF;
+      box-shadow: 0 0 26px rgba(254, 240, 138, 1), 0 0 45px rgba(250, 204, 21, 0.9);
+      animation: capsuleRush 0.5s ease-in-out infinite alternate;
+    }
+
+    @keyframes capsulePulse {
+      0% { transform: scale(1.0); filter: brightness(1); }
+      100% { transform: scale(1.08); filter: brightness(1.28); }
+    }
+    @keyframes boltFlash {
+      0% { opacity: 0.85; transform: scale(1.1); }
+      100% { opacity: 1.0; transform: scale(1.3); }
+    }
+    @keyframes auraBreathe {
+      0% { transform: scale(0.95); opacity: 0.6; }
+      100% { transform: scale(1.25); opacity: 1.0; }
+    }
+    @keyframes capsuleRush {
+      0% { filter: brightness(1.1); }
+      100% { filter: brightness(1.5); }
     }

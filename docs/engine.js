@@ -1,6 +1,7 @@
 class BrollVideoDirector {
   constructor(app) {
     this.app = app;
+    this.containerEl = document.getElementById("broll-overlay-container");
     this.videoEl = document.getElementById("broll-overlay-video");
     this.clips = [
       "assets/broll_1.mp4",
@@ -12,11 +13,34 @@ class BrollVideoDirector {
     this.timer = 0;
     this.cooldown = 0;
     this.isActive = false;
+    this.isPrewarmed = false;
   }
 
-  trigger(forceClipIndex = -1, duration = 4.2) {
+  prewarm() {
+    if (this.isPrewarmed) return;
+    this.isPrewarmed = true;
+    if (this.videoEl) {
+      this.videoEl.src = this.clips[0];
+      this.videoEl.load();
+      const p = this.videoEl.play();
+      if (p && typeof p.then === "function") {
+        p.then(() => {
+          if (!this.isActive) {
+            this.videoEl.pause();
+            this.videoEl.currentTime = 0;
+          }
+        }).catch(() => {});
+      }
+    }
+  }
+
+  trigger(forceClipIndex = -1, duration = 4.0) {
     if (this.app.prefs && this.app.prefs.enableBrollVideo === false) return;
     if (this.cooldown > 0 && forceClipIndex === -1) return;
+    if (!this.videoEl) {
+      this.videoEl = document.getElementById("broll-overlay-video");
+      this.containerEl = document.getElementById("broll-overlay-container");
+    }
     if (!this.videoEl) return;
 
     const nextIdx = forceClipIndex >= 0
@@ -33,14 +57,19 @@ class BrollVideoDirector {
 
     this.isActive = true;
     this.timer = duration;
-    this.cooldown = duration + 5.5;
+    this.cooldown = duration + 4.5;
 
-    if (this.app.is24KOverdrive) {
-      this.videoEl.classList.add("gold-rush");
-    } else {
-      this.videoEl.classList.remove("gold-rush");
+    if (this.containerEl) {
+      if (this.app.is24KOverdrive) {
+        this.containerEl.classList.add("gold-rush");
+      } else {
+        this.containerEl.classList.remove("gold-rush");
+      }
+      this.containerEl.classList.add("active");
     }
-    this.videoEl.classList.add("active");
+    if (this.videoEl) {
+      this.videoEl.classList.add("active");
+    }
   }
 
   update(dt) {
@@ -49,11 +78,11 @@ class BrollVideoDirector {
     }
     if (this.isActive) {
       this.timer -= dt;
-      if (this.videoEl) {
+      if (this.containerEl) {
         if (this.app.is24KOverdrive) {
-          this.videoEl.classList.add("gold-rush");
+          this.containerEl.classList.add("gold-rush");
         } else {
-          this.videoEl.classList.remove("gold-rush");
+          this.containerEl.classList.remove("gold-rush");
         }
       }
       if (this.timer <= 0) {
@@ -65,6 +94,10 @@ class BrollVideoDirector {
   stop() {
     this.isActive = false;
     this.timer = 0;
+    if (this.containerEl) {
+      this.containerEl.classList.remove("active");
+      this.containerEl.classList.remove("gold-rush");
+    }
     if (this.videoEl) {
       this.videoEl.classList.remove("active");
       this.videoEl.classList.remove("gold-rush");
@@ -773,16 +806,27 @@ class NoMoreIllusionsApp {
   activate24KOverdrive() {
     if (this.gameState !== "PLAYING") return;
     if (this.is24KOverdrive) return;
-    if ((this.overdriveProgress || 0) < 0.60) return;
+    if ((this.overdriveProgress || 0) < 0.50) return;
 
     this.is24KOverdrive = true;
-    if (this.brollDirector) this.brollDirector.trigger(-1, 6.5);
     this.overdriveDuration = 9.0;
     this.overdriveTimer = this.overdriveDuration;
     this.screenShake = 16;
-    this.triggerHaptic([40, 60, 40]);
+    this.triggerHaptic([45, 65, 45]);
     this.playSfx("levelup", 0.95);
     this.synthComboChordStinger(16);
+
+    // ALL ACTIVE ORBS IMMEDIATELY TRANSMUTE TO PURE 24K GOLD!
+    if (this.powerUps && this.powerUps.length > 0) {
+      for (let i = 0; i < this.powerUps.length; i++) {
+        const pu = this.powerUps[i];
+        pu.isSupernova = true;
+        pu.isGoldTransmuted = true;
+        this.spawnBurstMotes(pu.x, pu.y, [250, 204, 21], 8);
+      }
+    }
+
+    if (this.brollDirector) this.brollDirector.trigger(-1, 6.5);
 
     // Spawn 24K golden stardust cascade
     this.spawnBurstMotes(this.playerX, this.playerY, [250, 204, 21], 24);
