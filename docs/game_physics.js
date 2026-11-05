@@ -990,6 +990,7 @@ Object.assign(NoMoreIllusionsApp.prototype, {
           navigator.vibrate([40, 50, 40]);
         }
         this.igniteSectionEffect(pu.type);
+        if (this.brollDirector) this.brollDirector.trigger();
         this.screenShake = Math.max(this.screenShake, 18);
         this.spawnMelodicStarfallCascade();
       } else {

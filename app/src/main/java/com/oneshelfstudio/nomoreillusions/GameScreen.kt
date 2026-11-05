@@ -1,6 +1,11 @@
 package com.oneshelfstudio.nomoreillusions
 
 import android.app.Activity
+import android.graphics.SurfaceTexture
+import android.media.MediaPlayer
+import android.view.Surface
+import android.view.TextureView
+import androidx.compose.ui.graphics.graphicsLayer
 import android.content.Context
 import android.content.SharedPreferences
 import android.os.Build
@@ -423,6 +428,11 @@ fun GameScreen(
     var liveBeatPhase by remember { mutableFloatStateOf(0f) }
     var isBandHeroMode by remember { mutableStateOf(false) }
     var vocalStreamContrailTimer by remember { mutableFloatStateOf(0f) }
+    var isBrollEnabled by remember { mutableStateOf(prefs.getBoolean("enable_broll_video", true)) }
+    var brollActive by remember { mutableStateOf(false) }
+    var brollTimer by remember { mutableFloatStateOf(0f) }
+    var brollClipIndex by remember { mutableIntStateOf(0) }
+    var brollCooldown by remember { mutableFloatStateOf(0f) }
 
     val difficultyScoreMultiplier = getDifficultyScoreMultiplier(gameDifficulty, selectedRemixMode)
     val trackDifficultyBoost = getTrackDifficultyBoost(selectedTrackIndex)
@@ -1101,6 +1111,12 @@ fun GameScreen(
 
                         if (!isSupernovaOrb) {
                             triggerHaptic(if (isCaughtOnBeat) 24L else 12L)
+                            if (isCaughtOnBeat && isBrollEnabled && brollCooldown <= 0f && Random.nextFloat() < 0.45f) {
+                                brollClipIndex = Random.nextInt(4)
+                                brollActive = true
+                                brollTimer = 4.2f
+                                brollCooldown = 10f
+                            }
                             if (!isGoldenActive) {
                                 overdriveProgress = (overdriveProgress + (if (isCaughtOnBeat) 0.05f else 0.035f)).coerceAtMost(1f)
                             }
@@ -1435,6 +1451,13 @@ fun GameScreen(
                 }
                 shakeAmount *= 0.88f
                 chromaticAmount *= 0.88f
+                if (brollCooldown > 0f) brollCooldown -= 0.016f
+                if (brollActive) {
+                    brollTimer -= 0.016f
+                    if (brollTimer <= 0f) {
+                        brollActive = false
+                    }
+                }
             }
         }
     }
@@ -1539,6 +1562,12 @@ fun GameScreen(
                     starPowerTime = 9.0f
                     overdriveProgress = 0f
                     shakeAmount = maxOf(shakeAmount, 16f)
+                    if (isBrollEnabled) {
+                        brollClipIndex = Random.nextInt(4)
+                        brollActive = true
+                        brollTimer = 6.5f
+                        brollCooldown = 11f
+                    }
                 },
                 onPause = { if (gameState == GameState.PLAYING) gameState = GameState.PAUSED }
             )
@@ -1675,6 +1704,11 @@ fun GameScreen(
                 isMusic = isMusicEnabled,
                 isSound = isSoundEnabled,
                 isHaptic = isHapticEnabled,
+                isBrollVideo = isBrollEnabled,
+                onBrollVideoToggle = {
+                    isBrollEnabled = it
+                    prefs.edit().putBoolean("enable_broll_video", it).apply()
+                },
                 difficulty = gameDifficulty,
                 activeLobbyTrack = activeLobbyTrack,
                 onLobbyTrackChange = {
@@ -1863,5 +1897,72 @@ fun GameScreen(
                 }
             )
         }
+    }
+}
+
+
+@Composable
+fun BrollVideoOverlay(
+    isActive: Boolean,
+    clipIndex: Int,
+    isGoldRush: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val alphaAnim by animateFloatAsState(
+        targetValue = if (isActive) (if (isGoldRush) 0.35f else 0.25f) else 0f,
+        animationSpec = tween(durationMillis = 650)
+    )
+
+    if (alphaAnim > 0.01f) {
+        AndroidView(
+            factory = { ctx ->
+                TextureView(ctx).apply {
+                    isOpaque = false
+                    surfaceTextureListener = object : TextureView.SurfaceTextureListener {
+                        private var mp: MediaPlayer? = null
+                        private var surf: Surface? = null
+
+                        override fun onSurfaceTextureAvailable(st: SurfaceTexture, w: Int, h: Int) {
+                            val surface = Surface(st)
+                            surf = surface
+                            try {
+                                val clipNum = (clipIndex % 4) + 1
+                                val afd = ctx.assets.openFd("broll/broll_$clipNum.mp4")
+                                val player = MediaPlayer().apply {
+                                    setSurface(surface)
+                                    isLooping = true
+                                    setVolume(0f, 0f)
+                                    setDataSource(afd.fileDescriptor, afd.startOffset, afd.length)
+                                    afd.close()
+                                    prepareAsync()
+                                    setOnPreparedListener { start() }
+                                }
+                                mp = player
+                            } catch (e: Exception) {}
+                        }
+
+                        override fun onSurfaceTextureSizeChanged(st: SurfaceTexture, w: Int, h: Int) {}
+
+                        override fun onSurfaceTextureDestroyed(st: SurfaceTexture): Boolean {
+                            try {
+                                mp?.stop()
+                                mp?.release()
+                            } catch (e: Exception) {}
+                            mp = null
+                            try {
+                                surf?.release()
+                            } catch (e: Exception) {}
+                            surf = null
+                            return true
+                        }
+
+                        override fun onSurfaceTextureUpdated(st: SurfaceTexture) {}
+                    }
+                }
+            },
+            modifier = modifier
+                .fillMaxSize()
+                .graphicsLayer { alpha = alphaAnim }
+        )
     }
 }

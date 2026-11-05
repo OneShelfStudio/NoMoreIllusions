@@ -1,3 +1,78 @@
+class BrollVideoDirector {
+  constructor(app) {
+    this.app = app;
+    this.videoEl = document.getElementById("broll-overlay-video");
+    this.clips = [
+      "assets/broll_1.mp4",
+      "assets/broll_2.mp4",
+      "assets/broll_3.mp4",
+      "assets/broll_4.mp4"
+    ];
+    this.currentIndex = 0;
+    this.timer = 0;
+    this.cooldown = 0;
+    this.isActive = false;
+  }
+
+  trigger(forceClipIndex = -1, duration = 4.2) {
+    if (this.app.prefs && this.app.prefs.enableBrollVideo === false) return;
+    if (this.cooldown > 0 && forceClipIndex === -1) return;
+    if (!this.videoEl) return;
+
+    const nextIdx = forceClipIndex >= 0
+      ? forceClipIndex % this.clips.length
+      : Math.floor(Math.random() * this.clips.length);
+
+    this.currentIndex = nextIdx;
+    this.videoEl.src = this.clips[nextIdx];
+    this.videoEl.currentTime = 0;
+    const playPromise = this.videoEl.play();
+    if (playPromise && typeof playPromise.catch === "function") {
+      playPromise.catch(() => {});
+    }
+
+    this.isActive = true;
+    this.timer = duration;
+    this.cooldown = duration + 5.5;
+
+    if (this.app.is24KOverdrive) {
+      this.videoEl.classList.add("gold-rush");
+    } else {
+      this.videoEl.classList.remove("gold-rush");
+    }
+    this.videoEl.classList.add("active");
+  }
+
+  update(dt) {
+    if (this.cooldown > 0) {
+      this.cooldown -= dt;
+    }
+    if (this.isActive) {
+      this.timer -= dt;
+      if (this.videoEl) {
+        if (this.app.is24KOverdrive) {
+          this.videoEl.classList.add("gold-rush");
+        } else {
+          this.videoEl.classList.remove("gold-rush");
+        }
+      }
+      if (this.timer <= 0) {
+        this.stop();
+      }
+    }
+  }
+
+  stop() {
+    this.isActive = false;
+    this.timer = 0;
+    if (this.videoEl) {
+      this.videoEl.classList.remove("active");
+      this.videoEl.classList.remove("gold-rush");
+      try { this.videoEl.pause(); } catch (e) {}
+    }
+  }
+}
+
 // ============================================================================
 // NO MORE ILLUSIONS — CORE APP CONTROLLER, INPUT & RENDER LOOP
 // ============================================================================
@@ -683,6 +758,7 @@ class NoMoreIllusionsApp {
     this.playSfx("whoosh_modal", 0.80);
     this.trackAudio.pause();
     this.gameState = "PAUSED";
+    if (this.brollDirector) this.brollDirector.stop();
     this.syncUI();
   }
 
@@ -700,6 +776,7 @@ class NoMoreIllusionsApp {
     if ((this.overdriveProgress || 0) < 0.60) return;
 
     this.is24KOverdrive = true;
+    if (this.brollDirector) this.brollDirector.trigger(-1, 6.5);
     this.overdriveDuration = 9.0;
     this.overdriveTimer = this.overdriveDuration;
     this.screenShake = 16;
@@ -887,6 +964,7 @@ class NoMoreIllusionsApp {
     const dt = Math.min(0.05, Math.max(0.001, (timestamp - this.lastFrameTime) / 1000));
     this.lastFrameTime = timestamp;
     this.time += dt;
+    if (this.brollDirector) this.brollDirector.update(dt);
 
     // Update Starfield
     for (let i = 0; i < this.stars.length; i++) {

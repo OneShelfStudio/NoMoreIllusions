@@ -1766,3 +1766,25 @@
 
 
     .menu-content, .customizer-panel, .settings-panel, .vault-modal-content { padding-bottom: 74px !important; }
+
+    /* Translucent Live Music Video B-Roll Hologram Layer */
+    .broll-overlay-video {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      object-fit: cover;
+      pointer-events: none;
+      z-index: 3;
+      mix-blend-mode: screen;
+      opacity: 0;
+      transition: opacity 0.65s cubic-bezier(0.4, 0, 0.2, 1), filter 0.5s ease;
+      filter: contrast(1.22) saturate(1.3) brightness(0.85);
+    }
+    .broll-overlay-video.active {
+      opacity: 0.26;
+    }
+    .broll-overlay-video.gold-rush {
+      opacity: 0.36;
+      filter: contrast(1.35) saturate(1.5) brightness(1.15) sepia(0.55) hue-rotate(-12deg);
+    }

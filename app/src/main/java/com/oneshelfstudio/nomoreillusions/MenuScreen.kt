@@ -1004,6 +1004,8 @@ fun SettingsUI(
     isMusic: Boolean,
     isSound: Boolean,
     isHaptic: Boolean,
+    isBrollVideo: Boolean = true,
+    onBrollVideoToggle: (Boolean) -> Unit = {},
     difficulty: GameDifficulty,
     activeLobbyTrack: LobbyTrack = LobbyTrack.VELVET,
     onLobbyTrackChange: (LobbyTrack) -> Unit = {},
@@ -1051,6 +1053,7 @@ fun SettingsUI(
                     ToggleItem("MUSIC", isMusic, onMusicToggle)
                     ToggleItem("SOUND FX", isSound, onSoundToggle)
                     ToggleItem("HAPTICS", isHaptic, onHapticToggle)
+                    ToggleItem("MUSIC VIDEO B-ROLL", isBrollVideo, onBrollVideoToggle)
                 }
             }
 
