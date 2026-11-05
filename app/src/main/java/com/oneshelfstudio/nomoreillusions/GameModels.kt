@@ -200,6 +200,8 @@ data class GameObject(
     var bvy: Float = 0f,
     var bounceOffsetX: Float = 0f,
     var bounceOffsetY: Float = 0f,
+    var trajVx: Float = 0f,
+    var trajVy: Float = 0f,
     var squish: Float = 0f,
     var squishAngle: Float = 0f
 )

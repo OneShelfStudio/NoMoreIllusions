@@ -382,34 +382,45 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       for (let idx = 0; idx < this.powerUps.length; idx++) {
         const pu = this.powerUps[idx];
         const leadDur = Math.max(0.45, (pu.targetBeatSec || 1) - (pu.spawnBeatSec || 0));
-        const totalDur = leadDur * 2.0;
-        const s = Math.max(0, Math.min(1.25, (this.trackElapsedSec - pu.spawnBeatSec) / totalDur));
-        const hasWaterfall = pu.exitY !== undefined;
+        const strikeY = this.playerY || (this.H * 0.65);
+        const oldBaseX = pu.baseX !== undefined ? pu.baseX : pu.spawnX;
+        const oldBaseY = pu.baseY !== undefined ? pu.baseY : pu.spawnY;
 
-        if (hasWaterfall) {
-          // Constant downward velocity with graceful sinusoidal S-curve sway
-          const arcOffset = Math.sin(Math.min(1, Math.max(0, s)) * Math.PI) * (pu.swoopCurve || 0) * (this.W * 0.20);
-          pu.baseX = pu.spawnX + s * (pu.exitX - pu.spawnX) + arcOffset;
-          pu.baseY = pu.spawnY + s * (pu.exitY - pu.spawnY);
+        if (pu.exitY !== undefined) {
+          // Exact calibration: arrives at strike line (strikeY) right on targetBeatSec
+          if (this.trackElapsedSec <= pu.targetBeatSec) {
+            const u = Math.max(0, (this.trackElapsedSec - pu.spawnBeatSec) / Math.max(0.01, leadDur));
+            const arcOffset = Math.sin(Math.min(1, u) * Math.PI) * (pu.swoopCurve || 0) * (this.W * 0.20);
+            pu.baseX = pu.spawnX + u * (pu.targetX - pu.spawnX) + arcOffset;
+            pu.baseY = pu.spawnY + u * (strikeY - pu.spawnY);
+          } else {
+            const expireDur = Math.max(0.45, (pu.expireBeatSec || (pu.targetBeatSec + 1.5)) - pu.targetBeatSec);
+            const uExit = Math.min(1.2, (this.trackElapsedSec - pu.targetBeatSec) / expireDur);
+            pu.baseX = pu.targetX + uExit * (pu.exitX - pu.targetX);
+            pu.baseY = strikeY + uExit * (pu.exitY - strikeY);
+          }
         } else {
           // Gentle breathing hover for static ambient items
           const goalX = (pu.targetX || pu.x) + Math.cos(this.time * 1.8 + (pu.phase || 0)) * 4.5;
           const goalY = (pu.targetY || pu.y) + Math.sin(this.time * 2.1 + (pu.phase || 0)) * 4.5;
-          pu.baseX = (pu.baseX !== undefined ? pu.baseX : pu.x) + (goalX - pu.x) * 0.16;
-          pu.baseY = (pu.baseY !== undefined ? pu.baseY : pu.y) + (goalY - pu.y) * 0.16;
+          pu.baseX = oldBaseX + (goalX - pu.x) * 0.16;
+          pu.baseY = oldBaseY + (goalY - pu.y) * 0.16;
         }
 
-        // Critically-damped spring pulling bounce offset back to zero (smoothly returns orb to track lane)
-        // F = -k * offset - c * velocity; with k = 25.0, critical damping c = 10.0 (damping ratio zeta = 1.0)
-        const ax = -25.0 * (pu.bounceOffsetX || 0) - 10.0 * (pu.bvx || 0);
-        const ay = -25.0 * (pu.bounceOffsetY || 0) - 10.0 * (pu.bvy || 0);
+        // Calculate full trajectory velocities for 2D physical collision momentum
+        pu.trajVx = worldDt > 0.0001 ? (pu.baseX - oldBaseX) / worldDt : 0;
+        pu.trajVy = worldDt > 0.0001 ? (pu.baseY - oldBaseY) / worldDt : 160;
+
+        // Loosened physical spring return (k=4.5, c=3.2): orbs visibly ricochet along angular trajectories and gracefully settle back
+        const ax = -4.5 * (pu.bounceOffsetX || 0) - 3.2 * (pu.bvx || 0);
+        const ay = -4.5 * (pu.bounceOffsetY || 0) - 3.2 * (pu.bvy || 0);
         pu.bvx = (pu.bvx || 0) + ax * worldDt;
         pu.bvy = (pu.bvy || 0) + ay * worldDt;
         pu.bounceOffsetX = (pu.bounceOffsetX || 0) + pu.bvx * worldDt;
         pu.bounceOffsetY = (pu.bounceOffsetY || 0) + pu.bvy * worldDt;
 
-        // Bounded deflection safeguard so orbs never drift off-screen
-        const maxDeflection = pu.radius * 1.5;
+        // Expanded deflection boundary: allow dynamic 2D billiard-ball ricochets
+        const maxDeflection = 130.0;
         const deflDist = Math.hypot(pu.bounceOffsetX, pu.bounceOffsetY);
         if (deflDist > maxDeflection && deflDist > 0.001) {
           const sc = maxDeflection / deflDist;
@@ -455,37 +466,42 @@ Object.assign(NoMoreIllusionsApp.prototype, {
               pB.x = pB.baseX + pB.bounceOffsetX;
               pB.y = pB.baseY + pB.bounceOffsetY;
 
-              // Relative velocity along collision normal
-              const vRelX = (pB.bvx || 0) - (pA.bvx || 0);
-              const vRelY = (pB.bvy || 0) - (pA.bvy || 0);
+              // Full 2D physical velocity momentum exchange (trajectory + bounce velocity)
+              const vA_x = (pA.trajVx || 0) + (pA.bvx || 0);
+              const vA_y = (pA.trajVy || 0) + (pA.bvy || 0);
+              const vB_x = (pB.trajVx || 0) + (pB.bvx || 0);
+              const vB_y = (pB.trajVy || 0) + (pB.bvy || 0);
+
+              const vRelX = vB_x - vA_x;
+              const vRelY = vB_y - vA_y;
               const vNorm = vRelX * nx + vRelY * ny;
 
-              // ONLY apply repulsive elastic impulse if moving towards each other!
+              // Elastic Billiard-Ball Ricochet along collision normal:
+              // Natural angular deflection based on incoming trajectory angles!
+              const e = 0.78;
+              let impulse = 0;
               if (vNorm < 0) {
-                const e = 0.65;
-                const impulse = -(1 + e) * vNorm * 0.5;
-                pA.bvx = (pA.bvx || 0) - nx * impulse;
-                pA.bvy = (pA.bvy || 0) - ny * impulse;
-                pB.bvx = (pB.bvx || 0) + nx * impulse;
-                pB.bvy = (pB.bvy || 0) + ny * impulse;
-
-                // Trigger squish deformation along collision axis
-                const impactSpeed = Math.abs(vNorm);
-                const squishIntensity = Math.min(0.35, Math.max(0.12, 0.15 + (impactSpeed / 400.0) * 0.20));
-                pA.squish = squishIntensity;
-                pA.squishAngle = Math.atan2(ny, nx);
-                pB.squish = squishIntensity;
-                pB.squishAngle = Math.atan2(-ny, -nx);
-
-                this.playSfx("click", 0.15);
-              } else if (overlap > 0.5) {
-                // If overlapping with near-zero separating velocity, apply smooth parting nudge
-                const partingNudge = 15.0 * Math.min(1.0, Math.max(0.1, overlap / minDist));
-                pA.bvx = (pA.bvx || 0) - nx * partingNudge;
-                pA.bvy = (pA.bvy || 0) - ny * partingNudge;
-                pB.bvx = (pB.bvx || 0) + nx * partingNudge;
-                pB.bvy = (pB.bvy || 0) + ny * partingNudge;
+                // Approaching: 2D elastic collision impulse along normal
+                impulse = -(1 + e) * vNorm * 0.5;
+              } else {
+                // Overlapping: strong parting impulse along angle normal
+                impulse = Math.max(130.0, overlap * 25.0);
               }
+
+              pA.bvx = (pA.bvx || 0) - nx * impulse;
+              pA.bvy = (pA.bvy || 0) - ny * impulse;
+              pB.bvx = (pB.bvx || 0) + nx * impulse;
+              pB.bvy = (pB.bvy || 0) + ny * impulse;
+
+              // Visceral squish deformation along collision axis
+              const impactSpeed = Math.max(Math.abs(vNorm), impulse);
+              const squishVal = Math.min(0.38, 0.15 + (impactSpeed / 350.0) * 0.20);
+              pA.squish = squishVal;
+              pA.squishAngle = Math.atan2(ny, nx);
+              pB.squish = squishVal;
+              pB.squishAngle = Math.atan2(-ny, -nx);
+
+              this.playSfx("click", 0.22);
             }
           }
         }
@@ -914,6 +930,9 @@ Object.assign(NoMoreIllusionsApp.prototype, {
     if (pu.type === "SCORE_ORB") {
       this.synthHarmonicOrbChime(0.18, isAtStrikeLine, this.combo);
       this.triggerHaptic([isAtStrikeLine ? 24 : 14]);
+      if (typeof navigator !== "undefined" && navigator.vibrate) {
+        navigator.vibrate(isAtStrikeLine ? 22 : 12);
+      }
 
       const basePts = isAtStrikeLine ? 120 : 60;
       const pts = Math.max(10, Math.round(basePts * this.combo * (this.constellationRushTimer > 0 ? 2 : 1) * odMult * diffMult));
@@ -957,25 +976,29 @@ Object.assign(NoMoreIllusionsApp.prototype, {
         this.triggerRatingPopup("PERFECT", this.combo);
       }
 
-      // Find upcoming musical section transition
+      // Musical section transition drop synchronization
       const curTrack = (typeof OFFICIAL_TRACKS !== "undefined" ? OFFICIAL_TRACKS[this.selectedStageIndex] : null) || {};
       const sections = curTrack.sections || [];
-      const nextSection = sections.find(s => s.timeSec > this.trackElapsedSec - 0.20);
+      const nextSection = sections.find(s => s.timeSec > this.trackElapsedSec - 0.25);
       const targetSec = nextSection ? nextSection.timeSec : (pu.targetBeatSec || this.trackElapsedSec);
+      const timeDiffToDrop = Math.abs(this.trackElapsedSec - targetSec);
 
-      if (targetSec <= this.trackElapsedSec + 0.15) {
-        // Already at or past the section drop downbeat — ignite immediately!
+      if (timeDiffToDrop <= 0.25 || targetSec <= this.trackElapsedSec + 0.12) {
+        // ON-BEAT MUSIC DROP HIT: Ignite full chromatic harmonic spectacle immediately!
+        this.triggerHaptic([45, 60, 45]);
+        if (typeof navigator !== "undefined" && navigator.vibrate) {
+          navigator.vibrate([40, 50, 40]);
+        }
         this.igniteSectionEffect(pu.type);
+        this.screenShake = Math.max(this.screenShake, 18);
+        this.spawnMelodicStarfallCascade();
       } else {
-        // Prime the section drop: Player's core charges up with harmonic energy!
-        this.primedSectionEffect = {
-          type: pu.type,
-          targetSec: targetSec,
-          title: nextSection ? nextSection.title : "SECTION DROP"
-        };
-        this.playSfx("click", 0.45);
-        this.screenShake = 6;
-        this.spawnBurstMotes(pu.x, pu.y, [250, 204, 21], 12);
+        // Off-beat / premature hit: subtle error clunk and buzz (withhold transition spectacle)
+        this.playSfx("hit", 0.65);
+        this.triggerHaptic([20, 40, 20]);
+        if (typeof navigator !== "undefined" && navigator.vibrate) {
+          navigator.vibrate([20, 35, 20]);
+        }
       }
     }
   },

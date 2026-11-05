@@ -187,19 +187,19 @@ internal fun ArtistVaultShowcaseModal(
                     Spacer(modifier = Modifier.height(10.dp))
                     val notes = if (selectedSubTab == 0) {
                         listOf(
-                            "0:00 • INTRO — Here is where you can put your opening lyrics or fan note for Track 01",
-                            "0:54 • CHORUS — Here is where you can put your chorus lyrics or vocal harmony story",
-                            "1:22 • VERSE II — Here is where you can put your feature verse lyrics or studio story",
-                            "2:15 • BRIDGE — Here is where you can put your bridge lyrics or breakdown note",
-                            "2:42 • OUTRO — Here is where you can put your closing lyrics or thank-you note for fans"
+                            "0:00 • INTRO — Warm analog Rhodes electric piano chords establish the introspective late-night vibe.",
+                            "0:54 • CHORUS — Layered vocal harmonies bloom as the 88 BPM pocket deepens into full groove.",
+                            "1:22 • VERSE II — Stripped-back percussion focuses on raw, intimate vocal storytelling.",
+                            "2:15 • BRIDGE — Dynamic vocal swell introduces the celestial synth pad wash and rising energy.",
+                            "2:42 • OUTRO — Sustained vocal echoes gently resolve into the ambient vinyl coda."
                         )
                     } else {
                         listOf(
-                            "0:00 • INTRO — Here is where you can put your opening lyrics or fan note for Track 02",
-                            "0:26 • CHORUS — Here is where you can put your chorus hook lyrics or story",
-                            "0:55 • VERSE — Here is where you can put your verse lyrics or behind-the-scenes note",
-                            "1:28 • DROP — Here is where you can put your bass-drop note or production secret",
-                            "1:52 • FINALE — Here is where you can put your closing lyrics or fan shoutout"
+                            "0:00 • INTRO — Syncopated vocal chops set up the forward-moving hip-hop bounce.",
+                            "0:26 • CHORUS — Open hi-hat grooves and heavy sub-bass drive the central rhythm hook.",
+                            "0:55 • VERSE — Rapid vocal cadence and syncopated beat pegs challenge timing precision.",
+                            "1:28 • DROP — High-voltage electronic synth cascade and full-spectrum stereo chords.",
+                            "1:52 • FINALE — Climax breakdown with energetic rhythm flourishes and vinyl fadeout."
                         )
                     }
                     Column(
@@ -228,10 +228,9 @@ internal fun ArtistVaultShowcaseModal(
 
                 "VAULT_POLAROIDS" -> {
                     val cards = listOf(
-                        Triple("CARD 01 • ARTIST STORY SLOT", "Here is where you can put a studio photo caption or personal story for your fans.", Color(0xFF4ADE80L)),
-                        Triple("CARD 02 • TRACK 01 MEMORY SLOT", "Here is where you can put behind-the-scenes notes or collaborator shoutouts for Track 01.", Color(0xFF818CF8L)),
-                        Triple("CARD 03 • TRACK 02 MEMORY SLOT", "Here is where you can put behind-the-scenes notes or recording stories for Track 02.", Color(0xFFFACC15L)),
-                        Triple("CARD 04 • UPCOMING RELEASES SLOT", "Here is where you can put upcoming single announcements, presave links, or show dates for your fans.", Color(0xFFE879F9L))
+                        Triple("STUDIO ARCHIVE • TRACK 01", "Confide was engineered in late-night sessions to capture raw vocal vulnerability across a smooth 88 BPM pocket.", Color(0xFF4ADE80L)),
+                        Triple("STUDIO ARCHIVE • TRACK 02", "Number One combines syncopated open hi-hat patterns with heavy basslines and progressive electronic energy.", Color(0xFF818CF8L)),
+                        Triple("FUTURE TRACKS • COMING SOON", "Ethan Correa is currently in the studio recording upcoming singles and stem packs. Master existing tracks to unlock new content upon release.", Color(0xFFFACC15L))
                     )
                     Column(
                         verticalArrangement = Arrangement.spacedBy(7.dp),

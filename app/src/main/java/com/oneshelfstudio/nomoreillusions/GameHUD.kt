@@ -262,7 +262,7 @@ fun HUD(
             )
 
             // Angled Rating Badge (e.g. PERFECT / GREAT)
-            val hasRecentHit = rhythmCombo > 1 || (comboBanner != null && comboBanner.timer > 0f)
+            val hasRecentHit = (rhythmCombo > 1 || (comboBanner != null && comboBanner.timer > 0f)) && !is24KOverdrive
             if (hasRecentHit) {
                 Spacer(modifier = Modifier.height(2.dp))
                 val isBroken = comboBanner?.isBroken == true

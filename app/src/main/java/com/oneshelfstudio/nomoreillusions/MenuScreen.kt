@@ -772,7 +772,8 @@ fun MenuUI(
                     .fillMaxWidth()
                     .background(Color(0xF00A0618L))
                     .border(1.dp, Color(0x33EC4899L), RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
-                    .padding(vertical = 8.dp),
+                    .navigationBarsPadding()
+                    .padding(vertical = 10.dp),
                 horizontalArrangement = Arrangement.SpaceAround,
                 verticalAlignment = Alignment.CenterVertically
             ) {

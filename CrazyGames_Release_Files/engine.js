@@ -723,9 +723,8 @@ class NoMoreIllusionsApp {
       });
     }
 
-    if (typeof this.triggerRatingPopup === "function") {
-      this.triggerRatingPopup("24K OVERDRIVE", this.combo);
-    }
+    // Center words stripped per feedback: do NOT block incoming notes with text popups!
+    // Rating popup suppressed during 24K Overdrive.
     this.updateLiveHUD();
   }
 

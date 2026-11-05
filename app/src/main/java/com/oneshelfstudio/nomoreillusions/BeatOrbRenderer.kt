@@ -609,25 +609,72 @@ fun DrawScope.drawPowerUps(
                     )
                 }
 
+                // 0. Fluid Trailing Stardust Wake (3 luminous micro-droplets streaming behind falling orb)
+                for (w in 1..3) {
+                    val wakeY = center3D.y - (coreRad * 0.75f * w.toFloat()) * perspScale
+                    val wakeX = center3D.x + sin(time * 6f + w.toFloat() + p.sequenceIndex.toFloat()) * (coreRad * 0.12f)
+                    val wakeRad = (coreRad * 0.28f * (1.0f - w * 0.26f)).coerceAtLeast(1.8f)
+                    drawCircle(
+                        color = effectColor.copy(alpha = ttlAlpha * (0.60f - w * 0.15f)),
+                        radius = wakeRad,
+                        center = Offset(wakeX, wakeY)
+                    )
+                }
+
+                // Living Liquid Undulating Core (Fluid movement inside sphere)
+                val liquidPhase = time * 4.8f + p.sequenceIndex.toFloat() * 0.9f
+                val waveOx = cos(liquidPhase) * (coreRad * 0.16f)
+                val waveOy = sin(liquidPhase) * (coreRad * 0.16f)
+                val animatedLightOrigin = Offset(lightOrigin.x + waveOx, lightOrigin.y + waveOy)
+
                 // 3D Volumetric Shaded Sphere Body (Top-Left Specular -> Mid Tone -> Deep Rim Shadow)
-                val darkRim = Color(
-                    red = (effectColor.red * 0.18f).coerceIn(0f, 1f),
-                    green = (effectColor.green * 0.18f).coerceIn(0f, 1f),
-                    blue = (effectColor.blue * 0.22f).coerceIn(0f, 1f),
-                    alpha = 0.98f * ttlAlpha
-                )
+                val darkRim = if (isGoldStage) {
+                    Color(0xFF422006L).copy(alpha = 0.98f * ttlAlpha)
+                } else {
+                    Color(
+                        red = (effectColor.red * 0.18f).coerceIn(0f, 1f),
+                        green = (effectColor.green * 0.18f).coerceIn(0f, 1f),
+                        blue = (effectColor.blue * 0.22f).coerceIn(0f, 1f),
+                        alpha = 0.98f * ttlAlpha
+                    )
+                }
                 drawCircle(
                     brush = Brush.radialGradient(
-                        colors = listOf(
+                        colors = if (isGoldStage) listOf(
+                            Color.White.copy(alpha = 0.99f * ttlAlpha),
+                            Color(0xFFFEF08AL).copy(alpha = 0.98f * ttlAlpha),
+                            Color(0xFFFACC15L).copy(alpha = 0.96f * ttlAlpha),
+                            darkRim
+                        ) else listOf(
                             Color.White.copy(alpha = 0.98f * ttlAlpha),
                             effectColor.copy(alpha = 0.96f * ttlAlpha),
                             darkRim
                         ),
-                        center = lightOrigin,
+                        center = animatedLightOrigin,
                         radius = coreRad * 1.38f
                     ),
                     radius = coreRad,
                     center = center3D
+                )
+
+                // Dual Counter-Rotating 3D Equatorial Ring with Orbiting Luminous Charge Spark
+                withTransform({
+                    rotate(degrees = 18f - sin(time * 2.8f + p.sequenceIndex) * 14f, pivot = center3D)
+                }) {
+                    drawOval(
+                        color = effectColor.copy(alpha = (0.45f + 0.20f * beatKick) * ttlAlpha),
+                        topLeft = Offset(center3D.x - coreRad * 1.28f, center3D.y - coreRad * 0.36f),
+                        size = Size(coreRad * 2.56f, coreRad * 0.72f),
+                        style = Stroke(width = 1.4f * perspScale)
+                    )
+                }
+                val chargeAngle = time * 3.4f + p.sequenceIndex.toFloat() * 1.57f
+                val chargeX = center3D.x + cos(chargeAngle) * (coreRad * 1.22f)
+                val chargeY = center3D.y + sin(chargeAngle) * (coreRad * 0.38f)
+                drawCircle(
+                    color = Color.White.copy(alpha = 0.95f * ttlAlpha),
+                    radius = 2.8f * perspScale,
+                    center = Offset(chargeX, chargeY)
                 )
 
                 // 3 Concentric Etched Vinyl Micro-Grooves

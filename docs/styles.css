@@ -493,21 +493,24 @@
 
     /* Magic Tiles 3 Inspired Bottom Navigation Bar */
     .magic-bottom-nav {
-      width: 100%;
-      max-width: 410px;
+      position: fixed;
+      bottom: max(14px, env(safe-area-inset-bottom, 14px));
+      left: 50%;
+      transform: translateX(-50%);
+      width: calc(100% - 32px);
+      max-width: 400px;
       height: 52px;
-      border-radius: 20px;
-      background: rgba(18, 12, 38, 0.90);
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
-      border: 1.2px solid rgba(192, 132, 252, 0.32);
-      box-shadow: 0 4px 22px rgba(0, 0, 0, 0.6);
+      border-radius: 26px;
+      background: rgba(14, 10, 30, 0.94);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border: 1.5px solid rgba(192, 132, 252, 0.38);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.75), 0 0 16px rgba(168, 85, 247, 0.22);
       display: flex;
       align-items: center;
       justify-content: space-around;
       padding: 0 6px;
-      z-index: 10;
-      margin-top: auto;
+      z-index: 100;
     }
     .magic-bottom-nav .nav-tab {
       display: flex;
@@ -1761,3 +1764,5 @@
       to { transform: rotate(360deg); }
     }
 
+
+    .menu-content, .customizer-panel, .settings-panel, .vault-modal-content { padding-bottom: 74px !important; }

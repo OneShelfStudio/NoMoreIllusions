@@ -800,6 +800,8 @@ function drawMenuTurntable(ctx, logoImg, time, isGoldMode, isLocked) {
 // 7b. UPPER-MIDDLE ON-SCREEN COMBO & STREAK ZOOM POPUP BANNER
 // ============================================================================
 function drawComboZoomBanner(ctx, W, H, banner, time) {
+  // Completely stripped per user feedback: keep the arena 100% clear of blocking banners over incoming orbs
+  return;
   if (!banner || banner.timer <= 0) return;
 
   const cx = W * 0.5;

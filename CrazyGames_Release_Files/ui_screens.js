@@ -451,6 +451,23 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       if (el) el.style.display = (this.gameState === s) ? "flex" : "none";
     }
 
+    // Universal bottom navigation bar visibility and active tab state
+    const bottomNav = document.getElementById("magic-bottom-nav");
+    if (bottomNav) {
+      const isMenuScreen = ["MENU", "CUSTOMIZER", "SETTINGS", "DEMO_PLAYER", "HOW_TO_PLAY", "LINER_NOTES"].includes(this.gameState);
+      bottomNav.style.display = isMenuScreen ? "flex" : "none";
+
+      const tabHome = document.getElementById("nav-tab-home");
+      const tabSkins = document.getElementById("nav-tab-skins");
+      const tabVault = document.getElementById("nav-tab-vault");
+      const tabExcl = document.getElementById("nav-tab-exclusives");
+
+      if (tabHome) tabHome.classList.toggle("active", this.gameState === "MENU" || this.gameState === "SETTINGS" || this.gameState === "HOW_TO_PLAY");
+      if (tabSkins) tabSkins.classList.toggle("active", this.gameState === "CUSTOMIZER" && (this.customizerTab === 0 || this.customizerTab === undefined));
+      if (tabVault) tabVault.classList.toggle("active", (this.gameState === "CUSTOMIZER" && this.customizerTab === 1) || this.gameState === "DEMO_PLAYER");
+      if (tabExcl) tabExcl.classList.toggle("active", this.gameState === "CUSTOMIZER" && this.customizerTab === 2);
+    }
+
     // Sync Menu Screen
     const allGold = OFFICIAL_TRACKS.every((t) => (this.prefs.trackMasteryMedals[t.id] || 0) >= 3);
     const ptsEl = document.getElementById("menu-points-val");

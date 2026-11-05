@@ -58,115 +58,51 @@ const FIRST_TIME_DISCOVERIES = {
 
 const ARTIST_EXCLUSIVES_CATALOG = [
   {
-    id: "excl_confide_note",
-    categoryBadge: "PERSONAL ARTIST NOTE • TRACK 01",
-    title: "Artist Fan Note: 'Confide'",
-    unlockRequirementText: "Reach 50% in 'Confide' or unlock the track",
-    previewTeaser: "Unlock the personal artist note & behind-the-scenes fan message for 'Confide'...",
-    unlockedHeadline: "ARTIST FAN NOTE — 'CONFIDE'",
-    unlockedBody: "Here is where you can put your personal story, lyrics, or behind-the-scenes studio note for your fans about 'Confide'!",
-    unlockedQuote: "— Here is where you can put a custom sign-off or dedication for your fans",
-    bonusGamePerk: "+15% Score Resonance Aura unlocked on Confide",
-    accentHex: "#38BDF8",
+    id: "excl_confide_master",
+    categoryBadge: "STUDIO MASTER • TRACK 01",
+    title: "'Confide' — Studio Master & Vocal Stems",
+    unlockRequirementText: "Reach 50% in 'Confide' or complete stage",
+    previewTeaser: "Explore Ethan's late-night vocal sessions, analog Rhodes chords, and full studio mix...",
+    unlockedHeadline: "STUDIO MASTER: CONFIDE (88 BPM)",
+    unlockedBody: "Written during late-night studio sessions exploring vulnerability, 'Confide' is built around warm analog Rhodes chords and a tight 88 BPM vocal pocket. Every beat orb in the highway was aligned to the natural breath and cadence of this vocal take.",
+    unlockedQuote: "— Ethan Correa, Composer & Vocalist",
+    bonusGamePerk: "Unlocks 'Confide' Full Master Playback + Fast/Chill Modes",
+    accentHex: "#4ADE80",
     isUnlockedFn: (app) =>
       app.prefs.vipUnlocked ||
       app.prefs.unlockedTracks.includes("track_01") ||
       (app.prefs.trackBestProgress["track_01"] || 0) >= 0.50
   },
   {
-    id: "excl_confide_master",
-    categoryBadge: "UNLOCKABLE AUDIO REEL • TRACK 01",
-    title: "'Confide' — Full Album Master & Remix Speeds",
-    unlockRequirementText: "Complete 'Confide' (100% Stage Clear)",
-    previewTeaser: "Survive to the finale of 'Confide' to unlock unlimited on-demand playback in your Album Vault...",
-    unlockedHeadline: "FULL TRACK UNLOCKED IN ALBUM DECK",
-    unlockedBody: "Here is where you can put a custom celebration note for fans who unlock the full 'Confide' track in their Album Vault!",
-    unlockedQuote: "UNLOCKED: Full 'Confide' Playback + Slowed & Fast Remix Modes",
-    bonusGamePerk: "Unlocks 'Confide' Full Playback + ★1 Gold Vinyl Star",
-    accentHex: "#4ADE80",
-    isUnlockedFn: (app) =>
-      app.prefs.vipUnlocked ||
-      app.prefs.unlockedTracks.includes("track_01")
-  },
-  {
-    id: "excl_number_one_note",
-    categoryBadge: "PERSONAL ARTIST NOTE • TRACK 02",
-    title: "Artist Fan Note: 'Number One'",
-    unlockRequirementText: "Reach 50% in 'Number One' or unlock the track",
-    previewTeaser: "Unlock the personal artist note & behind-the-scenes fan message for 'Number One'...",
-    unlockedHeadline: "ARTIST FAN NOTE — 'NUMBER ONE'",
-    unlockedBody: "Here is where you can put your personal story, lyrics, or behind-the-scenes studio note for your fans about 'Number One'!",
-    unlockedQuote: "— Here is where you can put a custom sign-off or dedication for your fans",
-    bonusGamePerk: "+15% Combo Rush duration on Number One",
-    accentHex: "#FACC15",
+    id: "excl_number_one_master",
+    categoryBadge: "STUDIO MASTER • TRACK 02",
+    title: "'Number One' — Hi-Hat Cadence & Master Reel",
+    unlockRequirementText: "Reach 50% in 'Number One' or complete stage",
+    previewTeaser: "Unlock the rhythmic vocal chops, open hi-hat breakdown, and high-energy electronic drop...",
+    unlockedHeadline: "STUDIO MASTER: NUMBER ONE",
+    unlockedBody: "'Number One' fuses modern hip-hop syncopation with progressive electronic energy. The open hi-hat swing and layered vocal harmonies were designed to create a hypnotic, forward-driving pocket.",
+    unlockedQuote: "— Ethan Correa, Composer & Vocalist",
+    bonusGamePerk: "Unlocks 'Number One' Full Master Playback + ★1 Gold Vinyl Star",
+    accentHex: "#C084FC",
     isUnlockedFn: (app) =>
       app.prefs.vipUnlocked ||
       app.prefs.unlockedTracks.includes("track_02") ||
       (app.prefs.trackBestProgress["track_02"] || 0) >= 0.50
   },
   {
-    id: "excl_number_one_master",
-    categoryBadge: "UNLOCKABLE AUDIO REEL • TRACK 02",
-    title: "'Number One' — Full Album Master & Remix Speeds",
-    unlockRequirementText: "Complete 'Number One' (100% Stage Clear)",
-    previewTeaser: "Survive to the finale of 'Number One' to unlock the complete track in your Album Vault...",
-    unlockedHeadline: "FULL TRACK UNLOCKED IN ALBUM DECK",
-    unlockedBody: "Here is where you can put a custom celebration note for fans who unlock the full 'Number One' track in their Album Vault!",
-    unlockedQuote: "UNLOCKED: Full 'Number One' Playback + Slowed & Fast Remix Modes",
-    bonusGamePerk: "Unlocks 'Number One' Full Playback + ★1 Gold Vinyl Star",
-    accentHex: "#C084FC",
-    isUnlockedFn: (app) =>
-      app.prefs.vipUnlocked ||
-      app.prefs.unlockedTracks.includes("track_02")
-  },
-  {
-    id: "excl_vocal_secrets",
-    categoryBadge: "BACKSTAGE SESSION SECRET • COMBO REWARD",
-    title: "Backstage Studio Secret (8x Streak Reward)",
-    unlockRequirementText: "Reach an 8x Beat Combo on any song (★2 Star)",
-    previewTeaser: "Hit 8 Beat Pegs in a row on time to unlock this backstage artist secret for your fans...",
-    unlockedHeadline: "BACKSTAGE STUDIO SECRET (8x STREAK REWARD)",
-    unlockedBody: "Here is where you can put a special backstage studio secret, vocal session story, or exclusive message for fans who hit an 8x Beat Streak!",
-    unlockedQuote: "UNLOCKED BY MASTERING AN 8x RHYTHM STREAK",
-    bonusGamePerk: "Unlocks ★2 Mastery Star + Pentatonic Chord Stingers",
-    accentHex: "#22D3EE",
-    isUnlockedFn: (app) =>
-      app.prefs.vipUnlocked ||
-      Object.values(app.prefs.trackMasteryMedals || {}).some((m) => m >= 2)
-  },
-  {
-    id: "excl_vip_thank_you",
-    categoryBadge: "COLLECTOR'S INNER CIRCLE • MASTER VAULT",
-    title: "Inner-Circle Fan Letter & Gold Vinyl Cert",
-    unlockRequirementText: "Unlock both songs or earn a ★3 Star in Fast/Chill Mode",
-    previewTeaser: "Master the interactive album to unlock a personal letter to day-one listeners and the 24K Gold Turntable certification...",
-    unlockedHeadline: "DAY-ONE INNER CIRCLE — PERSONAL FAN LETTER",
-    unlockedBody: "Here is where you can put your personal thank-you letter, social media tag invite, or VIP perk for fans who unlock both tracks!",
-    unlockedQuote: "★ CERTIFIED DAY-ONE INNER CIRCLE LISTENER — NO MORE ILLUSIONS ★",
-    bonusGamePerk: "Unlocks 24K Gold Turntable Halo & Inner-Circle Badge",
+    id: "excl_upcoming_teaser",
+    categoryBadge: "UPCOMING STUDIO RELEASES",
+    title: "More Artist Exclusives Coming Soon",
+    unlockRequirementText: "Master current tracks to qualify for upcoming releases",
+    previewTeaser: "Ethan Correa is producing upcoming singles and exclusive stem packs. Level up your album mastery to unlock new tracks upon release...",
+    unlockedHeadline: "NEW ARTIST EXCLUSIVES IN PRODUCTION",
+    unlockedBody: "Ethan Correa is currently in the studio recording upcoming singles, acoustic stripped sessions, and stems. Keep honing your rhythm score to instantly unlock VIP rewards and community drops when new tracks go live.",
+    unlockedQuote: "Tag @EthanCorrea #NoMoreIllusions on TikTok & Instagram",
+    bonusGamePerk: "VIP Status: Automatic Access to Upcoming Singles",
     accentHex: "#FACC15",
-    isUnlockedFn: (app) =>
-      app.prefs.vipUnlocked ||
-      (app.prefs.unlockedTracks.includes("track_01") && app.prefs.unlockedTracks.includes("track_02")) ||
-      Object.values(app.prefs.trackMasteryMedals || {}).some((m) => m >= 3)
-  },
-  {
-    id: "excl_endless_champion",
-    categoryBadge: "🏆 ENDLESS LOOP CHAMPION SECRET",
-    title: "Artist's Secret Message to Endless Champions",
-    unlockRequirementText: "Score 15,000+ pts or reach Loop #2 in ∞ Endless Mode",
-    previewTeaser: "Survive the accelerating ∞ Endless Loop to unlock a personal artist message & secret fan reward...",
-    unlockedHeadline: "SECRET ARTIST MESSAGE — ∞ ENDLESS CHAMPION",
-    unlockedBody: "Here is where you can put your special reward message, secret DM code, or unreleased demo link for fans who conquer the accelerating ∞ Endless Loop!",
-    unlockedQuote: "★ TOP ENDLESS SCORE REWARD FOR YOUR BIGGEST FANS ★",
-    bonusGamePerk: "Unlocks Champion Crown Flair & Fan Reward Claim",
-    accentHex: "#F43F5E",
-    isUnlockedFn: (app) =>
-      app.prefs.vipUnlocked ||
-      app.prefs.highScore >= 15000 ||
-      (app.prefs.endlessBestLoop || 0) >= 2
+    isUnlockedFn: (app) => app.prefs.vipUnlocked || false
   }
-];
+]];
 
 Object.assign(NoMoreIllusionsApp.prototype, {
   hasSeenDiscovery(key) {

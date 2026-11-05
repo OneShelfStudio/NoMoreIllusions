@@ -1,4 +1,4 @@
-const CACHE_NAME = "nmi-v48-elastic-physics";
+const CACHE_NAME = "nmi-v49-fluid-orbs";
 const ASSETS = [
   "./",
   "./index.html",

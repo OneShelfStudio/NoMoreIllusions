@@ -344,10 +344,16 @@ function drawPowerUps(ctx, powerUps, playerX, playerY, time, trackSec, beatPulse
     const isNova = pu.type === "BLAST" || pu.type === "OVERDRIVE";
     const isAegis = pu.type === "SHIELD";
     const isSpecialType = isElectric || isPrism || isVortex || isNova || isAegis;
-    const isSupernova = !isSpecialType && (pu.isSupernova || pu.keyWordEffect === "CONSTELLATION_STAR");
+    const isGoldRush = Boolean(
+      isConstellationActive ||
+      (typeof window !== "undefined" && window.app && window.app.is24KOverdrive)
+    );
+    const isSupernova = !isSpecialType && (pu.isSupernova || pu.keyWordEffect === "CONSTELLATION_STAR" || isGoldRush);
     const laneIdx = Math.max(0, Math.min(3, (pu.phraseBeatNum || 1) - 1));
 
-    const effectCol = isElectric
+    const effectCol = isGoldRush
+      ? [250, 204, 21]
+      : (isElectric
       ? [250, 204, 21]
       : isPrism
       ? [74, 222, 128]
@@ -359,7 +365,7 @@ function drawPowerUps(ctx, powerUps, playerX, playerY, time, trackSec, beatPulse
       ? [56, 189, 248]
       : isSupernova
       ? [250, 204, 21]
-      : HIGHWAY_LANE_COLORS[laneIdx];
+      : HIGHWAY_LANE_COLORS[laneIdx]);
 
     const isOnStrikeLine = isBandHeroMode ? (u >= 0.86 && u <= 1.14) : (beatPulse >= 0.45);
     const rhythmPulse = 1.0 + (isOnStrikeLine ? 0.20 : 0.12) * beatPulse + 0.08 * Math.sin(time * 8.0);
@@ -728,7 +734,16 @@ function drawPowerUps(ctx, powerUps, playerX, playerY, time, trackSec, beatPulse
       ctx.lineWidth = 2.4;
       ctx.stroke();
     } else if (isSupernova) {
-      // ★ 3D VOLUMETRIC 24K GOLD STAR POWER SPHERE
+      // ★ 3D VOLUMETRIC 24K GOLD STAR POWER SPHERE (FLUID GOLD RUSH)
+      for (let w = 1; w <= 3; w++) {
+        const wakeY = cy - (coreRad * 0.75 * w);
+        const wakeX = cx + Math.sin(time * 6.0 + w + idx) * (coreRad * 0.12);
+        const wakeRad = Math.max(1.8, (coreRad * 0.28) * (1.0 - w * 0.26));
+        ctx.beginPath();
+        ctx.arc(wakeX, wakeY, wakeRad, 0, Math.PI * 2);
+        ctx.fillStyle = rgba([250, 204, 21], puAlpha * (0.65 - w * 0.15));
+        ctx.fill();
+      }
       const glow = ctx.createRadialGradient(cx, cy, 2, cx, cy, coreRad * 2.3);
       glow.addColorStop(0, rgba([255, 255, 255], 0.96 * puAlpha));
       glow.addColorStop(0.45, rgba([250, 204, 21], 0.84 * puAlpha));
@@ -766,31 +781,49 @@ function drawPowerUps(ctx, powerUps, playerX, playerY, time, trackSec, beatPulse
       ctx.fillText("★", cx, cy + 1);
     } else {
       // =========================================================================
-      // 🎵 BESPOKE REFRACTIVE COSMIC VINYL GLASS BEAD
+      // 🎵 BESPOKE REFRACTIVE COSMIC VINYL GLASS BEAD (FLUID & LIVING ORBS)
       // =========================================================================
+      // 0. Fluid Trailing Stardust Wake (3 luminous micro-droplets streaming behind falling orb)
+      const wakeDx = (pu.bvx || 0) * 0.08;
+      const wakeSpeed = Math.max(1.0, perspScale);
+      for (let w = 1; w <= 3; w++) {
+        const wakeY = cy - (coreRad * 0.75 * w) * wakeSpeed;
+        const wakeX = cx - (wakeDx * w) + Math.sin(time * 6.0 + w + idx) * (coreRad * 0.12);
+        const wakeRad = Math.max(1.8, (coreRad * 0.28) * (1.0 - w * 0.26));
+        const wakeAlpha = puAlpha * (0.55 - w * 0.14);
+        ctx.beginPath();
+        ctx.arc(wakeX, wakeY, wakeRad, 0, Math.PI * 2);
+        ctx.fillStyle = rgba(effectCol, wakeAlpha);
+        ctx.fill();
+      }
+
       // 1. Soft Ambient Bioluminescent Core Glow
-      const glow = ctx.createRadialGradient(cx, cy, 2, cx, cy, coreRad * 2.05);
-      glow.addColorStop(0, rgba(effectCol, 0.78 * puAlpha));
-      glow.addColorStop(0.55, rgba(effectCol, 0.24 * puAlpha));
+      const glow = ctx.createRadialGradient(cx, cy, 2, cx, cy, coreRad * 2.2);
+      glow.addColorStop(0, rgba(effectCol, 0.82 * puAlpha));
+      glow.addColorStop(0.50, rgba(effectCol, 0.28 * puAlpha));
       glow.addColorStop(1, "rgba(0,0,0,0)");
       ctx.beginPath();
-      ctx.arc(cx, cy, coreRad * 2.05, 0, Math.PI * 2);
+      ctx.arc(cx, cy, coreRad * 2.2, 0, Math.PI * 2);
       ctx.fillStyle = glow;
       ctx.fill();
 
-      // 2. Off-Center 3D Spherical Refraction Lighting
+      // 2. Living Liquid Undulating Core (Liquid plasma movement inside sphere)
+      const liquidPhase = time * 4.8 + (pu.sequenceIndex || 0) * 0.9;
+      const waveOx = Math.cos(liquidPhase) * coreRad * 0.16;
+      const waveOy = Math.sin(liquidPhase) * coreRad * 0.16;
+
       const darkRim = [
-        Math.round(effectCol[0] * 0.14),
-        Math.round(effectCol[1] * 0.14),
-        Math.round(effectCol[2] * 0.20)
+        Math.round(effectCol[0] * 0.12),
+        Math.round(effectCol[1] * 0.12),
+        Math.round(effectCol[2] * 0.18)
       ];
       const sphere3D = ctx.createRadialGradient(
-        cx - coreRad * 0.35, cy - coreRad * 0.35, coreRad * 0.06,
+        cx - coreRad * 0.32 + waveOx, cy - coreRad * 0.32 + waveOy, coreRad * 0.05,
         cx, cy, coreRad * 1.15
       );
       sphere3D.addColorStop(0, rgba([255, 255, 255], 0.98 * puAlpha));
-      sphere3D.addColorStop(0.24, rgba(effectCol, 0.98 * puAlpha));
-      sphere3D.addColorStop(0.72, rgba(effectCol, 0.88 * puAlpha));
+      sphere3D.addColorStop(0.22, rgba(effectCol, 0.98 * puAlpha));
+      sphere3D.addColorStop(0.70, rgba(effectCol, 0.88 * puAlpha));
       sphere3D.addColorStop(1, rgba(darkRim, 0.98 * puAlpha));
 
       ctx.beginPath();
@@ -798,40 +831,72 @@ function drawPowerUps(ctx, powerUps, playerX, playerY, time, trackSec, beatPulse
       ctx.fillStyle = sphere3D;
       ctx.fill();
 
-      // 3. Etched Concentric Vinyl Grooves inside the glass bead
+      // 3. Etched Concentric Vinyl Grooves with Dynamic Shimmer
       for (let g = 1; g <= 3; g++) {
         ctx.beginPath();
-        ctx.arc(cx, cy, coreRad * (0.35 + g * 0.18), 0, Math.PI * 2);
-        ctx.strokeStyle = `rgba(255, 255, 255, ${(0.14 * puAlpha).toFixed(3)})`;
-        ctx.lineWidth = 1.0;
+        ctx.arc(cx, cy, coreRad * (0.32 + g * 0.18), 0, Math.PI * 2);
+        const grooveAlpha = (0.12 + 0.06 * Math.sin(time * 3.5 + g)) * puAlpha;
+        ctx.strokeStyle = `rgba(255, 255, 255, ${grooveAlpha.toFixed(3)})`;
+        ctx.lineWidth = 1.1;
         ctx.stroke();
       }
 
-      // 4. Outer 3D Polished Chrome Rim
+      // 4. Outer 3D Polished Chrome Rim with Vibrant Neon Sheen
       ctx.strokeStyle = isOnStrikeLine ? "#FFFFFF" : rgba(effectCol, 0.96 * puAlpha);
       ctx.lineWidth = isOnStrikeLine ? 3.8 : 2.6;
       ctx.stroke();
 
-      // 5. Tilted 3D Equatorial Gyro-Ring wrapping the bead
+      // 5. Dual Counter-Rotating 3D Equatorial Gyro-Rings with Orbiting Charge
+      const ringAngle1 = (laneIdx % 2 === 0 ? -0.22 : 0.22) + Math.sin(time * 2.4) * 0.06;
+      const ringAngle2 = (laneIdx % 2 === 0 ? 0.22 : -0.22) - Math.sin(time * 2.0) * 0.06;
+
+      // Primary Gyro-Ring
       ctx.beginPath();
       ctx.ellipse(
         cx,
         cy + coreRad * 0.04,
-        coreRad * (1.14 + beatPulse * 0.10),
-        coreRad * 0.38,
-        (laneIdx % 2 === 0 ? -0.18 : 0.18),
+        coreRad * (1.18 + beatPulse * 0.12),
+        coreRad * 0.40,
+        ringAngle1,
         0,
         Math.PI * 2
       );
-      ctx.strokeStyle = rgba([255, 255, 255], (0.58 + beatPulse * 0.30) * puAlpha);
+      ctx.strokeStyle = rgba([255, 255, 255], (0.64 + beatPulse * 0.30) * puAlpha);
       ctx.lineWidth = Math.max(1.8, 2.4 * perspScale);
       ctx.stroke();
+
+      // Secondary Opposing Gyro-Ring (Delicate luminous aura)
+      ctx.beginPath();
+      ctx.ellipse(
+        cx,
+        cy,
+        coreRad * (1.24 + beatPulse * 0.08),
+        coreRad * 0.32,
+        ringAngle2,
+        0,
+        Math.PI * 2
+      );
+      ctx.strokeStyle = rgba(effectCol, (0.42 + beatPulse * 0.20) * puAlpha);
+      ctx.lineWidth = Math.max(1.2, 1.6 * perspScale);
+      ctx.stroke();
+
+      // Orbiting Luminous Charge Spark on the outer ring
+      const chargeAngle = time * 3.4 + (pu.sequenceIndex || 0) * 1.57;
+      const chargeX = cx + Math.cos(chargeAngle) * coreRad * 1.20;
+      const chargeY = cy + Math.sin(chargeAngle) * coreRad * 0.36;
+      ctx.beginPath();
+      ctx.arc(chargeX, chargeY, Math.max(2.0, 3.2 * perspScale), 0, Math.PI * 2);
+      ctx.fillStyle = "#FFFFFF";
+      ctx.shadowColor = rgba(effectCol, 0.95);
+      ctx.shadowBlur = 8;
+      ctx.fill();
+      ctx.shadowBlur = 0;
 
       // 6. Refractive Glass Crescent Specular Glint
       ctx.beginPath();
       ctx.arc(cx, cy, coreRad * 0.78, Math.PI * 1.08, Math.PI * 1.62);
-      ctx.strokeStyle = rgba([255, 255, 255], 0.92 * puAlpha);
-      ctx.lineWidth = Math.max(2.2, 3.4 * perspScale);
+      ctx.strokeStyle = rgba([255, 255, 255], 0.94 * puAlpha);
+      ctx.lineWidth = Math.max(2.4, 3.6 * perspScale);
       ctx.lineCap = "round";
       ctx.stroke();
 
