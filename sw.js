@@ -1,4 +1,4 @@
-const CACHE_NAME = "nmi-v49-fluid-orbs";
+const CACHE_NAME = "nmi-v50-broll-mv";
 const ASSETS = [
   "./",
   "./index.html",

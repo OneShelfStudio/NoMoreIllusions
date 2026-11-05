@@ -11,11 +11,13 @@
   <title>No More Illusions — Interactive Album Experience</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="apple-touch-icon" href="assets/nmi_logo.png" />
-  <link rel="stylesheet" href="styles.css?v=49" />
+  <link rel="stylesheet" href="styles.css?v=50" />
 </head>
 <body>
   <!-- Full-Screen 60FPS Audio-Reactive Game & Nebula Canvas -->
   <canvas id="game-canvas"></canvas>
+  <!-- Translucent Live Music Video B-Roll Hologram Layer -->
+  <video id="broll-overlay-video" class="broll-overlay-video" playsinline muted preload="auto" loop></video>
 
   <!-- ======================================================================
        1. MENU SCREEN (Magic Tiles Inspired Zero-Scroll Luxury Viewport)
@@ -559,6 +561,17 @@
       </div>
 
       <div class="cust-item-row">
+        <div style="width:34px;height:34px;border-radius:50%;background:rgba(236,72,153,0.18);border:1px solid rgba(236,72,153,0.4);display:flex;align-items:center;justify-content:center;color:#EC4899;flex-shrink:0;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17 10.5V7a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-3.5l4 4v-11l-4 4z"/></svg>
+        </div>
+        <div style="flex:1;">
+          <div class="cust-item-name">Music Video Overlays</div>
+          <div class="cust-item-sub">Translucent Ethan &amp; Damien B-Roll in Game</div>
+        </div>
+        <button id="settings-broll-btn" class="toggle-pill on" onclick="window.app.toggleBrollVideo()">ON</button>
+      </div>
+
+      <div class="cust-item-row">
         <div style="width:34px;height:34px;border-radius:50%;background:rgba(250,204,21,0.18);border:1px solid rgba(250,204,21,0.45);display:flex;align-items:center;justify-content:center;color:#FACC15;flex-shrink:0;">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="7.5" cy="15.5" r="4.5"/><path d="m21 3-9.5 9.5M15.5 7.5l3 3M18 5l2 2"/></svg>
         </div>
@@ -665,20 +678,20 @@
     </div>
   </div>
 
-  <script src="platform_sdk.js?v=49"></script>
-  <script src="multi_band_data.js?v=49"></script>
-  <script src="music_library.js?v=49"></script>
-  <script src="background_renderer.js?v=49"></script>
-  <script src="beat_orb_renderer.js?v=49"></script>
-  <script src="game_renderer.js?v=49"></script>
-  <script src="engine.js?v=49"></script>
-  <script src="audio_synth.js?v=49"></script>
-  <script src="game_physics.js?v=49"></script>
-  <script src="ui_screens.js?v=49"></script>
-  <script src="tutorial_overlay.js?v=49"></script>
+  <script src="platform_sdk.js?v=50"></script>
+  <script src="multi_band_data.js?v=50"></script>
+  <script src="music_library.js?v=50"></script>
+  <script src="background_renderer.js?v=50"></script>
+  <script src="beat_orb_renderer.js?v=50"></script>
+  <script src="game_renderer.js?v=50"></script>
+  <script src="engine.js?v=50"></script>
+  <script src="audio_synth.js?v=50"></script>
+  <script src="game_physics.js?v=50"></script>
+  <script src="ui_screens.js?v=50"></script>
+  <script src="tutorial_overlay.js?v=50"></script>
   <script>
     (function () {
-      const CURRENT_WEB_BUILD = "nmi-v49-fluid-orbs";
+      const CURRENT_WEB_BUILD = "nmi-v50-broll-mv";
       if ("serviceWorker" in navigator) {
         let refreshing = false;
         navigator.serviceWorker.addEventListener("controllerchange", () => {

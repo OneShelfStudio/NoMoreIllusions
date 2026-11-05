@@ -630,6 +630,12 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       sfxToggle.textContent = this.prefs.sfxMuted ? "MUTED" : "ACTIVE";
       sfxToggle.className = `toggle-pill ${this.prefs.sfxMuted ? "off" : "on"}`;
     }
+    const brollToggle = document.getElementById("settings-broll-btn");
+    if (brollToggle) {
+      const isEnabled = this.prefs.enableBrollVideo !== false;
+      brollToggle.textContent = isEnabled ? "ON" : "OFF";
+      brollToggle.className = `toggle-pill ${isEnabled ? "on" : "off"}`;
+    }
 
     // Game Over Screen (Clean Progression & Save Flow — Zero Ad Prompts)
     if (this.gameState === "GAME_OVER") {
