@@ -12,6 +12,8 @@
   <link rel="manifest" href="manifest.json" />
   <link rel="apple-touch-icon" href="assets/nmi_logo.png" />
   <link rel="stylesheet" href="styles.css?v=51" />
+  <!-- Official CrazyGames SDK v3 (Required for QA/Ad Integration) -->
+  <script src="https://sdk.crazygames.com/crazygames-sdk-v3.js"></script>
 </head>
 <body>
   <!-- Full-Screen 60FPS Audio-Reactive Game & Nebula Canvas -->
@@ -682,7 +684,7 @@
   <script>
     (function () {
       const CURRENT_WEB_BUILD = "nmi-v51-vintage-broll-pure-physics";
-      if ("serviceWorker" in navigator) {
+      if ("serviceWorker" in navigator && !window.location.hostname.includes("crazygames") && !window.location.hostname.includes("crazy")) {
         let refreshing = false;
         navigator.serviceWorker.addEventListener("controllerchange", () => {
           if (!refreshing) {
