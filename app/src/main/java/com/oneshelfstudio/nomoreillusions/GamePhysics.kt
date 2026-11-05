@@ -489,104 +489,30 @@ fun stepNebulousBeatOrbs(
                 orb.baseY = orb.spawnY + s * chordY + perpY * arcOffset
             }
 
-            // Calculate full 2D trajectory velocities for physical collision impulse
+            // Calculate smooth 2D trajectory velocity for silk comet ribbon orientation
             orb.trajVx = if (dt > 0.0001f) (orb.baseX - oldBaseX) / dt else 0f
-            orb.trajVy = if (dt > 0.0001f) (orb.baseY - oldBaseY) / dt else 160f
+            orb.trajVy = if (dt > 0.0001f) (orb.baseY - oldBaseY) / dt else 180f
 
-            // Pure natural deflection drift: smooth linear drag without artificial spring-back snapping
-            orb.bounceOffsetX += orb.bvx * dt
-            orb.bounceOffsetY += orb.bvy * dt
+            // Clean Pass-Through Flow: zero orb-to-orb collision repulsion or orbital swinging!
+            orb.bounceOffsetX = 0f
+            orb.bounceOffsetY = 0f
+            orb.bvx = 0f
+            orb.bvy = 0f
+            orb.squish = 0f
 
-            // Natural velocity damping so deflected orbs coast smoothly away
-            val dragFactor = (1f - 1.2f * dt).coerceIn(0.92f, 1.0f)
-            orb.bvx *= dragFactor
-            orb.bvy *= dragFactor
-
-            val maxDeflection = 120f
-            val deflDist = kotlin.math.hypot(orb.bounceOffsetX, orb.bounceOffsetY)
-            if (deflDist > maxDeflection && deflDist > 0.001f) {
-                val sc = maxDeflection / deflDist
-                orb.bounceOffsetX *= sc
-                orb.bounceOffsetY *= sc
-            }
-
-            orb.x = orb.baseX + orb.bounceOffsetX
-            orb.y = orb.baseY + orb.bounceOffsetY
-
-            // Smoothly decay squish deformation
-            if (orb.squish > 0.001f) {
-                orb.squish *= 0.88f
-            } else {
-                orb.squish = 0f
-            }
-        }
-
-        // Natural Physics 2D Elastic Ricochet Bouncing between colliding Orbs
-        if (powerUps.size > 1) {
-            for (i in 0 until powerUps.size) {
-                for (j in i + 1 until powerUps.size) {
-                    val a = powerUps[i]
-                    val b = powerUps[j]
-                    val dx = b.x - a.x
-                    val dy = b.y - a.y
-                    val dist = kotlin.math.hypot(dx, dy)
-                    
-                    // Bounding radius scaled by perspective position down the highway
-                    val aScale = 0.65f + 0.50f * (a.y / screenHeight.coerceAtLeast(1f)).coerceIn(0f, 1f)
-                    val bScale = 0.65f + 0.50f * (b.y / screenHeight.coerceAtLeast(1f)).coerceIn(0f, 1f)
-                    val minDist = a.radius * aScale + b.radius * bScale
-
-                    if (dist < minDist && dist > 0.0001f) {
-                        val overlap = minDist - dist
-                        val nx = dx / dist
-                        val ny = dy / dist
-
-                        // Symmetrical position separation to immediately resolve overlap completely
-                        a.bounceOffsetX -= nx * overlap * 0.55f
-                        a.bounceOffsetY -= ny * overlap * 0.55f
-                        b.bounceOffsetX += nx * overlap * 0.55f
-                        b.bounceOffsetY += ny * overlap * 0.55f
-
-                        // Update current coordinates directly
-                        a.x = a.baseX + a.bounceOffsetX
-                        a.y = a.baseY + a.bounceOffsetY
-                        b.x = b.baseX + b.bounceOffsetX
-                        b.y = b.baseY + b.bounceOffsetY
-
-                        // Clean 2D Billiard Ball Deflection (Pure elastic reflection without highway speed explosion)
-                        val relVx = b.bvx - a.bvx
-                        val relVy = b.bvy - a.bvy
-                        val velAlongNormal = relVx * nx + relVy * ny
-
-                        if (velAlongNormal < 0f) {
-                            // Elastic bounce exchange along normal
-                            val impulse = -1.6f * velAlongNormal * 0.5f
-                            a.bvx -= impulse * nx
-                            a.bvy -= impulse * ny * 0.25f
-                            b.bvx += impulse * nx
-                            b.bvy += impulse * ny * 0.25f
-                        } else {
-                            // Gentle natural separation
-                            val nudge = 35f
-                            a.bvx -= nx * nudge * 0.5f
-                            b.bvx += nx * nudge * 0.5f
-                        }
-
-                        // Cap maximum deflection velocity to ensure natural gliding motion
-                        val maxBv = 110f
-                        a.bvx = a.bvx.coerceIn(-maxBv, maxBv)
-                        a.bvy = a.bvy.coerceIn(-maxBv * 0.3f, maxBv * 0.3f)
-                        b.bvx = b.bvx.coerceIn(-maxBv, maxBv)
-                        b.bvy = b.bvy.coerceIn(-maxBv * 0.3f, maxBv * 0.3f)
-
-                        val squishVal = minOf(0.24f, 0.08f + overlap / 18f)
-                        a.squish = squishVal
-                        a.squishAngle = atan2(ny, nx)
-                        b.squish = squishVal
-                        b.squishAngle = atan2(-ny, -nx)
-                    }
+            if (magnetActive) {
+                val mdx = player.x - orb.baseX
+                val mdy = player.y - orb.baseY
+                val mDist = kotlin.math.hypot(mdx, mdy)
+                if (mDist in 4f..320f) {
+                    val pull = ((1f - mDist / 320f) * 0.35f).coerceIn(0f, 0.35f)
+                    orb.baseX += mdx * pull
+                    orb.baseY += mdy * pull
                 }
             }
+
+            orb.x = orb.baseX
+            orb.y = orb.baseY
         }
     }
 }

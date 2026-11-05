@@ -395,6 +395,18 @@ internal fun computePerimeterSpawnPoint(
     return Offset(sx, sy)
 }
 
+internal fun countPlayableChartOrbs(chart: List<BeatOrbCue>, isTrainingMode: Boolean): Int {
+    if (chart.isEmpty()) return 1
+    var total = 0
+    for (cue in chart) {
+        if (isTrainingMode && cue.sequenceIndex % 3 == 2 && cue.powerUpType == PowerUpType.NONE && cue.keyWordEffect == KeyWordEffect.NONE && !cue.isGoldenCue) {
+            continue
+        }
+        total++
+    }
+    return total.coerceAtLeast(1)
+}
+
 internal fun spawnStationaryBeatOrbsForFrame(
     chart: List<BeatOrbCue>,
     startCueIdx: Int,
@@ -429,126 +441,90 @@ internal fun spawnStationaryBeatOrbsForFrame(
     )
 
     val beatGridStep = beatDurationSec.coerceIn(0.35f, 0.75f)
-    // Special musical moments ("ooooh" vocal swells, harmonic floats, or chorus swells) trigger fluid group peg motion!
     val isFluidMoment = multiBand.vocal >= 0.43f ||
         (multiBand.bassDropOut && multiBand.vocal >= 0.30f) ||
         (multiBand.bass >= 0.72f && multiBand.vocal >= 0.36f) ||
         multiBand.swellDelta >= 0.08f
-    // Rotate cleanly among 3 fluid formations: 101f = Outward-Inward Sweep, 102f = Slow Galactic Spiral, 103f = Flowing Sine Wave
-    val fluidFormationTag = if (!isBandHeroMode && isFluidMoment) {
-        when (maxOf(0f, trackSec / 16f).toInt().mod(3)) {
-            0 -> 101f
-            1 -> 102f
-            else -> 103f
-        }
-    } else 0f
+    val fluidFormationTag = if (!isBandHeroMode && isFluidMoment) 101f else 0f
 
-    // Rich, alive musical stage: 12-14 active notes, 10 in Band Hero mode
-    val maxActiveOrbs = if (isBandHeroMode) 10 else if (isFluidMoment) 14 else 12
-    val effectiveLeadTime = if (isBandHeroMode) spawnLeadTime else (beatGridStep * 4.4f).coerceIn(2.2f, 3.4f)
-    val effectiveHoldWindow = if (isBandHeroMode) ttlGraceSec else (beatGridStep * 6.0f)
+    val maxActiveOrbs = if (isBandHeroMode) 12 else 16
+    val regularLeadTime = if (isBandHeroMode) spawnLeadTime else (beatGridStep * 3.8f).coerceIn(1.9f, 2.55f)
+    // Special Section-Transition Orbs descend with a crisp 1.45s lead time so they arrive right ON the musical swell!
+    val specialLeadTime = if (isBandHeroMode) spawnLeadTime else 1.45f
+    val maxLookahead = maxOf(regularLeadTime, specialLeadTime)
+    val effectiveHoldWindow = if (isBandHeroMode) ttlGraceSec else (beatGridStep * 4.5f)
 
     while (
         nextOrbCueIdx < chart.size &&
         powerUps.size < maxActiveOrbs &&
-        trackSec >= chart[nextOrbCueIdx].timestampSec - effectiveLeadTime
+        trackSec >= chart[nextOrbCueIdx].timestampSec - maxLookahead
     ) {
-        val prevCueSec = if (nextOrbCueIdx > 0) chart[nextOrbCueIdx - 1].timestampSec else 0f
         val cue = chart[nextOrbCueIdx]
+        val isSpecialCue = cue.powerUpType != PowerUpType.NONE || cue.keyWordEffect != KeyWordEffect.NONE
+        val thisLeadTime = if (isSpecialCue) specialLeadTime else regularLeadTime
+
+        // Wait until this specific orb's lead-time window arrives (prevents Special Orbs from spawning 3s before the swell!)
+        if (trackSec < cue.timestampSec - thisLeadTime) {
+            // Only break if no immediately-following regular cue needs to spawn yet; check 1 ahead safely
+            break
+        }
+
         nextOrbCueIdx++
 
-        if (isTrainingMode && cue.sequenceIndex % 3 == 2 && cue.powerUpType == PowerUpType.NONE && !cue.isGoldenCue) {
+        if (isTrainingMode && cue.sequenceIndex % 3 == 2 && !isSpecialCue && !cue.isGoldenCue) {
             continue
         }
 
-        val quantizedBeatSec = (cue.timestampSec / beatGridStep).roundToInt() * beatGridStep
-        if (trackSec <= quantizedBeatSec + effectiveHoldWindow && screenWidth > 0f && screenHeight > 0f) {
+        val targetSecExact = if (isSpecialCue) {
+            cue.timestampSec
+        } else {
+            (cue.timestampSec / beatGridStep).roundToInt() * beatGridStep
+        }
+
+        if (trackSec <= targetSecExact + effectiveHoldWindow && screenWidth > 0f && screenHeight > 0f) {
             val laneIdx = (((cue.normX - 0.16f) / 0.68f * 4f).toInt() + cue.sequenceIndex) % 4
             val clampedLane = laneIdx.coerceIn(0, 3)
 
-            // Inject intermediate rhythm notes when gaps allow
-            val gapSec = quantizedBeatSec - prevCueSec
-            if (!isTrainingMode && prevCueSec > 0.5f && gapSec in (beatGridStep * 1.5f)..3.50f && powerUps.size < maxActiveOrbs - 2) {
-                val rawMidSec = prevCueSec + gapSec * 0.5f
-                val midBeatSec = (rawMidSec / beatGridStep).roundToInt() * beatGridStep
-                if (midBeatSec > trackSec + 0.25f && abs(midBeatSec - quantizedBeatSec) >= beatGridStep * 0.75f && abs(midBeatSec - prevCueSec) >= beatGridStep * 0.75f) {
-                    val midLane = (clampedLane + 2) % 4
-                    val midAnchor = if (isBandHeroMode) {
-                        computeHighwayPoint(midLane.toFloat(), 0f, screenWidth, screenHeight)
-                    } else {
-                        resolveNonOverlappingOrbSpot(
-                            desiredX = (1f - cue.normX) * screenWidth,
-                            desiredY = cue.normY * screenHeight,
-                            screenWidth = screenWidth,
-                            screenHeight = screenHeight,
-                            existingOrbs = powerUps,
-                            seedIndex = cue.sequenceIndex * 2
-                        )
-                    }
-                    val midSpawnEntry = if (isBandHeroMode) midAnchor else computePerimeterSpawnPoint(midAnchor, screenWidth, screenHeight, cue.sequenceIndex * 2)
-                    val midSwoop = if (isBandHeroMode) 0f else if (isFluidMoment) -0.45f else 0.15f
-                    val midSpawnSec = midBeatSec - effectiveLeadTime
-                    powerUps.add(
-                        GameObject(
-                            x = midSpawnEntry.x,
-                            y = midSpawnEntry.y,
-                            radius = 32f,
-                            color = applyColorBlind(laneColors[midLane]),
-                            angle = 0f,
-                            speed = 0f,
-                            powerUpType = PowerUpType.NONE,
-                            phase = (cue.sequenceIndex + 0.5f) * 0.7f,
-                            anchorX = midAnchor.x,
-                            anchorY = midAnchor.y,
-                            spawnBeatSec = midSpawnSec,
-                            targetBeatSec = midBeatSec,
-                            expireBeatSec = midBeatSec + effectiveLeadTime + 0.25f,
-                            phraseBeatNum = midLane + 1,
-                            sequenceIndex = cue.sequenceIndex * 2,
-                            isGoldenOrb = isGoldenActive,
-                            keyWordEffect = KeyWordEffect.NONE,
-                            orbitRadius = fluidFormationTag,
-                            spawnX = midSpawnEntry.x,
-                            spawnY = midSpawnEntry.y,
-                            swoopCurve = midSwoop
-                        )
-                    )
-                }
+            // 100% Human-Catchable Ergonomic Flow Path:
+            // Keep orbs comfortably inside safe thumb margins [0.18..0.82] (avoiding edge gauges) and bound
+            // consecutive horizontal jumps proportional to inter-note time delta so a single finger can catch 100%!
+            val safeMinX = screenWidth * 0.18f
+            val safeMaxX = screenWidth * 0.82f
+            val desiredReceptorX = (cue.normX.coerceIn(0.18f, 0.82f)) * screenWidth
+            val prevOrb = powerUps.lastOrNull()
+            val dtFromPrev = if (prevOrb != null) abs(targetSecExact - prevOrb.targetBeatSec).coerceAtLeast(0.18f) else 2.0f
+            val maxComfortableJump = (dtFromPrev * screenWidth * 0.62f).coerceIn(screenWidth * 0.11f, screenWidth * 0.50f)
+            val receptorX = if (!isBandHeroMode && prevOrb != null) {
+                desiredReceptorX.coerceIn(
+                    (prevOrb.anchorX - maxComfortableJump).coerceAtLeast(safeMinX),
+                    (prevOrb.anchorX + maxComfortableJump).coerceAtMost(safeMaxX)
+                )
+            } else {
+                desiredReceptorX
             }
+            val receptorY = screenHeight * 0.62f
 
             val anchorPt = if (isBandHeroMode) {
                 computeHighwayPoint(clampedLane.toFloat(), 0f, screenWidth, screenHeight)
             } else {
-                resolveNonOverlappingOrbSpot(
-                    desiredX = cue.normX * screenWidth,
-                    desiredY = cue.normY * screenHeight,
-                    screenWidth = screenWidth,
-                    screenHeight = screenHeight,
-                    existingOrbs = powerUps,
-                    seedIndex = cue.sequenceIndex * 2 + 1
-                )
+                Offset(receptorX, receptorY)
             }
-            // Rhythmic Waterfall Top-Horizon Flow: notes cascade gracefully down from upper boundary
-            val normX = cue.normX.coerceIn(0.18f, 0.82f)
-            val receptorX = normX * screenWidth
-            val receptorY = screenHeight * 0.58f
 
-            val swoopCurve = if (isBandHeroMode) 0f
-            else if (isFluidMoment) (if (cue.sequenceIndex % 2 == 0) 0.36f else -0.36f)
-            else ((cue.sequenceIndex % 5 - 2) * 0.12f)
+            // Coherent harmonic wave curve (no opposing +/-0.36 crossovers!)
+            val swoopCurve = if (isBandHeroMode || isSpecialCue) 0f
+            else sin(cue.sequenceIndex * 0.52f) * (if (isFluidMoment) 0.14f else 0.08f)
 
-            val lateralOffset = swoopCurve * screenWidth * 0.26f
-            val startX = if (isBandHeroMode) anchorPt.x else (receptorX + lateralOffset)
-            val startY = if (isBandHeroMode) anchorPt.y else -50f
-            val exitX = if (isBandHeroMode) anchorPt.x else (receptorX - lateralOffset)
-            val exitY = if (isBandHeroMode) anchorPt.y else (screenHeight + 70f)
+            val lateralOffset = swoopCurve * screenWidth * 0.16f
+            val startX = if (isBandHeroMode) anchorPt.x else (receptorX + lateralOffset).coerceIn(safeMinX, safeMaxX)
+            val startY = if (isBandHeroMode) anchorPt.y else -48f
+            val exitX = if (isBandHeroMode) anchorPt.x else (receptorX - lateralOffset * 0.5f).coerceIn(safeMinX, safeMaxX)
+            val exitY = if (isBandHeroMode) anchorPt.y else (screenHeight + 65f)
 
-            // Direct mapping preserves distinct special peg types to activate different song sections
             val mappedPowerUpType = cue.powerUpType
             val mappedKeyWord = cue.keyWordEffect
-
             val isSupernova = mappedKeyWord == KeyWordEffect.CONSTELLATION_STAR || mappedPowerUpType == PowerUpType.ELECTRIC_HARMONIC
             val isOrbGolden = isSupernova || isGoldenActive
+            val isCipher = !isSpecialCue && (cue.isMusicVideoOrb || (cue.sequenceIndex % 9 == 4))
 
             val pColor = when (mappedPowerUpType) {
                 PowerUpType.ELECTRIC_HARMONIC -> Color(0xFFFACC15L)
@@ -556,19 +532,17 @@ internal fun spawnStationaryBeatOrbsForFrame(
                 PowerUpType.SLOW_MO -> Color(0xFFC084FCL)
                 PowerUpType.BLAST -> Color(0xFFF97316L)
                 PowerUpType.SHIELD -> Color(0xFF38BDF8L)
-                else -> if (isSupernova) Color(0xFFFACC15L) else laneColors[clampedLane]
+                else -> if (isSupernova) Color(0xFFFACC15L) else if (isCipher) Color(0xFF05D9E8L) else laneColors[clampedLane]
             }
 
-            // Relaxed, readable tempo pacing: 4.6 to 5.4 seconds to traverse the arena
-            val noteLeadTime = if (isBandHeroMode) effectiveLeadTime else (beatGridStep * (4.2f + (cue.sequenceIndex % 4) * 0.25f)).coerceIn(2.2f, 3.4f)
-            val spawnSec = quantizedBeatSec - noteLeadTime
-            val expireSec = quantizedBeatSec + (if (isBandHeroMode) 0.45f else noteLeadTime + 0.35f)
+            val spawnSec = targetSecExact - thisLeadTime
+            val expireSec = targetSecExact + (if (isBandHeroMode) 0.45f else (thisLeadTime * 0.85f + 0.40f))
 
             powerUps.add(
                 GameObject(
                     x = startX,
                     y = startY,
-                    radius = if (isSupernova || mappedPowerUpType != PowerUpType.NONE) 38f else 32f,
+                    radius = if (isSpecialCue) 38f else if (isCipher) 35f else 32f,
                     color = applyColorBlind(pColor),
                     angle = 0f,
                     speed = 0f,
@@ -577,7 +551,7 @@ internal fun spawnStationaryBeatOrbsForFrame(
                     anchorX = receptorX,
                     anchorY = receptorY,
                     spawnBeatSec = spawnSec,
-                    targetBeatSec = quantizedBeatSec,
+                    targetBeatSec = targetSecExact,
                     expireBeatSec = expireSec,
                     phraseBeatNum = clampedLane + 1,
                     sequenceIndex = cue.sequenceIndex * 2 + 1,
@@ -589,7 +563,7 @@ internal fun spawnStationaryBeatOrbsForFrame(
                     exitX = exitX,
                     exitY = exitY,
                     swoopCurve = swoopCurve,
-                    isMusicVideoOrb = cue.isMusicVideoOrb || (cue.sequenceIndex % 16 == 8)
+                    isMusicVideoOrb = isCipher
                 )
             )
         }

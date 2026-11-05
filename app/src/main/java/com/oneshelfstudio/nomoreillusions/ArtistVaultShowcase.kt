@@ -61,16 +61,14 @@ internal fun ArtistVaultShowcaseModal(
                 .padding(18.dp)
         ) {
             val title = when (vaultId) {
-                "VAULT_DEMO" -> "★ STUDIO VAULT TAPE DECK"
-                "VAULT_LYRICS" -> "★ DIRECTOR'S CUT LYRIC BOOKLET"
-                "VAULT_POLAROIDS" -> "★ NO MORĒ ILLUSĪONS ERA STORYBOARD"
-                else -> "★ 4K HOLOGRAPHIC ART & VINYL VAULT"
+                "VAULT_LYRICS" -> "DIRECTOR'S CUT LYRIC BOOKLET"
+                "VAULT_POLAROIDS" -> "NO MORĒ ILLUSĪONS ERA ARCHIVE"
+                else -> "4K HOLOGRAPHIC ART & VINYL VAULT"
             }
             val badge = when (vaultId) {
-                "VAULT_DEMO" -> "MASTER REEL • SLOWED 0.85x & NIGHTCORE 1.20x"
-                "VAULT_LYRICS" -> "SYNCHRONIZED SONG ARCHITECTURE & CHOREOGRAPHY"
-                "VAULT_POLAROIDS" -> "BEHIND THE SCENES • COLLECTOR CARDS"
-                else -> "COLLECTOR'S PRESSING • HOLOGRAPHIC FOIL"
+                "VAULT_LYRICS" -> "SONG ARCHITECTURE & SECTION TIMELINE"
+                "VAULT_POLAROIDS" -> "BEHIND THE SCENES • STUDIO NOTES"
+                else -> "COLLECTOR'S PRESSING • HIGH-RES COVER ART"
             }
 
             Text(
@@ -94,73 +92,6 @@ internal fun ArtistVaultShowcaseModal(
             Spacer(modifier = Modifier.height(12.dp))
 
             when (vaultId) {
-                "VAULT_DEMO" -> {
-                    // Spinning Dual-Reel Studio Tape Deck Canvas
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(125.dp)
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(Color(0xFF04070FL))
-                            .border(1.dp, Color(0xFFFACC15L).copy(alpha = 0.45f), RoundedCornerShape(14.dp))
-                    ) {
-                        Canvas(modifier = Modifier.fillMaxSize()) {
-                            val cy = size.height * 0.5f
-                            val leftX = size.width * 0.30f
-                            val rightX = size.width * 0.70f
-                            val reelR = size.height * 0.34f
-                            // Smooth curved magnetic tape ribbon between reels
-                            val tapePath = androidx.compose.ui.graphics.Path().apply {
-                                moveTo(leftX, cy + reelR * 0.85f)
-                                quadraticTo(size.width * 0.5f, cy + reelR * 0.98f, rightX, cy + reelR * 0.85f)
-                            }
-                            drawPath(
-                                path = tapePath,
-                                color = Color(0xFFFACC15L).copy(alpha = 0.58f),
-                                style = androidx.compose.ui.graphics.drawscope.Stroke(width = 3f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
-                            )
-                            listOf(leftX, rightX).forEach { rx ->
-                                drawCircle(
-                                    color = Color(0xFF0F172AL),
-                                    radius = reelR,
-                                    center = Offset(rx, cy)
-                                )
-                                drawCircle(
-                                    color = Color(0xFFFACC15L),
-                                    radius = reelR,
-                                    center = Offset(rx, cy),
-                                    style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.5f)
-                                )
-                                for (s in 0 until 3) {
-                                    val startDeg = ((animTime * 150f) + s * 120f) % 360f
-                                    val arcR = reelR * 0.62f
-                                    drawArc(
-                                        color = Color(0xFFFDE047L),
-                                        startAngle = startDeg,
-                                        sweepAngle = 68f,
-                                        useCenter = false,
-                                        topLeft = Offset(rx - arcR, cy - arcR),
-                                        size = androidx.compose.ui.geometry.Size(arcR * 2f, arcR * 2f),
-                                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 3.2f, cap = androidx.compose.ui.graphics.StrokeCap.Round)
-                                    )
-                                }
-                                drawCircle(
-                                    color = Color(0xFF38BDF8L),
-                                    radius = reelR * 0.24f,
-                                    center = Offset(rx, cy)
-                                )
-                            }
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(10.dp))
-                    Text(
-                        text = "Unlocked in your Turntable Console: switch between ORIGINAL (1.0x), NIGHTCORE OVERCLOCK (1.20x), SLOWED + REVERB (0.85x), and ENDLESS LOOP (∞) directly on the Main Menu!",
-                        color = Color.White.copy(alpha = 0.85f),
-                        fontSize = 11.sp,
-                        textAlign = TextAlign.Center
-                    )
-                }
-
                 "VAULT_LYRICS" -> {
                     Row(modifier = Modifier.fillMaxWidth()) {
                         listOf("01. CONFIDE", "02. NUMBER ONE").forEachIndexed { idx, tabLabel ->
@@ -396,7 +327,7 @@ fun ThemeCard(
                 shape = RoundedCornerShape(14.dp)
             )
             .clickable { onClick() }
-            .padding(vertical = 10.dp, horizontal = 8.dp),
+            .padding(vertical = 14.dp, horizontal = 12.dp),
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -423,7 +354,7 @@ fun ThemeCard(
                     overflow = TextOverflow.Ellipsis
                 )
             }
-            Spacer(modifier = Modifier.height(2.dp))
+            Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = if (isUnlocked) subtitle else "UNLOCK • $costNotes ♪ NOTES",
                 color = when {
@@ -470,20 +401,20 @@ fun ArtistExclusivesSpecialsHub(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(bottom = 64.dp)
+                .padding(bottom = 14.dp)
         ) {
-            // 1. Compact Collector's Progress Header & 4 Vault Launchers
+            // 1. Breathable Collector's Progress Header & 3 Authentic Archive Launchers (No nonsensical Reels sub-menu!)
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
+                    .clip(RoundedCornerShape(18.dp))
                     .background(
                         Brush.verticalGradient(
                             listOf(Color(0xFF101D3BL), Color(0xFF060B18L))
                         )
                     )
-                    .border(1.5.dp, Color(0xFFFACC15L).copy(alpha = 0.85f), RoundedCornerShape(16.dp))
-                    .padding(12.dp)
+                    .border(1.5.dp, Color(0xFFFACC15L).copy(alpha = 0.75f), RoundedCornerShape(18.dp))
+                    .padding(16.dp)
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -491,36 +422,35 @@ fun ArtistExclusivesSpecialsHub(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        text = "★ ARTIST VAULT & SECRETS",
+                        text = "COLLECTION PROGRESS",
                         color = Color(0xFFFACC15L),
                         fontSize = 11.5.sp,
                         fontWeight = FontWeight.Black,
-                        letterSpacing = 0.6.sp
+                        letterSpacing = 0.8.sp
                     )
                     Box(
                         modifier = Modifier
                             .clip(CircleShape)
                             .background(Color(0xFF4ADE80L).copy(alpha = 0.18f))
                             .border(1.dp, Color(0xFF4ADE80L), CircleShape)
-                            .padding(horizontal = 9.dp, vertical = 3.dp)
+                            .padding(horizontal = 10.dp, vertical = 4.dp)
                     ) {
                         Text(
                             text = "$unlockedCount / ${ARTIST_EXCLUSIVES_CATALOG.size} UNLOCKED",
                             color = Color(0xFF4ADE80L),
-                            fontSize = 9.sp,
+                            fontSize = 9.5.sp,
                             fontWeight = FontWeight.Black
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
-                // Progress bar
                 val pct = (unlockedCount.toFloat() / ARTIST_EXCLUSIVES_CATALOG.size.toFloat()).coerceIn(0.08f, 1f)
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(7.dp)
+                        .height(8.dp)
                         .clip(CircleShape)
                         .background(Color(0xFF040812L))
                         .border(1.dp, Color.White.copy(alpha = 0.15f), CircleShape)
@@ -538,33 +468,31 @@ fun ArtistExclusivesSpecialsHub(
                     )
                 }
 
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(14.dp))
 
-                // Quick Interactive Vault Showcase Launchers (4 Collector Modals)
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     listOf(
-                        Triple("VAULT_LYRICS", "📖 LYRICS", Color(0xFF38BDF8L)),
-                        Triple("VAULT_DEMO", "📼 REELS", Color(0xFFFACC15L)),
-                        Triple("VAULT_POLAROIDS", "📸 PHOTOS", Color(0xFFE879F9L)),
-                        Triple("VAULT_WALLPAPER", "💿 4K ART", Color(0xFF4ADE80L))
+                        Triple("VAULT_LYRICS", "LYRIC BOOK", Color(0xFF38BDF8L)),
+                        Triple("VAULT_POLAROIDS", "STUDIO NOTES", Color(0xFFE879F9L)),
+                        Triple("VAULT_WALLPAPER", "4K ARTWORK", Color(0xFF4ADE80L))
                     ).forEach { (id, label, col) ->
                         Box(
                             modifier = Modifier
                                 .weight(1f)
-                                .clip(RoundedCornerShape(10.dp))
+                                .clip(RoundedCornerShape(12.dp))
                                 .background(col.copy(alpha = 0.14f))
-                                .border(1.dp, col.copy(alpha = 0.65f), RoundedCornerShape(10.dp))
+                                .border(1.dp, col.copy(alpha = 0.65f), RoundedCornerShape(12.dp))
                                 .clickable { activeModalId = id }
-                                .padding(vertical = 8.dp, horizontal = 4.dp),
+                                .padding(vertical = 10.dp, horizontal = 6.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
                                 text = label,
                                 color = Color.White,
-                                fontSize = 9.sp,
+                                fontSize = 9.5.sp,
                                 fontWeight = FontWeight.Black,
                                 textAlign = TextAlign.Center,
                                 maxLines = 1
@@ -574,17 +502,16 @@ fun ArtistExclusivesSpecialsHub(
                 }
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(18.dp))
 
-            // 2. Tap-to-Open Mystery Envelopes (Zero Wall of Text!)
             Text(
-                text = "💌 TAP ANY MYSTERY ENVELOPE TO PEEK INSIDE",
+                text = "STUDIO ARCHIVE ENVELOPES",
                 color = Color(0xFF38BDF8L),
-                fontSize = 10.sp,
+                fontSize = 11.sp,
                 fontWeight = FontWeight.Black,
-                letterSpacing = 0.7.sp
+                letterSpacing = 0.9.sp
             )
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             ARTIST_EXCLUSIVES_CATALOG.forEachIndexed { idx, item ->
                 val unlocked = isVipUnlocked || item.isUnlocked(prefs, highScore, pulsePoints)
@@ -592,8 +519,8 @@ fun ArtistExclusivesSpecialsHub(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(bottom = 8.dp)
-                        .clip(RoundedCornerShape(14.dp))
+                        .padding(bottom = 12.dp)
+                        .clip(RoundedCornerShape(16.dp))
                         .background(
                             if (unlocked) Brush.verticalGradient(listOf(Color(0xFF0A1428L), Color(0xFF050914L)))
                             else Brush.verticalGradient(listOf(Color(0xFF060A15L), Color(0xFF03050BL)))
@@ -605,7 +532,7 @@ fun ArtistExclusivesSpecialsHub(
                             shape = RoundedCornerShape(14.dp)
                         )
                         .clickable { expandedItemId = if (isExpanded) null else item.id }
-                        .padding(horizontal = 12.dp, vertical = 10.dp)
+                        .padding(horizontal = 16.dp, vertical = 14.dp)
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -706,7 +633,7 @@ fun ArtistExclusivesSpecialsHub(
                                             when (idx) {
                                                 0, 1 -> activeModalId = "VAULT_LYRICS"
                                                 2 -> activeModalId = "VAULT_WALLPAPER"
-                                                3, 4 -> activeModalId = "VAULT_DEMO"
+                                                3, 4 -> activeModalId = "VAULT_POLAROIDS"
                                                 else -> activeModalId = "VAULT_POLAROIDS"
                                             }
                                         },
@@ -789,6 +716,8 @@ fun ArtistExclusivesSpecialsHub(
                 }
             }
 
+            Spacer(modifier = Modifier.height(6.dp))
+
             // 3. VIP Fan / Artist Passcode Card at bottom
             Box(
                 modifier = Modifier
@@ -797,7 +726,7 @@ fun ArtistExclusivesSpecialsHub(
                     .background(Color(0xFF070D1CL))
                     .border(1.dp, Color(0xFFC084FCL).copy(alpha = 0.55f), RoundedCornerShape(14.dp))
                     .clickable { showVipDialog = true }
-                    .padding(12.dp)
+                    .padding(16.dp)
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -826,7 +755,7 @@ fun ArtistExclusivesSpecialsHub(
                     )
                 }
             }
-            Spacer(modifier = Modifier.height(36.dp))
+            Spacer(modifier = Modifier.height(12.dp))
         }
 
         if (activeModalId != null) {

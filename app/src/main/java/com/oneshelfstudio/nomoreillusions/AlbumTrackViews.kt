@@ -75,8 +75,8 @@ fun TrackListList(
                 )
             )
             .border(1.dp, Color(0xFF6366F1L).copy(alpha = 0.30f), RoundedCornerShape(16.dp))
-            .padding(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         itemsIndexed(tracks) { idx, t ->
             val selectedRow = (idx + 1) == selectedTrackIndex
@@ -113,7 +113,7 @@ fun TrackListList(
                     .background(rowBrush)
                     .border(if (selectedRow) 1.5.dp else 1.dp, borderColor, RoundedCornerShape(12.dp))
                     .clickable { onSelect(idx + 1) }
-                    .padding(vertical = 11.dp, horizontal = 12.dp)
+                    .padding(vertical = 14.dp, horizontal = 14.dp)
             ) {
                 // Track Number Pill Badge
                 Box(
@@ -232,9 +232,9 @@ fun TrackListGrid(
                 )
             )
             .border(1.dp, Color(0xFF6366F1L).copy(alpha = 0.30f), RoundedCornerShape(16.dp))
-            .padding(8.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+            .padding(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         items(tracks) { t ->
             val selected = t.index == selectedTrackIndex
@@ -264,7 +264,7 @@ fun TrackListGrid(
 
             Box(
                 modifier = Modifier
-                    .height(92.dp)
+                    .height(102.dp)
                     .clip(RoundedCornerShape(14.dp))
                     .background(tileBrush)
                     .border(if (selected) 1.8.dp else 1.dp, borderCol, RoundedCornerShape(14.dp))

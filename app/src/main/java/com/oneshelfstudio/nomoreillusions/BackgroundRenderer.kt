@@ -84,7 +84,8 @@ fun DrawScope.drawNebulaBackground(
     audioEnergy: Float = 0.45f,
     swellDelta: Float = 0f,
     activePhenomenon: ActivePhenomenon? = null,
-    multiBand: MultiBandAudioState = MultiBandAudioState(rms = audioEnergy, swellDelta = swellDelta)
+    multiBand: MultiBandAudioState = MultiBandAudioState(rms = audioEnergy, swellDelta = swellDelta),
+    brollOverlayAlpha: Float = 0f
 ) {
     val basePalette = getThemePalette(bgTheme, isFocus)
     val isEclipseActive = (activePhenomenon?.effect == KeyWordEffect.ECLIPSE_DARK && activePhenomenon.timer > 0f) ||
@@ -124,12 +125,85 @@ fun DrawScope.drawNebulaBackground(
     val swellBoost = (multiBand.swellDelta * 2.4f).coerceIn(0f, 0.70f)
     val beatPulse = if (beatPhase >= 0f) exp(-beatPhase * 4.5f).coerceIn(0f, 1f) else 0.2f
 
-    // 1. Deep Obsidian Space Base
+    // 1. Deep Obsidian Space Base (ducks smoothly when VHS B-roll video fades into background!)
+    val baseOpacity = (1f - brollOverlayAlpha.coerceIn(0f, 1f) * 0.80f).coerceIn(0.18f, 1f)
     drawRect(
         brush = Brush.verticalGradient(
-            colors = listOf(palette.c1, palette.c2, palette.c3)
+            colors = listOf(
+                palette.c1.copy(alpha = baseOpacity),
+                palette.c2.copy(alpha = baseOpacity),
+                palette.c3.copy(alpha = baseOpacity)
+            )
         )
     )
+
+    // 1b. Authentic VHS Grainy Tape & Chromatic Tracking Texture when B-roll Video is active
+    if (brollOverlayAlpha > 0.01f) {
+        val vhsA = brollOverlayAlpha.coerceIn(0f, 1f)
+        // Subtle VHS Cyan/Magenta Chromatic Edge Bleed
+        drawRect(
+            brush = Brush.horizontalGradient(
+                colors = listOf(
+                    Color(0xFF05D9E8L).copy(alpha = 0.12f * vhsA),
+                    Color.Transparent,
+                    Color.Transparent,
+                    Color(0xFFFF2A6DL).copy(alpha = 0.12f * vhsA)
+                )
+            )
+        )
+        // Soft CRT Phosphor Scanlines
+        var scanY = 0f
+        while (scanY < size.height) {
+            drawLine(
+                color = Color.Black.copy(alpha = 0.18f * vhsA),
+                start = Offset(0f, scanY),
+                end = Offset(size.width, scanY),
+                strokeWidth = 1.3f
+            )
+            scanY += 5.5f
+        }
+        // Rolling Analog VHS Tracking Band
+        val trackBandY = ((time * 88f) % (size.height + 140f)) - 70f
+        drawRect(
+            brush = Brush.verticalGradient(
+                colors = listOf(
+                    Color.Transparent,
+                    Color.White.copy(alpha = 0.07f * vhsA),
+                    Color(0xFF05D9E8L).copy(alpha = 0.06f * vhsA),
+                    Color.Transparent
+                ),
+                startY = trackBandY - 26f,
+                endY = trackBandY + 26f
+            ),
+            topLeft = Offset(0f, (trackBandY - 26f).coerceAtLeast(0f)),
+            size = Size(size.width, 52f)
+        )
+        // Deterministic 12fps Analog Film Grain Flecks (Seizure-safe, warm vintage feel)
+        val grainFrame = (time * 12f).toInt()
+        for (g in 0 until 22) {
+            val h1 = ((grainFrame * 73856093) xor (g * 19349663)) and 0x7FFFFFFF
+            val h2 = ((grainFrame * 83492791) xor (g * 297121507)) and 0x7FFFFFFF
+            val gx = (h1 % 1000) / 1000f * size.width
+            val gy = (h2 % 1000) / 1000f * size.height
+            val gCol = if (g % 5 == 0) Color(0xFFFEF08AL) else Color.White
+            drawCircle(
+                color = gCol.copy(alpha = 0.14f * vhsA),
+                radius = if (g % 4 == 0) 2.1f else 1.3f,
+                center = Offset(gx, gy)
+            )
+        }
+        // Soft Vintage Edge Vignette so center orbs pop with maximum clarity
+        drawRect(
+            brush = Brush.radialGradient(
+                colors = listOf(
+                    Color.Transparent,
+                    Color(0xFF02040AL).copy(alpha = 0.56f * vhsA)
+                ),
+                center = Offset(size.width * 0.5f, size.height * 0.5f),
+                radius = maxOf(size.width, size.height) * 0.62f
+            )
+        )
+    }
 
     val centerX = size.width * 0.5f
     val centerY = size.height * 0.46f

@@ -288,7 +288,11 @@ fun GameScreen(
 
     var trackRevealMusicProgress by remember { mutableFloatStateOf(0f) }
     var onBeatHitsThisRun by remember { mutableIntStateOf(0) }
+    var orbsCollectedThisRun by remember { mutableIntStateOf(0) }
+    var totalTrackOrbsThisRun by remember { mutableIntStateOf(40) }
+    var lastCompletionBonusNotes by remember { mutableIntStateOf(0) }
     var maxComboThisRun by remember { mutableIntStateOf(1) }
+    var initialDemoTab by remember { mutableIntStateOf(1) }
     var activeDiscovery by remember { mutableStateOf<FirstTimeDiscovery?>(null) }
 
     LaunchedEffect(gameState, selectedTrackIndex) {
@@ -334,10 +338,24 @@ fun GameScreen(
                 masteryArr[trackIdx] = earnedStars
                 trackMasteryStarsCsv = toCompletionsCsv(masteryArr)
 
+                val orbCompletionPct = ((orbsCollectedThisRun * 100f) / totalTrackOrbsThisRun.coerceAtLeast(1)).toInt().coerceIn(0, 100)
+                if (orbCompletionPct >= 100) {
+                    earnedStars = 3
+                    masteryArr[trackIdx] = earnedStars
+                    trackMasteryStarsCsv = toCompletionsCsv(masteryArr)
+                }
+                val pctBonusNotes = when {
+                    orbCompletionPct >= 100 -> 1000
+                    orbCompletionPct >= 90 -> 350
+                    orbCompletionPct >= 75 -> 150
+                    else -> 0
+                }
+                lastCompletionBonusNotes = pctBonusNotes
+
                 if (isFullyUnlockedNow && selectedTrackIndex == unlockedTrackCount && unlockedTrackCount < totalTracks) {
                     unlockedTrackCount++
                 }
-                pulsePoints += (75 * selectedRemixMode.noteMultiplier * (if (gameDifficulty == GameDifficulty.EASY) 0.5f else 1.0f)).toInt().coerceAtLeast(15)
+                pulsePoints += (75 * selectedRemixMode.noteMultiplier * (if (gameDifficulty == GameDifficulty.EASY) 0.5f else 1.0f)).toInt().coerceAtLeast(15) + pctBonusNotes
 
                 val editor = prefs.edit()
                     .putString("track_completions", trackCompletionsCsv)
@@ -433,8 +451,12 @@ fun GameScreen(
     var isBrollEnabled by remember { mutableStateOf(prefs.getBoolean("enable_broll_video", true)) }
     var brollActive by remember { mutableStateOf(false) }
     var brollTimer by remember { mutableFloatStateOf(0f) }
+    var brollDurationTotal by remember { mutableFloatStateOf(11.0f) }
     var brollClipIndex by remember { mutableIntStateOf(0) }
     var brollCooldown by remember { mutableFloatStateOf(0f) }
+    var cipherMeterProgress by remember { mutableFloatStateOf(0f) }
+    var isCipherArmed by remember { mutableStateOf(false) }
+    var cipherArmedAtSec by remember { mutableFloatStateOf(0f) }
 
     val difficultyScoreMultiplier = getDifficultyScoreMultiplier(gameDifficulty, selectedRemixMode)
     val trackDifficultyBoost = getTrackDifficultyBoost(selectedTrackIndex)
@@ -471,6 +493,15 @@ fun GameScreen(
         rhythmCombo = 0
         maxComboThisRun = 1
         onBeatHitsThisRun = 0
+        orbsCollectedThisRun = 0
+        val isTrainRun = (gameDifficulty == GameDifficulty.EASY || selectedRemixMode == TrackRemixMode.SLOWED)
+        totalTrackOrbsThisRun = countPlayableChartOrbs(MusicLibrary.getTrack(selectedTrackIndex).orbChart, isTrainRun)
+        lastCompletionBonusNotes = 0
+        cipherMeterProgress = 0f
+        isCipherArmed = false
+        cipherArmedAtSec = 0f
+        brollActive = false
+        brollTimer = 0f
         level = 1
         focusPower = 1f
         isFocusActive = false
@@ -804,12 +835,61 @@ fun GameScreen(
                         }
                         else -> {}
                     }
+                    if (primed.keyWordEffect != KeyWordEffect.NONE) {
+                        val dummyOrb = GameObject(
+                            x = player.x,
+                            y = player.y,
+                            radius = 38f,
+                            color = Color(0xFFFACC15L),
+                            keyWordEffect = primed.keyWordEffect
+                        )
+                        val supRes = handleSupernovaOrbPickup(
+                            p = dummyOrb,
+                            player = player,
+                            isGoldenActive = goldenOverdriveIntensity > 0.25f,
+                            scoreMultiplier = scoreMultiplier,
+                            multiplierTime = multiplierTime,
+                            difficultyScoreMultiplier = difficultyScoreMultiplier,
+                            constellationCounter = constellationCounter,
+                            magnetTime = magnetTime,
+                            shakeAmount = shakeAmount,
+                            starPowerTime = starPowerTime,
+                            shieldTime = shieldTime,
+                            enemies = enemies,
+                            tetheredSatellites = tetheredSatellites,
+                            shockwaves = shockwaves,
+                            particles = particles
+                        )
+                        activePhenomenon = supRes.newPhenomenon
+                        constellationCounter = supRes.newConstellationCounter
+                        score += supRes.keywordBonus
+                        magnetTime = supRes.newMagnetTime
+                        shakeAmount = supRes.newShakeAmount
+                        starPowerTime = supRes.newStarPowerTime
+                        scoreMultiplier = supRes.newScoreMultiplier
+                        multiplierTime = supRes.newMultiplierTime
+                        shieldTime = supRes.newShieldTime
+                        activePowerUpToast = supRes.toast
+                    }
                     triggerHaptic(55L)
                     primedSectionEffect = null
                 }
 
                 // 2. Live Section & Musical Swell Transitions (Zero text popups on orbs; clean section shift pulse)
                 val currentSecObj = MusicLibrary.currentSectionAt(selectedTrackIndex, trackSec)
+                val isSectionTransitionNow = currentSecObj.timestampSec != lastTriggeredSectionSec && lastTriggeredSectionSec >= 0f
+                val isLullOrChorusTransition = mb.bassDropOut || mb.swellDelta >= 0.085f ||
+                    (trackSec - cipherArmedAtSec >= 6.0f && liveBeatPhase in 0f..0.12f)
+                if (isCipherArmed && isBrollEnabled && !brollActive && (isSectionTransitionNow || isLullOrChorusTransition)) {
+                    isCipherArmed = false
+                    cipherMeterProgress = 0f
+                    brollClipIndex = (brollClipIndex + 1 + Random.nextInt(3)) % 4
+                    brollDurationTotal = 11.0f
+                    brollTimer = 11.0f
+                    brollActive = true
+                    brollCooldown = 12f
+                    shockwaves.add(Shockwave(screenWidth * 0.5f, screenHeight * 0.45f, 0f, maxOf(screenWidth, screenHeight) * 0.72f, Color(0xFF05D9E8L), 0.95f))
+                }
                 if (currentSecObj.timestampSec != lastTriggeredSectionSec) {
                     lastTriggeredSectionSec = currentSecObj.timestampSec
                     activeSectionLabel = currentSecObj.label
@@ -1066,57 +1146,180 @@ fun GameScreen(
                     val dist = minOf(distPrimary, minOf(distSecondary, distTetherMid))
                     val catchRadius = p.radius + player.radius + (if (isGoldenActive) 22f else 18f)
                     if (dist < catchRadius) {
+                        orbsCollectedThisRun++
                         rhythmCombo++
                         if (rhythmCombo > maxComboThisRun) maxComboThisRun = rhythmCombo
+
                         val isSupernovaOrb = p.keyWordEffect != KeyWordEffect.NONE
-                        // Streaming notes together during vocal swells charges the thick, long Neon Contrail!
+                        val hasSpecialPower = p.powerUpType != null && p.powerUpType != PowerUpType.NONE
+                        val isSpecialTransitionOrb = isSupernovaOrb || hasSpecialPower
+                        val timeToSwell = p.targetBeatSec - trackSec
+
                         vocalStreamContrailTimer = if (p.orbitRadius > 50f || mb.vocal >= 0.42f) {
                             4.0f
                         } else {
                             maxOf(vocalStreamContrailTimer, 2.0f)
                         }
+
                         val leadDur = (p.targetBeatSec - p.spawnBeatSec).coerceAtLeast(0.45f)
                         val uHit = (trackSec - p.spawnBeatSec) / leadDur
-                        // Strict musical timing: Special/Supernova orbs MUST be hit within the musical transition window (+/- 220ms)!
-                        val isHitWithinWindow = abs(trackSec - p.targetBeatSec) <= 0.22f || (isBandHeroMode && uHit in 0.85f..1.15f)
-                        val isCaughtOnBeat = if (isBandHeroMode) {
-                            isHitWithinWindow || abs(p.y - screenHeight * 0.65f) <= 52f
+
+                        // Special Transition Orbs judge timing strictly against the actual musical swell (targetBeatSec),
+                        // NEVER prematurely firing 2 seconds early just because liveBeatPhase ticked!
+                        val isSwellSweetSpot = abs(timeToSwell) <= 0.36f
+                        val isSwellLockWindow = timeToSwell in 0.36f..0.82f
+                        val isRegularOnBeat = if (isBandHeroMode) {
+                            uHit in 0.84f..1.16f || abs(p.y - screenHeight * 0.65f) <= 54f
                         } else {
-                            isHitWithinWindow || liveBeatPhase <= 0.25f || liveBeatPhase >= 0.80f
+                            abs(timeToSwell) <= 0.26f || liveBeatPhase <= 0.25f || liveBeatPhase >= 0.80f
                         }
+                        val isCaughtOnBeat = if (isSpecialTransitionOrb) (isSwellSweetSpot || isSwellLockWindow) else isRegularOnBeat
+
                         if (isCaughtOnBeat) {
                             onBeatHitsThisRun++
                         }
-                        val noteGain = ((if (isSupernovaOrb) 10 else if (isCaughtOnBeat) 5 else 3) * selectedRemixMode.noteMultiplier).toInt().coerceAtLeast(1)
-                        pulsePoints += noteGain
 
-                        // Whisper-quiet audio feedback so Ethan's music always leads
-                        audioEngine.playOrbBeatHit(
-                            combo = rhythmCombo,
-                            isKeyWordPeg = isSupernovaOrb || isCaughtOnBeat
-                        )
-
-                        if (isCaughtOnBeat) {
-                            // High-energy on-beat transition ignition!
-                            beatFlashIntensity = maxOf(beatFlashIntensity, if (isSupernovaOrb) 0.70f else 0.35f)
-                            goldenOverdriveIntensity = maxOf(goldenOverdriveIntensity, if (isSupernovaOrb) 1.0f else 0.55f)
-                            cameraPunch = maxOf(cameraPunch, if (isSupernovaOrb) 0.038f else 0.018f)
-                            scoreMultiplier = maxOf(scoreMultiplier, if (isSupernovaOrb || rhythmCombo >= 12) 4 else 2)
-                            multiplierTime = maxOf(multiplierTime, 7.5f)
-                            shockwaves.add(Shockwave(p.x, p.y, 0f, 160f, Color(0xFFFACC15L), 0.65f))
-                        } else {
-                            // Off-beat premature tap: subtle fizzle without special overdrive activation
-                            shockwaves.add(Shockwave(p.x, p.y, 0f, 45f, Color(0x6694A3B8L), 0.25f))
+                        // Enigmatic Cipher / VHS Spool Orb charges the Secret Left-Edge Gauge (+25% per orb -> 4 orbs = Armed!)
+                        if (p.isMusicVideoOrb && !isSpecialTransitionOrb && isBrollEnabled) {
+                            if (!brollActive && !isCipherArmed) {
+                                cipherMeterProgress = (cipherMeterProgress + 0.25f).coerceAtMost(1.0f)
+                                shockwaves.add(Shockwave(p.x, p.y, 0f, 135f, Color(0xFF05D9E8L), 0.55f))
+                                shockwaves.add(Shockwave(p.x, p.y, 0f, 95f, Color(0xFFFF2A6DL), 0.45f))
+                                if (cipherMeterProgress >= 0.99f) {
+                                    cipherMeterProgress = 1.0f
+                                    isCipherArmed = true
+                                    cipherArmedAtSec = trackSec
+                                    triggerHaptic(45L)
+                                }
+                            }
                         }
 
-                        if (!isSupernovaOrb) {
-                            // Visceral Tactile Feedback: Snappy 38ms impulse for on-beat catches, subtle 16ms tick for off-beat
-                            triggerHaptic(if (isCaughtOnBeat) 38L else 16L)
-                            if (isCaughtOnBeat && isBrollEnabled && (p.isMusicVideoOrb || (brollCooldown <= 0f && Random.nextFloat() < 0.40f))) {
-                                brollClipIndex = (brollClipIndex + 1) % 4
-                                brollActive = true
-                                brollTimer = 5.5f
-                                brollCooldown = 8f
+                        val noteGain = ((when {
+                            isSpecialTransitionOrb && isSwellSweetSpot -> 15
+                            isSpecialTransitionOrb && isSwellLockWindow -> 8
+                            isCaughtOnBeat -> 5
+                            else -> 3
+                        }) * selectedRemixMode.noteMultiplier).toInt().coerceAtLeast(1)
+                        pulsePoints += noteGain
+
+                        audioEngine.playOrbBeatHit(
+                            combo = rhythmCombo,
+                            isKeyWordPeg = isCaughtOnBeat
+                        )
+
+                        if (isSpecialTransitionOrb) {
+                            val mult = if (isGoldenActive) maxOf(scoreMultiplier, 4) else scoreMultiplier
+                            when {
+                                isSwellSweetSpot -> {
+                                    // PERFECT SWELL TIMING: Unleash full stage transformation & +750 Swell Mastery Bonus!
+                                    triggerHaptic(54L)
+                                    val swellBonus = (750 * difficultyScoreMultiplier).toInt()
+                                    score += swellBonus
+                                    cameraPunch = maxOf(cameraPunch, 0.046f)
+                                    beatFlashIntensity = maxOf(beatFlashIntensity, 0.42f)
+                                    goldenOverdriveIntensity = maxOf(goldenOverdriveIntensity, 0.90f)
+                                    scoreMultiplier = maxOf(scoreMultiplier, 4)
+                                    multiplierTime = maxOf(multiplierTime, 8.5f)
+                                    shockwaves.add(Shockwave(p.x, p.y, 0f, 520f, Color(0xFFFACC15L), 1.15f))
+                                    shockwaves.add(Shockwave(p.x, p.y, 0f, 340f, Color(0xFF38BDF8L), 0.90f))
+
+                                    if (hasSpecialPower) {
+                                        val pickupRes = handleRegularOrbPowerUp(
+                                            p = p,
+                                            mult = mult,
+                                            difficultyScoreMultiplier = difficultyScoreMultiplier,
+                                            isCaughtOnBeat = true,
+                                            gameTime = gameTime,
+                                            starPowerTime = starPowerTime,
+                                            shieldTime = shieldTime,
+                                            slowMoTime = slowMoTime,
+                                            magnetTime = magnetTime,
+                                            shakeAmount = shakeAmount,
+                                            cameraPunch = cameraPunch,
+                                            beatFlashIntensity = beatFlashIntensity,
+                                            enemies = enemies,
+                                            enemyTelegraphs = enemyTelegraphs,
+                                            tetheredSatellites = tetheredSatellites,
+                                            shockwaves = shockwaves,
+                                            particles = particles
+                                        )
+                                        starPowerTime = pickupRes.newStarPowerTime
+                                        shieldTime = pickupRes.newShieldTime
+                                        slowMoTime = pickupRes.newSlowMoTime
+                                        magnetTime = pickupRes.newMagnetTime
+                                        shakeAmount = pickupRes.newShakeAmount
+                                        cameraPunch = pickupRes.newCameraPunch
+                                        beatFlashIntensity = pickupRes.newBeatFlashIntensity
+                                        score += pickupRes.bonusScore
+                                        when (p.powerUpType) {
+                                            PowerUpType.ELECTRIC_HARMONIC -> audioEngine.playElectricSurgeStinger()
+                                            PowerUpType.PRISM_HARMONY -> audioEngine.playPrismBloomStinger()
+                                            PowerUpType.SLOW_MO -> audioEngine.playSlowMoStinger()
+                                            PowerUpType.BLAST -> audioEngine.playSolarNovaStinger()
+                                            PowerUpType.SHIELD -> audioEngine.playAegisStinger()
+                                            else -> {}
+                                        }
+                                    }
+                                    if (isSupernovaOrb) {
+                                        val supRes = handleSupernovaOrbPickup(
+                                            p = p,
+                                            player = player,
+                                            isGoldenActive = isGoldenActive,
+                                            scoreMultiplier = scoreMultiplier,
+                                            multiplierTime = multiplierTime,
+                                            difficultyScoreMultiplier = difficultyScoreMultiplier,
+                                            constellationCounter = constellationCounter,
+                                            magnetTime = magnetTime,
+                                            shakeAmount = shakeAmount,
+                                            starPowerTime = starPowerTime,
+                                            shieldTime = shieldTime,
+                                            enemies = enemies,
+                                            tetheredSatellites = tetheredSatellites,
+                                            shockwaves = shockwaves,
+                                            particles = particles
+                                        )
+                                        activePhenomenon = supRes.newPhenomenon
+                                        constellationCounter = supRes.newConstellationCounter
+                                        score += supRes.keywordBonus
+                                        magnetTime = supRes.newMagnetTime
+                                        shakeAmount = supRes.newShakeAmount
+                                        starPowerTime = supRes.newStarPowerTime
+                                        scoreMultiplier = supRes.newScoreMultiplier
+                                        multiplierTime = supRes.newMultiplierTime
+                                        shieldTime = supRes.newShieldTime
+                                        activePowerUpToast = supRes.toast
+                                    }
+                                }
+                                isSwellLockWindow -> {
+                                    // PRIMED FOR EXACT SWELL: Hold the big stage explosion until the exact targetBeatSec downbeat!
+                                    triggerHaptic(32L)
+                                    score += (350 * difficultyScoreMultiplier).toInt()
+                                    shockwaves.add(Shockwave(p.x, p.y, 0f, 180f, Color(0xFF38BDF8L), 0.65f))
+                                    primedSectionEffect = PrimedSectionEffect(
+                                        type = p.powerUpType ?: PowerUpType.NONE,
+                                        targetSec = p.targetBeatSec,
+                                        title = "SWELL LOCKED",
+                                        keyWordEffect = p.keyWordEffect
+                                    )
+                                }
+                                else -> {
+                                    // GRABBED TOO EARLY: Muted feedback only — never force the big visual drop early!
+                                    triggerHaptic(16L)
+                                    score += (60 * difficultyScoreMultiplier).toInt()
+                                    shockwaves.add(Shockwave(p.x, p.y, 0f, 55f, Color(0x6694A3B8L), 0.28f))
+                                }
+                            }
+                        } else {
+                            // Regular & Cipher Orbs
+                            triggerHaptic(if (isCaughtOnBeat) 34L else 15L)
+                            if (isCaughtOnBeat) {
+                                beatFlashIntensity = maxOf(beatFlashIntensity, 0.22f)
+                                cameraPunch = maxOf(cameraPunch, 0.015f)
+                                scoreMultiplier = maxOf(scoreMultiplier, if (rhythmCombo >= 12) 4 else 2)
+                                multiplierTime = maxOf(multiplierTime, 7.5f)
+                                shockwaves.add(Shockwave(p.x, p.y, 0f, 125f, Color(0xFFFACC15L), 0.55f))
+                            } else {
+                                shockwaves.add(Shockwave(p.x, p.y, 0f, 45f, Color(0x6694A3B8L), 0.25f))
                             }
                             if (!isGoldenActive) {
                                 overdriveProgress = (overdriveProgress + (if (isCaughtOnBeat) 0.05f else 0.035f)).coerceAtMost(1f)
@@ -1124,103 +1327,6 @@ fun GameScreen(
                             val mult = if (isGoldenActive) maxOf(scoreMultiplier, 4) else scoreMultiplier
                             val gainedPts = ((if (isCaughtOnBeat) 100 else 45) * mult * (1f + (rhythmCombo.coerceAtMost(12) * 0.10f)) * difficultyScoreMultiplier).toInt()
                             score += gainedPts
-
-                            if (p.powerUpType != null && p.powerUpType != PowerUpType.NONE) {
-                                // Immediate Spectacle on Hit: If on-beat, unleash full harmonic screen warp and powerup
-                                if (isCaughtOnBeat) {
-                                    triggerHaptic(48L)
-                                    beatFlashIntensity = maxOf(beatFlashIntensity, 0.35f)
-                                    cameraPunch = maxOf(cameraPunch, 0.045f)
-                                    shakeAmount = maxOf(shakeAmount, 10f)
-                                    shockwaves.add(Shockwave(p.x, p.y, 0f, 520f, Color(0xFFFACC15L), 1.1f))
-                                } else {
-                                    triggerHaptic(20L)
-                                }
-                                val pickupRes = handleRegularOrbPowerUp(
-                                    p = p,
-                                    mult = mult,
-                                    difficultyScoreMultiplier = difficultyScoreMultiplier,
-                                    isCaughtOnBeat = isCaughtOnBeat,
-                                    gameTime = gameTime,
-                                    starPowerTime = starPowerTime,
-                                    shieldTime = shieldTime,
-                                    slowMoTime = slowMoTime,
-                                    magnetTime = magnetTime,
-                                    shakeAmount = shakeAmount,
-                                    cameraPunch = cameraPunch,
-                                    beatFlashIntensity = beatFlashIntensity,
-                                    enemies = enemies,
-                                    enemyTelegraphs = enemyTelegraphs,
-                                    tetheredSatellites = tetheredSatellites,
-                                    shockwaves = shockwaves,
-                                    particles = particles
-                                )
-                                starPowerTime = pickupRes.newStarPowerTime
-                                shieldTime = pickupRes.newShieldTime
-                                slowMoTime = pickupRes.newSlowMoTime
-                                magnetTime = pickupRes.newMagnetTime
-                                shakeAmount = pickupRes.newShakeAmount
-                                cameraPunch = pickupRes.newCameraPunch
-                                beatFlashIntensity = pickupRes.newBeatFlashIntensity
-                                score += pickupRes.bonusScore
-
-                                when (p.powerUpType) {
-                                    PowerUpType.ELECTRIC_HARMONIC -> audioEngine.playElectricSurgeStinger()
-                                    PowerUpType.PRISM_HARMONY -> audioEngine.playPrismBloomStinger()
-                                    PowerUpType.SLOW_MO -> audioEngine.playSlowMoStinger()
-                                    PowerUpType.BLAST -> {
-                                        audioEngine.playSolarNovaStinger()
-                                        for (s in 0 until 28) {
-                                            val sAngle = kotlin.random.Random.nextFloat() * 2f * kotlin.math.PI.toFloat()
-                                            val sSpd = 260f + kotlin.random.Random.nextFloat() * 320f
-                                            particles.add(
-                                                GameObject(
-                                                    x = p.x,
-                                                    y = p.y,
-                                                    vx = kotlin.math.cos(sAngle) * sSpd,
-                                                    vy = kotlin.math.sin(sAngle) * sSpd,
-                                                    radius = 3.5f + kotlin.random.Random.nextFloat() * 3f,
-                                                    color = if (s % 3 == 0) Color(0xFFFDE047L) else if (s % 3 == 1) Color(0xFF38BDF8L) else Color(0xFFF97316L),
-                                                    life = 1.2f
-                                                )
-                                            )
-                                        }
-                                    }
-                                    PowerUpType.SHIELD -> audioEngine.playAegisStinger()
-                                    else -> {}
-                                }
-                            }
-                        } else {
-                            triggerHaptic(48L)
-                            cameraPunch = 0.038f
-                            beatFlashIntensity = 0.30f
-                            val supRes = handleSupernovaOrbPickup(
-                                p = p,
-                                player = player,
-                                isGoldenActive = isGoldenActive,
-                                scoreMultiplier = scoreMultiplier,
-                                multiplierTime = multiplierTime,
-                                difficultyScoreMultiplier = difficultyScoreMultiplier,
-                                constellationCounter = constellationCounter,
-                                magnetTime = magnetTime,
-                                shakeAmount = shakeAmount,
-                                starPowerTime = starPowerTime,
-                                shieldTime = shieldTime,
-                                enemies = enemies,
-                                tetheredSatellites = tetheredSatellites,
-                                shockwaves = shockwaves,
-                                particles = particles
-                            )
-                            activePhenomenon = supRes.newPhenomenon
-                            constellationCounter = supRes.newConstellationCounter
-                            score += supRes.keywordBonus
-                            magnetTime = supRes.newMagnetTime
-                            shakeAmount = supRes.newShakeAmount
-                            starPowerTime = supRes.newStarPowerTime
-                            scoreMultiplier = supRes.newScoreMultiplier
-                            multiplierTime = supRes.newMultiplierTime
-                            shieldTime = supRes.newShieldTime
-                            activePowerUpToast = supRes.toast
                         }
 
                         pIter.remove()
@@ -1445,12 +1551,18 @@ fun GameScreen(
             targetY = player.y
         }
 
-        // Translucent Beat-Synchronized Music Video B-Roll Overlay
+        val brollVisualAlpha by animateFloatAsState(
+            targetValue = if ((gameState == GameState.PLAYING || gameState == GameState.PAUSED) && isBrollEnabled && brollActive) 0.85f else 0f,
+            animationSpec = tween(durationMillis = 900),
+            label = "brollVisualAlpha"
+        )
+
+        // Translucent Beat-Synchronized Music Video B-Roll Overlay (shines through translucent VHS background!)
         if ((gameState == GameState.PLAYING || gameState == GameState.PAUSED) && isBrollEnabled) {
             BrollVideoOverlay(
                 isActive = brollActive,
                 clipIndex = brollClipIndex,
-                isGoldRush = goldenOverdriveIntensity > 0.15f
+                visualAlpha = brollVisualAlpha
             )
         }
 
@@ -1484,6 +1596,7 @@ fun GameScreen(
             enemyTelegraphs = enemyTelegraphs,
             wormholes = wormholes,
             isBandHeroMode = isBandHeroMode,
+            brollOverlayAlpha = brollVisualAlpha,
             player = player,
             secondTouchPos = secondTouchPos,
             motes = motes,
@@ -1539,21 +1652,18 @@ fun GameScreen(
                 endlessLoopCount = if (selectedRemixMode == TrackRemixMode.ENDLESS) lastLoopCycleSeen else 0,
                 overdriveProgress = overdriveProgress,
                 is24KOverdrive = starPowerTime > 0f || activeStageMode == StageMode.GOLDEN_OVERDRIVE,
+                cipherMeterProgress = cipherMeterProgress,
+                isCipherArmed = isCipherArmed,
+                isBrollPlaying = brollActive,
+                brollPlayProgress = if (brollDurationTotal > 0f) (brollTimer / brollDurationTotal).coerceIn(0f, 1f) else 0f,
                 comboBanner = null,
                 onActivate24K = {
                     starPowerTime = 9.0f
                     overdriveProgress = 0f
                     shakeAmount = maxOf(shakeAmount, 16f)
-                    // Transmute ALL active orbs on stage to shimmering gold immediately on tap!
                     powerUps.forEach {
                         it.isGoldenOrb = true
                         it.color = Color(0xFFFACC15L)
-                    }
-                    if (isBrollEnabled) {
-                        brollClipIndex = Random.nextInt(4)
-                        brollActive = true
-                        brollTimer = 6.5f
-                        brollCooldown = 11f
                     }
                 },
                 onPause = { if (gameState == GameState.PLAYING) gameState = GameState.PAUSED }
@@ -1631,11 +1741,16 @@ fun GameScreen(
                             startFreshLevelRun(selectedTrackIndex)
                         } else {
                             audioEngine.playMenuNote()
+                            initialDemoTab = 1
                             gameState = GameState.MUSIC_DEMO
                         }
                     }
                 },
-                onMusicDemo = { audioEngine.playMenuNote(); gameState = GameState.MUSIC_DEMO },
+                onMusicDemo = { tabIdx ->
+                    audioEngine.playMenuNote()
+                    initialDemoTab = tabIdx
+                    gameState = GameState.MUSIC_DEMO
+                },
                 onHowToPlay = { audioEngine.playMenuNote(); gameState = GameState.HOW_TO_PLAY },
                 onSettings = {
                     audioEngine.playMenuNote()
@@ -1721,6 +1836,8 @@ fun GameScreen(
                 pulsePoints = pulsePoints,
                 score = score,
                 highScore = highScore,
+                orbsCollected = orbsCollectedThisRun,
+                totalTrackOrbs = totalTrackOrbsThisRun,
                 trackLabel = "TRACK %02d • ${MusicLibrary.getTrack(selectedTrackIndex).title}".format(selectedTrackIndex),
                 canContinue = pulsePoints >= 250,
                 hasAd = adManager.isAdAvailable(),
@@ -1752,7 +1869,7 @@ fun GameScreen(
                         startFreshLevelRun(selectedTrackIndex)
                     }
                 },
-                onBackToAlbum = { audioEngine.playMenuNote(); gameState = GameState.MUSIC_DEMO },
+                onBackToAlbum = { audioEngine.playMenuNote(); initialDemoTab = 1; gameState = GameState.MUSIC_DEMO },
                 onBuyPoints = { audioEngine.playMenuNote(); billingManager.purchasePoints(context as Activity) }
             )
 
@@ -1761,6 +1878,9 @@ fun GameScreen(
                 score = score,
                 maxCombo = maxComboThisRun,
                 notesEarned = (75 * selectedRemixMode.noteMultiplier).toInt() + onBeatHitsThisRun * 5,
+                orbsCollected = orbsCollectedThisRun,
+                totalTrackOrbs = totalTrackOrbsThisRun,
+                collectionBonusNotes = lastCompletionBonusNotes,
                 unlockedVaultCount = if (isVipUnlocked) ARTIST_EXCLUSIVES_CATALOG.size else countUnlockedExclusives(prefs, highScore, pulsePoints),
                 uiDialogPanel = uiDialogPanel,
                 btnPillGreen = btnPillGreen,
@@ -1778,6 +1898,7 @@ fun GameScreen(
                 onOpenArtistVault = {
                     audioEngine.playWhooshChime("MODAL")
                     adManager.showInterstitialIfReady(context as Activity) {
+                        initialDemoTab = 0
                         gameState = GameState.MUSIC_DEMO
                     }
                 },
@@ -1797,6 +1918,7 @@ fun GameScreen(
             )
 
             GameState.MUSIC_DEMO -> MusicDemoScreen(
+                initialTab = initialDemoTab,
                 pulsePoints = pulsePoints,
                 unlockedTrackCount = unlockedTrackCount,
                 nebula = nebulaBitmap,
@@ -1862,7 +1984,12 @@ fun GameScreen(
                 btnPillGreen = btnPillGreen,
                 btnPillCyan = btnPillCyan,
                 btnPillGold = btnPillGold,
-                btnIconClose = btnIconClose
+                btnIconClose = btnIconClose,
+                onOpenSettings = {
+                    audioEngine.playMenuNote()
+                    settingsReturnState = GameState.MUSIC_DEMO
+                    gameState = GameState.SETTINGS
+                }
             )
             else -> {}
         }
@@ -1892,20 +2019,60 @@ fun GameScreen(
 fun BrollVideoOverlay(
     isActive: Boolean,
     clipIndex: Int,
-    isGoldRush: Boolean,
+    visualAlpha: Float,
     modifier: Modifier = Modifier
 ) {
-    val alphaAnim by animateFloatAsState(
-        targetValue = if (isActive) (if (isGoldRush) 0.32f else 0.22f) else 0f,
-        animationSpec = tween(durationMillis = 500)
-    )
-
     var mediaPlayerRef by remember { mutableStateOf<MediaPlayer?>(null) }
+    val loadedClipHolder = remember { intArrayOf(-1) }
+    val surfaceHolder = remember { arrayOfNulls<Surface>(1) }
+
+    fun applyCenterCropTransform(tv: TextureView, videoW: Int, videoH: Int) {
+        val viewW = tv.width.toFloat()
+        val viewH = tv.height.toFloat()
+        if (viewW <= 0f || viewH <= 0f || videoW <= 0 || videoH <= 0) return
+        val maxScale = maxOf(viewW / videoW.toFloat(), viewH / videoH.toFloat())
+        val scaledW = videoW * maxScale
+        val scaledH = videoH * maxScale
+        val matrix = android.graphics.Matrix()
+        matrix.setScale(scaledW / viewW, scaledH / viewH, viewW * 0.5f, viewH * 0.5f)
+        tv.setTransform(matrix)
+    }
+
+    fun loadClipIntoPlayer(ctx: android.content.Context, tv: TextureView, targetClipIdx: Int, playNow: Boolean) {
+        val surf = surfaceHolder[0] ?: return
+        val clipNum = ((targetClipIdx % 4) + 4) % 4 + 1
+        try {
+            val existing = mediaPlayerRef
+            val player = if (existing != null) {
+                existing.reset()
+                existing
+            } else {
+                MediaPlayer().also { mediaPlayerRef = it }
+            }
+            val afd = ctx.assets.openFd("broll/broll_$clipNum.mp4")
+            player.setSurface(surf)
+            player.isLooping = true
+            player.setVolume(0f, 0f)
+            player.setDataSource(afd.fileDescriptor, afd.startOffset, afd.length)
+            afd.close()
+            loadedClipHolder[0] = targetClipIdx
+            player.setOnVideoSizeChangedListener { _, vw, vh ->
+                applyCenterCropTransform(tv, vw, vh)
+            }
+            player.setOnPreparedListener { mp ->
+                applyCenterCropTransform(tv, mp.videoWidth, mp.videoHeight)
+                if (playNow) {
+                    runCatching { mp.start() }
+                }
+            }
+            player.prepareAsync()
+        } catch (_: Exception) {}
+    }
 
     Box(
         modifier = modifier
             .fillMaxSize()
-            .graphicsLayer { alpha = alphaAnim }
+            .graphicsLayer { alpha = visualAlpha.coerceIn(0f, 1f) }
     ) {
         AndroidView(
             factory = { ctx ->
@@ -1913,33 +2080,25 @@ fun BrollVideoOverlay(
                     isOpaque = false
                     surfaceTextureListener = object : TextureView.SurfaceTextureListener {
                         override fun onSurfaceTextureAvailable(st: SurfaceTexture, w: Int, h: Int) {
-                            val surface = Surface(st)
-                            try {
-                                val clipNum = (clipIndex % 4) + 1
-                                val afd = ctx.assets.openFd("broll/broll_$clipNum.mp4")
-                                val player = MediaPlayer().apply {
-                                    setSurface(surface)
-                                    isLooping = true
-                                    setVolume(0f, 0f)
-                                    setDataSource(afd.fileDescriptor, afd.startOffset, afd.length)
-                                    afd.close()
-                                    prepareAsync()
-                                    setOnPreparedListener {
-                                        if (isActive) start()
-                                    }
-                                }
-                                mediaPlayerRef = player
-                            } catch (e: Exception) {}
+                            surfaceHolder[0] = Surface(st)
+                            loadClipIntoPlayer(ctx, this@apply, clipIndex, isActive)
                         }
 
-                        override fun onSurfaceTextureSizeChanged(st: SurfaceTexture, w: Int, h: Int) {}
+                        override fun onSurfaceTextureSizeChanged(st: SurfaceTexture, w: Int, h: Int) {
+                            mediaPlayerRef?.let { mp ->
+                                runCatching { applyCenterCropTransform(this@apply, mp.videoWidth, mp.videoHeight) }
+                            }
+                        }
 
                         override fun onSurfaceTextureDestroyed(st: SurfaceTexture): Boolean {
-                            try {
+                            runCatching {
                                 mediaPlayerRef?.stop()
                                 mediaPlayerRef?.release()
-                            } catch (e: Exception) {}
+                            }
                             mediaPlayerRef = null
+                            surfaceHolder[0]?.release()
+                            surfaceHolder[0] = null
+                            loadedClipHolder[0] = -1
                             return true
                         }
 
@@ -1947,48 +2106,21 @@ fun BrollVideoOverlay(
                     }
                 }
             },
-            update = { view ->
-                val mp = mediaPlayerRef
-                if (mp != null) {
-                    if (isActive && !mp.isPlaying) {
-                        try { mp.start() } catch (e: Exception) {}
-                    } else if (!isActive && mp.isPlaying) {
-                        try { mp.pause() } catch (e: Exception) {}
+            update = { tv ->
+                if (surfaceHolder[0] != null && loadedClipHolder[0] != clipIndex) {
+                    loadClipIntoPlayer(tv.context, tv, clipIndex, isActive)
+                } else {
+                    val mp = mediaPlayerRef
+                    if (mp != null) {
+                        if (isActive) {
+                            runCatching { if (!mp.isPlaying) mp.start() }
+                        } else if (visualAlpha <= 0.02f) {
+                            runCatching { if (mp.isPlaying) mp.pause() }
+                        }
                     }
                 }
             },
             modifier = Modifier.fillMaxSize()
         )
-
-        // CRT Scanline and Film Vignette Layer
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            val w = size.width
-            val h = size.height
-
-            // 1. Vintage Scanline Strips
-            var y = 0f
-            while (y < h) {
-                drawLine(
-                    color = Color.Black.copy(alpha = 0.16f),
-                    start = Offset(0f, y),
-                    end = Offset(w, y),
-                    strokeWidth = 1.2f
-                )
-                y += 4.5f
-            }
-
-            // 2. Film Grain Vignette Edge
-            val maxD = if (w > h) w else h
-            drawRect(
-                brush = Brush.radialGradient(
-                    colors = listOf(
-                        Color.Transparent,
-                        Color(0xFF020408L).copy(alpha = 0.55f)
-                    ),
-                    center = Offset(w / 2f, h / 2f),
-                    radius = maxD * 0.58f
-                )
-            )
-        }
     }
 }

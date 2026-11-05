@@ -213,7 +213,8 @@ data class GameObject(
 data class PrimedSectionEffect(
     val type: PowerUpType,
     val targetSec: Float,
-    val title: String
+    val title: String,
+    val keyWordEffect: KeyWordEffect = KeyWordEffect.NONE
 )
 
 /**

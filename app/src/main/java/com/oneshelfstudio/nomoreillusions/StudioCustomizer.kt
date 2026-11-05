@@ -212,7 +212,7 @@ fun StudioCustomizerSuite(
                     )
                 }
 
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(12.dp))
 
                 Box(
                     modifier = Modifier
@@ -267,23 +267,17 @@ fun StudioCustomizerSuite(
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             var selectedCategoryIndex by remember { mutableIntStateOf(0) }
-            var showCategoryDropdown by remember { mutableStateOf(false) }
-            val categories = listOf(
-                Triple(0, "🌌 STAGE PALETTES (6 THEMES)", Color(0xFF38BDF8L)),
-                Triple(1, "🛸 HERO AVATARS (6 CORES)", Color(0xFF4ADE80L)),
-                Triple(2, "★ VAULT REELS & BOOKLETS", Color(0xFFFACC15L))
-            )
 
-            // Live Interactive Optical Illusion Simulation Box
+            // Live Interactive Stage & Core Preview Box
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(145.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .border(1.5.dp, Color(0xFF6366F1L).copy(alpha = 0.65f), RoundedCornerShape(16.dp))
+                    .height(155.dp)
+                    .clip(RoundedCornerShape(18.dp))
+                    .border(1.5.dp, Color(0xFF6366F1L).copy(alpha = 0.65f), RoundedCornerShape(18.dp))
                     .pointerInput(Unit) {
                         detectDragGestures { change, dragAmount ->
                             change.consume()
@@ -336,121 +330,86 @@ fun StudioCustomizerSuite(
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopCenter)
-                        .padding(top = 8.dp)
-                        .clip(RoundedCornerShape(12.dp))
+                        .padding(top = 10.dp)
+                        .clip(RoundedCornerShape(50))
                         .background(Color.Black.copy(alpha = 0.72f))
-                        .border(1.dp, Color(0xFF22C55EL).copy(alpha = 0.55f), RoundedCornerShape(12.dp))
-                        .padding(horizontal = 12.dp, vertical = 4.dp)
+                        .border(1.dp, Color(0xFF22C55EL).copy(alpha = 0.55f), RoundedCornerShape(50))
+                        .padding(horizontal = 14.dp, vertical = 5.dp)
                 ) {
                     Text(
-                        text = "LIVE COSMETICS PREVIEW • DRAG CORE TO TEST",
+                        text = "DRAG CORE TO PREVIEW",
                         color = Color(0xFF4ADE80L),
                         fontSize = 9.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 0.8.sp
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 0.9.sp
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-            // CATEGORY DROPDOWN SELECTOR (Eliminates vertical scroll wall!)
-            val activeCat = categories[selectedCategoryIndex]
-            Column(
+            // Direct 2-Segment Switcher (Stage Palettes vs Hero Cores — Zero Clunky Dropdown, Zero Redundant Reels!)
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(Color(0xFF0A1328L))
-                    .border(1.5.dp, activeCat.third.copy(alpha = 0.85f), RoundedCornerShape(14.dp))
+                    .height(44.dp)
+                    .clip(RoundedCornerShape(50))
+                    .background(Color(0xFF070D1CL))
+                    .border(1.2.dp, Color.White.copy(alpha = 0.16f), RoundedCornerShape(50))
+                    .padding(4.dp)
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                val palettesSel = selectedCategoryIndex == 0
+                Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { showCategoryDropdown = !showCategoryDropdown }
-                        .padding(horizontal = 14.dp, vertical = 11.dp)
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .clip(RoundedCornerShape(50))
+                        .background(
+                            if (palettesSel) Brush.horizontalGradient(listOf(Color(0xFF0284C7L), Color(0xFF4338CAL)))
+                            else Brush.horizontalGradient(listOf(Color.Transparent, Color.Transparent))
+                        )
+                        .clickable { selectedCategoryIndex = 0 },
+                    contentAlignment = Alignment.Center
                 ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "CUSTOMIZE CATEGORY (TAP TO SWITCH)",
-                            color = Color.White.copy(alpha = 0.55f),
-                            fontSize = 8.5.sp,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 0.7.sp
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = activeCat.second,
-                            color = activeCat.third,
-                            fontSize = 12.5.sp,
-                            fontWeight = FontWeight.Black,
-                            maxLines = 1
-                        )
-                    }
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(50))
-                            .background(activeCat.third.copy(alpha = 0.18f))
-                            .border(1.dp, activeCat.third.copy(alpha = 0.65f), RoundedCornerShape(50))
-                            .padding(horizontal = 10.dp, vertical = 4.dp)
-                    ) {
-                        Text(
-                            text = if (showCategoryDropdown) "CLOSE ▴" else "SWITCH ▾",
-                            color = activeCat.third,
-                            fontSize = 9.5.sp,
-                            fontWeight = FontWeight.Black
-                        )
-                    }
+                    Text(
+                        text = "STAGE PALETTES",
+                        color = if (palettesSel) Color.White else Color(0xFF94A3B8L),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 0.7.sp
+                    )
                 }
 
-                if (showCategoryDropdown) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(Color(0xFF050914L))
-                            .padding(horizontal = 10.dp, vertical = 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        categories.forEach { (idx, label, col) ->
-                            val isSel = idx == selectedCategoryIndex
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(10.dp))
-                                    .background(if (isSel) col.copy(alpha = 0.18f) else Color(0xFF0B1324L))
-                                    .border(1.dp, if (isSel) col else Color.White.copy(alpha = 0.12f), RoundedCornerShape(10.dp))
-                                    .clickable {
-                                        selectedCategoryIndex = idx
-                                        showCategoryDropdown = false
-                                    }
-                                    .padding(horizontal = 12.dp, vertical = 9.dp)
-                            ) {
-                                Text(
-                                    text = label,
-                                    color = if (isSel) col else Color.White,
-                                    fontSize = 11.5.sp,
-                                    fontWeight = FontWeight.Black
-                                )
-                                Text(
-                                    text = if (isSel) "✓ SELECTED" else "SELECT →",
-                                    color = if (isSel) col else Color.White.copy(alpha = 0.6f),
-                                    fontSize = 9.sp,
-                                    fontWeight = FontWeight.Black
-                                )
-                            }
-                        }
-                    }
+                val coresSel = selectedCategoryIndex == 1
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .clip(RoundedCornerShape(50))
+                        .background(
+                            if (coresSel) Brush.horizontalGradient(listOf(Color(0xFF16A34AL), Color(0xFF0D9488L)))
+                            else Brush.horizontalGradient(listOf(Color.Transparent, Color.Transparent))
+                        )
+                        .clickable { selectedCategoryIndex = 1 },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "HERO CORES",
+                        color = if (coresSel) Color.White else Color(0xFF94A3B8L),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 0.7.sp
+                    )
                 }
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             if (selectedCategoryIndex == 0) {
-                // SECTION 1: BACKGROUND THEME (Clean, authentic palettes + 1 release teaser)
-                Row(modifier = Modifier.fillMaxWidth()) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
                     ThemeCard(
                         title = "ILLUSION",
                         subtitle = "Indigo & Forest Green",
@@ -460,8 +419,6 @@ fun StudioCustomizerSuite(
                         accentColor = Color(0xFF6366F1L),
                         modifier = Modifier.weight(1f)
                     ) { applyOrUnlock("BG_OBSIDIAN", 0, newBg = "OBSIDIAN") }
-
-                    Spacer(modifier = Modifier.width(8.dp))
 
                     ThemeCard(
                         title = "24K VINYL",
@@ -473,23 +430,23 @@ fun StudioCustomizerSuite(
                         modifier = Modifier.weight(1f)
                     ) { applyOrUnlock("BG_GOLD_VINYL", 450, newBg = "GOLD_VINYL") }
                 }
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(modifier = Modifier.fillMaxWidth()) {
-                    ThemeCard(
-                        title = "MORE ARTIST EXCLUSIVES",
-                        subtitle = "Coming in Next Studio Release",
-                        isSelected = false,
-                        isUnlocked = false,
-                        costNotes = 0,
-                        accentColor = Color(0xFF38BDF8L),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        statusBanner = "MORE RELEASES TO COME • Play more and master existing tracks to unlock!"
-                    }
+                Spacer(modifier = Modifier.height(12.dp))
+                ThemeCard(
+                    title = "MORE STUDIO PALETTES COMING SOON",
+                    subtitle = "Master existing tracks to unlock upcoming releases",
+                    isSelected = false,
+                    isUnlocked = true,
+                    costNotes = 0,
+                    accentColor = Color(0xFF38BDF8L),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    statusBanner = "Ethan Correa is recording upcoming singles & stage themes!"
                 }
-            } else if (selectedCategoryIndex == 1) {
-                // SECTION 2: HERO CORE SKIN (Clean authentic skins + 1 release teaser)
-                Row(modifier = Modifier.fillMaxWidth()) {
+            } else {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
                     ThemeCard(
                         title = "EMERALD",
                         subtitle = "Starter Core",
@@ -499,8 +456,6 @@ fun StudioCustomizerSuite(
                         accentColor = Color(0xFF22C55EL),
                         modifier = Modifier.weight(1f)
                     ) { applyOrUnlock("HERO_SOLAR", 0, newHero = "SOLAR") }
-
-                    Spacer(modifier = Modifier.width(8.dp))
 
                     ThemeCard(
                         title = "24K ECLIPSE",
@@ -512,70 +467,31 @@ fun StudioCustomizerSuite(
                         modifier = Modifier.weight(1f)
                     ) { applyOrUnlock("HERO_ECLIPSE", 450, newHero = "ECLIPSE") }
                 }
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(modifier = Modifier.fillMaxWidth()) {
-                    ThemeCard(
-                        title = "MORE ARTIST EXCLUSIVES",
-                        subtitle = "Coming in Next Studio Release",
-                        isSelected = false,
-                        isUnlocked = false,
-                        costNotes = 0,
-                        accentColor = Color(0xFF38BDF8L),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        statusBanner = "MORE RELEASES TO COME • Play more and master existing tracks to unlock!"
-                    }
-                }
-            } else {
-                // SECTION 3: INTERACTIVE ARTIST VAULT EXCLUSIVES
-                Row(modifier = Modifier.fillMaxWidth()) {
-                    ThemeCard(
-                        title = "VAULT TAPE DECK",
-                        subtitle = "Nightcore & Turntable",
-                        isSelected = "VAULT_DEMO" in unlockedSet,
-                        isUnlocked = "VAULT_DEMO" in unlockedSet,
-                        costNotes = 500,
-                        accentColor = Color(0xFFFACC15L),
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        if ("VAULT_DEMO" in unlockedSet) {
-                            activeVaultModal = "VAULT_DEMO"
-                        } else {
-                            applyOrUnlock("VAULT_DEMO", 500)
-                            if ("VAULT_DEMO" in unlockedSet || pulsePoints >= 500) {
-                                activeVaultModal = "VAULT_DEMO"
-                            }
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.width(8.dp))
-
-                    ThemeCard(
-                        title = "MORE ARTIST EXCLUSIVES",
-                        subtitle = "Upcoming Singles & Stem Packs",
-                        isSelected = false,
-                        isUnlocked = false,
-                        costNotes = 0,
-                        accentColor = Color(0xFF38BDF8L),
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        statusBanner = "MORE RELEASES TO COME • Master tracks to unlock upon release!"
-                    }
+                Spacer(modifier = Modifier.height(12.dp))
+                ThemeCard(
+                    title = "MORE HERO CORES COMING SOON",
+                    subtitle = "Master existing tracks to unlock upcoming releases",
+                    isSelected = false,
+                    isUnlocked = true,
+                    costNotes = 0,
+                    accentColor = Color(0xFF38BDF8L),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    statusBanner = "Ethan Correa is recording upcoming singles & core designs!"
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(22.dp))
 
-            // LAUNCH TEST GAME BUTTON
             ArcadePillButton(
                 text = "LAUNCH SELECTED TRACK",
                 pillBitmap = btnPillGreen,
                 onClick = onLaunchTestGame,
                 fontSize = 15.sp,
-                modifier = Modifier.fillMaxWidth().height(50.dp)
+                modifier = Modifier.fillMaxWidth().height(52.dp)
             )
 
-            Spacer(modifier = Modifier.height(64.dp))
+            Spacer(modifier = Modifier.height(16.dp))
         }
 
         // Artist VIP Passcode Modal Overlay

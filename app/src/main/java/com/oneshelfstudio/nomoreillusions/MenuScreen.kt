@@ -239,7 +239,7 @@ fun MenuUI(
     onCycleLobbyTrack: () -> Unit = {},
     onSelectQuickTrack: (Int) -> Unit = {},
     onStart: () -> Unit,
-    onMusicDemo: () -> Unit,
+    onMusicDemo: (Int) -> Unit,
     onHowToPlay: () -> Unit,
     onSettings: () -> Unit
 ) {
@@ -290,7 +290,8 @@ fun MenuUI(
                 )
             )
             .statusBarsPadding()
-            .padding(top = 48.dp, bottom = 0.dp, start = 16.dp, end = 16.dp)
+            .navigationBarsPadding()
+            .padding(top = 10.dp, bottom = 6.dp, start = 18.dp, end = 18.dp)
     ) {
         // Top Frameless Stage Bar: ♪ Music Notes Balance + Lobby Synth Switcher (Zero Boxy Pills!)
         Row(
@@ -303,7 +304,7 @@ fun MenuUI(
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
-                    .clickable { onMusicDemo() }
+                    .clickable { onMusicDemo(1) }
                     .padding(horizontal = 4.dp, vertical = 6.dp)
             ) {
                 Text(
@@ -347,10 +348,18 @@ fun MenuUI(
 
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.SpaceBetween,
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 18.dp, bottom = 0.dp)
+                .padding(top = 34.dp, bottom = 0.dp)
         ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+                verticalArrangement = Arrangement.SpaceEvenly
+            ) {
             // BESPOKE HOLOGRAPHIC VINYL TURNTABLE CAROUSEL SHOWCASE
             val isTrack02AltCover = prefs.getBoolean("track02_alt_cover", false)
             val selectedTrackArt = if (selectedTrackIndex == 1) track01Art else if (isTrack02AltCover) nmiLogo else track02Art
@@ -585,116 +594,129 @@ fun MenuUI(
                 letterSpacing = 1.4.sp
             )
 
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // 2. 4 SCULPTED CHAMFERED NEON MODE GEMS (Touch Here -> Get This: Chill, Normal, Fast, Band Hero!)
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            // 2. Breathable 4-Gem Tempo Selector + Clean Playstyle Toggle
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                val modes = listOf(
-                    Triple("CHILL", "0.5x • 2 Runs", TrackRemixMode.SLOWED),
-                    Triple("NORMAL", "1.0x • 1 Run", TrackRemixMode.ORIGINAL),
-                    Triple("FAST", "1.5x Score", TrackRemixMode.OVERCLOCK),
-                    Triple("ENDLESS", "+6% Spd/Loop", TrackRemixMode.ENDLESS)
-                )
-                modes.forEach { (label, sub, mode) ->
-                    val isActive = !isBandHeroMode && selectedRemixMode == mode
-                    val gemCol = when (mode) {
-                        TrackRemixMode.SLOWED -> Color(0xFF38BDF8L)
-                        TrackRemixMode.ORIGINAL -> Color(0xFF4ADE80L)
-                        TrackRemixMode.OVERCLOCK -> Color(0xFFF43F5EL)
-                        TrackRemixMode.ENDLESS -> Color(0xFFFACC15L)
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    val modes = listOf(
+                        Triple("CHILL", "0.85x", TrackRemixMode.SLOWED),
+                        Triple("NORMAL", "1.0x", TrackRemixMode.ORIGINAL),
+                        Triple("FAST", "1.2x", TrackRemixMode.OVERCLOCK),
+                        Triple("ENDLESS", "Loop+", TrackRemixMode.ENDLESS)
+                    )
+                    modes.forEach { (label, sub, mode) ->
+                        val isActive = selectedRemixMode == mode
+                        val gemCol = when (mode) {
+                            TrackRemixMode.SLOWED -> Color(0xFF38BDF8L)
+                            TrackRemixMode.ORIGINAL -> Color(0xFF4ADE80L)
+                            TrackRemixMode.OVERCLOCK -> Color(0xFFF43F5EL)
+                            TrackRemixMode.ENDLESS -> Color(0xFFFACC15L)
+                        }
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(if (isActive) gemCol.copy(alpha = 0.20f) else Color(0xFF070C18L))
+                                .border(
+                                    width = if (isActive) 1.8.dp else 1.dp,
+                                    color = if (isActive) gemCol else Color.White.copy(alpha = 0.14f),
+                                    shape = RoundedCornerShape(12.dp)
+                                )
+                                .clickable { onSelectRemixMode(mode) }
+                                .padding(vertical = 9.dp, horizontal = 6.dp)
+                        ) {
+                            Text(
+                                text = label,
+                                color = if (isActive) gemCol else Color.White,
+                                fontSize = 10.5.sp,
+                                fontWeight = FontWeight.Black,
+                                maxLines = 1
+                            )
+                            Spacer(modifier = Modifier.height(1.dp))
+                            Text(
+                                text = sub,
+                                color = Color(0xFFCBD5E1L),
+                                fontSize = 8.5.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                maxLines = 1
+                            )
+                        }
                     }
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
+                }
+
+                // Playstyle Mode Segmented Pill (Free-Glide Stage vs Classic 4-Lane Highway)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(36.dp)
+                        .clip(RoundedCornerShape(50))
+                        .background(Color(0xFF070C18L))
+                        .border(1.dp, Color.White.copy(alpha = 0.14f), RoundedCornerShape(50))
+                        .padding(3.dp)
+                ) {
+                    val freeSelected = !isBandHeroMode
+                    Box(
                         modifier = Modifier
                             .weight(1f)
-                            .clip(CutCornerShape(topStart = 10.dp, bottomEnd = 10.dp))
-                            .background(if (isActive) gemCol.copy(alpha = 0.22f) else Color(0xFF070C18L))
-                            .border(
-                                width = if (isActive) 2.dp else 1.dp,
-                                color = if (isActive) gemCol else Color.White.copy(alpha = 0.16f),
-                                shape = CutCornerShape(topStart = 10.dp, bottomEnd = 10.dp)
-                            )
-                            .clickable {
-                                onToggleBandHeroMode(false)
-                                onSelectRemixMode(mode)
-                            }
-                            .padding(vertical = 8.dp, horizontal = 4.dp)
+                            .fillMaxHeight()
+                            .clip(RoundedCornerShape(50))
+                            .background(if (freeSelected) Color(0xFF22C55EL).copy(alpha = 0.24f) else Color.Transparent)
+                            .clickable { onToggleBandHeroMode(false) },
+                        contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = label,
-                            color = if (isActive) gemCol else Color.White,
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Black,
-                            maxLines = 1
+                            text = "FREE-GLIDE FLOW",
+                            color = if (freeSelected) Color(0xFF4ADE80L) else Color(0xFF94A3B8L),
+                            fontSize = 9.5.sp,
+                            fontWeight = FontWeight.Black
                         )
+                    }
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .clip(RoundedCornerShape(50))
+                            .background(if (isBandHeroMode) Color(0xFFFACC15L).copy(alpha = 0.24f) else Color.Transparent)
+                            .clickable { onToggleBandHeroMode(true) },
+                        contentAlignment = Alignment.Center
+                    ) {
                         Text(
-                            text = sub,
-                            color = Color(0xFFCBD5E1L),
-                            fontSize = 7.5.sp,
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 1
+                            text = "4-LANE HIGHWAY",
+                            color = if (isBandHeroMode) Color(0xFFFACC15L) else Color(0xFF94A3B8L),
+                            fontSize = 9.5.sp,
+                            fontWeight = FontWeight.Black
                         )
                     }
                 }
-
-                // 4th Sculpted Gem: 🎸 CLASSIC MODE (Guitar Hero Style)
-                val bhCol = Color(0xFFFACC15L)
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier
-                        .weight(1.15f)
-                        .clip(CutCornerShape(topStart = 10.dp, bottomEnd = 10.dp))
-                        .background(if (isBandHeroMode) bhCol.copy(alpha = 0.25f) else Color(0xFF160B24L))
-                        .border(
-                            width = if (isBandHeroMode) 2.dp else 1.dp,
-                            color = if (isBandHeroMode) bhCol else Color(0xFFEC4899L).copy(alpha = 0.45f),
-                            shape = CutCornerShape(topStart = 10.dp, bottomEnd = 10.dp)
-                        )
-                        .clickable { onToggleBandHeroMode(!isBandHeroMode) }
-                        .padding(vertical = 8.dp, horizontal = 4.dp)
-                ) {
-                    Text(
-                        text = "CLASSIC",
-                        color = if (isBandHeroMode) bhCol else Color(0xFFF472B6L),
-                        fontSize = 9.sp,
-                        fontWeight = FontWeight.Black,
-                        maxLines = 1
-                    )
-                    Text(
-                        text = if (isBandHeroMode) "Highway Mode" else "4-Lane Highway",
-                        color = Color(0xFFCBD5E1L),
-                        fontSize = 7.sp,
-                        fontWeight = FontWeight.Bold,
-                        maxLines = 1
-                    )
-                }
             }
-
-            Spacer(modifier = Modifier.height(16.dp))
 
             // 3. GRAND PULSING NEON JEWEL LAUNCH BUTTON
             val isCurrentLaunchUnlocked = selectedTrackIndex == 1 || unlockedTrackCount >= selectedTrackIndex || isVipUnlocked || prefs.getBoolean("art_unlocked_$selectedTrackIndex", false) || prefs.getBoolean("track_unlocked_$selectedTrackIndex", false)
             Box(
                 modifier = Modifier
-                    .fillMaxWidth(0.92f)
-                    .height(58.dp)
-                    .clip(RoundedCornerShape(29.dp))
+                    .fillMaxWidth(0.94f)
+                    .height(56.dp)
+                    .clip(RoundedCornerShape(28.dp))
                     .background(
                         Brush.linearGradient(
                             listOf(
-                                Color(0xFF10B981L).copy(alpha = 0.88f),
-                                Color(0xFF0284C7L).copy(alpha = 0.88f),
-                                Color(0xFFFACC15L).copy(alpha = 0.78f)
+                                Color(0xFF10B981L).copy(alpha = 0.90f),
+                                Color(0xFF0284C7L).copy(alpha = 0.90f),
+                                Color(0xFFFACC15L).copy(alpha = 0.80f)
                             )
                         )
                     )
                     .border(
                         width = 2.dp,
                         color = Color.White.copy(alpha = 0.65f),
-                        shape = RoundedCornerShape(29.dp)
+                        shape = RoundedCornerShape(28.dp)
                     )
                     .clickable { onStart() },
                 contentAlignment = Alignment.Center
@@ -702,26 +724,23 @@ fun MenuUI(
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
                         text = if (!isCurrentLaunchUnlocked) "UNLOCK TRACK 0$selectedTrackIndex (${selectedTrack.unlockCost} NOTES)"
-                        else if (isBandHeroMode) "PLAY CLASSIC HIGHWAY"
+                        else if (isBandHeroMode) "PLAY 4-LANE HIGHWAY"
                         else "PLAY ${selectedTrack.title.uppercase()}",
                         color = Color.White,
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Black,
-                        letterSpacing = 1.6.sp
+                        letterSpacing = 1.5.sp
                     )
                     Text(
                         text = if (!isCurrentLaunchUnlocked) "TAP TO UNLOCK WITH COLLECTED NOTES"
-                        else if (isBandHeroMode) "4-LANE GUITAR HERO RHYTHM RUN"
                         else "${selectedRemixMode.displayName} • STUDIO MASTER",
                         color = Color.White.copy(alpha = 0.90f),
                         fontSize = 8.5.sp,
                         fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.sp
+                        letterSpacing = 0.9.sp
                     )
                 }
             }
-
-            Spacer(modifier = Modifier.height(6.dp))
 
             // Artist Social Links Dock (Official Ethan Correa / No More Illusions)
             Row(
@@ -729,22 +748,22 @@ fun MenuUI(
                     .clip(RoundedCornerShape(50))
                     .background(Color(0xB30F172A))
                     .border(1.dp, Color.White.copy(alpha = 0.14f), RoundedCornerShape(50))
-                    .padding(horizontal = 12.dp, vertical = 4.dp),
+                    .padding(horizontal = 14.dp, vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 Text(
-                    text = "STREAM & FOLLOW",
+                    text = "FOLLOW",
                     color = Color(0xFF94A3B8L),
-                    fontSize = 7.5.sp,
+                    fontSize = 8.sp,
                     fontWeight = FontWeight.Black,
-                    letterSpacing = 0.8.sp
+                    letterSpacing = 0.9.sp
                 )
                 MusicLibrary.officialSocialLinks.forEach { link ->
                     val accent = Color(link.accentHex)
                     Box(
                         modifier = Modifier
-                            .size(24.dp)
+                            .size(26.dp)
                             .clip(CircleShape)
                             .background(Color.White.copy(alpha = 0.08f))
                             .border(1.dp, accent.copy(alpha = 0.65f), CircleShape)
@@ -763,14 +782,16 @@ fun MenuUI(
                     }
                 }
             }
+            } // end inner SpaceEvenly Column
 
-            Spacer(modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.height(8.dp))
 
             StudioBottomNavDock(
                 currentDestination = "HOME",
                 onNavigateHome = { /* Already Home */ },
-                onNavigateSkins = { onMusicDemo() },
-                onNavigateVault = { onMusicDemo() },
+                onNavigateAlbum = { onMusicDemo(1) },
+                onNavigateVault = { onMusicDemo(0) },
+                onNavigateSkins = { onMusicDemo(2) },
                 onNavigateSettings = { onSettings() }
             )
         }
@@ -781,60 +802,49 @@ fun MenuUI(
 fun StudioBottomNavDock(
     currentDestination: String,
     onNavigateHome: () -> Unit,
-    onNavigateSkins: () -> Unit,
+    onNavigateAlbum: () -> Unit = {},
     onNavigateVault: () -> Unit,
+    onNavigateSkins: () -> Unit,
     onNavigateSettings: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val navItems = listOf(
+        Triple("HOME", "HOME", onNavigateHome),
+        Triple("ALBUM", "ALBUM", onNavigateAlbum),
+        Triple("VAULT", "VAULT", onNavigateVault),
+        Triple("SKINS", "SKINS", onNavigateSkins),
+        Triple("SETTINGS", "SETTINGS", onNavigateSettings)
+    )
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 6.dp)
             .clip(RoundedCornerShape(22.dp))
-            .background(Color(0xF2080D1CL))
+            .background(Color(0xF5080D1CL))
             .border(1.2.dp, Color(0x55FACC15L), RoundedCornerShape(22.dp))
-            .padding(horizontal = 8.dp, vertical = 6.dp),
-        horizontalArrangement = Arrangement.SpaceAround,
+            .padding(horizontal = 8.dp, vertical = 9.dp),
+        horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        val isHome = currentDestination == "HOME"
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.clickable { onNavigateHome() }
-        ) {
-            BottomNavGlyph(type = "HOME", isSelected = isHome)
-            Spacer(modifier = Modifier.height(2.dp))
-            Text("HOME", color = if (isHome) Color(0xFFFACC15L) else Color(0xFF94A3B8L), fontSize = 8.5.sp, fontWeight = if (isHome) FontWeight.Black else FontWeight.Bold)
-        }
-
-        val isSkins = currentDestination == "SKINS"
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.clickable { onNavigateSkins() }
-        ) {
-            BottomNavGlyph(type = "SKINS", isSelected = isSkins)
-            Spacer(modifier = Modifier.height(2.dp))
-            Text("SKINS & FX", color = if (isSkins) Color(0xFFFACC15L) else Color(0xFF94A3B8L), fontSize = 8.5.sp, fontWeight = if (isSkins) FontWeight.Black else FontWeight.Bold)
-        }
-
-        val isVault = currentDestination == "VAULT"
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.clickable { onNavigateVault() }
-        ) {
-            BottomNavGlyph(type = "VAULT", isSelected = isVault)
-            Spacer(modifier = Modifier.height(2.dp))
-            Text("ARTIST VAULT", color = if (isVault) Color(0xFFFACC15L) else Color(0xFF94A3B8L), fontSize = 8.5.sp, fontWeight = if (isVault) FontWeight.Black else FontWeight.Bold)
-        }
-
-        val isSettings = currentDestination == "SETTINGS"
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.clickable { onNavigateSettings() }
-        ) {
-            BottomNavGlyph(type = "SETTINGS", isSelected = isSettings)
-            Spacer(modifier = Modifier.height(2.dp))
-            Text("SETTINGS", color = if (isSettings) Color(0xFFFACC15L) else Color(0xFF94A3B8L), fontSize = 8.5.sp, fontWeight = if (isSettings) FontWeight.Black else FontWeight.Bold)
+        navItems.forEach { (key, label, action) ->
+            val isSel = currentDestination == key
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(12.dp))
+                    .clickable { action() }
+                    .padding(vertical = 3.dp)
+            ) {
+                BottomNavGlyph(type = key, isSelected = isSel)
+                Spacer(modifier = Modifier.height(3.dp))
+                Text(
+                    text = label,
+                    color = if (isSel) Color(0xFFFACC15L) else Color(0xFF94A3B8L),
+                    fontSize = 8.5.sp,
+                    fontWeight = if (isSel) FontWeight.Black else FontWeight.SemiBold,
+                    maxLines = 1
+                )
+            }
         }
     }
 }
@@ -873,10 +883,21 @@ fun BottomNavGlyph(type: String, isSelected: Boolean) {
                 }
                 drawPath(path, color = tint, style = Stroke(width = 1.8.dp.toPx()))
             }
-            "VAULT" -> {
+            "ALBUM" -> {
                 drawCircle(color = tint, radius = w * 0.42f, style = Stroke(width = 1.8.dp.toPx()))
                 drawCircle(color = tint, radius = w * 0.16f, style = Stroke(width = 1.5.dp.toPx()))
                 drawCircle(color = tint, radius = w * 0.05f)
+            }
+            "VAULT" -> {
+                val path = Path().apply {
+                    moveTo(w * 0.5f, h * 0.12f)
+                    lineTo(w * 0.88f, h * 0.50f)
+                    lineTo(w * 0.5f, h * 0.88f)
+                    lineTo(w * 0.12f, h * 0.50f)
+                    close()
+                }
+                drawPath(path, color = tint, style = Stroke(width = 1.8.dp.toPx()))
+                drawCircle(color = tint, radius = w * 0.12f)
             }
             "SETTINGS" -> {
                 drawCircle(color = tint, radius = w * 0.40f, style = Stroke(width = 1.8.dp.toPx()))

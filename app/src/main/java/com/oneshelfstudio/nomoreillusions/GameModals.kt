@@ -94,6 +94,8 @@ fun GameOverUI(
     pulsePoints: Int,
     score: Int,
     highScore: Int,
+    orbsCollected: Int = 0,
+    totalTrackOrbs: Int = 1,
     trackLabel: String,
     canContinue: Boolean,
     hasAd: Boolean,
@@ -149,6 +151,14 @@ fun GameOverUI(
                         Spacer(modifier = Modifier.height(2.dp))
                         Text("BEST SCORE: %,d".format(highScore), color = Color(0xFFA5B4FCL), fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
                     }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    val orbPct = ((orbsCollected * 100f) / totalTrackOrbs.coerceAtLeast(1)).toInt().coerceIn(0, 100)
+                    Text(
+                        text = "ORB HARMONY: $orbPct% ($orbsCollected / $totalTrackOrbs)",
+                        color = Color(0xFF38BDF8L),
+                        fontSize = 10.5.sp,
+                        fontWeight = FontWeight.Black
+                    )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text("NOTES BALANCE: %,d".format(pulsePoints), color = Color(0xFFFACC15L), fontSize = 11.5.sp, fontWeight = FontWeight.Black)
                 }
@@ -268,6 +278,9 @@ fun LevelCompleteUI(
     score: Int = 0,
     maxCombo: Int = 1,
     notesEarned: Int = 500,
+    orbsCollected: Int = 0,
+    totalTrackOrbs: Int = 1,
+    collectionBonusNotes: Int = 0,
     unlockedVaultCount: Int = 4,
     uiDialogPanel: ImageBitmap,
     btnPillGreen: ImageBitmap,
@@ -406,20 +419,84 @@ fun LevelCompleteUI(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Compact 1-Line Run Summary Pill (Clean, Zero Clutter)
+            // Compact 1-Line Run Summary Pill + Orb Collection Percentage Mastery Card
+            val safeTotalOrbs = totalTrackOrbs.coerceAtLeast(1)
+            val orbPct = ((orbsCollected * 100f) / safeTotalOrbs).toInt().coerceIn(0, 100)
+            val tierColor = when {
+                orbPct >= 100 -> Color(0xFFFACC15L)
+                orbPct >= 90 -> Color(0xFF4ADE80L)
+                orbPct >= 75 -> Color(0xFF38BDF8L)
+                else -> Color(0xFFA5B4FCL)
+            }
+            val tierLabel = when {
+                orbPct >= 100 -> "★ 100% PERFECT HARMONY • +1,000 BONUS ♪"
+                orbPct >= 90 -> "★ GOLD ORB SYNC • +$collectionBonusNotes BONUS ♪"
+                orbPct >= 75 -> "★ SILVER ORB SYNC • +$collectionBonusNotes BONUS ♪"
+                else -> "HIT 75% / 90% / 100% ORBS FOR BONUS ♪"
+            }
+
             Box(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(50))
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
                     .background(Color(0xFF060C1AL))
-                    .border(1.dp, Color(0xFF38BDF8L).copy(alpha = 0.55f), RoundedCornerShape(50))
-                    .padding(horizontal = 14.dp, vertical = 6.dp)
+                    .border(1.4.dp, tierColor.copy(alpha = 0.72f), RoundedCornerShape(14.dp))
+                    .padding(horizontal = 14.dp, vertical = 10.dp)
             ) {
-                Text(
-                    text = "SCORE: %,d  •  STREAK: x%d  •  +%,d NOTES".format(score, maxCombo, notesEarned),
-                    color = Color(0xFFE2E8F0L),
-                    fontSize = 10.5.sp,
-                    fontWeight = FontWeight.Black
-                )
+                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = "ORBS COLLECTED: $orbPct%",
+                            color = tierColor,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Black
+                        )
+                        Text(
+                            text = "$orbsCollected / $safeTotalOrbs",
+                            color = Color.White,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(7.dp)
+                            .clip(CircleShape)
+                            .background(Color.White.copy(alpha = 0.12f))
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxHeight()
+                                .fillMaxWidth((orbPct / 100f).coerceIn(0.04f, 1f))
+                                .clip(CircleShape)
+                                .background(
+                                    Brush.horizontalGradient(
+                                        listOf(Color(0xFF38BDF8L), Color(0xFF4ADE80L), Color(0xFFFACC15L))
+                                    )
+                                )
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = tierLabel,
+                        color = tierColor,
+                        fontSize = 9.5.sp,
+                        fontWeight = FontWeight.Black
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "SCORE: %,d  •  STREAK: x%d  •  TOTAL +%,d ♪".format(score, maxCombo, notesEarned + collectionBonusNotes),
+                        color = Color(0xFFE2E8F0L),
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(12.dp))

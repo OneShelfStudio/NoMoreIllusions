@@ -25,8 +25,11 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.TextStyle
@@ -63,6 +66,10 @@ fun HUD(
     endlessLoopCount: Int = 0,
     overdriveProgress: Float = 0f,
     is24KOverdrive: Boolean = false,
+    cipherMeterProgress: Float = 0f,
+    isCipherArmed: Boolean = false,
+    isBrollPlaying: Boolean = false,
+    brollPlayProgress: Float = 0f,
     comboBanner: ComboZoomBannerData? = null,
     onActivate24K: () -> Unit = {},
     onPause: () -> Unit
@@ -367,6 +374,130 @@ fun HUD(
                         color = Color(0xFFFACC15L),
                         fontSize = 9.sp,
                         fontWeight = FontWeight.Black
+                    )
+                }
+            }
+        }
+
+        // 3b. Mysterious Left-Edge Analog Cipher Gauge (Fills via Enigmatic Spool/Iris Orbs -> Triggers VHS Video on Musical Transition!)
+        val cipherSpinInf = rememberInfiniteTransition(label = "cipherGauge")
+        val cipherSpinDeg by cipherSpinInf.animateFloat(
+            initialValue = 0f,
+            targetValue = 360f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = if (isCipherArmed || isBrollPlaying) 2400 else 6800, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart
+            ),
+            label = "cipherSpin"
+        )
+        val cipherPulse by cipherSpinInf.animateFloat(
+            initialValue = 1.0f,
+            targetValue = if (isCipherArmed || isBrollPlaying) 1.09f else 1.0f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 580, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "cipherPulse"
+        )
+        val cipherDisplayFill = if (isBrollPlaying) brollPlayProgress.coerceIn(0.05f, 1f) else cipherMeterProgress.coerceIn(0f, 1f)
+        if (cipherDisplayFill > 0.01f || isCipherArmed || isBrollPlaying) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .padding(start = 4.dp)
+                    .graphicsLayer {
+                        scaleX = cipherPulse
+                        scaleY = cipherPulse
+                    }
+                    .width(34.dp)
+                    .height(115.dp)
+                    .clip(RoundedCornerShape(17.dp))
+                    .background(Color(0xD9050814L))
+                    .border(
+                        width = if (isCipherArmed || isBrollPlaying) 2.dp else 1.2.dp,
+                        brush = if (isCipherArmed || isBrollPlaying) {
+                            Brush.verticalGradient(
+                                listOf(
+                                    Color(0xFF05D9E8L),
+                                    Color(0xFFFACC15L),
+                                    Color(0xFFFF2A6DL)
+                                )
+                            )
+                        } else {
+                            Brush.verticalGradient(
+                                listOf(
+                                    Color(0x8805D9E8L),
+                                    Color(0x66FF2A6DL)
+                                )
+                            )
+                        },
+                        shape = RoundedCornerShape(17.dp)
+                    ),
+                contentAlignment = Alignment.BottomCenter
+            ) {
+                // Chromatic VHS Liquid Fill (4 Discrete Segment Notches + Smooth Phosphor Column)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .fillMaxHeight(cipherDisplayFill)
+                        .clip(RoundedCornerShape(bottomStart = 17.dp, bottomEnd = 17.dp))
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(
+                                    Color(0xFF05D9E8L).copy(alpha = 0.92f),
+                                    Color(0xFF818CF8L).copy(alpha = 0.88f),
+                                    Color(0xFFFF2A6DL).copy(alpha = 0.92f)
+                                )
+                            )
+                        )
+                )
+
+                // Bespoke Enigmatic Iris & Twin-Spool Sigil (Zero Words, Zero Emojis!)
+                Canvas(
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .size(22.dp)
+                ) {
+                    val cx = size.width * 0.5f
+                    val cy = size.height * 0.5f
+                    val r = size.minDimension * 0.44f
+                    val rotRad = Math.toRadians(cipherSpinDeg.toDouble()).toFloat()
+
+                    // Outer Chromatic Split Ring
+                    drawCircle(
+                        color = Color(0xFFFF2A6DL).copy(alpha = 0.85f),
+                        radius = r,
+                        center = Offset(cx + 1.1f, cy),
+                        style = Stroke(width = 1.6f)
+                    )
+                    drawCircle(
+                        color = Color(0xFF05D9E8L).copy(alpha = 0.90f),
+                        radius = r,
+                        center = Offset(cx - 1.1f, cy),
+                        style = Stroke(width = 1.6f)
+                    )
+                    drawCircle(
+                        color = Color(0xFF050814L).copy(alpha = 0.86f),
+                        radius = r * 0.84f,
+                        center = Offset(cx, cy)
+                    )
+
+                    // 6 Rotating Aperture Spokes
+                    for (b in 0 until 6) {
+                        val a = rotRad + b * (Math.PI.toFloat() / 3f)
+                        drawLine(
+                            color = if (b % 2 == 0) Color(0xFF05D9E8L) else Color(0xFFFACC15L),
+                            start = Offset(cx + cos(a) * r * 0.28f, cy + sin(a) * r * 0.28f),
+                            end = Offset(cx + cos(a + 0.42f) * r * 0.82f, cy + sin(a + 0.42f) * r * 0.82f),
+                            strokeWidth = 1.6f,
+                            cap = StrokeCap.Round
+                        )
+                    }
+                    // Center Glowing Aperture Pupil
+                    drawCircle(
+                        color = if (isCipherArmed || isBrollPlaying) Color.White else Color(0xFFFACC15L),
+                        radius = r * 0.22f,
+                        center = Offset(cx, cy)
                     )
                 }
             }

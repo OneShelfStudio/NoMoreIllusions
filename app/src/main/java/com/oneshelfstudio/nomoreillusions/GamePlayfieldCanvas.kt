@@ -45,6 +45,7 @@ fun GamePlayfieldCanvas(
     enemyTelegraphs: List<EnemySpawnTelegraph> = emptyList(),
     wormholes: List<SingularityWormhole> = emptyList(),
     isBandHeroMode: Boolean = false,
+    brollOverlayAlpha: Float = 0f,
     player: GameObject,
     secondTouchPos: Offset? = null,
     motes: List<GameObject>,
@@ -141,7 +142,8 @@ fun GamePlayfieldCanvas(
                 audioEnergy = audioEnergy,
                 swellDelta = swellDelta,
                 activePhenomenon = activePhenomenon,
-                multiBand = multiBand
+                multiBand = multiBand,
+                brollOverlayAlpha = brollOverlayAlpha
             )
             drawMotes(motes, isGoldenOverdrive = isGoldenOverdrive)
             drawPlayerTrail(playerTrail, player.color, isFocusActive, applyColorBlind, isGoldenOverdrive = isGoldenOverdrive)

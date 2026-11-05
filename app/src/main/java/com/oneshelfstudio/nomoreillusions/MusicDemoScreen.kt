@@ -32,6 +32,7 @@ import kotlinx.coroutines.delay
 
 @Composable
 fun MusicDemoScreen(
+    initialTab: Int = 1,
     pulsePoints: Int,
     unlockedTrackCount: Int,
     trackListMode: String,
@@ -62,7 +63,8 @@ fun MusicDemoScreen(
     btnPillGreen: ImageBitmap,
     btnPillCyan: ImageBitmap,
     btnPillGold: ImageBitmap,
-    btnIconClose: ImageBitmap
+    btnIconClose: ImageBitmap,
+    onOpenSettings: () -> Unit = onBack
 ) {
     val context = LocalContext.current
     val album = remember { MusicLibrary.placeholderAlbum() }
@@ -71,7 +73,7 @@ fun MusicDemoScreen(
 
     val prefs = remember { context.getSharedPreferences("pulse_prefs", android.content.Context.MODE_PRIVATE) }
     val savedHighScore = remember { prefs.getInt("high_score", 0) }
-    var activeTab by remember { mutableIntStateOf(0) } // 0 = Artist Specials Vault, 1 = Album Deck, 2 = Customizer
+    var activeTab by remember(initialTab) { mutableIntStateOf(initialTab.coerceIn(0, 2)) } // 0 = Vault, 1 = Album, 2 = Skins
     var selectedTrackIndexLocal by remember(selectedTrackIndexState) {
         mutableIntStateOf(selectedTrackIndexState.coerceIn(1, totalTracks))
     }
@@ -222,111 +224,45 @@ fun MusicDemoScreen(
             )
             .statusBarsPadding()
             .navigationBarsPadding()
-            .padding(horizontal = 14.dp, vertical = 10.dp)
+            .padding(horizontal = 18.dp, vertical = 10.dp)
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            // Top Bar: 3-Tab Pill Switcher (★ VAULT | ALBUM | LOADOUT) + Music Notes Pill + Close Button
+            // Clean, Uncrowded Studio Header Bar (Section Title + Notes Balance)
+            val headerTitle = when (activeTab) {
+                0 -> "ARTIST VAULT"
+                2 -> "SKINS & STAGE FX"
+                else -> "STUDIO ALBUM"
+            }
+            val headerSub = when (activeTab) {
+                0 -> "Liner Notes, 4K Art & Era Archives"
+                2 -> "Customize Your Core & Stage Palette"
+                else -> "Ethan Correa • No Morē Illusīons"
+            }
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp)
             ) {
-                Row(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(40.dp)
-                        .clip(RoundedCornerShape(50))
-                        .background(Color(0xFF060C18L))
-                        .border(1.dp, Color(0xFFFACC15L).copy(alpha = 0.45f), RoundedCornerShape(50))
-                        .padding(3.dp)
-                ) {
-                    val specialsSelected = activeTab == 0
-                    Box(
-                        modifier = Modifier
-                            .weight(1.05f)
-                            .fillMaxHeight()
-                            .clip(RoundedCornerShape(50))
-                            .background(
-                                if (specialsSelected) {
-                                    Brush.verticalGradient(listOf(Color(0xFFFACC15L), Color(0xFFD97706L)))
-                                } else {
-                                    Brush.verticalGradient(listOf(Color.Transparent, Color.Transparent))
-                                }
-                            )
-                            .clickable { activeTab = 0 },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "💎 VAULT",
-                            color = if (specialsSelected) Color(0xFF020617L) else Color(0xFFFACC15L),
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Black,
-                            letterSpacing = 0.5.sp,
-                            maxLines = 1,
-                            softWrap = false
-                        )
-                    }
-
-                    val albumSelected = activeTab == 1
-                    Box(
-                        modifier = Modifier
-                            .weight(0.95f)
-                            .fillMaxHeight()
-                            .clip(RoundedCornerShape(50))
-                            .background(
-                                if (albumSelected) {
-                                    Brush.verticalGradient(listOf(Color(0xFF22C55EL), Color(0xFF15803DL)))
-                                } else {
-                                    Brush.verticalGradient(listOf(Color.Transparent, Color.Transparent))
-                                }
-                            )
-                            .clickable { activeTab = 1 },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "💿 ALBUM",
-                            color = if (albumSelected) Color.White else Color.White.copy(alpha = 0.65f),
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Black,
-                            letterSpacing = 0.6.sp,
-                            maxLines = 1,
-                            softWrap = false
-                        )
-                    }
-
-                    val custSelected = activeTab == 2
-                    Box(
-                        modifier = Modifier
-                            .weight(1.05f)
-                            .fillMaxHeight()
-                            .clip(RoundedCornerShape(50))
-                            .background(
-                                if (custSelected) {
-                                    Brush.verticalGradient(listOf(Color(0xFF6366F1L), Color(0xFF4338CAL)))
-                                } else {
-                                    Brush.verticalGradient(listOf(Color.Transparent, Color.Transparent))
-                                }
-                            )
-                            .clickable { activeTab = 2 },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "🎨 SKINS & FX",
-                            color = if (custSelected) Color.White else Color.White.copy(alpha = 0.65f),
-                            fontSize = 9.5.sp,
-                            fontWeight = FontWeight.Black,
-                            letterSpacing = 0.5.sp,
-                            maxLines = 1,
-                            softWrap = false
-                        )
-                    }
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = headerTitle,
+                        color = Color.White,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 1.2.sp
+                    )
+                    Text(
+                        text = headerSub,
+                        color = Color(0xFF94A3B8L),
+                        fontSize = 10.5.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
                 }
 
-                Spacer(modifier = Modifier.width(8.dp))
-
-                // Sleek Music Notes (♪) Balance Pill
                 Box(
                     modifier = Modifier
-                        .height(38.dp)
                         .clip(RoundedCornerShape(50))
                         .background(
                             Brush.verticalGradient(
@@ -334,31 +270,22 @@ fun MusicDemoScreen(
                             )
                         )
                         .border(1.2.dp, Color(0xFF22C55EL).copy(alpha = 0.65f), RoundedCornerShape(50))
-                        .padding(horizontal = 11.dp),
+                        .padding(horizontal = 14.dp, vertical = 7.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = "%,d ♪".format(localPoints),
                         color = Color(0xFF4ADE80L),
-                        fontSize = 12.sp,
+                        fontSize = 12.5.sp,
                         fontWeight = FontWeight.Black,
                         maxLines = 1,
                         softWrap = false
                     )
                 }
-
-                Spacer(modifier = Modifier.width(8.dp))
-
-                ArcadeIconButton(
-                    iconBitmap = btnIconClose,
-                    onClick = onBack,
-                    modifier = Modifier.size(38.dp)
-                )
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
-            // Tab 0: Collector's Vault & Artist Specials (Ethan's Liner Notes, Vocal Secrets, Master Reels, Storyboards)
             if (activeTab == 0) {
                 ArtistExclusivesSpecialsHub(
                     prefs = prefs,
@@ -370,7 +297,7 @@ fun MusicDemoScreen(
                         onPlayGame(trackIdx)
                     },
                     onActivateVipPasscode = onActivateVipPasscode,
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier.weight(1f).fillMaxWidth()
                 )
             } else if (activeTab == 2) {
                 StudioCustomizerSuite(
@@ -396,9 +323,10 @@ fun MusicDemoScreen(
                     enemySeekerMandala = enemySeekerMandala,
                     enemyWandererMandala = enemyWandererMandala,
                     btnPillGreen = btnPillGreen,
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier.weight(1f).fillMaxWidth()
                 )
             } else {
+                Column(modifier = Modifier.weight(1f).fillMaxWidth()) {
                 // Artist Socials & Streaming Bar
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -418,9 +346,9 @@ fun MusicDemoScreen(
                     )
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
-                // Featured Track Deck (Glassmorphic Beveled Card)
+                // Featured Track Deck (Generous Breathable Padding)
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -445,7 +373,7 @@ fun MusicDemoScreen(
                             ),
                             shape = RoundedCornerShape(18.dp)
                         )
-                        .padding(12.dp)
+                        .padding(16.dp)
                 ) {
                     Column(modifier = Modifier.fillMaxWidth()) {
                         Row(
@@ -628,7 +556,7 @@ fun MusicDemoScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(14.dp))
 
                 // FIXED Waveform & Un-crunched List/Grid Header Bar!
                 Row(
@@ -705,12 +633,12 @@ fun MusicDemoScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(10.dp))
                 AudioWaveformVisualizer(
                     isPlaying = isPlaying,
                     progress = if (isPlaying) (playheadMs.toFloat() / durationMs.toFloat()).coerceIn(0f, 1f) else animatedProgress
                 )
-                Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
                 // Track Collection List/Grid
                 Box(
@@ -738,15 +666,21 @@ fun MusicDemoScreen(
                         )
                     }
                 }
+                } // end Album weight(1f) Column
             }
 
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(10.dp))
             StudioBottomNavDock(
-                currentDestination = if (activeTab == 0) "VAULT" else if (activeTab == 2) "SKINS" else "HOME",
+                currentDestination = when (activeTab) {
+                    0 -> "VAULT"
+                    2 -> "SKINS"
+                    else -> "ALBUM"
+                },
                 onNavigateHome = onBack,
-                onNavigateSkins = { activeTab = 2 },
+                onNavigateAlbum = { activeTab = 1 },
                 onNavigateVault = { activeTab = 0 },
-                onNavigateSettings = onBack
+                onNavigateSkins = { activeTab = 2 },
+                onNavigateSettings = onOpenSettings
             )
         }
     }
