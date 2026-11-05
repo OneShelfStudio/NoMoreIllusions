@@ -113,92 +113,40 @@ data class ArtistExclusiveItem(
 
 val ARTIST_EXCLUSIVES_CATALOG = listOf(
     ArtistExclusiveItem(
-        id = "excl_confide_note",
-        category = "ARTIST LINER NOTE • TRACK 01",
-        title = "TRACK 01 FAN NOTE PLACEHOLDER",
-        subtitle = "Artist Note Slot for \"Confide\"",
-        unlockRequirementText = "Unlocked Free on First Launch (Starter Fan Gift)",
-        artistNoteQuote = "\"Here is where you can put your personal story, lyrics, or behind-the-scenes note for your fans about Track 01 (Confide)!\"",
-        exclusiveDetail = "Template slot ready for your custom Track 01 liner notes, lyrics, or fan message.",
+        id = "excl_confide_master",
+        category = "STUDIO LINER NOTES • NO MORE ILLUSIONS",
+        title = "ETHAN CORREA • ALBUM REFLECTIONS",
+        subtitle = "Behind The Music & Vocal Production",
+        unlockRequirementText = "Unlocked Free for VIP Fan Community",
+        artistNoteQuote = "\"No More Illusions is about cutting through digital static and finding authentic connection. 'Confide' was born during late-night studio sessions exploring vulnerability, while 'Number One' captures high-energy rhythmic syncopation. Thank you for building this interactive world with us.\"",
+        exclusiveDetail = "Unlocks Ethan's full interactive gatefold sleeve notes & behind-the-scenes vocal reflections.",
         accentColor = Color(0xFF38BDF8L),
         isUnlocked = { _, _, _ -> true }
     ),
     ArtistExclusiveItem(
-        id = "excl_confide_master",
-        category = "BACKSTAGE SESSION SECRET",
-        title = "STUDIO SESSION SECRET PLACEHOLDER",
-        subtitle = "Behind-the-Scenes Slot • Track 01",
-        unlockRequirementText = "Complete Track 01 (Confide) or score 2,500+ pts",
-        artistNoteQuote = "\"Here is where you can put a behind-the-scenes studio secret, vocal mix breakdown, or recording memory for your fans!\"",
-        exclusiveDetail = "Unlocks the 4K Holographic Gatefold Sleeve for Track 01 + +250 ♪ Bonus Notes.",
+        id = "excl_number_one_master",
+        category = "BACKSTAGE MASTER REEL • TRACK 02",
+        title = "'NUMBER ONE' CADENCE & STEM REEL",
+        subtitle = "Open Hi-Hat Groove & Electronic Energy",
+        unlockRequirementText = "Play Track 02 or reach 2,500+ High Score",
+        artistNoteQuote = "\"'Number One' was designed around syncopated open hi-hat patterns and layered vocal harmonies. As you hit each beat in the drop, you are feeling the raw rhythm track directly from the master desk.\"",
+        exclusiveDetail = "Unlocks the 4K Holographic Vinyl star on Track 02 + 250 ♪ Bonus Notes.",
         accentColor = Color(0xFF4ADE80L),
         isUnlocked = { prefs, highScore, _ ->
-            prefs.getBoolean("art_unlocked_1", false) || highScore >= 2500 || prefs.getBoolean("vip_all_unlocked", false)
+            prefs.getBoolean("art_unlocked_2", false) || highScore >= 2500 || prefs.getBoolean("vip_all_unlocked", false)
         }
     ),
     ArtistExclusiveItem(
-        id = "excl_number_one_note",
-        category = "ARTIST LINER NOTE • TRACK 02",
-        title = "TRACK 02 FAN NOTE PLACEHOLDER",
-        subtitle = "Artist Note Slot for \"Number One\"",
-        unlockRequirementText = "Play Track 02 or reach 4,000+ High Score",
-        artistNoteQuote = "\"Here is where you can put your personal story, lyrics, or behind-the-scenes note for your fans about Track 02 (Number One)!\"",
-        exclusiveDetail = "Template slot ready for your custom Track 02 liner notes & collector art.",
+        id = "excl_upcoming_teaser",
+        category = "UPCOMING STUDIO RELEASES",
+        title = "MORE ARTIST EXCLUSIVES COMING SOON",
+        subtitle = "Upcoming Singles & Studio Stem Packs",
+        unlockRequirementText = "Master current tracks to qualify for upcoming release drops",
+        artistNoteQuote = "\"Ethan Correa is currently in the studio recording upcoming singles, alternate acoustic versions, and exclusive stem packs. Level up your album mastery to unlock new tracks and VIP rewards upon release.\"",
+        exclusiveDetail = "Upcoming singles and backstage rehearsal footage will unlock here in future studio updates.",
         accentColor = Color(0xFFFACC15L),
         isUnlocked = { prefs, highScore, _ ->
-            prefs.getBoolean("art_unlocked_2", false) || highScore >= 4000 || prefs.getBoolean("vip_all_unlocked", false)
-        }
-    ),
-    ArtistExclusiveItem(
-        id = "excl_slowed_reverb_tape",
-        category = "STUDIO MASTER REEL • AUDIO MODE",
-        title = "0.85x SLOWED + REVERB TAPE SLOT",
-        subtitle = "Custom Audio Reel Note for Fans",
-        unlockRequirementText = "Reach a 10x Rhythm Combo or complete any Track",
-        artistNoteQuote = "\"Here is where you can put a note for your fans about the 0.85x Slowed + Reverb version of your tracks (or link a custom slowed stem)!\"",
-        exclusiveDetail = "Active on your Main Menu Turntable: toggle SLOWED 0.85x anytime before launching a run!",
-        accentColor = Color(0xFFA855F7L),
-        isUnlocked = { prefs, highScore, _ ->
-            prefs.getBoolean("art_unlocked_1", false) || prefs.getInt("best_combo", 0) >= 10 || highScore >= 2000 || prefs.getBoolean("vip_all_unlocked", false)
-        }
-    ),
-    ArtistExclusiveItem(
-        id = "excl_nightcore_overclock",
-        category = "STUDIO MASTER REEL • AUDIO MODE",
-        title = "1.20x FAST OVERCLOCK REEL SLOT",
-        subtitle = "High-Speed Remix Note for Fans",
-        unlockRequirementText = "Score 5,000+ pts or complete Track 02",
-        artistNoteQuote = "\"Here is where you can put a note for your fans about the 1.20x Fast Overclock version of your songs!\"",
-        exclusiveDetail = "Active on your Main Menu Turntable: toggle FAST 1.20x for high-speed runs!",
-        accentColor = Color(0xFFE879F9L),
-        isUnlocked = { prefs, highScore, _ ->
-            prefs.getBoolean("art_unlocked_2", false) || highScore >= 5000 || prefs.getBoolean("vip_all_unlocked", false)
-        }
-    ),
-    ArtistExclusiveItem(
-        id = "excl_era_polaroids",
-        category = "COLLECTOR STORYBOARD • POLAROIDS",
-        title = "ERA PHOTOS & UPCOMING TRACKS SLOT",
-        subtitle = "Sneak Peek Slot for Your Fans",
-        unlockRequirementText = "Accumulate 1,500+ ♪ Notes or complete 2 Tracks",
-        artistNoteQuote = "\"Here is where you can put studio photos, polaroids, tour dates, or a sneak peek at upcoming unreleased tracks for your fans!\"",
-        exclusiveDetail = "Template slot ready for your backstage photo cards & upcoming release previews.",
-        accentColor = Color(0xFF22D3EEL),
-        isUnlocked = { prefs, highScore, points ->
-            points >= 1500 || highScore >= 6000 || (prefs.getBoolean("art_unlocked_1", false) && prefs.getBoolean("art_unlocked_2", false)) || prefs.getBoolean("vip_all_unlocked", false)
-        }
-    ),
-    ArtistExclusiveItem(
-        id = "excl_endless_champion",
-        category = "🏆 ENDLESS LOOP CHAMPION SECRET",
-        title = "ARTIST SECRET MESSAGE FOR ENDLESS CHAMPIONS",
-        subtitle = "Personal Reward Slot for Mastering the Speeding Endless Loop",
-        unlockRequirementText = "Score 15,000+ pts or survive 2+ Loops in ∞ ENDLESS Mode",
-        artistNoteQuote = "\"Here is where you can put your personal secret message, VIP discount code, or unreleased demo link for fans who post the highest score on the speeding Endless Loop!\"",
-        exclusiveDetail = "Unlocks the 24K Endless Champion Crown & your custom fan reward message.",
-        accentColor = Color(0xFFFACC15L),
-        isUnlocked = { prefs, highScore, _ ->
-            highScore >= 15000 || prefs.getInt("endless_best_loop", 0) >= 2 || prefs.getBoolean("vip_all_unlocked", false)
+            prefs.getBoolean("vip_all_unlocked", false) || highScore >= 4500
         }
     )
 )

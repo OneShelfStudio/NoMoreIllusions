@@ -290,7 +290,7 @@ fun MenuUI(
                 )
             )
             .statusBarsPadding()
-            .padding(top = 48.dp, bottom = 12.dp, start = 16.dp, end = 16.dp)
+            .padding(top = 48.dp, bottom = 0.dp, start = 16.dp, end = 16.dp)
     ) {
         // Top Frameless Stage Bar: ♪ Music Notes Balance + Lobby Synth Switcher (Zero Boxy Pills!)
         Row(
@@ -766,25 +766,17 @@ fun MenuUI(
 
             Spacer(modifier = Modifier.weight(1f))
 
-            // Magic Tiles Style Bottom Navigation Bar (Handcrafted Vector Outline SVGs — Zero Raw Emojis!)
+            // Modern Bottom Navigation Dock: 3 Clear Destinations (Zero Fake Home Button, Proper Safe-Area Padding)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(Color(0xF00A0618L))
                     .border(1.dp, Color(0x33EC4899L), RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
                     .navigationBarsPadding()
-                    .padding(vertical = 10.dp),
+                    .padding(vertical = 8.dp),
                 horizontalArrangement = Arrangement.SpaceAround,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.clickable { /* Already on Home */ }
-                ) {
-                    BottomNavGlyph(type = "HOME", isSelected = true)
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text("HOME", color = Color(0xFFFACC15L), fontSize = 8.5.sp, fontWeight = FontWeight.Black)
-                }
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier.clickable { onMusicDemo() }
@@ -799,15 +791,15 @@ fun MenuUI(
                 ) {
                     BottomNavGlyph(type = "VAULT", isSelected = false)
                     Spacer(modifier = Modifier.height(2.dp))
-                    Text("VAULT", color = Color(0xFF94A3B8L), fontSize = 8.5.sp, fontWeight = FontWeight.Bold)
+                    Text("ARTIST VAULT", color = Color(0xFFFACC15L), fontSize = 8.5.sp, fontWeight = FontWeight.Black)
                 }
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier.clickable { onSettings() }
                 ) {
-                    BottomNavGlyph(type = "EXCLUSIVES", isSelected = false)
+                    BottomNavGlyph(type = "SETTINGS", isSelected = false)
                     Spacer(modifier = Modifier.height(2.dp))
-                    Text("EXCLUSIVES", color = Color(0xFF94A3B8L), fontSize = 8.5.sp, fontWeight = FontWeight.Bold)
+                    Text("SETTINGS", color = Color(0xFF94A3B8L), fontSize = 8.5.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -852,6 +844,10 @@ private fun BottomNavGlyph(type: String, isSelected: Boolean) {
                 drawCircle(color = tint, radius = w * 0.42f, style = Stroke(width = 1.8.dp.toPx()))
                 drawCircle(color = tint, radius = w * 0.16f, style = Stroke(width = 1.5.dp.toPx()))
                 drawCircle(color = tint, radius = w * 0.05f)
+            }
+            "SETTINGS" -> {
+                drawCircle(color = tint, radius = w * 0.40f, style = Stroke(width = 1.8.dp.toPx()))
+                drawCircle(color = tint, radius = w * 0.16f, style = Stroke(width = 1.4.dp.toPx()))
             }
             "EXCLUSIVES" -> {
                 val path = Path().apply {

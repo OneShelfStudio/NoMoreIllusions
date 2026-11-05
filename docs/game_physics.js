@@ -411,21 +411,21 @@ Object.assign(NoMoreIllusionsApp.prototype, {
         pu.trajVx = worldDt > 0.0001 ? (pu.baseX - oldBaseX) / worldDt : 0;
         pu.trajVy = worldDt > 0.0001 ? (pu.baseY - oldBaseY) / worldDt : 160;
 
-        // Pure natural deflection drift: smooth linear drag without any spring oscillation loops
+        // Pure natural deflection drift: smooth linear drag and gentle lane recovery
         pu.bounceOffsetX = (pu.bounceOffsetX || 0) + (pu.bvx || 0) * worldDt;
         pu.bounceOffsetY = (pu.bounceOffsetY || 0) + (pu.bvy || 0) * worldDt;
 
-        // Gentle drag: slows bounce velocity smoothly without pulling backwards
-        const dragFactor = Math.pow(0.55, worldDt * 4.0);
+        // Gentle physical damping and subtle spring return to charted trajectory path
+        const dragFactor = Math.max(0.85, Math.min(1.0, 1.0 - 2.2 * worldDt));
         pu.bvx = (pu.bvx || 0) * dragFactor;
         pu.bvy = (pu.bvy || 0) * dragFactor;
 
-        // Smoothly realign offset with lane without slingshotting
-        const alignFactor = Math.pow(0.70, worldDt * 3.0);
-        pu.bounceOffsetX = (pu.bounceOffsetX || 0) * alignFactor;
-        pu.bounceOffsetY = (pu.bounceOffsetY || 0) * alignFactor;
+        // Natural restoring acceleration towards lane center
+        const restoreStiffness = 5.0;
+        pu.bvx = (pu.bvx || 0) - (pu.bounceOffsetX || 0) * restoreStiffness * worldDt;
+        pu.bvy = (pu.bvy || 0) - (pu.bounceOffsetY || 0) * restoreStiffness * worldDt;
 
-        const maxDeflection = 85.0;
+        const maxDeflection = 110.0;
         const deflDist = Math.hypot(pu.bounceOffsetX, pu.bounceOffsetY);
         if (deflDist > maxDeflection && deflDist > 0.001) {
           const sc = maxDeflection / deflDist;
@@ -438,7 +438,7 @@ Object.assign(NoMoreIllusionsApp.prototype, {
 
         // Smoothly decay squish deformation
         if (pu.squish > 0.001) {
-          pu.squish *= 0.85;
+          pu.squish *= 0.88;
         } else {
           pu.squish = 0;
         }
@@ -453,7 +453,7 @@ Object.assign(NoMoreIllusionsApp.prototype, {
             const dx = pB.x - pA.x;
             const dy = pB.y - pA.y;
             const dist = Math.hypot(dx, dy);
-            const minDist = pA.radius + pB.radius; // Exact physical touch distance (no bloated forcefield)
+            const minDist = pA.radius + pB.radius; // Exact physical touch boundary
             if (dist < minDist && dist > 0.0001) {
               const overlap = minDist - dist;
               const nx = dx / dist;
@@ -470,30 +470,38 @@ Object.assign(NoMoreIllusionsApp.prototype, {
               pB.x = pB.baseX + pB.bounceOffsetX;
               pB.y = pB.baseY + pB.bounceOffsetY;
 
-              // Pure Billiard-Ball Deflection: Bounces off along collision normal without speed change
-              const relVx = (pB.bvx || 0) - (pA.bvx || 0);
-              const relVy = (pB.bvy || 0) - (pA.bvy || 0);
+              // 2D Billiard Ball Elastic Collision incorporating full trajectory velocities
+              const vAx = (pA.trajVx || 0) + (pA.bvx || 0);
+              const vAy = (pA.trajVy || 0) + (pA.bvy || 0);
+              const vBx = (pB.trajVx || 0) + (pB.bvx || 0);
+              const vBy = (pB.trajVy || 0) + (pB.bvy || 0);
+
+              const relVx = vBx - vAx;
+              const relVy = vBy - vAy;
               const vNorm = relVx * nx + relVy * ny;
 
+              const restitution = 0.85;
               if (vNorm < 0) {
-                // Approaching: smooth elastic deflection along normal angle (no artificial acceleration)
-                pA.bvx = (pA.bvx || 0) + vNorm * nx * 0.95;
-                pA.bvy = (pA.bvy || 0) + vNorm * ny * 0.95;
-                pB.bvx = (pB.bvx || 0) - vNorm * nx * 0.95;
-                pB.bvy = (pB.bvy || 0) - vNorm * ny * 0.95;
+                // Approaching: exchange momentum along normal
+                const impulse = -(1.0 + restitution) * vNorm * 0.5;
+                pA.bvx = (pA.bvx || 0) - impulse * nx;
+                pA.bvy = (pA.bvy || 0) - impulse * ny;
+                pB.bvx = (pB.bvx || 0) + impulse * nx;
+                pB.bvy = (pB.bvy || 0) + impulse * ny;
               } else {
-                // Mild parting nudge to maintain separation
-                const gentleNudge = Math.min(32.0, overlap * 6.0);
-                pA.bvx = (pA.bvx || 0) - nx * gentleNudge;
-                pA.bvy = (pA.bvy || 0) - ny * gentleNudge;
-                pB.bvx = (pB.bvx || 0) + nx * gentleNudge;
-                pB.bvy = (pB.bvy || 0) + ny * gentleNudge;
+                // Separating or resting contact: apply gentle repulsive impulse
+                const separationImpulse = Math.max(45.0, overlap * 9.0);
+                pA.bvx = (pA.bvx || 0) - nx * separationImpulse * 0.5;
+                pA.bvy = (pA.bvy || 0) - ny * separationImpulse * 0.5;
+                pB.bvx = (pB.bvx || 0) + nx * separationImpulse * 0.5;
+                pB.bvy = (pB.bvy || 0) + ny * separationImpulse * 0.5;
               }
 
               // Subtle physical squish
-              pA.squish = 0.12;
+              const squishVal = Math.min(0.24, 0.08 + overlap / 18.0);
+              pA.squish = squishVal;
               pA.squishAngle = Math.atan2(ny, nx);
-              pB.squish = 0.12;
+              pB.squish = squishVal;
               pB.squishAngle = Math.atan2(-ny, -nx);
 
               this.playSfx("click", 0.16);

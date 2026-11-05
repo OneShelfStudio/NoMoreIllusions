@@ -493,19 +493,21 @@ fun stepNebulousBeatOrbs(
             orb.trajVx = if (dt > 0.0001f) (orb.baseX - oldBaseX) / dt else 0f
             orb.trajVy = if (dt > 0.0001f) (orb.baseY - oldBaseY) / dt else 160f
 
-            // Pure natural deflection drift: smooth linear drag without any spring oscillation loops
+            // Pure natural deflection drift: smooth linear drag and gentle lane recovery
             orb.bounceOffsetX += orb.bvx * dt
             orb.bounceOffsetY += orb.bvy * dt
 
-            val dragFactor = Math.pow(0.55, (dt * 4.0).toDouble()).toFloat()
+            // Gentle physical damping and subtle spring return to charted trajectory path
+            val dragFactor = (1f - 2.2f * dt).coerceIn(0.85f, 1.0f)
             orb.bvx *= dragFactor
             orb.bvy *= dragFactor
 
-            val alignFactor = Math.pow(0.70, (dt * 3.0).toDouble()).toFloat()
-            orb.bounceOffsetX *= alignFactor
-            orb.bounceOffsetY *= alignFactor
+            // Natural restoring acceleration towards lane center
+            val restoreStiffness = 5.0f
+            orb.bvx -= orb.bounceOffsetX * restoreStiffness * dt
+            orb.bvy -= orb.bounceOffsetY * restoreStiffness * dt
 
-            val maxDeflection = 85f
+            val maxDeflection = 110f
             val deflDist = kotlin.math.hypot(orb.bounceOffsetX, orb.bounceOffsetY)
             if (deflDist > maxDeflection && deflDist > 0.001f) {
                 val sc = maxDeflection / deflDist
@@ -518,7 +520,7 @@ fun stepNebulousBeatOrbs(
 
             // Smoothly decay squish deformation
             if (orb.squish > 0.001f) {
-                orb.squish *= 0.85f
+                orb.squish *= 0.88f
             } else {
                 orb.squish = 0f
             }
@@ -533,7 +535,7 @@ fun stepNebulousBeatOrbs(
                     val dx = b.x - a.x
                     val dy = b.y - a.y
                     val dist = kotlin.math.hypot(dx, dy)
-                    val minDist = a.radius + b.radius // Exact physical touch distance (no bloated forcefield)
+                    val minDist = a.radius + b.radius // Exact physical touch boundary
                     if (dist < minDist && dist > 0.0001f) {
                         val overlap = minDist - dist
                         val nx = dx / dist
@@ -551,27 +553,37 @@ fun stepNebulousBeatOrbs(
                         b.x = b.baseX + b.bounceOffsetX
                         b.y = b.baseY + b.bounceOffsetY
 
-                        // Pure Billiard-Ball Deflection: Bounces off along collision normal without speed change
-                        val relVx = b.bvx - a.bvx
-                        val relVy = b.bvy - a.bvy
+                        // 2D Billiard Ball Elastic Collision incorporating full trajectory velocities
+                        val vAx = a.trajVx + a.bvx
+                        val vAy = a.trajVy + a.bvy
+                        val vBx = b.trajVx + b.bvx
+                        val vBy = b.trajVy + b.bvy
+
+                        val relVx = vBx - vAx
+                        val relVy = vBy - vAy
                         val velAlongNormal = relVx * nx + relVy * ny
 
+                        val restitution = 0.85f
                         if (velAlongNormal < 0f) {
-                            a.bvx += velAlongNormal * nx * 0.95f
-                            a.bvy += velAlongNormal * ny * 0.95f
-                            b.bvx -= velAlongNormal * nx * 0.95f
-                            b.bvy -= velAlongNormal * ny * 0.95f
+                            // Approaching: exchange momentum along normal
+                            val impulse = -(1f + restitution) * velAlongNormal * 0.5f
+                            a.bvx -= impulse * nx
+                            a.bvy -= impulse * ny
+                            b.bvx += impulse * nx
+                            b.bvy += impulse * ny
                         } else {
-                            val gentleNudge = minOf(32f, overlap * 6f)
-                            a.bvx -= nx * gentleNudge
-                            a.bvy -= ny * gentleNudge
-                            b.bvx += nx * gentleNudge
-                            b.bvy += ny * gentleNudge
+                            // Separating or resting contact: apply gentle repulsive impulse
+                            val separationImpulse = maxOf(45f, overlap * 9f)
+                            a.bvx -= nx * separationImpulse * 0.5f
+                            a.bvy -= ny * separationImpulse * 0.5f
+                            b.bvx += nx * separationImpulse * 0.5f
+                            b.bvy += ny * separationImpulse * 0.5f
                         }
 
-                        a.squish = 0.12f
+                        val squishVal = minOf(0.24f, 0.08f + overlap / 18f)
+                        a.squish = squishVal
                         a.squishAngle = atan2(ny, nx)
-                        b.squish = 0.12f
+                        b.squish = squishVal
                         b.squishAngle = atan2(-ny, -nx)
                     }
                 }

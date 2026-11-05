@@ -179,7 +179,7 @@ fun DrawScope.drawPowerUps(
         val isVortex = p.powerUpType == PowerUpType.SLOW_MO || p.keyWordEffect == KeyWordEffect.ECLIPSE_DARK
         val isBomb = p.powerUpType == PowerUpType.BLAST || p.keyWordEffect == KeyWordEffect.MAGNETAR_WAR
         val isShield = p.powerUpType == PowerUpType.SHIELD || p.keyWordEffect == KeyWordEffect.TRACTOR_REACH
-        val isSpecial = isElectric || isPrism || isVortex || isBomb || isShield
+        val isSpecial = (isElectric || isPrism || isVortex || isBomb || isShield) && !isGoldStage
 
         val expireSec = if (p.expireBeatSec > 0f) p.expireBeatSec else (p.targetBeatSec + 0.45f)
         val ttlRemaining = (expireSec - trackSec).coerceAtLeast(0f)
@@ -194,6 +194,7 @@ fun DrawScope.drawPowerUps(
 
         val laneIdx = (p.phraseBeatNum - 1).coerceIn(0, 3)
         val effectColor = when {
+            isGoldStage -> Color(0xFFFACC15L)
             isElectric -> Color(0xFFFACC15L)
             isPrism -> Color(0xFF4ADE80L)
             isVortex -> Color(0xFFC084FCL)

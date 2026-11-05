@@ -463,7 +463,7 @@ fun ArtistExclusivesSpecialsHub(
         isVipUnlocked || it.isUnlocked(prefs, highScore, pulsePoints)
     }
 
-    var expandedItemId by remember { mutableStateOf<String?>("excl_endless_champion") }
+    var expandedItemId by remember { mutableStateOf<String?>("excl_confide_master") }
 
     Box(modifier = modifier.fillMaxSize()) {
         Column(
@@ -727,7 +727,7 @@ fun ArtistExclusivesSpecialsHub(
                                         .background(
                                             Brush.horizontalGradient(listOf(Color(0xFF22C55EL), Color(0xFF0D9488L)))
                                         )
-                                        .clickable { onPlayTrack(if (idx == 2 || idx == 4) 2 else 1) },
+                                        .clickable { onPlayTrack(if (idx == 1) 2 else 1) },
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Text(
@@ -772,7 +772,7 @@ fun ArtistExclusivesSpecialsHub(
                                         modifier = Modifier
                                             .clip(RoundedCornerShape(50))
                                             .background(Color(0xFF22C55EL))
-                                            .clickable { onPlayTrack(if (idx == 2 || idx == 4) 2 else 1) }
+                                            .clickable { onPlayTrack(if (idx == 1) 2 else 1) }
                                             .padding(horizontal = 12.dp, vertical = 7.dp)
                                     ) {
                                         Text(
