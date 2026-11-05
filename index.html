@@ -11,13 +11,18 @@
   <title>No More Illusions — Interactive Album Experience</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="apple-touch-icon" href="assets/nmi_logo.png" />
-  <link rel="stylesheet" href="styles.css?v=50" />
+  <link rel="stylesheet" href="styles.css?v=51" />
 </head>
 <body>
   <!-- Full-Screen 60FPS Audio-Reactive Game & Nebula Canvas -->
   <canvas id="game-canvas"></canvas>
   <!-- Translucent Live Music Video B-Roll Hologram Layer -->
-  <video id="broll-overlay-video" class="broll-overlay-video" playsinline muted preload="auto" loop></video>
+  <!-- Translucent Vintage Music Video B-Roll Hologram Layer with Analog Scanlines -->
+  <div id="broll-overlay-container" class="broll-overlay-container">
+    <video id="broll-overlay-video" class="broll-overlay-video" playsinline muted preload="auto" loop></video>
+    <div class="broll-scanlines"></div>
+    <div class="broll-vignette"></div>
+  </div>
 
   <!-- ======================================================================
        1. MENU SCREEN (Magic Tiles Inspired Zero-Scroll Luxury Viewport)
@@ -163,37 +168,22 @@
         <span id="hud-endless-crown-val">×1</span>
       </div>
 
-      <!-- 5-Star Band Hero Overdrive Gauge & 24K Trigger (Screenshot 1 / Band Hero Spec) -->
-      <div id="hud-overdrive-container" class="hud-overdrive-container">
-        <div class="hud-od-gauge-wrap" title="Collect on-beat notes to charge 24K Overdrive!">
-          <div class="hud-od-stars-row">
-            <div id="od-star-1" class="od-star">
-              <svg class="od-star-svg" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-            </div>
-            <div id="od-star-2" class="od-star">
-              <svg class="od-star-svg" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-            </div>
-            <div id="od-star-3" class="od-star">
-              <svg class="od-star-svg" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-            </div>
-            <div id="od-star-4" class="od-star">
-              <svg class="od-star-svg" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-            </div>
-            <div id="od-star-5" class="od-star">
-              <svg class="od-star-svg" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-            </div>
-          </div>
-          <div class="hud-od-fill-track">
-            <div id="hud-od-fill-bar" class="hud-od-fill-bar"></div>
-          </div>
-        </div>
-        <button id="btn-24k-overdrive" class="btn-24k-overdrive" onclick="window.app.activate24KOverdrive()" style="display:none;" title="Tap to Unleash 24K Golden Multipliers &amp; Invulnerability!">
-          <svg class="od-btn-sparkle" width="13" height="13" viewBox="0 0 24 24" fill="#0B0715"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-          <span id="od-btn-label" class="od-btn-text">24K OVERDRIVE</span>
-          <svg class="od-btn-sparkle" width="13" height="13" viewBox="0 0 24 24" fill="#0B0715"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-        </button>
-      </div>
+      
     </div>
+  
+    <!-- Sleek Floating 24K Energy Capsule (Off to Right Edge, Never Obstructing Gameplay) -->
+    <div id="hud-overdrive-container" class="hud-overdrive-side-capsule" onclick="window.app.activate24KOverdrive()" title="Tap to Unleash 24K Overdrive!">
+      <div class="hud-capsule-glass">
+        <div id="hud-od-fill-bar" class="hud-capsule-fill"></div>
+        <div class="hud-capsule-icon-wrap">
+          <svg class="hud-capsule-bolt-svg" viewBox="0 0 24 24">
+            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+          </svg>
+        </div>
+      </div>
+      <div id="hud-capsule-glow-aura" class="hud-capsule-glow-aura"></div>
+    </div>
+
   </div>
 
   <!-- ======================================================================
@@ -678,20 +668,20 @@
     </div>
   </div>
 
-  <script src="platform_sdk.js?v=50"></script>
-  <script src="multi_band_data.js?v=50"></script>
-  <script src="music_library.js?v=50"></script>
-  <script src="background_renderer.js?v=50"></script>
-  <script src="beat_orb_renderer.js?v=50"></script>
-  <script src="game_renderer.js?v=50"></script>
-  <script src="engine.js?v=50"></script>
-  <script src="audio_synth.js?v=50"></script>
-  <script src="game_physics.js?v=50"></script>
-  <script src="ui_screens.js?v=50"></script>
-  <script src="tutorial_overlay.js?v=50"></script>
+  <script src="platform_sdk.js?v=51"></script>
+  <script src="multi_band_data.js?v=51"></script>
+  <script src="music_library.js?v=51"></script>
+  <script src="background_renderer.js?v=51"></script>
+  <script src="beat_orb_renderer.js?v=51"></script>
+  <script src="game_renderer.js?v=51"></script>
+  <script src="engine.js?v=51"></script>
+  <script src="audio_synth.js?v=51"></script>
+  <script src="game_physics.js?v=51"></script>
+  <script src="ui_screens.js?v=51"></script>
+  <script src="tutorial_overlay.js?v=51"></script>
   <script>
     (function () {
-      const CURRENT_WEB_BUILD = "nmi-v50-broll-mv";
+      const CURRENT_WEB_BUILD = "nmi-v51-vintage-broll-pure-physics";
       if ("serviceWorker" in navigator) {
         let refreshing = false;
         navigator.serviceWorker.addEventListener("controllerchange", () => {

@@ -411,16 +411,21 @@ Object.assign(NoMoreIllusionsApp.prototype, {
         pu.trajVx = worldDt > 0.0001 ? (pu.baseX - oldBaseX) / worldDt : 0;
         pu.trajVy = worldDt > 0.0001 ? (pu.baseY - oldBaseY) / worldDt : 160;
 
-        // Loosened physical spring return (k=4.5, c=3.2): orbs visibly ricochet along angular trajectories and gracefully settle back
-        const ax = -4.5 * (pu.bounceOffsetX || 0) - 3.2 * (pu.bvx || 0);
-        const ay = -4.5 * (pu.bounceOffsetY || 0) - 3.2 * (pu.bvy || 0);
-        pu.bvx = (pu.bvx || 0) + ax * worldDt;
-        pu.bvy = (pu.bvy || 0) + ay * worldDt;
-        pu.bounceOffsetX = (pu.bounceOffsetX || 0) + pu.bvx * worldDt;
-        pu.bounceOffsetY = (pu.bounceOffsetY || 0) + pu.bvy * worldDt;
+        // Pure natural deflection drift: smooth linear drag without any spring oscillation loops
+        pu.bounceOffsetX = (pu.bounceOffsetX || 0) + (pu.bvx || 0) * worldDt;
+        pu.bounceOffsetY = (pu.bounceOffsetY || 0) + (pu.bvy || 0) * worldDt;
 
-        // Expanded deflection boundary: allow dynamic 2D billiard-ball ricochets
-        const maxDeflection = 130.0;
+        // Gentle drag: slows bounce velocity smoothly without pulling backwards
+        const dragFactor = Math.pow(0.55, worldDt * 4.0);
+        pu.bvx = (pu.bvx || 0) * dragFactor;
+        pu.bvy = (pu.bvy || 0) * dragFactor;
+
+        // Smoothly realign offset with lane without slingshotting
+        const alignFactor = Math.pow(0.70, worldDt * 3.0);
+        pu.bounceOffsetX = (pu.bounceOffsetX || 0) * alignFactor;
+        pu.bounceOffsetY = (pu.bounceOffsetY || 0) * alignFactor;
+
+        const maxDeflection = 85.0;
         const deflDist = Math.hypot(pu.bounceOffsetX, pu.bounceOffsetY);
         if (deflDist > maxDeflection && deflDist > 0.001) {
           const sc = maxDeflection / deflDist;
@@ -460,48 +465,38 @@ Object.assign(NoMoreIllusionsApp.prototype, {
               pB.bounceOffsetX = (pB.bounceOffsetX || 0) + nx * overlap * 0.5;
               pB.bounceOffsetY = (pB.bounceOffsetY || 0) + ny * overlap * 0.5;
 
-              // Update current coordinates directly
               pA.x = pA.baseX + pA.bounceOffsetX;
               pA.y = pA.baseY + pA.bounceOffsetY;
               pB.x = pB.baseX + pB.bounceOffsetX;
               pB.y = pB.baseY + pB.bounceOffsetY;
 
-              // Full 2D physical velocity momentum exchange (trajectory + bounce velocity)
-              const vA_x = (pA.trajVx || 0) + (pA.bvx || 0);
-              const vA_y = (pA.trajVy || 0) + (pA.bvy || 0);
-              const vB_x = (pB.trajVx || 0) + (pB.bvx || 0);
-              const vB_y = (pB.trajVy || 0) + (pB.bvy || 0);
+              // Pure Billiard-Ball Deflection: Bounces off along collision normal without speed change
+              const relVx = (pB.bvx || 0) - (pA.bvx || 0);
+              const relVy = (pB.bvy || 0) - (pA.bvy || 0);
+              const vNorm = relVx * nx + relVy * ny;
 
-              const vRelX = vB_x - vA_x;
-              const vRelY = vB_y - vA_y;
-              const vNorm = vRelX * nx + vRelY * ny;
-
-              // Elastic Billiard-Ball Ricochet along collision normal:
-              // Natural angular deflection based on incoming trajectory angles!
-              const e = 0.78;
-              let impulse = 0;
               if (vNorm < 0) {
-                // Approaching: 2D elastic collision impulse along normal
-                impulse = -(1 + e) * vNorm * 0.5;
+                // Approaching: smooth elastic deflection along normal angle (no artificial acceleration)
+                pA.bvx = (pA.bvx || 0) + vNorm * nx * 0.95;
+                pA.bvy = (pA.bvy || 0) + vNorm * ny * 0.95;
+                pB.bvx = (pB.bvx || 0) - vNorm * nx * 0.95;
+                pB.bvy = (pB.bvy || 0) - vNorm * ny * 0.95;
               } else {
-                // Overlapping: strong parting impulse along angle normal
-                impulse = Math.max(130.0, overlap * 25.0);
+                // Mild parting nudge to maintain separation
+                const gentleNudge = Math.min(32.0, overlap * 6.0);
+                pA.bvx = (pA.bvx || 0) - nx * gentleNudge;
+                pA.bvy = (pA.bvy || 0) - ny * gentleNudge;
+                pB.bvx = (pB.bvx || 0) + nx * gentleNudge;
+                pB.bvy = (pB.bvy || 0) + ny * gentleNudge;
               }
 
-              pA.bvx = (pA.bvx || 0) - nx * impulse;
-              pA.bvy = (pA.bvy || 0) - ny * impulse;
-              pB.bvx = (pB.bvx || 0) + nx * impulse;
-              pB.bvy = (pB.bvy || 0) + ny * impulse;
-
-              // Visceral squish deformation along collision axis
-              const impactSpeed = Math.max(Math.abs(vNorm), impulse);
-              const squishVal = Math.min(0.38, 0.15 + (impactSpeed / 350.0) * 0.20);
-              pA.squish = squishVal;
+              // Subtle physical squish
+              pA.squish = 0.12;
               pA.squishAngle = Math.atan2(ny, nx);
-              pB.squish = squishVal;
+              pB.squish = 0.12;
               pB.squishAngle = Math.atan2(-ny, -nx);
 
-              this.playSfx("click", 0.22);
+              this.playSfx("click", 0.16);
             }
           }
         }
@@ -949,16 +944,23 @@ Object.assign(NoMoreIllusionsApp.prototype, {
 
       const burstCol = this.is24KOverdrive
         ? [250, 204, 21]
-        : (isAtStrikeLine ? [74, 222, 128] : [250, 204, 21]);
-      this.spawnBurstMotes(pu.x, pu.y, burstCol, this.is24KOverdrive ? 10 : 6);
+        : (isAtStrikeLine ? [254, 240, 138] : [250, 204, 21]);
+      this.spawnBurstMotes(pu.x, pu.y, burstCol, this.is24KOverdrive ? 8 : 4);
+      // Localized subtle receptor bloom ripple (safe, zero seizure risk)
       this.shockwaves.push({
         x: pu.x,
         y: (this.isBandHeroMode && isAtStrikeLine) ? strikeY : pu.y,
-        radius: 8,
-        maxRadius: isAtStrikeLine ? 115 : 75,
+        radius: 6,
+        maxRadius: isAtStrikeLine ? 34 : 22,
         color: burstCol,
-        alpha: 1
+        alpha: 0.85
       });
+
+      // Trigger B-roll on landmark Music Video Orbs
+      if (pu.isMusicVideoOrb) {
+        const broll = this.brollDirector || (typeof window !== "undefined" && window.app && window.app.brollDirector);
+        if (broll) broll.trigger(-1, 3.8);
+      }
 
       const eff = pu.keyWordEffect || "NONE";
       if (pu.isSupernova || eff !== "NONE") {
@@ -990,7 +992,8 @@ Object.assign(NoMoreIllusionsApp.prototype, {
           navigator.vibrate([40, 50, 40]);
         }
         this.igniteSectionEffect(pu.type);
-        if (this.brollDirector) this.brollDirector.trigger();
+        const broll = this.brollDirector || (typeof window !== "undefined" && window.app && window.app.brollDirector);
+        if (broll) broll.trigger(-1, 4.2);
         this.screenShake = Math.max(this.screenShake, 18);
         this.spawnMelodicStarfallCascade();
       } else {

@@ -164,33 +164,23 @@ Object.assign(NoMoreIllusionsApp.prototype, {
       }
     }
 
-    // Band Hero 5-Star Overdrive Meter & 24K Overdrive Trigger Button
-    const odProg = this.overdriveProgress || 0;
-    const odFilledCount = Math.floor(odProg * 5);
-    for (let st = 1; st <= 5; st++) {
-      const starEl = document.getElementById(`od-star-${st}`);
-      if (starEl) {
-        starEl.classList.toggle("charged", st <= odFilledCount || this.is24KOverdrive);
-      }
-    }
+    // Sleek Right-Edge 24K Energy Capsule (Off to Side, Fills Vertically)
+    const odProg = Math.max(0, Math.min(1, this.overdriveProgress || 0));
     const odFillBar = document.getElementById("hud-od-fill-bar");
+    const odCapsule = document.getElementById("hud-overdrive-container");
     if (odFillBar) {
-      odFillBar.style.width = `${(odProg * 100).toFixed(1)}%`;
+      odFillBar.style.height = `${(odProg * 100).toFixed(1)}%`;
     }
-    const odBtn = document.getElementById("btn-24k-overdrive");
-    const odBtnLabel = document.getElementById("od-btn-label");
-    if (odBtn) {
+    if (odCapsule) {
       if (this.is24KOverdrive) {
-        odBtn.style.display = "inline-flex";
-        odBtn.classList.add("active-rush");
-        if (odBtnLabel) odBtnLabel.textContent = `24K ACTIVE • ${(this.overdriveTimer || 0).toFixed(1)}s`;
-      } else if (odProg >= 0.60) {
-        odBtn.style.display = "inline-flex";
-        odBtn.classList.remove("active-rush");
-        if (odBtnLabel) odBtnLabel.textContent = "24K OVERDRIVE";
+        odCapsule.classList.add("active-rush");
+        odCapsule.classList.remove("charged-ready");
+      } else if (odProg >= 0.50) {
+        odCapsule.classList.add("charged-ready");
+        odCapsule.classList.remove("active-rush");
       } else {
-        odBtn.style.display = "none";
-        odBtn.classList.remove("active-rush");
+        odCapsule.classList.remove("charged-ready");
+        odCapsule.classList.remove("active-rush");
       }
     }
 

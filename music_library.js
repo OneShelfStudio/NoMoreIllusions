@@ -130,6 +130,7 @@ function buildConfideOrbChart() {
         : effect === "TRACTOR_REACH" ? "SHIELD"
         : "SCORE_ORB")
       : "SCORE_ORB";
+    const isMv = (effect === "CONSTELLATION_STAR") || (inChorus && seq % 8 === 1);
     cues.push({
       sequenceIndex: seq,
       timestampSec: parseFloat(t.toFixed(3)),
@@ -137,7 +138,8 @@ function buildConfideOrbChart() {
       normY: parseFloat(ny.toFixed(3)),
       powerUpType: puType,
       keyWordEffect: effect,
-      isGoldenCue: effect === "CONSTELLATION_STAR"
+      isGoldenCue: effect === "CONSTELLATION_STAR",
+      isMusicVideoOrb: isMv
     });
     seq++;
     // Higher beat density for linear Piano-Tiles / Osu! succession feel:
@@ -236,6 +238,7 @@ function buildNumberOneOrbChart() {
         : "SCORE_ORB")
       : "SCORE_ORB";
 
+    const isMvNo1 = (effect === "CONSTELLATION_STAR") || (isChorus && seq % 6 === 1);
     cues.push({
       sequenceIndex: seq,
       timestampSec: parseFloat((anchor ? anchor[0] : t).toFixed(3)),
@@ -243,7 +246,8 @@ function buildNumberOneOrbChart() {
       normY: parseFloat(ny.toFixed(3)),
       powerUpType: puType,
       keyWordEffect: effect,
-      isGoldenCue: effect === "CONSTELLATION_STAR"
+      isGoldenCue: effect === "CONSTELLATION_STAR",
+      isMusicVideoOrb: isMvNo1
     });
     seq++;
 
