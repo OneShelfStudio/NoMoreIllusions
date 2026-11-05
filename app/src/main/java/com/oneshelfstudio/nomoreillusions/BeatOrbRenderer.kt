@@ -714,11 +714,26 @@ fun DrawScope.drawPowerUps(
                     radius = coreRad * (0.28f + 0.14f * beatKick),
                     center = center3D
                 )
-                val noteGlyph = if (p.sequenceIndex % 2 == 0) "♪" else "♫"
-                drawIntoCanvas { canvas ->
-                    cachedSubPaint.textSize = (coreRad * 0.82f).coerceAtLeast(13f)
-                    cachedSubPaint.color = android.graphics.Color.argb((245 * ttlAlpha).toInt().coerceIn(0, 255), 255, 255, 255)
-                    canvas.nativeCanvas.drawText(noteGlyph, center3D.x, center3D.y + coreRad * 0.28f, cachedSubPaint)
+                if (p.isMusicVideoOrb) {
+                    // Feature Video Orb Camera Glyph & Double Luminous Cyan Halo
+                    drawCircle(
+                        color = Color(0xFF38BDF8L).copy(alpha = 0.90f * ttlAlpha),
+                        radius = coreRad * 1.25f,
+                        center = center3D,
+                        style = Stroke(width = 2.2f)
+                    )
+                    drawIntoCanvas { canvas ->
+                        cachedSubPaint.textSize = (coreRad * 0.88f).coerceAtLeast(14f)
+                        cachedSubPaint.color = android.graphics.Color.argb((255 * ttlAlpha).toInt().coerceIn(0, 255), 254, 240, 138)
+                        canvas.nativeCanvas.drawText("🎥", center3D.x - coreRad * 0.38f, center3D.y + coreRad * 0.28f, cachedSubPaint)
+                    }
+                } else {
+                    val noteGlyph = if (p.sequenceIndex % 2 == 0) "♪" else "♫"
+                    drawIntoCanvas { canvas ->
+                        cachedSubPaint.textSize = (coreRad * 0.82f).coerceAtLeast(13f)
+                        cachedSubPaint.color = android.graphics.Color.argb((245 * ttlAlpha).toInt().coerceIn(0, 255), 255, 255, 255)
+                        canvas.nativeCanvas.drawText(noteGlyph, center3D.x - coreRad * 0.22f, center3D.y + coreRad * 0.28f, cachedSubPaint)
+                    }
                 }
             }
         }

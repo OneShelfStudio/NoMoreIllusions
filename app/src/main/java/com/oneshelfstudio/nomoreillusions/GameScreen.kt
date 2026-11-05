@@ -16,7 +16,9 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.*
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -1110,11 +1112,11 @@ fun GameScreen(
                         if (!isSupernovaOrb) {
                             // Visceral Tactile Feedback: Snappy 38ms impulse for on-beat catches, subtle 16ms tick for off-beat
                             triggerHaptic(if (isCaughtOnBeat) 38L else 16L)
-                            if (isCaughtOnBeat && isBrollEnabled && brollCooldown <= 0f && Random.nextFloat() < 0.45f) {
-                                brollClipIndex = Random.nextInt(4)
+                            if (isCaughtOnBeat && isBrollEnabled && (p.isMusicVideoOrb || (brollCooldown <= 0f && Random.nextFloat() < 0.40f))) {
+                                brollClipIndex = (brollClipIndex + 1) % 4
                                 brollActive = true
-                                brollTimer = 4.2f
-                                brollCooldown = 10f
+                                brollTimer = 5.5f
+                                brollCooldown = 8f
                             }
                             if (!isGoldenActive) {
                                 overdriveProgress = (overdriveProgress + (if (isCaughtOnBeat) 0.05f else 0.035f)).coerceAtMost(1f)
@@ -1127,7 +1129,7 @@ fun GameScreen(
                                 // Immediate Spectacle on Hit: If on-beat, unleash full harmonic screen warp and powerup
                                 if (isCaughtOnBeat) {
                                     triggerHaptic(48L)
-                                    beatFlashIntensity = maxOf(beatFlashIntensity, 0.85f)
+                                    beatFlashIntensity = maxOf(beatFlashIntensity, 0.35f)
                                     cameraPunch = maxOf(cameraPunch, 0.045f)
                                     shakeAmount = maxOf(shakeAmount, 10f)
                                     shockwaves.add(Shockwave(p.x, p.y, 0f, 520f, Color(0xFFFACC15L), 1.1f))
@@ -1191,7 +1193,7 @@ fun GameScreen(
                         } else {
                             triggerHaptic(48L)
                             cameraPunch = 0.038f
-                            beatFlashIntensity = 0.60f
+                            beatFlashIntensity = 0.30f
                             val supRes = handleSupernovaOrbPickup(
                                 p = p,
                                 player = player,
@@ -1542,6 +1544,11 @@ fun GameScreen(
                     starPowerTime = 9.0f
                     overdriveProgress = 0f
                     shakeAmount = maxOf(shakeAmount, 16f)
+                    // Transmute ALL active orbs on stage to shimmering gold immediately on tap!
+                    powerUps.forEach {
+                        it.isGoldenOrb = true
+                        it.color = Color(0xFFFACC15L)
+                    }
                     if (isBrollEnabled) {
                         brollClipIndex = Random.nextInt(4)
                         brollActive = true
@@ -1889,22 +1896,24 @@ fun BrollVideoOverlay(
     modifier: Modifier = Modifier
 ) {
     val alphaAnim by animateFloatAsState(
-        targetValue = if (isActive) (if (isGoldRush) 0.35f else 0.25f) else 0f,
-        animationSpec = tween(durationMillis = 650)
+        targetValue = if (isActive) (if (isGoldRush) 0.32f else 0.22f) else 0f,
+        animationSpec = tween(durationMillis = 500)
     )
 
-    if (alphaAnim > 0.01f) {
+    var mediaPlayerRef by remember { mutableStateOf<MediaPlayer?>(null) }
+
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .graphicsLayer { alpha = alphaAnim }
+    ) {
         AndroidView(
             factory = { ctx ->
                 TextureView(ctx).apply {
                     isOpaque = false
                     surfaceTextureListener = object : TextureView.SurfaceTextureListener {
-                        private var mp: MediaPlayer? = null
-                        private var surf: Surface? = null
-
                         override fun onSurfaceTextureAvailable(st: SurfaceTexture, w: Int, h: Int) {
                             val surface = Surface(st)
-                            surf = surface
                             try {
                                 val clipNum = (clipIndex % 4) + 1
                                 val afd = ctx.assets.openFd("broll/broll_$clipNum.mp4")
@@ -1915,9 +1924,11 @@ fun BrollVideoOverlay(
                                     setDataSource(afd.fileDescriptor, afd.startOffset, afd.length)
                                     afd.close()
                                     prepareAsync()
-                                    setOnPreparedListener { start() }
+                                    setOnPreparedListener {
+                                        if (isActive) start()
+                                    }
                                 }
-                                mp = player
+                                mediaPlayerRef = player
                             } catch (e: Exception) {}
                         }
 
@@ -1925,14 +1936,10 @@ fun BrollVideoOverlay(
 
                         override fun onSurfaceTextureDestroyed(st: SurfaceTexture): Boolean {
                             try {
-                                mp?.stop()
-                                mp?.release()
+                                mediaPlayerRef?.stop()
+                                mediaPlayerRef?.release()
                             } catch (e: Exception) {}
-                            mp = null
-                            try {
-                                surf?.release()
-                            } catch (e: Exception) {}
-                            surf = null
+                            mediaPlayerRef = null
                             return true
                         }
 
@@ -1940,9 +1947,48 @@ fun BrollVideoOverlay(
                     }
                 }
             },
-            modifier = modifier
-                .fillMaxSize()
-                .graphicsLayer { alpha = alphaAnim }
+            update = { view ->
+                val mp = mediaPlayerRef
+                if (mp != null) {
+                    if (isActive && !mp.isPlaying) {
+                        try { mp.start() } catch (e: Exception) {}
+                    } else if (!isActive && mp.isPlaying) {
+                        try { mp.pause() } catch (e: Exception) {}
+                    }
+                }
+            },
+            modifier = Modifier.fillMaxSize()
         )
+
+        // CRT Scanline and Film Vignette Layer
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val w = size.width
+            val h = size.height
+
+            // 1. Vintage Scanline Strips
+            var y = 0f
+            while (y < h) {
+                drawLine(
+                    color = Color.Black.copy(alpha = 0.16f),
+                    start = Offset(0f, y),
+                    end = Offset(w, y),
+                    strokeWidth = 1.2f
+                )
+                y += 4.5f
+            }
+
+            // 2. Film Grain Vignette Edge
+            val maxD = if (w > h) w else h
+            drawRect(
+                brush = Brush.radialGradient(
+                    colors = listOf(
+                        Color.Transparent,
+                        Color(0xFF020408L).copy(alpha = 0.55f)
+                    ),
+                    center = Offset(w / 2f, h / 2f),
+                    radius = maxD * 0.58f
+                )
+            )
+        }
     }
 }

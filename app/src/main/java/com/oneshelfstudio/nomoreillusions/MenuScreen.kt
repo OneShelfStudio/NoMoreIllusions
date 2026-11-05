@@ -766,58 +766,81 @@ fun MenuUI(
 
             Spacer(modifier = Modifier.weight(1f))
 
-            // Elevated Bottom Navigation Dock with Consistent HOME & Destination Access
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 14.dp, vertical = 12.dp)
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(Color(0xF2080D1CL))
-                    .border(1.2.dp, Color(0x40FACC15L), RoundedCornerShape(20.dp))
-                    .navigationBarsPadding()
-                    .padding(horizontal = 10.dp, vertical = 10.dp),
-                horizontalArrangement = Arrangement.SpaceAround,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.clickable { /* Already Home */ }
-                ) {
-                    BottomNavGlyph(type = "HOME", isSelected = true)
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text("HOME", color = Color(0xFFFACC15L), fontSize = 8.5.sp, fontWeight = FontWeight.Black)
-                }
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.clickable { onMusicDemo() }
-                ) {
-                    BottomNavGlyph(type = "SKINS", isSelected = false)
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text("SKINS & FX", color = Color(0xFF94A3B8L), fontSize = 8.5.sp, fontWeight = FontWeight.Bold)
-                }
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.clickable { onMusicDemo() }
-                ) {
-                    BottomNavGlyph(type = "VAULT", isSelected = false)
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text("ARTIST VAULT", color = Color(0xFF94A3B8L), fontSize = 8.5.sp, fontWeight = FontWeight.Bold)
-                }
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.clickable { onSettings() }
-                ) {
-                    BottomNavGlyph(type = "SETTINGS", isSelected = false)
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text("SETTINGS", color = Color(0xFF94A3B8L), fontSize = 8.5.sp, fontWeight = FontWeight.Bold)
-                }
-            }
+            StudioBottomNavDock(
+                currentDestination = "HOME",
+                onNavigateHome = { /* Already Home */ },
+                onNavigateSkins = { onMusicDemo() },
+                onNavigateVault = { onMusicDemo() },
+                onNavigateSettings = { onSettings() }
+            )
         }
     }
 }
 
 @Composable
-private fun BottomNavGlyph(type: String, isSelected: Boolean) {
+fun StudioBottomNavDock(
+    currentDestination: String,
+    onNavigateHome: () -> Unit,
+    onNavigateSkins: () -> Unit,
+    onNavigateVault: () -> Unit,
+    onNavigateSettings: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 6.dp)
+            .clip(RoundedCornerShape(22.dp))
+            .background(Color(0xF2080D1CL))
+            .border(1.2.dp, Color(0x55FACC15L), RoundedCornerShape(22.dp))
+            .padding(horizontal = 8.dp, vertical = 6.dp),
+        horizontalArrangement = Arrangement.SpaceAround,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        val isHome = currentDestination == "HOME"
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.clickable { onNavigateHome() }
+        ) {
+            BottomNavGlyph(type = "HOME", isSelected = isHome)
+            Spacer(modifier = Modifier.height(2.dp))
+            Text("HOME", color = if (isHome) Color(0xFFFACC15L) else Color(0xFF94A3B8L), fontSize = 8.5.sp, fontWeight = if (isHome) FontWeight.Black else FontWeight.Bold)
+        }
+
+        val isSkins = currentDestination == "SKINS"
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.clickable { onNavigateSkins() }
+        ) {
+            BottomNavGlyph(type = "SKINS", isSelected = isSkins)
+            Spacer(modifier = Modifier.height(2.dp))
+            Text("SKINS & FX", color = if (isSkins) Color(0xFFFACC15L) else Color(0xFF94A3B8L), fontSize = 8.5.sp, fontWeight = if (isSkins) FontWeight.Black else FontWeight.Bold)
+        }
+
+        val isVault = currentDestination == "VAULT"
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.clickable { onNavigateVault() }
+        ) {
+            BottomNavGlyph(type = "VAULT", isSelected = isVault)
+            Spacer(modifier = Modifier.height(2.dp))
+            Text("ARTIST VAULT", color = if (isVault) Color(0xFFFACC15L) else Color(0xFF94A3B8L), fontSize = 8.5.sp, fontWeight = if (isVault) FontWeight.Black else FontWeight.Bold)
+        }
+
+        val isSettings = currentDestination == "SETTINGS"
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.clickable { onNavigateSettings() }
+        ) {
+            BottomNavGlyph(type = "SETTINGS", isSelected = isSettings)
+            Spacer(modifier = Modifier.height(2.dp))
+            Text("SETTINGS", color = if (isSettings) Color(0xFFFACC15L) else Color(0xFF94A3B8L), fontSize = 8.5.sp, fontWeight = if (isSettings) FontWeight.Black else FontWeight.Bold)
+        }
+    }
+}
+
+@Composable
+fun BottomNavGlyph(type: String, isSelected: Boolean) {
     val tint = if (isSelected) Color(0xFFFACC15L) else Color(0xFF94A3B8L)
     Canvas(modifier = Modifier.size(19.dp)) {
         val w = size.width
@@ -1219,7 +1242,15 @@ fun SettingsUI(
                 }
             }
 
-            Spacer(modifier = Modifier.height(18.dp))
+            Spacer(modifier = Modifier.height(12.dp))
+            StudioBottomNavDock(
+                currentDestination = "SETTINGS",
+                onNavigateHome = onBack,
+                onNavigateSkins = onBack,
+                onNavigateVault = onBack,
+                onNavigateSettings = { /* Already in settings */ }
+            )
+            Spacer(modifier = Modifier.height(8.dp))
             ArcadePillButton(
                 text = "SAVE & BACK",
                 pillBitmap = btnPillGold,

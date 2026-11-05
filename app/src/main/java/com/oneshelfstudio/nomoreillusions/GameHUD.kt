@@ -1,5 +1,11 @@
 package com.oneshelfstudio.nomoreillusions
 
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -11,6 +17,7 @@ import androidx.compose.foundation.shape.CutCornerShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -345,30 +352,6 @@ fun HUD(
                 }
             }
 
-            // Pulsing 24K Overdrive Activation Trigger
-            if (is24KOverdrive || overdriveProgress >= 0.60f) {
-                Spacer(modifier = Modifier.height(4.dp))
-                Box(
-                    modifier = Modifier
-                        .clip(CircleShape)
-                        .background(
-                            if (is24KOverdrive) Brush.horizontalGradient(listOf(Color(0xFFFFFFFFL), Color(0xFFFACC15L)))
-                            else Brush.horizontalGradient(listOf(Color(0xFFFACC15L), Color(0xFFEC4899L)))
-                        )
-                        .border(1.5.dp, Color.White, CircleShape)
-                        .clickable { onActivate24K() }
-                        .padding(horizontal = 14.dp, vertical = 5.dp)
-                ) {
-                    Text(
-                        text = if (is24KOverdrive) "24K ACTIVE • %.1fs".format(starPowerTime) else "24K OVERDRIVE",
-                        color = Color(0xFF0F172AL),
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Black,
-                        letterSpacing = 0.8.sp
-                    )
-                }
-            }
-
             // Endless Mode Loop Counter (Magic Tiles Accelerating Style)
             if (endlessLoopCount > 0) {
                 Spacer(modifier = Modifier.height(4.dp))
@@ -386,6 +369,108 @@ fun HUD(
                         fontWeight = FontWeight.Black
                     )
                 }
+            }
+        }
+
+        // 4. Floating Right-Edge 24K Liquid Energy Capsule (Off to side, never blocking falling notes!)
+        val isReady = overdriveProgress >= 0.50f || is24KOverdrive
+        val infiniteTransition = rememberInfiniteTransition(label = "capsulePulse")
+        val pulseScale by infiniteTransition.animateFloat(
+            initialValue = 1.0f,
+            targetValue = if (isReady) 1.08f else 1.0f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 650, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "pulse"
+        )
+        val pulseGlow by infiniteTransition.animateFloat(
+            initialValue = 0.4f,
+            targetValue = if (isReady) 1.0f else 0.4f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 650, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "glow"
+        )
+
+        Box(
+            modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .padding(end = 4.dp)
+                .graphicsLayer {
+                    scaleX = pulseScale
+                    scaleY = pulseScale
+                }
+                .width(36.dp)
+                .height(115.dp)
+                .clip(RoundedCornerShape(18.dp))
+                .background(Color(0xD9060A16L))
+                .border(
+                    width = if (isReady) 2.dp else 1.2.dp,
+                    brush = if (isReady) {
+                        Brush.verticalGradient(
+                            listOf(
+                                Color.White.copy(alpha = pulseGlow),
+                                Color(0xFFFACC15L),
+                                Color(0xFFEC4899L)
+                            )
+                        )
+                    } else {
+                        Brush.verticalGradient(
+                            listOf(
+                                Color.White.copy(alpha = 0.25f),
+                                Color(0x33FACC15L)
+                            )
+                        )
+                    },
+                    shape = RoundedCornerShape(18.dp)
+                )
+                .clickable {
+                    if (isReady) onActivate24K()
+                },
+            contentAlignment = Alignment.BottomCenter
+        ) {
+            // Liquid fill rising from bottom
+            val fillHeightFraction = if (is24KOverdrive) (starPowerTime / 9.0f).coerceIn(0f, 1f) else overdriveProgress.coerceIn(0f, 1f)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .fillMaxHeight(fillHeightFraction)
+                    .clip(RoundedCornerShape(bottomStart = 18.dp, bottomEnd = 18.dp))
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(
+                                Color(0xFFFFFFFFL),
+                                Color(0xFFFEF08AL),
+                                Color(0xFFFACC15L),
+                                Color(0xFFD97706L)
+                            )
+                        )
+                    )
+            )
+
+            // Central Lightning Bolt Icon (Pure Visual, Zero Words)
+            Canvas(
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .size(20.dp)
+            ) {
+                val w = size.width
+                val h = size.height
+                val boltPath = Path().apply {
+                    moveTo(w * 0.58f, 0f)
+                    lineTo(w * 0.18f, h * 0.54f)
+                    lineTo(w * 0.48f, h * 0.54f)
+                    lineTo(w * 0.38f, h)
+                    lineTo(w * 0.82f, h * 0.42f)
+                    lineTo(w * 0.52f, h * 0.42f)
+                    close()
+                }
+                drawPath(
+                    path = boltPath,
+                    color = if (isReady) Color(0xFF0F172AL) else Color(0xFFFACC15L).copy(alpha = 0.65f)
+                )
             }
         }
     }

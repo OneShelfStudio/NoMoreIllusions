@@ -449,7 +449,7 @@ fun StudioCustomizerSuite(
             Spacer(modifier = Modifier.height(10.dp))
 
             if (selectedCategoryIndex == 0) {
-                // SECTION 1: BACKGROUND THEME
+                // SECTION 1: BACKGROUND THEME (Clean, authentic palettes + 1 release teaser)
                 Row(modifier = Modifier.fillMaxWidth()) {
                     ThemeCard(
                         title = "ILLUSION",
@@ -464,42 +464,6 @@ fun StudioCustomizerSuite(
                     Spacer(modifier = Modifier.width(8.dp))
 
                     ThemeCard(
-                        title = "FOREST ABYSS",
-                        subtitle = "Deep Emerald Matrix",
-                        isSelected = bgTheme == "CYBER",
-                        isUnlocked = "BG_CYBER" in unlockedSet,
-                        costNotes = 200,
-                        accentColor = Color(0xFF22C55EL),
-                        modifier = Modifier.weight(1f)
-                    ) { applyOrUnlock("BG_CYBER", 200, newBg = "CYBER") }
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(modifier = Modifier.fillMaxWidth()) {
-                    ThemeCard(
-                        title = "BREAKDOWN",
-                        subtitle = "Crimson & Violet Surge",
-                        isSelected = bgTheme == "SUNSET",
-                        isUnlocked = "BG_SUNSET" in unlockedSet,
-                        costNotes = 300,
-                        accentColor = Color(0xFFEC4899L),
-                        modifier = Modifier.weight(1f)
-                    ) { applyOrUnlock("BG_SUNSET", 300, newBg = "SUNSET") }
-
-                    Spacer(modifier = Modifier.width(8.dp))
-
-                    ThemeCard(
-                        title = "MIRAGE",
-                        subtitle = "Electric Purple Bloom",
-                        isSelected = bgTheme == "PRISM",
-                        isUnlocked = "BG_PRISM" in unlockedSet,
-                        costNotes = 350,
-                        accentColor = Color(0xFFA855F7L),
-                        modifier = Modifier.weight(1f)
-                    ) { applyOrUnlock("BG_PRISM", 350, newBg = "PRISM") }
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(modifier = Modifier.fillMaxWidth()) {
-                    ThemeCard(
                         title = "24K VINYL",
                         subtitle = "Gold Collector Stage",
                         isSelected = bgTheme == "GOLD_VINYL",
@@ -508,21 +472,23 @@ fun StudioCustomizerSuite(
                         accentColor = Color(0xFFFACC15L),
                         modifier = Modifier.weight(1f)
                     ) { applyOrUnlock("BG_GOLD_VINYL", 450, newBg = "GOLD_VINYL") }
-
-                    Spacer(modifier = Modifier.width(8.dp))
-
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(modifier = Modifier.fillMaxWidth()) {
                     ThemeCard(
-                        title = "BLOOD MOON",
-                        subtitle = "Crimson Solar Eclipse",
-                        isSelected = bgTheme == "BLOOD_MOON",
-                        isUnlocked = "BG_BLOOD_MOON" in unlockedSet,
-                        costNotes = 500,
-                        accentColor = Color(0xFFF43F5EL),
-                        modifier = Modifier.weight(1f)
-                    ) { applyOrUnlock("BG_BLOOD_MOON", 500, newBg = "BLOOD_MOON") }
+                        title = "MORE ARTIST EXCLUSIVES",
+                        subtitle = "Coming in Next Studio Release",
+                        isSelected = false,
+                        isUnlocked = false,
+                        costNotes = 0,
+                        accentColor = Color(0xFF38BDF8L),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        statusBanner = "MORE RELEASES TO COME • Play more and master existing tracks to unlock!"
+                    }
                 }
             } else if (selectedCategoryIndex == 1) {
-                // SECTION 2: HERO CORE SKIN
+                // SECTION 2: HERO CORE SKIN (Clean authentic skins + 1 release teaser)
                 Row(modifier = Modifier.fillMaxWidth()) {
                     ThemeCard(
                         title = "EMERALD",
@@ -537,42 +503,6 @@ fun StudioCustomizerSuite(
                     Spacer(modifier = Modifier.width(8.dp))
 
                     ThemeCard(
-                        title = "INDIGO",
-                        subtitle = "Deep Nebula",
-                        isSelected = heroSkin == "CYBER",
-                        isUnlocked = "HERO_CYBER" in unlockedSet,
-                        costNotes = 250,
-                        accentColor = Color(0xFF6366F1L),
-                        modifier = Modifier.weight(1f)
-                    ) { applyOrUnlock("HERO_CYBER", 250, newHero = "CYBER") }
-
-                    Spacer(modifier = Modifier.width(8.dp))
-
-                    ThemeCard(
-                        title = "PRISM",
-                        subtitle = "Dual Spectrum",
-                        isSelected = heroSkin == "PRISM",
-                        isUnlocked = "HERO_PRISM" in unlockedSet,
-                        costNotes = 350,
-                        accentColor = Color(0xFFA855F7L),
-                        modifier = Modifier.weight(1f)
-                    ) { applyOrUnlock("HERO_PRISM", 350, newHero = "PRISM") }
-                }
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(modifier = Modifier.fillMaxWidth()) {
-                    ThemeCard(
-                        title = "45-RPM VINYL",
-                        subtitle = "Turntable Halo",
-                        isSelected = heroSkin == "VINYL",
-                        isUnlocked = "HERO_VINYL" in unlockedSet,
-                        costNotes = 400,
-                        accentColor = Color(0xFF38BDF8L),
-                        modifier = Modifier.weight(1f)
-                    ) { applyOrUnlock("HERO_VINYL", 400, newHero = "VINYL") }
-
-                    Spacer(modifier = Modifier.width(8.dp))
-
-                    ThemeCard(
                         title = "24K ECLIPSE",
                         subtitle = "Solar Corona",
                         isSelected = heroSkin == "ECLIPSE",
@@ -581,18 +511,20 @@ fun StudioCustomizerSuite(
                         accentColor = Color(0xFFFACC15L),
                         modifier = Modifier.weight(1f)
                     ) { applyOrUnlock("HERO_ECLIPSE", 450, newHero = "ECLIPSE") }
-
-                    Spacer(modifier = Modifier.width(8.dp))
-
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(modifier = Modifier.fillMaxWidth()) {
                     ThemeCard(
-                        title = "TWIN PULSE",
-                        subtitle = "Binary Orbit",
-                        isSelected = heroSkin == "SERAPH",
-                        isUnlocked = "HERO_SERAPH" in unlockedSet,
-                        costNotes = 500,
-                        accentColor = Color(0xFFE879F9L),
-                        modifier = Modifier.weight(1f)
-                    ) { applyOrUnlock("HERO_SERAPH", 500, newHero = "SERAPH") }
+                        title = "MORE ARTIST EXCLUSIVES",
+                        subtitle = "Coming in Next Studio Release",
+                        isSelected = false,
+                        isUnlocked = false,
+                        costNotes = 0,
+                        accentColor = Color(0xFF38BDF8L),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        statusBanner = "MORE RELEASES TO COME • Play more and master existing tracks to unlock!"
+                    }
                 }
             } else {
                 // SECTION 3: INTERACTIVE ARTIST VAULT EXCLUSIVES
@@ -620,7 +552,7 @@ fun StudioCustomizerSuite(
 
                     ThemeCard(
                         title = "MORE ARTIST EXCLUSIVES",
-                        subtitle = "Coming in Next Release",
+                        subtitle = "Upcoming Singles & Stem Packs",
                         isSelected = false,
                         isUnlocked = false,
                         costNotes = 0,

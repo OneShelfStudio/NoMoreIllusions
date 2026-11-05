@@ -39,7 +39,8 @@ data class BeatOrbCue(
     val powerUpType: PowerUpType,
     val lyricOrBeatCallout: String = "",
     val isGoldenCue: Boolean = false,
-    val keyWordEffect: KeyWordEffect = KeyWordEffect.NONE
+    val keyWordEffect: KeyWordEffect = KeyWordEffect.NONE,
+    val isMusicVideoOrb: Boolean = false
 )
 
 private data class KeyWordAnchor(

@@ -531,45 +531,24 @@ fun DrawScope.drawNebulaBackground(
     }
 
     if (isPrism) {
-        // ✨ PRISM VOCAL BLOOM: Chromatic Dispersion Ripple Waves + Sacred Geometry Mandala
-        val waveCount = 5
-        val colors = listOf(Color(0xFF4ADE80), Color(0xFF38BDF8), Color(0xFFEC4899), Color(0xFFFACC15))
-        for (w in 0 until waveCount) {
-            val wProg = (time * 0.35f + w.toFloat() / waveCount) % 1.0f
-            val wRad = wProg * maxDim * 0.80f
-            val wAlpha = ((1.0f - wProg) * (0.35f + vocal * 0.45f)).coerceIn(0f, 1f)
-            val col = colors[w % colors.size]
-            drawCircle(
-                color = col.copy(alpha = wAlpha),
-                radius = wRad,
+        // ✨ PRISM VOCAL BLOOM: Soft Atmospheric Radial Aurora (Zero harsh wireframe lines or seizure flash)
+        val bloomRad = maxDim * 0.45f
+        val pulseFactor = 1.0f + vocal * 0.15f
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(
+                    Color(0xFFFEF08AL).copy(alpha = 0.22f * pulseFactor),
+                    Color(0xFF38BDF8L).copy(alpha = 0.14f * pulseFactor),
+                    Color(0xFFEC4899L).copy(alpha = 0.08f),
+                    Color.Transparent
+                ),
                 center = Offset(centerX, centerY),
-                style = Stroke(width = 3.2f * (1.0f - wProg * 0.5f))
-            )
-        }
-
-        // Sacred Geometry Mandala Rings
-        val petalRings = 3
-        for (r in 0 until petalRings) {
-            val pRad = maxDim * (0.22f + r * 0.14f) * (1.0f + vocal * 0.12f)
-            val pCount = 6 + r * 2
-            val rot = time * (if (r % 2 == 0) 0.28f else -0.22f)
-            val rCol = when (r) {
-                0 -> Color(0xFFEC4899).copy(alpha = 0.45f)
-                1 -> Color(0xFF4ADE80).copy(alpha = 0.38f)
-                else -> Color(0xFF38BDF8).copy(alpha = 0.32f)
-            }
-            for (p in 0 until pCount) {
-                val ang = rot + (p.toFloat() / pCount) * 2f * PI.toFloat()
-                val px = centerX + cos(ang) * pRad
-                val py = centerY + sin(ang) * pRad
-                drawCircle(
-                    color = rCol,
-                    radius = pRad * 0.42f,
-                    center = Offset(px, py),
-                    style = Stroke(width = 1.8f)
-                )
-            }
-        }
+                radius = bloomRad
+            ),
+            center = Offset(centerX, centerY),
+            radius = bloomRad,
+            blendMode = BlendMode.Screen
+        )
     }
 
     if (isSlowMo) {

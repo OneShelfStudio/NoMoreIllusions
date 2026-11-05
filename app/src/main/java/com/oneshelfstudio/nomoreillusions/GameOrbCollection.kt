@@ -64,7 +64,7 @@ internal fun handleRegularOrbPowerUp(
             )
         }
         PowerUpType.PRISM_HARMONY -> {
-            nextFlash = 0.90f
+            nextFlash = 0.35f
             nextPunch = 0.045f
             shockwaves.add(Shockwave(p.x, p.y, 0f, 500f, Color(0xFF4ADE80L), 1.2f))
             shockwaves.add(Shockwave(p.x, p.y, 0f, 320f, Color(0xFFEC4899L), 1.0f))
@@ -588,7 +588,8 @@ internal fun spawnStationaryBeatOrbsForFrame(
                     spawnY = startY,
                     exitX = exitX,
                     exitY = exitY,
-                    swoopCurve = swoopCurve
+                    swoopCurve = swoopCurve,
+                    isMusicVideoOrb = cue.isMusicVideoOrb || (cue.sequenceIndex % 16 == 8)
                 )
             )
         }

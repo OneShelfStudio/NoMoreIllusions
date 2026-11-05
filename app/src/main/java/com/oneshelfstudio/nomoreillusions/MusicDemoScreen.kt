@@ -739,6 +739,15 @@ fun MusicDemoScreen(
                     }
                 }
             }
+
+            Spacer(modifier = Modifier.height(4.dp))
+            StudioBottomNavDock(
+                currentDestination = if (activeTab == 0) "VAULT" else if (activeTab == 2) "SKINS" else "HOME",
+                onNavigateHome = onBack,
+                onNavigateSkins = { activeTab = 2 },
+                onNavigateVault = { activeTab = 0 },
+                onNavigateSettings = onBack
+            )
         }
     }
 }

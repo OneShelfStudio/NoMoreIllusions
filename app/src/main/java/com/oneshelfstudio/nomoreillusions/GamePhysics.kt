@@ -553,32 +553,31 @@ fun stepNebulousBeatOrbs(
                         b.x = b.baseX + b.bounceOffsetX
                         b.y = b.baseY + b.bounceOffsetY
 
-                        // 2D Billiard Ball Elastic Collision incorporating full trajectory velocities
-                        val vAx = a.trajVx + a.bvx
-                        val vAy = a.trajVy + a.bvy
-                        val vBx = b.trajVx + b.bvx
-                        val vBy = b.trajVy + b.bvy
-
-                        val relVx = vBx - vAx
-                        val relVy = vBy - vAy
+                        // Clean 2D Billiard Ball Deflection (Pure elastic reflection without highway speed explosion)
+                        val relVx = b.bvx - a.bvx
+                        val relVy = b.bvy - a.bvy
                         val velAlongNormal = relVx * nx + relVy * ny
 
-                        val restitution = 0.88f
                         if (velAlongNormal < 0f) {
-                            // Approaching: exchange momentum along normal
-                            val impulse = -(1f + restitution) * velAlongNormal * 0.5f
+                            // Elastic bounce exchange along normal
+                            val impulse = -1.6f * velAlongNormal * 0.5f
                             a.bvx -= impulse * nx
-                            a.bvy -= impulse * ny
+                            a.bvy -= impulse * ny * 0.25f
                             b.bvx += impulse * nx
-                            b.bvy += impulse * ny
+                            b.bvy += impulse * ny * 0.25f
                         } else {
-                            // Separating or resting contact: apply gentle repulsive impulse along normal
-                            val separationImpulse = maxOf(40f, overlap * 8f)
-                            a.bvx -= nx * separationImpulse * 0.5f
-                            a.bvy -= ny * separationImpulse * 0.5f
-                            b.bvx += nx * separationImpulse * 0.5f
-                            b.bvy += ny * separationImpulse * 0.5f
+                            // Gentle natural separation
+                            val nudge = 35f
+                            a.bvx -= nx * nudge * 0.5f
+                            b.bvx += nx * nudge * 0.5f
                         }
+
+                        // Cap maximum deflection velocity to ensure natural gliding motion
+                        val maxBv = 110f
+                        a.bvx = a.bvx.coerceIn(-maxBv, maxBv)
+                        a.bvy = a.bvy.coerceIn(-maxBv * 0.3f, maxBv * 0.3f)
+                        b.bvx = b.bvx.coerceIn(-maxBv, maxBv)
+                        b.bvy = b.bvy.coerceIn(-maxBv * 0.3f, maxBv * 0.3f)
 
                         val squishVal = minOf(0.24f, 0.08f + overlap / 18f)
                         a.squish = squishVal

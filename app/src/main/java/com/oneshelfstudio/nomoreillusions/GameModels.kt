@@ -203,7 +203,8 @@ data class GameObject(
     var trajVx: Float = 0f,
     var trajVy: Float = 0f,
     var squish: Float = 0f,
-    var squishAngle: Float = 0f
+    var squishAngle: Float = 0f,
+    var isMusicVideoOrb: Boolean = false
 )
 
 /**
