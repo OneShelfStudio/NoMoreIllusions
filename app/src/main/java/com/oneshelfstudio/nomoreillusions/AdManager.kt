@@ -31,7 +31,7 @@ class AdManager(private val context: Context) {
 
         // Test ads enabled on Debug builds; Production AdMob IDs active on Release
         @Volatile
-        var forceSafeTestAds: Boolean = BuildConfig.DEBUG
+        var forceSafeTestAds: Boolean = true // Safe Google Test Ads active for Closed Beta
 
         val bannerAdUnitId: String
             get() = if (BuildConfig.DEBUG || forceSafeTestAds) TEST_BANNER_ID else PROD_BANNER_ID
