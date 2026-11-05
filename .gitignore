@@ -31,3 +31,4 @@ NoMoreIllusionsKey
 !capacitor.config.json
 node_modules/
 CrazyGames_Media_Assets/*.mp4
+store_assets/*.mp4
