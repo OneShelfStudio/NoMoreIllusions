@@ -114,23 +114,23 @@ data class ArtistExclusiveItem(
 val ARTIST_EXCLUSIVES_CATALOG = listOf(
     ArtistExclusiveItem(
         id = "excl_confide_master",
-        category = "STUDIO LINER NOTES • NO MORE ILLUSIONS",
-        title = "ETHAN CORREA • ALBUM REFLECTIONS",
-        subtitle = "Behind The Music & Vocal Production",
+        category = "STUDIO MASTER ARCHIVE",
+        title = "ETHAN CORREA • 'CONFIDE'",
+        subtitle = "Lossless Master & Stems",
         unlockRequirementText = "Unlocked Free for VIP Fan Community",
-        artistNoteQuote = "\"No More Illusions is about cutting through digital static and finding authentic connection. 'Confide' was born during late-night studio sessions exploring vulnerability, while 'Number One' captures high-energy rhythmic syncopation. Thank you for building this interactive world with us.\"",
-        exclusiveDetail = "Unlocks Ethan's full interactive gatefold sleeve notes & behind-the-scenes vocal reflections.",
+        artistNoteQuote = "\"No Morē Illusīons — Official interactive album experience by Ethan Correa. Connect with Ethan on social media @EthanCorrea and share your high scores with #NoMoreIllusions.\"",
+        exclusiveDetail = "Unlocks the official high-resolution album cover and audio master reel for Confide.",
         accentColor = Color(0xFF38BDF8L),
         isUnlocked = { _, _, _ -> true }
     ),
     ArtistExclusiveItem(
         id = "excl_number_one_master",
-        category = "BACKSTAGE MASTER REEL • TRACK 02",
-        title = "'NUMBER ONE' CADENCE & STEM REEL",
-        subtitle = "Open Hi-Hat Groove & Electronic Energy",
+        category = "STUDIO MASTER ARCHIVE",
+        title = "ETHAN CORREA • 'NUMBER ONE'",
+        subtitle = "Lossless Master & Stems",
         unlockRequirementText = "Play Track 02 or reach 2,500+ High Score",
-        artistNoteQuote = "\"'Number One' was designed around syncopated open hi-hat patterns and layered vocal harmonies. As you hit each beat in the drop, you are feeling the raw rhythm track directly from the master desk.\"",
-        exclusiveDetail = "Unlocks the 4K Holographic Vinyl star on Track 02 + 250 ♪ Bonus Notes.",
+        artistNoteQuote = "\"No Morē Illusīons — Official interactive album experience by Ethan Correa. Connect with Ethan on social media @EthanCorrea and share your high scores with #NoMoreIllusions.\"",
+        exclusiveDetail = "Unlocks the official high-resolution album cover and audio master reel for Number One.",
         accentColor = Color(0xFF4ADE80L),
         isUnlocked = { prefs, highScore, _ ->
             prefs.getBoolean("art_unlocked_2", false) || highScore >= 2500 || prefs.getBoolean("vip_all_unlocked", false)
@@ -138,12 +138,12 @@ val ARTIST_EXCLUSIVES_CATALOG = listOf(
     ),
     ArtistExclusiveItem(
         id = "excl_upcoming_teaser",
-        category = "UPCOMING STUDIO RELEASES",
-        title = "MORE ARTIST EXCLUSIVES COMING SOON",
-        subtitle = "Upcoming Singles & Studio Stem Packs",
+        category = "STUDIO ARCHIVE",
+        title = "MORE ARTIST EXCLUSIVES",
+        subtitle = "Upcoming Releases & Visuals",
         unlockRequirementText = "Master current tracks to qualify for upcoming release drops",
-        artistNoteQuote = "\"Ethan Correa is currently in the studio recording upcoming singles, alternate acoustic versions, and exclusive stem packs. Level up your album mastery to unlock new tracks and VIP rewards upon release.\"",
-        exclusiveDetail = "Upcoming singles and backstage rehearsal footage will unlock here in future studio updates.",
+        artistNoteQuote = "\"No Morē Illusīons — Official interactive album experience by Ethan Correa. Connect with Ethan on social media @EthanCorrea and share your high scores with #NoMoreIllusions.\"",
+        exclusiveDetail = "Upcoming singles and visualizers will unlock here in future studio updates.",
         accentColor = Color(0xFFFACC15L),
         isUnlocked = { prefs, highScore, _ ->
             prefs.getBoolean("vip_all_unlocked", false) || highScore >= 4500

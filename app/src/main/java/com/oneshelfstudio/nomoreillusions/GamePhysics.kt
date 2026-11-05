@@ -471,10 +471,28 @@ fun stepNebulousBeatOrbs(
                     orb.baseX = orb.spawnX + u * (orb.anchorX - orb.spawnX) + arcOffset
                     orb.baseY = orb.spawnY + u * (strikeY - orb.spawnY)
                 } else {
-                    val expireDur = (orb.expireBeatSec - orb.targetBeatSec).coerceAtLeast(0.45f)
-                    val uExit = ((trackSec - orb.targetBeatSec) / expireDur).coerceIn(0f, 1.2f)
-                    orb.baseX = orb.anchorX + uExit * (orb.exitX - orb.anchorX)
-                    orb.baseY = strikeY + uExit * (orb.exitY - strikeY)
+                    val isSpecial = orb.powerUpType != PowerUpType.NONE || orb.keyWordEffect != KeyWordEffect.NONE
+                    if (isSpecial) {
+                        // Strike-Line Linger Window: Special transition orbs hover in the receptor pocket for 1.35s
+                        // so players can hit the orb right on the transition/drop without it rushing off-screen!
+                        val lingerSec = 1.35f
+                        val dtPast = trackSec - orb.targetBeatSec
+                        if (dtPast <= lingerSec) {
+                            val hoverWave = sin(dtPast * 5.5f) * 8f
+                            orb.baseX = orb.anchorX
+                            orb.baseY = strikeY + hoverWave
+                        } else {
+                            val expireDur = (orb.expireBeatSec - (orb.targetBeatSec + lingerSec)).coerceAtLeast(0.45f)
+                            val uExit = ((dtPast - lingerSec) / expireDur).coerceIn(0f, 1.2f)
+                            orb.baseX = orb.anchorX + uExit * (orb.exitX - orb.anchorX)
+                            orb.baseY = strikeY + uExit * (orb.exitY - strikeY)
+                        }
+                    } else {
+                        val expireDur = (orb.expireBeatSec - orb.targetBeatSec).coerceAtLeast(0.45f)
+                        val uExit = ((trackSec - orb.targetBeatSec) / expireDur).coerceIn(0f, 1.2f)
+                        orb.baseX = orb.anchorX + uExit * (orb.exitX - orb.anchorX)
+                        orb.baseY = strikeY + uExit * (orb.exitY - strikeY)
+                    }
                 }
             } else {
                 val exitX = 2f * orb.anchorX - orb.spawnX

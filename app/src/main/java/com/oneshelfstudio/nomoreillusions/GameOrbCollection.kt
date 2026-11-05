@@ -536,7 +536,7 @@ internal fun spawnStationaryBeatOrbsForFrame(
             }
 
             val spawnSec = targetSecExact - thisLeadTime
-            val expireSec = targetSecExact + (if (isBandHeroMode) 0.45f else (thisLeadTime * 0.85f + 0.40f))
+            val expireSec = targetSecExact + (if (isBandHeroMode) 0.45f else (if (isSpecialCue) 2.65f else (thisLeadTime * 0.85f + 0.40f)))
 
             powerUps.add(
                 GameObject(

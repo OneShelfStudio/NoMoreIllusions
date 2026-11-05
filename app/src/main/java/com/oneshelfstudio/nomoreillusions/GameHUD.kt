@@ -503,105 +503,156 @@ fun HUD(
             }
         }
 
-        // 4. Floating Right-Edge 24K Liquid Energy Capsule (Off to side, never blocking falling notes!)
-        val isReady = overdriveProgress >= 0.50f || is24KOverdrive
+        // 4. Floating Right-Edge 24K Liquid Energy Capsule (High-Energy Radiant Solar Flare Beacon when Full!)
+        val isReady = overdriveProgress >= 0.75f || is24KOverdrive
+        val isFullMax = overdriveProgress >= 0.99f || is24KOverdrive
         val infiniteTransition = rememberInfiniteTransition(label = "capsulePulse")
         val pulseScale by infiniteTransition.animateFloat(
             initialValue = 1.0f,
-            targetValue = if (isReady) 1.08f else 1.0f,
+            targetValue = if (isFullMax) 1.15f else if (isReady) 1.08f else 1.0f,
             animationSpec = infiniteRepeatable(
-                animation = tween(durationMillis = 650, easing = FastOutSlowInEasing),
+                animation = tween(durationMillis = if (isFullMax) 420 else 650, easing = FastOutSlowInEasing),
                 repeatMode = RepeatMode.Reverse
             ),
             label = "pulse"
         )
         val pulseGlow by infiniteTransition.animateFloat(
             initialValue = 0.4f,
-            targetValue = if (isReady) 1.0f else 0.4f,
+            targetValue = if (isFullMax) 1.0f else if (isReady) 0.85f else 0.4f,
             animationSpec = infiniteRepeatable(
-                animation = tween(durationMillis = 650, easing = FastOutSlowInEasing),
+                animation = tween(durationMillis = if (isFullMax) 420 else 650, easing = FastOutSlowInEasing),
                 repeatMode = RepeatMode.Reverse
             ),
             label = "glow"
+        )
+        val beaconRayAngle by infiniteTransition.animateFloat(
+            initialValue = 0f,
+            targetValue = 360f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 3600, easing = LinearEasing),
+                repeatMode = RepeatMode.Restart
+            ),
+            label = "beaconRays"
         )
 
         Box(
             modifier = Modifier
                 .align(Alignment.CenterEnd)
-                .padding(end = 4.dp)
-                .graphicsLayer {
-                    scaleX = pulseScale
-                    scaleY = pulseScale
-                }
-                .width(36.dp)
-                .height(115.dp)
-                .clip(RoundedCornerShape(18.dp))
-                .background(Color(0xD9060A16L))
-                .border(
-                    width = if (isReady) 2.dp else 1.2.dp,
-                    brush = if (isReady) {
-                        Brush.verticalGradient(
-                            listOf(
-                                Color.White.copy(alpha = pulseGlow),
-                                Color(0xFFFACC15L),
-                                Color(0xFFEC4899L)
-                            )
-                        )
-                    } else {
-                        Brush.verticalGradient(
-                            listOf(
-                                Color.White.copy(alpha = 0.25f),
-                                Color(0x33FACC15L)
-                            )
-                        )
-                    },
-                    shape = RoundedCornerShape(18.dp)
-                )
-                .clickable {
-                    if (isReady) onActivate24K()
-                },
-            contentAlignment = Alignment.BottomCenter
+                .padding(end = 4.dp),
+            contentAlignment = Alignment.Center
         ) {
-            // Liquid fill rising from bottom
-            val fillHeightFraction = if (is24KOverdrive) (starPowerTime / 9.0f).coerceIn(0f, 1f) else overdriveProgress.coerceIn(0f, 1f)
+            // Extra Special Radiant Solar Aura when 24K Bar is Full!
+            if (isReady) {
+                Canvas(modifier = Modifier.size(62.dp, 135.dp)) {
+                    val cx = size.width / 2f
+                    val cy = size.height / 2f
+                    // Golden expanding corona glow
+                    drawCircle(
+                        brush = Brush.radialGradient(
+                            listOf(
+                                Color(0xFFFACC15L).copy(alpha = if (isFullMax) 0.55f * pulseGlow else 0.28f * pulseGlow),
+                                Color(0xFFFF8C00L).copy(alpha = if (isFullMax) 0.32f * pulseGlow else 0.14f * pulseGlow),
+                                Color.Transparent
+                            ),
+                            center = Offset(cx, cy),
+                            radius = size.width * (if (isFullMax) 0.95f else 0.70f)
+                        ),
+                        radius = size.width * (if (isFullMax) 0.95f else 0.70f),
+                        center = Offset(cx, cy)
+                    )
+                    // Rotating electric starburst rays
+                    if (isFullMax) {
+                        for (r in 0 until 8) {
+                            val rayRot = Math.toRadians((beaconRayAngle + r * 45f).toDouble()).toFloat()
+                            val rx = cx + kotlin.math.cos(rayRot) * (size.width * 0.48f)
+                            val ry = cy + kotlin.math.sin(rayRot) * (size.height * 0.42f)
+                            drawLine(
+                                color = Color(0xFFFFFBEBL).copy(alpha = 0.65f * pulseGlow),
+                                start = Offset(cx, cy),
+                                end = Offset(rx, ry),
+                                strokeWidth = 1.8f
+                            )
+                        }
+                    }
+                }
+            }
+
             Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .fillMaxHeight(fillHeightFraction)
-                    .clip(RoundedCornerShape(bottomStart = 18.dp, bottomEnd = 18.dp))
-                    .background(
-                        Brush.verticalGradient(
-                            listOf(
-                                Color(0xFFFFFFFFL),
-                                Color(0xFFFEF08AL),
-                                Color(0xFFFACC15L),
-                                Color(0xFFD97706L)
+                    .graphicsLayer {
+                        scaleX = pulseScale
+                        scaleY = pulseScale
+                    }
+                    .width(36.dp)
+                    .height(115.dp)
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(Color(0xD9060A16L))
+                    .border(
+                        width = if (isFullMax) 2.5.dp else if (isReady) 1.8.dp else 1.2.dp,
+                        brush = if (isReady) {
+                            Brush.verticalGradient(
+                                listOf(
+                                    Color.White.copy(alpha = pulseGlow),
+                                    Color(0xFFFACC15L),
+                                    Color(0xFFFB923CL)
+                                )
+                            )
+                        } else {
+                            Brush.verticalGradient(
+                                listOf(
+                                    Color.White.copy(alpha = 0.25f),
+                                    Color(0x33FACC15L)
+                                )
+                            )
+                        },
+                        shape = RoundedCornerShape(18.dp)
+                    )
+                    .clickable {
+                        if (isReady) onActivate24K()
+                    },
+                contentAlignment = Alignment.BottomCenter
+            ) {
+                // Liquid fill rising from bottom
+                val fillHeightFraction = if (is24KOverdrive) (starPowerTime / 9.0f).coerceIn(0f, 1f) else overdriveProgress.coerceIn(0f, 1f)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .fillMaxHeight(fillHeightFraction)
+                        .clip(RoundedCornerShape(bottomStart = 18.dp, bottomEnd = 18.dp))
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(
+                                    Color(0xFFFFFFFFL),
+                                    Color(0xFFFEF08AL),
+                                    Color(0xFFFACC15L),
+                                    Color(0xFFD97706L)
+                                )
                             )
                         )
-                    )
-            )
-
-            // Central Lightning Bolt Icon (Pure Visual, Zero Words)
-            Canvas(
-                modifier = Modifier
-                    .align(Alignment.Center)
-                    .size(20.dp)
-            ) {
-                val w = size.width
-                val h = size.height
-                val boltPath = Path().apply {
-                    moveTo(w * 0.58f, 0f)
-                    lineTo(w * 0.18f, h * 0.54f)
-                    lineTo(w * 0.48f, h * 0.54f)
-                    lineTo(w * 0.38f, h)
-                    lineTo(w * 0.82f, h * 0.42f)
-                    lineTo(w * 0.52f, h * 0.42f)
-                    close()
-                }
-                drawPath(
-                    path = boltPath,
-                    color = if (isReady) Color(0xFF0F172AL) else Color(0xFFFACC15L).copy(alpha = 0.65f)
                 )
+
+                // Central Lightning Bolt Icon (Pure Visual, Zero Words)
+                Canvas(
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .size(20.dp)
+                ) {
+                    val w = size.width
+                    val h = size.height
+                    val boltPath = Path().apply {
+                        moveTo(w * 0.58f, 0f)
+                        lineTo(w * 0.18f, h * 0.54f)
+                        lineTo(w * 0.48f, h * 0.54f)
+                        lineTo(w * 0.38f, h)
+                        lineTo(w * 0.82f, h * 0.42f)
+                        lineTo(w * 0.52f, h * 0.42f)
+                        close()
+                    }
+                    drawPath(
+                        path = boltPath,
+                        color = if (isReady) Color(0xFF0F172AL) else Color(0xFFFACC15L).copy(alpha = 0.65f)
+                    )
+                }
             }
         }
     }

@@ -444,53 +444,56 @@ fun DrawScope.drawNebulaBackground(
     }
 
     // 8. Progressive Waterfall Album Artwork Fill in Center (Top-to-Bottom Fill & Splash Meniscus)
-    if (trackArtwork != null) {
-        val p = trackProgress.coerceIn(0.02f, 1f)
-        val artBoxSize = minOf(size.width, size.height) * (0.52f + bass * 0.04f)
-        val artRadius = artBoxSize * 0.48f
-        val artLeft = centerX - artRadius
-        val artTop = centerY - artRadius
-        val dstW = (artRadius * 2f).toInt().coerceAtLeast(1)
-        val dstH = (artRadius * 2f).toInt().coerceAtLeast(1)
-        val waterLevelY = artTop + (artRadius * 2f) * p
+    // Completely ducks to 0 opacity when B-roll video overlay is playing for 100% unobstructed visibility!
+    if (trackArtwork != null && brollOverlayAlpha < 0.95f) {
+        val artVisibility = (1f - brollOverlayAlpha * 1.25f).coerceIn(0f, 1f)
+        if (artVisibility > 0.01f) {
+            val p = trackProgress.coerceIn(0.02f, 1f)
+            val artBoxSize = minOf(size.width, size.height) * (0.52f + bass * 0.04f)
+            val artRadius = artBoxSize * 0.48f
+            val artLeft = centerX - artRadius
+            val artTop = centerY - artRadius
+            val dstW = (artRadius * 2f).toInt().coerceAtLeast(1)
+            val dstH = (artRadius * 2f).toInt().coerceAtLeast(1)
+            val waterLevelY = artTop + (artRadius * 2f) * p
 
-        // 8a. Frosted dark vinyl disc silhouette & subtle groove rings (unrevealed empty container)
-        drawCircle(
-            color = Color(0xFF070B16).copy(alpha = 0.72f),
-            radius = artRadius,
-            center = Offset(centerX, centerY)
-        )
-        drawCircle(
-            color = Color(0xFF64748B).copy(alpha = 0.35f),
-            radius = artRadius,
-            center = Offset(centerX, centerY),
-            style = Stroke(width = 2f)
-        )
-        for (g in 1..4) {
+            // 8a. Frosted dark vinyl disc silhouette & subtle groove rings (unrevealed empty container)
             drawCircle(
-                color = Color(0xFF94A3B8).copy(alpha = 0.08f),
-                radius = artRadius * (g / 5f),
+                color = Color(0xFF070B16).copy(alpha = 0.72f * artVisibility),
+                radius = artRadius,
+                center = Offset(centerX, centerY)
+            )
+            drawCircle(
+                color = Color(0xFF64748B).copy(alpha = 0.35f * artVisibility),
+                radius = artRadius,
                 center = Offset(centerX, centerY),
-                style = Stroke(width = 1f)
+                style = Stroke(width = 2f)
             )
-        }
+            for (g in 1..4) {
+                drawCircle(
+                    color = Color(0xFF94A3B8).copy(alpha = 0.08f * artVisibility),
+                    radius = artRadius * (g / 5f),
+                    center = Offset(centerX, centerY),
+                    style = Stroke(width = 1f)
+                )
+            }
 
-        // 8b. Waterfall clipped album artwork revealing from top down to waterLevelY
-        clipRect(
-            left = artLeft - 10f,
-            top = artTop - 10f,
-            right = artLeft + dstW + 10f,
-            bottom = waterLevelY
-        ) {
-            drawImage(
-                image = trackArtwork,
-                srcOffset = IntOffset.Zero,
-                srcSize = IntSize(trackArtwork.width, trackArtwork.height),
-                dstOffset = IntOffset(artLeft.toInt(), artTop.toInt()),
-                dstSize = IntSize(dstW, dstH),
-                alpha = (0.78f + p * 0.22f).coerceIn(0.78f, 1f)
-            )
-        }
+            // 8b. Waterfall clipped album artwork revealing from top down to waterLevelY
+            clipRect(
+                left = artLeft - 10f,
+                top = artTop - 10f,
+                right = artLeft + dstW + 10f,
+                bottom = waterLevelY
+            ) {
+                drawImage(
+                    image = trackArtwork,
+                    srcOffset = IntOffset.Zero,
+                    srcSize = IntSize(trackArtwork.width, trackArtwork.height),
+                    dstOffset = IntOffset(artLeft.toInt(), artTop.toInt()),
+                    dstSize = IntSize(dstW, dstH),
+                    alpha = ((0.78f + p * 0.22f) * artVisibility).coerceIn(0f, 1f)
+                )
+            }
 
         // 8c. Glowing undulating liquid meniscus wave across waterLevelY
         if (p in 0.02f..0.995f) {
@@ -523,11 +526,12 @@ fun DrawScope.drawNebulaBackground(
         } else if (p >= 0.995f) {
             // 100% UNLOCKED CROWN GLOW
             drawCircle(
-                color = Color(0xFFFACC15).copy(alpha = 0.75f + 0.25f * sin(time * 6f)),
+                color = Color(0xFFFACC15).copy(alpha = (0.75f + 0.25f * sin(time * 6f)) * artVisibility),
                 radius = artRadius,
                 center = Offset(centerX, centerY),
                 style = Stroke(width = 3.5f)
             )
+        }
         }
     }
 

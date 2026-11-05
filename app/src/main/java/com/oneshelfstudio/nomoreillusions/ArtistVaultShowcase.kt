@@ -118,19 +118,19 @@ internal fun ArtistVaultShowcaseModal(
                     Spacer(modifier = Modifier.height(10.dp))
                     val notes = if (selectedSubTab == 0) {
                         listOf(
-                            "0:00 • INTRO — Warm analog Rhodes electric piano chords establish the introspective late-night vibe.",
-                            "0:54 • CHORUS — Layered vocal harmonies bloom as the 88 BPM pocket deepens into full groove.",
-                            "1:22 • VERSE II — Stripped-back percussion focuses on raw, intimate vocal storytelling.",
-                            "2:15 • BRIDGE — Dynamic vocal swell introduces the celestial synth pad wash and rising energy.",
-                            "2:42 • OUTRO — Sustained vocal echoes gently resolve into the ambient vinyl coda."
+                            "TITLE: CONFIDE",
+                            "ARTIST: ETHAN CORREA",
+                            "TEMPO: 124 BPM • LOSSLESS AUDIO MASTER",
+                            "DRUM ENGINEERING & PERCUSSION: DAMIEN",
+                            "ALBUM: NO MORĒ ILLUSĪONS"
                         )
                     } else {
                         listOf(
-                            "0:00 • INTRO — Syncopated vocal chops set up the forward-moving hip-hop bounce.",
-                            "0:26 • CHORUS — Open hi-hat grooves and heavy sub-bass drive the central rhythm hook.",
-                            "0:55 • VERSE — Rapid vocal cadence and syncopated beat pegs challenge timing precision.",
-                            "1:28 • DROP — High-voltage electronic synth cascade and full-spectrum stereo chords.",
-                            "1:52 • FINALE — Climax breakdown with energetic rhythm flourishes and vinyl fadeout."
+                            "TITLE: NUMBER ONE",
+                            "ARTIST: ETHAN CORREA",
+                            "TEMPO: 88 BPM • LOSSLESS AUDIO MASTER",
+                            "DRUM ENGINEERING & PERCUSSION: DAMIEN",
+                            "ALBUM: NO MORĒ ILLUSĪONS"
                         )
                     }
                     Column(
@@ -159,9 +159,9 @@ internal fun ArtistVaultShowcaseModal(
 
                 "VAULT_POLAROIDS" -> {
                     val cards = listOf(
-                        Triple("STUDIO ARCHIVE • TRACK 01", "Confide was engineered in late-night sessions to capture raw vocal vulnerability across a smooth 88 BPM pocket.", Color(0xFF4ADE80L)),
-                        Triple("STUDIO ARCHIVE • TRACK 02", "Number One combines syncopated open hi-hat patterns with heavy basslines and progressive electronic energy.", Color(0xFF818CF8L)),
-                        Triple("FUTURE TRACKS • COMING SOON", "Ethan Correa is currently in the studio recording upcoming singles and stem packs. Master existing tracks to unlock new content upon release.", Color(0xFFFACC15L))
+                        Triple("STUDIO ARCHIVE • TRACK 01", "Confide — Official master recording and stems engineered for No Morē Illusīons.", Color(0xFF4ADE80L)),
+                        Triple("STUDIO ARCHIVE • TRACK 02", "Number One — Official master recording and stems engineered for No Morē Illusīons.", Color(0xFF818CF8L)),
+                        Triple("OFFICIAL RELEASES", "No Morē Illusīons — Connect with @EthanCorrea and share your highest scores using #NoMoreIllusions.", Color(0xFFFACC15L))
                     )
                     Column(
                         verticalArrangement = Arrangement.spacedBy(7.dp),

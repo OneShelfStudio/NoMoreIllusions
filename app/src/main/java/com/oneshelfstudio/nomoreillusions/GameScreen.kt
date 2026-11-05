@@ -1660,11 +1660,17 @@ fun GameScreen(
                 onActivate24K = {
                     starPowerTime = 9.0f
                     overdriveProgress = 0f
-                    shakeAmount = maxOf(shakeAmount, 16f)
+                    shakeAmount = maxOf(shakeAmount, 18f)
                     powerUps.forEach {
                         it.isGoldenOrb = true
                         it.color = Color(0xFFFACC15L)
                     }
+                    // Activating 24K Overdrive unleashes the authentic vintage B-roll music video!
+                    brollClipIndex = (brollClipIndex + 1 + kotlin.random.Random.nextInt(3)) % 4
+                    brollDurationTotal = 11.5f
+                    brollTimer = 11.5f
+                    brollActive = true
+                    audioEngine.playElectricSurgeStinger()
                 },
                 onPause = { if (gameState == GameState.PLAYING) gameState = GameState.PAUSED }
             )
