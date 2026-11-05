@@ -1,0 +1,3 @@
+google.com, pub-7651037308656903, DIRECT, f08c47fec0942fa0
+unity.com, 152629521, DIRECT, 96cabb5fbdde37a7
+vungle.com, 6ae5393393f426c33e79e5b6, DIRECT
