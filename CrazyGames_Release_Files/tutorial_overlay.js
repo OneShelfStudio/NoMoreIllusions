@@ -102,7 +102,7 @@ const ARTIST_EXCLUSIVES_CATALOG = [
     accentHex: "#FACC15",
     isUnlockedFn: (app) => app.prefs.vipUnlocked || false
   }
-]];
+];
 
 Object.assign(NoMoreIllusionsApp.prototype, {
   hasSeenDiscovery(key) {
