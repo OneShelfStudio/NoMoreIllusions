@@ -189,10 +189,14 @@ object MusicLibrary {
             KeyWordAnchor(185.00f, KeyWordEffect.CONSTELLATION_STAR) // 3:05.0 Ending Climax Riff (⚡ Electric Overdrive)
         )
 
-        // Exact Video Relic timestamps (5 relics per montage trigger):
-        // Set 1 (triggers 1:00 montage): ~33.8s (beat 70), ~39.7s (beat 82), ~45.5s (beat 94), ~51.3s (beat 106), ~57.6s (beat 119)
-        // Set 2 (triggers 2:36 montage): ~112.3s (beat 232), ~122.4s (beat 253), ~132.6s (beat 274), ~142.7s (beat 295), ~153.9s (beat 318)
-        val videoRelicBeats = setOf(70, 82, 94, 106, 119, 232, 253, 274, 295, 318)
+        // Guaranteed Video Relic Target Timestamps (5 relics per montage trigger):
+        // Set 1 (triggers 1:00 montage): ~33.5s, ~39.5s, ~45.5s, ~51.5s, ~57.5s
+        // Set 2 (triggers 2:36 montage): ~112.5s, ~122.5s, ~132.5s, ~142.5s, ~153.5s
+        val videoRelicTimestamps = listOf(
+            33.50f, 39.50f, 45.50f, 51.50f, 57.50f,
+            112.50f, 122.50f, 132.50f, 142.50f, 153.50f
+        )
+        val usedVideoRelics = HashSet<Int>()
 
         val cues = ArrayList<BeatOrbCue>(200)
         val usedAnchors = HashSet<Int>()
@@ -297,7 +301,23 @@ object MusicLibrary {
                 else -> PowerUpType.NONE
             }
 
-            val isVideoCue = (effect == KeyWordEffect.NONE && !isGolden) && (beatIdx in videoRelicBeats)
+            var matchedVideoIdx = -1
+            var bestVideoDist = beatSec * 0.95f
+            if (effect == KeyWordEffect.NONE && !isGolden) {
+                for (vi in videoRelicTimestamps.indices) {
+                    if (vi !in usedVideoRelics) {
+                        val vd = abs(videoRelicTimestamps[vi] - t)
+                        if (vd <= bestVideoDist) {
+                            bestVideoDist = vd
+                            matchedVideoIdx = vi
+                        }
+                    }
+                }
+            }
+            val isVideoCue = if (matchedVideoIdx != -1) {
+                usedVideoRelics.add(matchedVideoIdx)
+                true
+            } else false
 
             cues.add(
                 BeatOrbCue(
@@ -339,10 +359,14 @@ object MusicLibrary {
             KeyWordAnchor(129.55f, KeyWordEffect.CONSTELLATION_STAR) // 2:09.5 Ending Breakdown Climax (⚡ Electric Overdrive)
         )
 
-        // Exact Video Relic beats for Number One (5 relics per montage trigger):
-        // Set 1 (triggers 0:54 montage): ~24.5s (beat 36), ~30.0s (beat 44), ~35.5s (beat 52), ~42.3s (beat 62), ~50.5s (beat 74)
-        // Set 2 (triggers 1:49 montage): ~70.9s (beat 104), ~80.5s (beat 118), ~90.0s (beat 132), ~98.2s (beat 144), ~106.4s (beat 156)
-        val videoRelicBeats = setOf(36, 44, 52, 62, 74, 104, 118, 132, 144, 156)
+        // Guaranteed Video Relic Target Timestamps for Number One (5 relics per montage trigger):
+        // Set 1 (triggers 0:54 montage): ~25.0s, ~31.0s, ~37.0s, ~43.0s, ~50.0s
+        // Set 2 (triggers 1:49 montage): ~72.0s, ~81.0s, ~90.0s, ~99.0s, ~107.0s
+        val videoRelicTimestamps = listOf(
+            25.0f, 31.0f, 37.0f, 43.0f, 50.0f,
+            72.0f, 81.0f, 90.0f, 99.0f, 107.0f
+        )
+        val usedVideoRelics = HashSet<Int>()
 
         val cues = ArrayList<BeatOrbCue>(260)
         val usedAnchors = HashSet<Int>()
@@ -446,8 +470,23 @@ object MusicLibrary {
                 else -> PowerUpType.NONE
             }
 
-            val beatNumber = (t / beatSec).roundToInt()
-            val isVideoCue = (effect == KeyWordEffect.NONE && !isGolden) && (beatNumber in videoRelicBeats)
+            var matchedVideoIdx = -1
+            var bestVideoDist = beatSec * 0.95f
+            if (effect == KeyWordEffect.NONE && !isGolden) {
+                for (vi in videoRelicTimestamps.indices) {
+                    if (vi !in usedVideoRelics) {
+                        val vd = abs(videoRelicTimestamps[vi] - t)
+                        if (vd <= bestVideoDist) {
+                            bestVideoDist = vd
+                            matchedVideoIdx = vi
+                        }
+                    }
+                }
+            }
+            val isVideoCue = if (matchedVideoIdx != -1) {
+                usedVideoRelics.add(matchedVideoIdx)
+                true
+            } else false
 
             cues.add(
                 BeatOrbCue(

@@ -464,11 +464,9 @@ fun stepNebulousBeatOrbs(
             val hasWaterfall = orb.exitY != 0f
 
             if (hasWaterfall) {
-                // Exact arrival calibration with organic swoop curvature and whispy breakdown slow-motion float
-                val isFlowyBreakdown = (trackSec in 44.5f..49.5f) || (trackSec in 41.5f..47.0f)
+                // Exact mathematically continuous arrival: arrives at strike line (strikeY) right on targetBeatSec with smooth swoop curve
                 if (trackSec <= orb.targetBeatSec) {
-                    val rawU = ((trackSec - orb.spawnBeatSec) / (orb.targetBeatSec - orb.spawnBeatSec).coerceAtLeast(0.01f)).coerceIn(0f, 1f)
-                    val u = if (isFlowyBreakdown) (rawU * 0.88f).coerceIn(0f, 1f) else rawU
+                    val u = ((trackSec - orb.spawnBeatSec) / (orb.targetBeatSec - orb.spawnBeatSec).coerceAtLeast(0.01f)).coerceIn(0f, 1f)
                     val swoopOffset = orb.swoopCurve * screenWidth * sin(u * PI.toFloat())
                     orb.baseX = orb.spawnX + u * (orb.anchorX - orb.spawnX) + swoopOffset
                     orb.baseY = orb.spawnY + u * (strikeY - orb.spawnY)
@@ -508,13 +506,13 @@ fun stepNebulousBeatOrbs(
 
             // Flowy/Whispy breakdown harmonic celestial swirl ("losing your battles")
             val isFlowySwirl = (trackSec in 44.5f..49.5f) || (trackSec in 41.5f..47.0f)
-            if (isFlowySwirl) {
+            if (isFlowySwirl && trackSec <= orb.targetBeatSec) {
                 val centerT = if (trackSec <= 49.5f && trackSec >= 44.5f) 47.0f else 44.2f
                 val halfSpan = if (trackSec <= 49.5f && trackSec >= 44.5f) 2.5f else 2.7f
                 val flowFrac = (1f - abs(trackSec - centerT) / halfSpan).coerceIn(0f, 1f)
                 val swirlWave = sin(flowFrac * PI.toFloat())
-                val swirlX = sin(trackSec * 2.4f + orb.phase) * (screenWidth * 0.20f) * swirlWave
-                val swirlY = cos(trackSec * 2.0f + orb.phase) * (screenHeight * 0.08f) * swirlWave
+                val swirlX = sin(trackSec * 2.4f + orb.phase) * (screenWidth * 0.14f) * swirlWave
+                val swirlY = cos(trackSec * 2.0f + orb.phase) * (screenHeight * 0.04f) * swirlWave
                 orb.baseX += swirlX
                 orb.baseY += swirlY
             }
