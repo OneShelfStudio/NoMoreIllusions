@@ -877,19 +877,7 @@ fun GameScreen(
 
                 // 2. Live Section & Musical Swell Transitions (Zero text popups on orbs; clean section shift pulse)
                 val currentSecObj = MusicLibrary.currentSectionAt(selectedTrackIndex, trackSec)
-                val isSectionTransitionNow = currentSecObj.timestampSec != lastTriggeredSectionSec && lastTriggeredSectionSec >= 0f
-                val isLullOrChorusTransition = mb.bassDropOut || mb.swellDelta >= 0.085f ||
-                    (trackSec - cipherArmedAtSec >= 6.0f && liveBeatPhase in 0f..0.12f)
-                if (isCipherArmed && isBrollEnabled && !brollActive && (isSectionTransitionNow || isLullOrChorusTransition)) {
-                    isCipherArmed = false
-                    cipherMeterProgress = 0f
-                    brollClipIndex = (brollClipIndex + 1 + Random.nextInt(3)) % 4
-                    brollDurationTotal = 11.0f
-                    brollTimer = 11.0f
-                    brollActive = true
-                    brollCooldown = 12f
-                    shockwaves.add(Shockwave(screenWidth * 0.5f, screenHeight * 0.45f, 0f, maxOf(screenWidth, screenHeight) * 0.72f, Color(0xFF05D9E8L), 0.95f))
-                }
+                // Video playback is strictly unlocked by collecting the designated Video Relic notes (no random unexpected activations)
                 if (currentSecObj.timestampSec != lastTriggeredSectionSec) {
                     lastTriggeredSectionSec = currentSecObj.timestampSec
                     activeSectionLabel = currentSecObj.label
@@ -1179,17 +1167,21 @@ fun GameScreen(
                             onBeatHitsThisRun++
                         }
 
-                        // Enigmatic Cipher / VHS Spool Orb charges the Secret Left-Edge Gauge (+25% per orb -> 4 orbs = Armed!)
+                        // Enigmatic Cipher / VHS Spool Orb: Takes 3 distinct video relics to fill (+34% each), triggering 1 of 2-3 rare video pieces!
                         if (p.isMusicVideoOrb && !isSpecialTransitionOrb && isBrollEnabled) {
-                            if (!brollActive && !isCipherArmed) {
-                                cipherMeterProgress = (cipherMeterProgress + 0.25f).coerceAtMost(1.0f)
+                            if (!brollActive) {
+                                cipherMeterProgress = (cipherMeterProgress + 0.34f).coerceAtMost(1.0f)
                                 shockwaves.add(Shockwave(p.x, p.y, 0f, 135f, Color(0xFF05D9E8L), 0.55f))
                                 shockwaves.add(Shockwave(p.x, p.y, 0f, 95f, Color(0xFFFF2A6DL), 0.45f))
                                 if (cipherMeterProgress >= 0.99f) {
                                     cipherMeterProgress = 1.0f
-                                    isCipherArmed = true
-                                    cipherArmedAtSec = trackSec
-                                    triggerHaptic(45L)
+                                    isCipherArmed = false
+                                    brollClipIndex = (brollClipIndex + 1 + kotlin.random.Random.nextInt(3)) % 4
+                                    brollDurationTotal = 6.4f
+                                    brollTimer = 6.4f
+                                    brollActive = true
+                                    triggerHaptic(50L)
+                                    shockwaves.add(Shockwave(screenWidth * 0.5f, screenHeight * 0.45f, 0f, maxOf(screenWidth, screenHeight) * 0.75f, Color(0xFF05D9E8L), 0.90f))
                                 }
                             }
                         }
@@ -1535,6 +1527,7 @@ fun GameScreen(
                     brollTimer -= 0.016f
                     if (brollTimer <= 0f) {
                         brollActive = false
+                        cipherMeterProgress = 0f
                     }
                 }
             }
@@ -1665,11 +1658,6 @@ fun GameScreen(
                         it.isGoldenOrb = true
                         it.color = Color(0xFFFACC15L)
                     }
-                    // Activating 24K Overdrive unleashes the authentic vintage B-roll music video!
-                    brollClipIndex = (brollClipIndex + 1 + kotlin.random.Random.nextInt(3)) % 4
-                    brollDurationTotal = 11.5f
-                    brollTimer = 11.5f
-                    brollActive = true
                     audioEngine.playElectricSurgeStinger()
                 },
                 onPause = { if (gameState == GameState.PLAYING) gameState = GameState.PAUSED }
@@ -2032,15 +2020,16 @@ fun BrollVideoOverlay(
     val loadedClipHolder = remember { intArrayOf(-1) }
     val surfaceHolder = remember { arrayOfNulls<Surface>(1) }
 
-    fun applyCenterCropTransform(tv: TextureView, videoW: Int, videoH: Int) {
+    fun applyAspectFitTransform(tv: TextureView, videoW: Int, videoH: Int) {
         val viewW = tv.width.toFloat()
         val viewH = tv.height.toFloat()
         if (viewW <= 0f || viewH <= 0f || videoW <= 0 || videoH <= 0) return
-        val maxScale = maxOf(viewW / videoW.toFloat(), viewH / videoH.toFloat())
-        val scaledW = videoW * maxScale
-        val scaledH = videoH * maxScale
+        // True Aspect-Fit (fitCenter): Scales video uniformly to fit inside screen bounds with zero stretching
+        val fitScale = minOf(viewW / videoW.toFloat(), viewH / videoH.toFloat())
+        val targetW = videoW * fitScale
+        val targetH = videoH * fitScale
         val matrix = android.graphics.Matrix()
-        matrix.setScale(scaledW / viewW, scaledH / viewH, viewW * 0.5f, viewH * 0.5f)
+        matrix.setScale(targetW / viewW, targetH / viewH, viewW * 0.5f, viewH * 0.5f)
         tv.setTransform(matrix)
     }
 
@@ -2063,10 +2052,10 @@ fun BrollVideoOverlay(
             afd.close()
             loadedClipHolder[0] = targetClipIdx
             player.setOnVideoSizeChangedListener { _, vw, vh ->
-                applyCenterCropTransform(tv, vw, vh)
+                applyAspectFitTransform(tv, vw, vh)
             }
             player.setOnPreparedListener { mp ->
-                applyCenterCropTransform(tv, mp.videoWidth, mp.videoHeight)
+                applyAspectFitTransform(tv, mp.videoWidth, mp.videoHeight)
                 if (playNow) {
                     runCatching { mp.start() }
                 }
@@ -2092,7 +2081,7 @@ fun BrollVideoOverlay(
 
                         override fun onSurfaceTextureSizeChanged(st: SurfaceTexture, w: Int, h: Int) {
                             mediaPlayerRef?.let { mp ->
-                                runCatching { applyCenterCropTransform(this@apply, mp.videoWidth, mp.videoHeight) }
+                                runCatching { applyAspectFitTransform(this@apply, mp.videoWidth, mp.videoHeight) }
                             }
                         }
 

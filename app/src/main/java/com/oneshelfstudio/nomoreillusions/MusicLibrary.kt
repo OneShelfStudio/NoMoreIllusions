@@ -273,6 +273,12 @@ object MusicLibrary {
                 else -> PowerUpType.NONE
             }
 
+            val isVideoCue = (effect == KeyWordEffect.NONE && !isGolden) && (
+                (t in 24.5f..29.5f && seq % 2 == 1) ||
+                (t in 70.0f..75.0f && seq % 2 == 1) ||
+                (t in 178.0f..183.0f && seq % 2 == 1)
+            )
+
             cues.add(
                 BeatOrbCue(
                     sequenceIndex = seq,
@@ -281,7 +287,8 @@ object MusicLibrary {
                     normY = ny,
                     powerUpType = pType,
                     isGoldenCue = isGolden,
-                    keyWordEffect = effect
+                    keyWordEffect = effect,
+                    isMusicVideoOrb = isVideoCue
                 )
             )
             seq++
@@ -410,6 +417,11 @@ object MusicLibrary {
                 else -> PowerUpType.NONE
             }
 
+            val isVideoCue = (effect == KeyWordEffect.NONE && !isGolden) && (
+                (t in 47.0f..53.5f && seq % 2 == 1) ||
+                (t in 123.0f..128.5f && seq % 2 == 1)
+            )
+
             cues.add(
                 BeatOrbCue(
                     sequenceIndex = seq,
@@ -418,7 +430,8 @@ object MusicLibrary {
                     normY = ny,
                     powerUpType = pType,
                     isGoldenCue = isGolden,
-                    keyWordEffect = effect
+                    keyWordEffect = effect,
+                    isMusicVideoOrb = isVideoCue
                 )
             )
             seq++

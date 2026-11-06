@@ -524,7 +524,7 @@ internal fun spawnStationaryBeatOrbsForFrame(
             val mappedKeyWord = cue.keyWordEffect
             val isSupernova = mappedKeyWord == KeyWordEffect.CONSTELLATION_STAR || mappedPowerUpType == PowerUpType.ELECTRIC_HARMONIC
             val isOrbGolden = isSupernova || isGoldenActive
-            val isCipher = !isSpecialCue && (cue.isMusicVideoOrb || (cue.sequenceIndex % 9 == 4))
+            val isCipher = !isSpecialCue && cue.isMusicVideoOrb
 
             val pColor = when (mappedPowerUpType) {
                 PowerUpType.ELECTRIC_HARMONIC -> Color(0xFFFACC15L)

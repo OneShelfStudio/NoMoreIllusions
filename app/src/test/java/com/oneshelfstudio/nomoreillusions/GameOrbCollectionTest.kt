@@ -110,7 +110,7 @@ class GameOrbCollectionTest {
             BeatOrbCue(sequenceIndex = 1, timestampSec = 1.3f, normX = 0.95f, normY = 0.62f, powerUpType = PowerUpType.NONE),
             BeatOrbCue(sequenceIndex = 2, timestampSec = 1.8f, normX = 0.20f, normY = 0.62f, powerUpType = PowerUpType.NONE),
             BeatOrbCue(sequenceIndex = 3, timestampSec = 3.0f, normX = 0.60f, normY = 0.62f, powerUpType = PowerUpType.ELECTRIC_HARMONIC),
-            BeatOrbCue(sequenceIndex = 4, timestampSec = 4.0f, normX = 0.50f, normY = 0.62f, powerUpType = PowerUpType.NONE)
+            BeatOrbCue(sequenceIndex = 4, timestampSec = 4.0f, normX = 0.50f, normY = 0.62f, powerUpType = PowerUpType.NONE, isMusicVideoOrb = true)
         )
         val expectedCount = countPlayableChartOrbs(chart, isTrainingMode = false)
         assertEquals(5, expectedCount)
@@ -152,6 +152,7 @@ class GameOrbCollectionTest {
         assertEquals("Total spawned orbs must match countPlayableChartOrbs for 100% completion accuracy", expectedCount, spawnedAll.size)
         val jump01 = abs(spawnedAll[1].anchorX - spawnedAll[0].anchorX)
         assertTrue("Rapid consecutive horizontal jump should be ergonomically bounded (< 540px), was $jump01", jump01 <= 541f)
-        assertTrue("9th-cycle note (index 4) should be marked isMusicVideoOrb", spawnedAll[4].isMusicVideoOrb)
+        assertFalse("Regular notes without isMusicVideoOrb must not be marked video orbs", spawnedAll[0].isMusicVideoOrb)
+        assertTrue("Explicitly charted video relic (index 4) must be marked isMusicVideoOrb", spawnedAll[4].isMusicVideoOrb)
     }
 }
