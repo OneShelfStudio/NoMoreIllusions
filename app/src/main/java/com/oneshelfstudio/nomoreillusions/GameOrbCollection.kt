@@ -510,12 +510,18 @@ internal fun spawnStationaryBeatOrbsForFrame(
                 Offset(receptorX, receptorY)
             }
 
-            // Clean Linear Trajectory: Zero lateral swoop, zero crossing arcs, zero orbital loops
-            val swoopCurve = 0f
+            // Dynamic entry trajectory: orbs glide in from varied angles across the upper screen perimeter and flanks!
+            // Clean pass-through physics in GamePhysics ensures they never deflect or bounce off one another.
+            val angleVar = if (isBandHeroMode || isSpecialCue) 0f
+            else (((cue.sequenceIndex * 73) % 7 - 3) * 0.075f)
 
-            val startX = if (isBandHeroMode) anchorPt.x else receptorX.coerceIn(safeMinX, safeMaxX)
+            val swoopCurve = if (isBandHeroMode || isSpecialCue) 0f
+            else (((cue.sequenceIndex * 41) % 5 - 2) * 0.12f)
+
+            val lateralOffset = angleVar * screenWidth
+            val startX = if (isBandHeroMode) anchorPt.x else (receptorX + lateralOffset).coerceIn(screenWidth * 0.10f, screenWidth * 0.90f)
             val startY = if (isBandHeroMode) anchorPt.y else -48f
-            val exitX = if (isBandHeroMode) anchorPt.x else receptorX.coerceIn(safeMinX, safeMaxX)
+            val exitX = if (isBandHeroMode) anchorPt.x else (receptorX - lateralOffset * 0.4f).coerceIn(safeMinX, safeMaxX)
             val exitY = if (isBandHeroMode) anchorPt.y else (screenHeight + 65f)
 
             val mappedPowerUpType = cue.powerUpType

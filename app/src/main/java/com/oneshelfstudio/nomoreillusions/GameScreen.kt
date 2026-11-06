@@ -1040,7 +1040,22 @@ fun GameScreen(
                     beatPhase = liveBeatPhase,
                     magnetActive = magnetTime > 0f && !isBandHeroMode,
                     isBandHeroMode = isBandHeroMode,
-                    onBeatMissed = {
+                    onBeatMissed = { missedOrb ->
+                        if (missedOrb.isMusicVideoOrb && cipherMeterProgress > 0f && !brollActive) {
+                            // Missed video relic resets the VHS meter with glitch/haptic feedback
+                            cipherMeterProgress = 0f
+                            triggerHaptic(65L)
+                            shakeAmount = maxOf(shakeAmount, 6.0f)
+                            shockwaves.add(Shockwave(missedOrb.x, screenHeight * 0.65f, 0f, 240f, Color(0xFFFF2A6DL), 0.75f))
+                            activePowerUpToast = PowerUpBannerToast(
+                                icon = "📼",
+                                title = "VIDEO REEL MISSED!",
+                                subtitle = "SIGNAL LOST • VHS METER RESET",
+                                accentColor = Color(0xFFFF2A6DL),
+                                timer = 2.4f,
+                                maxTimer = 2.4f
+                            )
+                        }
                         if (isGoldenActive) {
                             // protected during 24K Overdrive rush!
                         } else if (rhythmCombo > 5) {
@@ -1175,10 +1190,10 @@ fun GameScreen(
                             onBeatHitsThisRun++
                         }
 
-                        // Enigmatic Cipher / VHS Spool Orb: Takes 3 distinct video relics to fill (+34% each), triggering 1 of 2-3 rare video pieces!
+                        // Enigmatic Cipher / VHS Spool Orb: Takes 5 video relics to fill (+20% each), triggering rare video montages!
                         if (p.isMusicVideoOrb && !isSpecialTransitionOrb && isBrollEnabled) {
                             if (!brollActive) {
-                                cipherMeterProgress = (cipherMeterProgress + 0.34f).coerceAtMost(1.0f)
+                                cipherMeterProgress = (cipherMeterProgress + 0.20f).coerceAtMost(1.0f)
                                 shockwaves.add(Shockwave(p.x, p.y, 0f, 135f, Color(0xFF05D9E8L), 0.55f))
                                 shockwaves.add(Shockwave(p.x, p.y, 0f, 95f, Color(0xFFFF2A6DL), 0.45f))
                                 if (cipherMeterProgress >= 0.99f) {
@@ -1534,9 +1549,27 @@ fun GameScreen(
                 chromaticAmount *= 0.88f
                 if (brollCooldown > 0f) brollCooldown -= 0.016f
 
-                // Flowy whispy breakdown slow-mo during "losing your battles" (0:45 - 0:47.5)
-                if (trackSec in 45.0f..47.5f) {
+                // Flowy whispy breakdown slow-mo during "losing your battles" (0:45 - 0:49.5)
+                val isFlowyBreakdownTime = (selectedTrackIndex == 1 && trackSec in 44.5f..49.5f) ||
+                    (selectedTrackIndex == 2 && trackSec in 41.5f..47.0f)
+                if (isFlowyBreakdownTime) {
                     slowMoTime = maxOf(slowMoTime, 0.45f)
+                }
+
+                // If montage timestamp arrived but player did not gather all 5 relics, reset the meter
+                val isMontageCutoff = (selectedTrackIndex == 1 && ((trackSec in 60.5f..61.5f) || (trackSec in 156.5f..157.5f))) ||
+                    (selectedTrackIndex == 2 && ((trackSec in 54.5f..55.5f) || (trackSec in 109.5f..110.5f)))
+                if (isMontageCutoff && cipherMeterProgress > 0f && cipherMeterProgress < 0.99f && !brollActive) {
+                    cipherMeterProgress = 0f
+                    triggerHaptic(40L)
+                    activePowerUpToast = PowerUpBannerToast(
+                        icon = "📼",
+                        title = "REEL INCOMPLETE",
+                        subtitle = "WINDOW MISSED • VHS METER RESET",
+                        accentColor = Color(0xFFFF2A6DL),
+                        timer = 2.0f,
+                        maxTimer = 2.0f
+                    )
                 }
 
                 if (brollActive) {

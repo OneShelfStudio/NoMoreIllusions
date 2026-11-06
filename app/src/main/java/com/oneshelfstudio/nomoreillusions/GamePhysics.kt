@@ -464,10 +464,13 @@ fun stepNebulousBeatOrbs(
             val hasWaterfall = orb.exitY != 0f
 
             if (hasWaterfall) {
-                // Exact linear calibration: arrives at strike line (strikeY) right on targetBeatSec with zero lateral arc
+                // Exact arrival calibration with organic swoop curvature and whispy breakdown slow-motion float
+                val isFlowyBreakdown = (trackSec in 44.5f..49.5f) || (trackSec in 41.5f..47.0f)
                 if (trackSec <= orb.targetBeatSec) {
-                    val u = ((trackSec - orb.spawnBeatSec) / (orb.targetBeatSec - orb.spawnBeatSec).coerceAtLeast(0.01f)).coerceIn(0f, 1f)
-                    orb.baseX = orb.spawnX + u * (orb.anchorX - orb.spawnX)
+                    val rawU = ((trackSec - orb.spawnBeatSec) / (orb.targetBeatSec - orb.spawnBeatSec).coerceAtLeast(0.01f)).coerceIn(0f, 1f)
+                    val u = if (isFlowyBreakdown) (rawU * 0.88f).coerceIn(0f, 1f) else rawU
+                    val swoopOffset = orb.swoopCurve * screenWidth * sin(u * PI.toFloat())
+                    orb.baseX = orb.spawnX + u * (orb.anchorX - orb.spawnX) + swoopOffset
                     orb.baseY = orb.spawnY + u * (strikeY - orb.spawnY)
                 } else {
                     val isSpecial = orb.powerUpType != PowerUpType.NONE || orb.keyWordEffect != KeyWordEffect.NONE
@@ -503,11 +506,15 @@ fun stepNebulousBeatOrbs(
                 orb.baseY = orb.spawnY + s * chordY
             }
 
-            // Flowy/Whispy breakdown harmonic swirl (45.0s - 47.5s "losing your battles")
-            if (trackSec in 45.0f..47.5f) {
-                val flowFrac = sin(((trackSec - 45.0f) / 2.5f) * PI.toFloat()).coerceIn(0f, 1f)
-                val swirlX = sin(trackSec * 3.2f + orb.phase) * (screenWidth * 0.045f) * flowFrac
-                val swirlY = cos(trackSec * 2.8f + orb.phase) * 14f * flowFrac
+            // Flowy/Whispy breakdown harmonic celestial swirl ("losing your battles")
+            val isFlowySwirl = (trackSec in 44.5f..49.5f) || (trackSec in 41.5f..47.0f)
+            if (isFlowySwirl) {
+                val centerT = if (trackSec <= 49.5f && trackSec >= 44.5f) 47.0f else 44.2f
+                val halfSpan = if (trackSec <= 49.5f && trackSec >= 44.5f) 2.5f else 2.7f
+                val flowFrac = (1f - abs(trackSec - centerT) / halfSpan).coerceIn(0f, 1f)
+                val swirlWave = sin(flowFrac * PI.toFloat())
+                val swirlX = sin(trackSec * 2.4f + orb.phase) * (screenWidth * 0.20f) * swirlWave
+                val swirlY = cos(trackSec * 2.0f + orb.phase) * (screenHeight * 0.08f) * swirlWave
                 orb.baseX += swirlX
                 orb.baseY += swirlY
             }

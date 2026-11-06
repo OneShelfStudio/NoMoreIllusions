@@ -707,19 +707,19 @@ fun MenuUI(
                 }
             }
 
-            // 3. Tactile 3D Studio Pill Launch Button (Starbloom Standard)
+            // 3. Tactile 3D Studio Pill Launch Button (Starbloom Standard - Sleek Proportion)
             val isCurrentLaunchUnlocked = selectedTrackIndex == 1 || unlockedTrackCount >= selectedTrackIndex || isVipUnlocked || prefs.getBoolean("art_unlocked_$selectedTrackIndex", false) || prefs.getBoolean("track_unlocked_$selectedTrackIndex", false)
             StudioPillButton(
-                text = if (!isCurrentLaunchUnlocked) "UNLOCK TRACK 0$selectedTrackIndex (${selectedTrack.unlockCost} NOTES)"
-                       else if (isBandHeroMode) "PLAY 4-LANE HIGHWAY"
+                text = if (!isCurrentLaunchUnlocked) "UNLOCK TRACK 0$selectedTrackIndex"
+                       else if (isBandHeroMode) "PLAY HIGHWAY"
                        else "PLAY ${selectedTrack.title.uppercase()}",
-                subText = if (!isCurrentLaunchUnlocked) "TAP TO UNLOCK WITH NOTES"
-                          else "${selectedRemixMode.displayName} • STUDIO MASTER",
+                subText = if (!isCurrentLaunchUnlocked) "TAP TO UNLOCK (${selectedTrack.unlockCost} ♪)"
+                          else "${selectedRemixMode.displayName} • MASTER",
                 palette = if (!isCurrentLaunchUnlocked) StudioPillPalette.SOLAR_GOLD else StudioPillPalette.EMERALD_STAGE,
                 onClick = onStart,
-                height = 54.dp,
-                fontSize = 15.sp,
-                modifier = Modifier.fillMaxWidth(0.94f)
+                height = 46.dp,
+                fontSize = 13.5.sp,
+                modifier = Modifier.width(220.dp)
             )
 
             // Artist Social Links Dock (Official Ethan Correa / No More Illusions)

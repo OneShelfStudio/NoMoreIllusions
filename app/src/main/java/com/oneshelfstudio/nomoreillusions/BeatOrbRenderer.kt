@@ -185,7 +185,7 @@ fun DrawScope.drawPowerUps(
         val isBomb = p.powerUpType == PowerUpType.BLAST || p.keyWordEffect == KeyWordEffect.MAGNETAR_WAR
         val isShield = p.powerUpType == PowerUpType.SHIELD || p.keyWordEffect == KeyWordEffect.TRACTOR_REACH
         val isSpecial = isElectric || isPrism || isVortex || isBomb || isShield
-        val isCipherOrb = p.isMusicVideoOrb && !isSpecial && !isGoldStage
+        val isCipherOrb = p.isMusicVideoOrb && !isSpecial
 
         val expireSec = if (p.expireBeatSec > 0f) p.expireBeatSec else (p.targetBeatSec + 0.45f)
         val ttlRemaining = (expireSec - trackSec).coerceAtLeast(0f)
@@ -201,7 +201,7 @@ fun DrawScope.drawPowerUps(
             beatPhase in 0f..0.24f || beatPhase >= 0.84f
         }
 
-        val specialScaleMult = if (isSpecial) 1.24f else if (isCipherOrb) 1.12f else 1.0f
+        val specialScaleMult = if (isSpecial) 1.24f else if (isCipherOrb) 1.15f else 1.0f
         val beatPulseScale = 1.0f + (if (isOnBeatNow) 0.16f else 0.07f) * beatKick +
             0.05f * sin((beatPhase.coerceIn(0f, 1f)) * 6.283185f)
         val coreRad = p.radius * perspScale * specialScaleMult * beatPulseScale
@@ -211,13 +211,13 @@ fun DrawScope.drawPowerUps(
 
         val laneIdx = (p.phraseBeatNum - 1).coerceIn(0, 3)
         val effectColor = when {
+            isCipherOrb -> Color(0xFF05D9E8L)
             isGoldStage || p.isGoldenOrb -> Color(0xFFFACC15L)
             isElectric -> Color(0xFFFACC15L)
             isPrism -> Color(0xFF4ADE80L)
             isVortex -> Color(0xFFC084FCL)
             isBomb -> Color(0xFFF97316L)
             isShield -> Color(0xFF38BDF8L)
-            isCipherOrb -> Color(0xFF05D9E8L)
             else -> laneColors[laneIdx]
         }
 

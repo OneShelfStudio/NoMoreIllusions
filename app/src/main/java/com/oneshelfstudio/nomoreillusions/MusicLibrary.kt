@@ -189,10 +189,10 @@ object MusicLibrary {
             KeyWordAnchor(185.00f, KeyWordEffect.CONSTELLATION_STAR) // 3:05.0 Ending Climax Riff (⚡ Electric Overdrive)
         )
 
-        // Exact Video Relic timestamps (3 relics per montage trigger):
-        // Set 1 (triggers 1:00 montage): 0:33.87, 0:42.58, 0:56.61
-        // Set 2 (triggers 2:36 montage): 2:05.16 (125.16s), 2:18.70 (138.70s), 2:32.25 (152.25s)
-        val videoRelicBeats = setOf(70, 88, 117, 259, 287, 315)
+        // Exact Video Relic timestamps (5 relics per montage trigger):
+        // Set 1 (triggers 1:00 montage): ~33.8s (beat 70), ~39.7s (beat 82), ~45.5s (beat 94), ~51.3s (beat 106), ~57.6s (beat 119)
+        // Set 2 (triggers 2:36 montage): ~112.3s (beat 232), ~122.4s (beat 253), ~132.6s (beat 274), ~142.7s (beat 295), ~153.9s (beat 318)
+        val videoRelicBeats = setOf(70, 82, 94, 106, 119, 232, 253, 274, 295, 318)
 
         val cues = ArrayList<BeatOrbCue>(200)
         val usedAnchors = HashSet<Int>()
@@ -205,9 +205,9 @@ object MusicLibrary {
             val inIntroDrift = t < 7.0f
             val inDrumCadence = t in 7.0f..15.0f
             val inChorus1 = t in 15.0f..31.0f
-            val inVerse1 = t in 31.0f..45.0f
-            val inWhispyBreakdown = t in 45.0f..47.5f
-            val inPreMontage1 = t in 47.5f..60.0f
+            val inVerse1 = t in 31.0f..44.5f
+            val inWhispyBreakdown = t in 44.5f..49.5f
+            val inPreMontage1 = t in 49.5f..60.0f
             val inMontage1 = t in 60.0f..68.5f
             val inDrumRiser = t in 68.5f..77.0f
             val inChorus2 = t in 77.0f..93.0f
@@ -313,8 +313,8 @@ object MusicLibrary {
             )
             seq++
             beatIdx += when {
-                inDrumCadence || inDrumRiser -> 1 // Clear quarter-note drum beat stream!
-                inIntroDrift || inWhispyBreakdown || inSpokenFloat -> 2
+                inDrumCadence || inDrumRiser || inWhispyBreakdown -> 1 // Clear drum stream and flowing celestial cluster
+                inIntroDrift || inSpokenFloat -> 2
                 inChorus1 || inChorus2 || inChorus3 || inClimaxRiff -> if (seq % 3 == 0) 1 else 2
                 inOutroSlowdown -> 4 // Spaced out false ending notes!
                 else -> if (seq % 2 == 0) 1 else 2
@@ -339,10 +339,10 @@ object MusicLibrary {
             KeyWordAnchor(129.55f, KeyWordEffect.CONSTELLATION_STAR) // 2:09.5 Ending Breakdown Climax (⚡ Electric Overdrive)
         )
 
-        // Exact Video Relic beats for Number One:
-        // Set 1 (triggers 0:54 montage): ~34.0s (beat 50), ~42.2s (beat 62), ~50.4s (beat 74)
-        // Set 2 (triggers 2:09 montage): ~113.1s (beat 166), ~120.0s (beat 176), ~126.8s (beat 186)
-        val videoRelicBeats = setOf(50, 62, 74, 166, 176, 186)
+        // Exact Video Relic beats for Number One (5 relics per montage trigger):
+        // Set 1 (triggers 0:54 montage): ~24.5s (beat 36), ~30.0s (beat 44), ~35.5s (beat 52), ~42.3s (beat 62), ~50.5s (beat 74)
+        // Set 2 (triggers 1:49 montage): ~70.9s (beat 104), ~80.5s (beat 118), ~90.0s (beat 132), ~98.2s (beat 144), ~106.4s (beat 156)
+        val videoRelicBeats = setOf(36, 44, 52, 62, 74, 104, 118, 132, 144, 156)
 
         val cues = ArrayList<BeatOrbCue>(260)
         val usedAnchors = HashSet<Int>()
