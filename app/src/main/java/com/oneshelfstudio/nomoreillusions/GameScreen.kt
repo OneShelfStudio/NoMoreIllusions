@@ -600,15 +600,20 @@ fun GameScreen(
                 delay(950)
                 countdownValue--
             }
-            delay(220)
+            delay(150)
             levelPlayTime = 0f
-            spawnInvulnerabilityTime = 2.0f
+            spawnInvulnerabilityTime = 3.0f
+            gameState = GameState.PLAYING
             if (isRevivingRun) {
                 audioEngine.resumeTrack()
             } else {
-                audioEngine.startTrack(selectedTrackIndex, forceRestart = true, remixMode = selectedRemixMode)
+                // 1-second pre-music movement buffer: player has full glide control, camera/motes move,
+                // and orbs slowly start falling into view BEFORE the audio kicks in!
+                delay(1000)
+                if (gameState == GameState.PLAYING) {
+                    audioEngine.startTrack(selectedTrackIndex, forceRestart = true, remixMode = selectedRemixMode)
+                }
             }
-            gameState = GameState.PLAYING
         }
     }
 
@@ -622,7 +627,7 @@ fun GameScreen(
                 lastFrameNanos = frameTimeNanos
                 val frameFactor = dt / 0.016f
 
-                liveBeatPhase = audioEngine.getBeatPhase()
+                liveBeatPhase = if (audioEngine.isTrackPlaying()) audioEngine.getBeatPhase() else 0f
                 if (gameState == GameState.MENU) {
                     gameTime += dt
                     liveAudioEnergy = 0.42f + 0.08f * sin(gameTime * 0.8f)
@@ -710,7 +715,10 @@ fun GameScreen(
                 }
 
                 // 1. Sub-millisecond monotonic song clock & 4Hz (250ms) Multi-Band Spectral State
-                val trackSec = audioEngine.trackPositionSeconds()
+                val rawTrackSec = audioEngine.trackPositionSeconds()
+                val isAudioRunning = audioEngine.isTrackPlaying()
+                // During pre-music movement buffer, trackSec advances smoothly from -1.0s to 0.0s so orbs descend smoothly
+                val trackSec = if (isAudioRunning) rawTrackSec else (levelPlayTime - 1.0f)
                 liveTrackSec = trackSec
                 val activeTrack = MusicLibrary.getTrack(selectedTrackIndex)
                 val mb = MusicLibrary.getMultiBandStateAt(selectedTrackIndex, trackSec)
@@ -1177,8 +1185,10 @@ fun GameScreen(
                                     cipherMeterProgress = 1.0f
                                     isCipherArmed = false
                                     brollClipIndex = (brollClipIndex + 1 + kotlin.random.Random.nextInt(3)) % 4
-                                    brollDurationTotal = 6.4f
-                                    brollTimer = 6.4f
+                                    // Montage 1 (around 1:00) runs 8.5s until 1:08; Montage 2 (around 2:36) runs 14.0s until 2:50
+                                    val montageDuration = if (trackSec < 120.0f) 8.5f else 14.0f
+                                    brollDurationTotal = montageDuration
+                                    brollTimer = montageDuration
                                     brollActive = true
                                     triggerHaptic(50L)
                                     shockwaves.add(Shockwave(screenWidth * 0.5f, screenHeight * 0.45f, 0f, maxOf(screenWidth, screenHeight) * 0.75f, Color(0xFF05D9E8L), 0.90f))
@@ -1523,8 +1533,24 @@ fun GameScreen(
                 shakeAmount *= 0.88f
                 chromaticAmount *= 0.88f
                 if (brollCooldown > 0f) brollCooldown -= 0.016f
+
+                // Flowy whispy breakdown slow-mo during "losing your battles" (0:45 - 0:47.5)
+                if (trackSec in 45.0f..47.5f) {
+                    slowMoTime = maxOf(slowMoTime, 0.45f)
+                }
+
                 if (brollActive) {
                     brollTimer -= 0.016f
+                    // Smooth slow-mo during video montages
+                    slowMoTime = maxOf(slowMoTime, 0.38f)
+                    // If running the long 14-second Montage 2 ("oooohs"), cycle clips every 4.5s
+                    if (brollDurationTotal > 10.0f) {
+                        val elapsed = brollDurationTotal - brollTimer
+                        val clipCycle = ((elapsed / 4.5f).toInt() % 4)
+                        if (clipCycle != (brollClipIndex % 4)) {
+                            brollClipIndex = clipCycle
+                        }
+                    }
                     if (brollTimer <= 0f) {
                         brollActive = false
                         cipherMeterProgress = 0f

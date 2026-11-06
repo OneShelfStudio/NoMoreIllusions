@@ -464,11 +464,10 @@ fun stepNebulousBeatOrbs(
             val hasWaterfall = orb.exitY != 0f
 
             if (hasWaterfall) {
-                // Exact calibration: arrives at strike line (strikeY) right on targetBeatSec
+                // Exact linear calibration: arrives at strike line (strikeY) right on targetBeatSec with zero lateral arc
                 if (trackSec <= orb.targetBeatSec) {
                     val u = ((trackSec - orb.spawnBeatSec) / (orb.targetBeatSec - orb.spawnBeatSec).coerceAtLeast(0.01f)).coerceIn(0f, 1f)
-                    val arcOffset = sin(u * PI.toFloat()) * orb.swoopCurve * (screenWidth * 0.20f)
-                    orb.baseX = orb.spawnX + u * (orb.anchorX - orb.spawnX) + arcOffset
+                    orb.baseX = orb.spawnX + u * (orb.anchorX - orb.spawnX)
                     orb.baseY = orb.spawnY + u * (strikeY - orb.spawnY)
                 } else {
                     val isSpecial = orb.powerUpType != PowerUpType.NONE || orb.keyWordEffect != KeyWordEffect.NONE
@@ -499,12 +498,18 @@ fun stepNebulousBeatOrbs(
                 val exitY = 2f * orb.anchorY - orb.spawnY
                 val chordX = exitX - orb.spawnX
                 val chordY = exitY - orb.spawnY
-                val perpX = -chordY * 0.35f
-                val perpY = chordX * 0.35f
                 val s = ((trackSec - orb.spawnBeatSec) / (leadDur * 2f)).coerceIn(0f, 1.25f)
-                val arcOffset = sin(s.coerceIn(0f, 1f) * PI.toFloat()) * orb.swoopCurve
-                orb.baseX = orb.spawnX + s * chordX + perpX * arcOffset
-                orb.baseY = orb.spawnY + s * chordY + perpY * arcOffset
+                orb.baseX = orb.spawnX + s * chordX
+                orb.baseY = orb.spawnY + s * chordY
+            }
+
+            // Flowy/Whispy breakdown harmonic swirl (45.0s - 47.5s "losing your battles")
+            if (trackSec in 45.0f..47.5f) {
+                val flowFrac = sin(((trackSec - 45.0f) / 2.5f) * PI.toFloat()).coerceIn(0f, 1f)
+                val swirlX = sin(trackSec * 3.2f + orb.phase) * (screenWidth * 0.045f) * flowFrac
+                val swirlY = cos(trackSec * 2.8f + orb.phase) * 14f * flowFrac
+                orb.baseX += swirlX
+                orb.baseY += swirlY
             }
 
             // Calculate smooth 2D trajectory velocity for silk comet ribbon orientation

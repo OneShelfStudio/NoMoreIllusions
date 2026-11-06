@@ -510,14 +510,12 @@ internal fun spawnStationaryBeatOrbsForFrame(
                 Offset(receptorX, receptorY)
             }
 
-            // Coherent harmonic wave curve (no opposing +/-0.36 crossovers!)
-            val swoopCurve = if (isBandHeroMode || isSpecialCue) 0f
-            else sin(cue.sequenceIndex * 0.52f) * (if (isFluidMoment) 0.14f else 0.08f)
+            // Clean Linear Trajectory: Zero lateral swoop, zero crossing arcs, zero orbital loops
+            val swoopCurve = 0f
 
-            val lateralOffset = swoopCurve * screenWidth * 0.16f
-            val startX = if (isBandHeroMode) anchorPt.x else (receptorX + lateralOffset).coerceIn(safeMinX, safeMaxX)
+            val startX = if (isBandHeroMode) anchorPt.x else receptorX.coerceIn(safeMinX, safeMaxX)
             val startY = if (isBandHeroMode) anchorPt.y else -48f
-            val exitX = if (isBandHeroMode) anchorPt.x else (receptorX - lateralOffset * 0.5f).coerceIn(safeMinX, safeMaxX)
+            val exitX = if (isBandHeroMode) anchorPt.x else receptorX.coerceIn(safeMinX, safeMaxX)
             val exitY = if (isBandHeroMode) anchorPt.y else (screenHeight + 65f)
 
             val mappedPowerUpType = cue.powerUpType

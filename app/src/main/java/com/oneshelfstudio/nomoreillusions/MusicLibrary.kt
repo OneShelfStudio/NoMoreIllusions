@@ -179,29 +179,46 @@ object MusicLibrary {
      */
     private fun buildConfideOrbChart(): List<BeatOrbCue> {
         val beatSec = 60f / 124f // 0.48387s
-        // ONLY Rare Milestone Orbs placed at major musical transitions & drops across the entire 3:39 track
+        // Master Choreographed Milestone Drops per Ethan's musical timeline:
         val specialMoments = listOf(
-            KeyWordAnchor(14.52f, KeyWordEffect.CONSTELLATION_STAR), // 0:14.5 Intro Drop into Chorus 1 (⚡ Electric Overdrive)
-            KeyWordAnchor(45.97f, KeyWordEffect.PRISM_SHATTER),      // 0:46.0 Pre-Chorus Vocal Surge (✨ Prism Vocal Bloom)
-            KeyWordAnchor(75.48f, KeyWordEffect.MAGNETAR_WAR),       // 1:15.5 Chorus 2 Drop (💥 Solar Nova Blast)
-            KeyWordAnchor(124.0f, KeyWordEffect.ECLIPSE_DARK),       // 2:04.0 Hook Vocal Float (🌀 Vortex Slow-Mo)
+            KeyWordAnchor(15.00f, KeyWordEffect.CONSTELLATION_STAR), // 0:15.0 24K Milestone 1 near top-center!
+            KeyWordAnchor(45.50f, KeyWordEffect.PRISM_SHATTER),      // 0:45.5 Whispy flow breakdown ("losing your battles")
+            KeyWordAnchor(77.42f, KeyWordEffect.CONSTELLATION_STAR), // 1:17.4 24K Milestone 2 with enhanced spectacle!
+            KeyWordAnchor(108.0f, KeyWordEffect.ECLIPSE_DARK),       // 1:48.0 Spoken vocal float (intimate slow-mo)
             KeyWordAnchor(137.42f, KeyWordEffect.CONSTELLATION_STAR),// 2:17.5 Chorus 3 Drop (⚡ Electric Overdrive)
-            KeyWordAnchor(183.87f, KeyWordEffect.CONSTELLATION_STAR) // 3:03.9 Ending Breakdown Climax (⚡ Electric Overdrive)
+            KeyWordAnchor(185.00f, KeyWordEffect.CONSTELLATION_STAR) // 3:05.0 Ending Climax Riff (⚡ Electric Overdrive)
         )
 
-        val cues = ArrayList<BeatOrbCue>(190)
+        // Exact Video Relic timestamps (3 relics per montage trigger):
+        // Set 1 (triggers 1:00 montage): 0:33.87, 0:42.58, 0:56.61
+        // Set 2 (triggers 2:36 montage): 2:05.16 (125.16s), 2:18.70 (138.70s), 2:32.25 (152.25s)
+        val videoRelicBeats = setOf(70, 88, 117, 259, 287, 315)
+
+        val cues = ArrayList<BeatOrbCue>(200)
         val usedAnchors = HashSet<Int>()
-        var beatIdx = 4
+        var beatIdx = 2 // Start on beat 2 (0.96s) so initial notes are already visible descending during pre-music drift!
         var seq = 1
         var prevX = 0.50f
         var prevY = 0.52f
-        while (beatIdx * beatSec <= 213.0f) {
+        while (beatIdx * beatSec <= 212.0f) {
             val t = beatIdx * beatSec
-            val inIntroLull = t < 7.2f
-            val inBreakdown = (t in 62.0f..68.8f) || (t in 124.0f..130.8f)
-            val inRiser = (t in 69.0f..75.4f) || (t in 131.0f..137.3f)
-            val inChorusOrFinale = (t in 14.5f..30.8f) || (t in 75.5f..92.8f) || (t in 137.5f..154.8f) || (t in 183.5f..201.0f)
-            val inOutro = t >= 207.8f
+            val inIntroDrift = t < 7.0f
+            val inDrumCadence = t in 7.0f..15.0f
+            val inChorus1 = t in 15.0f..31.0f
+            val inVerse1 = t in 31.0f..45.0f
+            val inWhispyBreakdown = t in 45.0f..47.5f
+            val inPreMontage1 = t in 47.5f..60.0f
+            val inMontage1 = t in 60.0f..68.5f
+            val inDrumRiser = t in 68.5f..77.0f
+            val inChorus2 = t in 77.0f..93.0f
+            val inVerse2 = t in 93.0f..108.0f
+            val inSpokenFloat = t in 108.0f..124.0f
+            val inBuildUp2 = t in 124.0f..137.5f
+            val inChorus3 = t in 137.5f..155.0f
+            val inMontage2 = t in 155.0f..170.0f // 2:35 - 2:50
+            val inPostMontageCadence = t in 170.0f..184.0f
+            val inClimaxRiff = t in 184.0f..202.0f
+            val inOutroSlowdown = t >= 202.0f
 
             var matchedIdx = -1
             var bestDist = beatSec * 0.9f
@@ -223,44 +240,51 @@ object MusicLibrary {
             val effect = anchor?.effect ?: KeyWordEffect.NONE
             val isGolden = effect == KeyWordEffect.CONSTELLATION_STAR
 
-            // Sequential 4-Beat Phrase Choreography (Osu! / Piano Tiles / Guitar Hero style):
-            // Consecutive beats (1 -> 2 -> 3 -> 4) form smooth, connected paths so players can
-            // glide in rhythm from beat to beat without chaotic cross-screen jumps.
+            // Sequential 4-Beat Phrase Choreography (clean parallel streams, reachable by single thumb):
             val phraseIdx = (seq - 1) / 4
-            val stepInPhrase = (seq - 1) % 4 // 0, 1, 2, 3
+            val stepInPhrase = (seq - 1) % 4
             val (rawX, rawY) = when {
-                inRiser -> {
-                    // Ascending rhythmic staircase climbing toward the Chorus Drop!
-                    val riserProgress = if (t < 100f) ((t - 69f) / 6.4f).coerceIn(0f, 1f) else ((t - 131f) / 6.3f).coerceIn(0f, 1f)
-                    val laneX = 0.30f + (stepInPhrase / 3f) * 0.40f * (if (phraseIdx % 2 == 0) 1f else -1f) + (if (phraseIdx % 2 == 0) 0f else 0.40f)
-                    laneX.coerceIn(0.24f, 0.76f) to (0.72f - riserProgress * 0.40f).coerceIn(0.28f, 0.74f)
-                }
-                inIntroLull || inBreakdown || inOutro -> {
-                    // Gentle centered crescent arc
-                    val a = seq * 0.62f
-                    (0.50f + 0.18f * sin(a)) to (0.50f + 0.10f * cos(a))
-                }
-                inChorusOrFinale -> {
-                    // Sweeping 4-beat constellation arcs across the arena
+                // 15.0s milestone orb MUST arrive near top-center!
+                matchedIdx == 0 -> 0.50f to 0.44f
+                // 1:17.4 second 24K milestone also centered
+                matchedIdx == 2 -> 0.50f to 0.46f
+                inDrumCadence || inDrumRiser -> {
+                    // Crisp, alternating thumb-friendly rhythmic staircase
                     val dir = if (phraseIdx % 2 == 0) 1f else -1f
-                    val arcT = (stepInPhrase / 3f) - 0.5f // -0.5 .. +0.5
-                    val cx = 0.50f + dir * arcT * 0.46f
-                    val cy = 0.48f + sin(phraseIdx * 1.1f + stepInPhrase * 0.65f) * 0.18f
-                    cx.coerceIn(0.20f, 0.80f) to cy.coerceIn(0.28f, 0.72f)
+                    val lx = 0.50f + dir * ((stepInPhrase - 1.5f) / 3f) * 0.36f
+                    lx.coerceIn(0.24f, 0.76f) to 0.52f
+                }
+                inWhispyBreakdown || inSpokenFloat -> {
+                    // Centered gentle drifting arc
+                    val a = seq * 0.55f
+                    (0.50f + 0.16f * sin(a)) to (0.48f + 0.08f * cos(a))
+                }
+                inOutroSlowdown -> {
+                    // Surprise false-ending notes on alternate sides
+                    val side = if (seq % 2 == 0) 0.68f else 0.32f
+                    side to 0.50f
+                }
+                inChorus1 || inChorus2 || inChorus3 || inClimaxRiff -> {
+                    // Sweeping wide arcs across chorus drops
+                    val dir = if (phraseIdx % 2 == 0) 1f else -1f
+                    val arcT = (stepInPhrase / 3f) - 0.5f
+                    val cx = 0.50f + dir * arcT * 0.42f
+                    val cy = 0.48f + sin(phraseIdx * 1.1f + stepInPhrase * 0.65f) * 0.14f
+                    cx.coerceIn(0.22f, 0.78f) to cy.coerceIn(0.32f, 0.68f)
                 }
                 else -> {
-                    // Smooth flowing S-curve figure-8 pocket for Verses
-                    val a = seq * 0.48f
-                    (0.50f + 0.24f * sin(a)).coerceIn(0.22f, 0.78f) to
-                        (0.50f + 0.16f * cos(a * 0.75f)).coerceIn(0.30f, 0.70f)
+                    // Gentle figure-8 verse pocket
+                    val a = seq * 0.46f
+                    (0.50f + 0.22f * sin(a)).coerceIn(0.24f, 0.76f) to
+                        (0.50f + 0.14f * cos(a * 0.75f)).coerceIn(0.32f, 0.68f)
                 }
             }
 
             // Clamp maximum step distance from previous beat so consecutive beats are always smoothly reachable
             val dx = (rawX - prevX).coerceIn(-0.24f, 0.24f)
             val dy = (rawY - prevY).coerceIn(-0.20f, 0.20f)
-            val nx = (prevX + dx).coerceIn(0.20f, 0.80f)
-            val ny = (prevY + dy).coerceIn(0.28f, 0.74f)
+            val nx = if (matchedIdx == 0 || matchedIdx == 2) 0.50f else (prevX + dx).coerceIn(0.22f, 0.78f)
+            val ny = if (matchedIdx == 0 || matchedIdx == 2) 0.46f else (prevY + dy).coerceIn(0.30f, 0.70f)
             prevX = nx
             prevY = ny
 
@@ -273,11 +297,7 @@ object MusicLibrary {
                 else -> PowerUpType.NONE
             }
 
-            val isVideoCue = (effect == KeyWordEffect.NONE && !isGolden) && (
-                (t in 24.5f..29.5f && seq % 2 == 1) ||
-                (t in 70.0f..75.0f && seq % 2 == 1) ||
-                (t in 178.0f..183.0f && seq % 2 == 1)
-            )
+            val isVideoCue = (effect == KeyWordEffect.NONE && !isGolden) && (beatIdx in videoRelicBeats)
 
             cues.add(
                 BeatOrbCue(
@@ -293,10 +313,11 @@ object MusicLibrary {
             )
             seq++
             beatIdx += when {
-                inIntroLull || inBreakdown || inOutro -> 2 // Active 2-beat pocket (no empty dead pauses)
-                inRiser -> 1                               // Every single quarter-note beat on drum risers!
-                inChorusOrFinale -> if (seq % 3 == 0) 1 else 2 // High-energy chorus drive
-                else -> if (seq % 2 == 0) 1 else 2         // Syncopated hi-hat pocket groove
+                inDrumCadence || inDrumRiser -> 1 // Clear quarter-note drum beat stream!
+                inIntroDrift || inWhispyBreakdown || inSpokenFloat -> 2
+                inChorus1 || inChorus2 || inChorus3 || inClimaxRiff -> if (seq % 3 == 0) 1 else 2
+                inOutroSlowdown -> 4 // Spaced out false ending notes!
+                else -> if (seq % 2 == 0) 1 else 2
             }
         }
         return cues
@@ -308,14 +329,20 @@ object MusicLibrary {
      */
     private fun buildNumberOneOrbChart(): List<BeatOrbCue> {
         val beatSec = 60f / 88f // 0.6818s
-        // ONLY Rare Milestone Orbs placed at major musical transitions & drops across the entire 2:46 track
+        // Master Choreographed Milestone Drops per Ethan's musical timeline:
         val specialMoments = listOf(
+            KeyWordAnchor(21.14f, KeyWordEffect.CONSTELLATION_STAR), // 0:21.1 24K Milestone 1 near top-center!
             KeyWordAnchor(44.32f, KeyWordEffect.MAGNETAR_WAR),       // 0:44.3 Pre-Chorus I Swell (💥 Solar Nova Blast)
             KeyWordAnchor(54.55f, KeyWordEffect.CONSTELLATION_STAR), // 0:54.5 Chorus I Drop (⚡ Electric Overdrive)
-            KeyWordAnchor(92.05f, KeyWordEffect.PRISM_SHATTER),      // 1:32.0 Verse Two "Rap" (✨ Prism Vocal Bloom)
+            KeyWordAnchor(92.05f, KeyWordEffect.CONSTELLATION_STAR), // 1:32.0 24K Milestone 2 on Verse Two Rap drop
             KeyWordAnchor(109.09f, KeyWordEffect.ECLIPSE_DARK),      // 1:49.1 Chorus II Slow-Mo Pocket (🌀 Vortex Slow-Mo)
             KeyWordAnchor(129.55f, KeyWordEffect.CONSTELLATION_STAR) // 2:09.5 Ending Breakdown Climax (⚡ Electric Overdrive)
         )
+
+        // Exact Video Relic beats for Number One:
+        // Set 1 (triggers 0:54 montage): ~34.0s (beat 50), ~42.2s (beat 62), ~50.4s (beat 74)
+        // Set 2 (triggers 2:09 montage): ~113.1s (beat 166), ~120.0s (beat 176), ~126.8s (beat 186)
+        val videoRelicBeats = setOf(50, 62, 74, 166, 176, 186)
 
         val cues = ArrayList<BeatOrbCue>(260)
         val usedAnchors = HashSet<Int>()
@@ -326,23 +353,23 @@ object MusicLibrary {
 
         var verseCadenceIdx = 0
         val verseStepPatterns = listOf(
-            floatArrayOf(1.0f, 1.0f, 1.0f, 1.0f),      // Bar 1: Steady 4-beat pulse
-            floatArrayOf(1.0f, 1.0f, 0.5f, 1.5f),      // Bar 2: Vocal syncopation on 3.5
-            floatArrayOf(1.0f, 0.5f, 0.5f, 1.0f, 1.0f), // Bar 3: Quick vocal rhyme bounce
-            floatArrayOf(1.5f, 0.5f, 1.0f, 1.0f)       // Bar 4: Vocal hold with delayed entry
+            floatArrayOf(1.0f, 1.0f, 1.0f, 1.0f),
+            floatArrayOf(1.0f, 1.0f, 0.5f, 1.5f),
+            floatArrayOf(1.0f, 0.5f, 0.5f, 1.0f, 1.0f),
+            floatArrayOf(1.5f, 0.5f, 1.0f, 1.0f)
         )
         val chorusStepPattern = floatArrayOf(0.75f, 0.75f, 0.5f, 1.0f, 1.0f)
         var chorusStepToggle = 0
 
         while (beatTime <= 161.5f) {
             val t = beatTime
-            val inIntroOrOutro = t < 9.8f || t >= 152.5f
-            val isVerse = (t in 22.0f..44.0f) || (t in 76.0f..91.5f)
-            val isPreChorus = (t in 44.0f..51.0f) || (t in 101.0f..105.0f)
+            val inIntroOrOutro = t < 9.8f || t >= 148.0f
+            val isVerse = (t in 22.0f..44.0f) || (t in 65.0f..91.5f)
+            val isPreChorus = (t in 44.0f..51.0f) || (t in 98.5f..105.0f)
             val inHush = (t in 51.0f..54.3f) || (t in 105.0f..108.8f)
             val isRap = t in 91.5f..98.5f
-            val isChorus = (t in 54.5f..76.0f) || (t in 109.0f..129.0f)
-            val isClimax = t in 129.0f..152.0f
+            val isChorus = (t in 54.5f..65.0f) || (t in 109.0f..129.0f)
+            val isClimax = t in 129.0f..148.0f
 
             var matchedIdx = -1
             var bestDist = beatSec * 0.9f
@@ -367,6 +394,7 @@ object MusicLibrary {
             val phraseIdx = (seq - 1) / 4
             val stepInPhrase = (seq - 1) % 4
             val (rawX, rawY) = when {
+                matchedIdx == 0 || matchedIdx == 3 -> 0.50f to 0.44f // Centered 24K Milestones
                 isRap -> {
                     val dir = if (phraseIdx % 2 == 0) 1f else -1f
                     val lx = 0.50f + dir * ((stepInPhrase - 1.5f) * 0.14f)
@@ -374,37 +402,38 @@ object MusicLibrary {
                     lx.coerceIn(0.24f, 0.76f) to ly.coerceIn(0.30f, 0.70f)
                 }
                 inIntroOrOutro || inHush -> {
-                    0.50f + 0.15f * cos(seq * 0.65f) to 0.50f + 0.09f * sin(seq * 0.65f)
+                    val side = if (seq % 2 == 0) 0.65f else 0.35f
+                    side to 0.50f
                 }
                 isChorus -> {
                     val chorusPositions = floatArrayOf(0.40f, 0.70f, 0.25f, 0.60f, 0.80f, 0.30f)
                     val cx = chorusPositions[(seq - 1) % chorusPositions.size]
                     val cy = 0.44f + 0.15f * sin(seq * 0.8f)
-                    cx.coerceIn(0.20f, 0.80f) to cy.coerceIn(0.28f, 0.72f)
+                    cx.coerceIn(0.22f, 0.78f) to cy.coerceIn(0.32f, 0.68f)
                 }
                 isVerse -> {
                     val barProg = (seq % 8) / 8.0f
                     val vx = 0.30f + 0.40f * (0.5f + 0.5f * sin(barProg * 6.28318f))
                     val vy = 0.42f + 0.12f * cos(barProg * 3.14159f)
-                    vx.coerceIn(0.22f, 0.78f) to vy.coerceIn(0.30f, 0.72f)
+                    vx.coerceIn(0.24f, 0.76f) to vy.coerceIn(0.32f, 0.68f)
                 }
                 isPreChorus || isClimax -> {
                     val prog = (seq % 6) / 6.0f
-                    val px = if (phraseIdx % 2 == 0) (0.25f + prog * 0.50f) else (0.75f - prog * 0.50f)
-                    val py = 0.38f + 0.22f * prog
-                    px.coerceIn(0.20f, 0.80f) to py.coerceIn(0.28f, 0.72f)
+                    val px = if (phraseIdx % 2 == 0) (0.28f + prog * 0.44f) else (0.72f - prog * 0.44f)
+                    val py = 0.40f + 0.18f * prog
+                    px.coerceIn(0.22f, 0.78f) to py.coerceIn(0.32f, 0.68f)
                 }
                 else -> {
                     val ribbonPhase = seq * 0.46f
-                    (0.50f + 0.23f * cos(ribbonPhase)).coerceIn(0.22f, 0.78f) to
-                        (0.50f + 0.16f * sin(ribbonPhase * 0.72f)).coerceIn(0.30f, 0.72f)
+                    (0.50f + 0.20f * cos(ribbonPhase)).coerceIn(0.24f, 0.76f) to
+                        (0.50f + 0.14f * sin(ribbonPhase * 0.72f)).coerceIn(0.32f, 0.68f)
                 }
             }
 
             val dx = (rawX - prevX).coerceIn(-0.24f, 0.24f)
             val dy = (rawY - prevY).coerceIn(-0.20f, 0.20f)
-            val nx = (prevX + dx).coerceIn(0.20f, 0.80f)
-            val ny = (prevY + dy).coerceIn(0.28f, 0.74f)
+            val nx = if (matchedIdx == 0 || matchedIdx == 3) 0.50f else (prevX + dx).coerceIn(0.22f, 0.78f)
+            val ny = if (matchedIdx == 0 || matchedIdx == 3) 0.46f else (prevY + dy).coerceIn(0.30f, 0.70f)
             prevX = nx
             prevY = ny
 
@@ -417,10 +446,8 @@ object MusicLibrary {
                 else -> PowerUpType.NONE
             }
 
-            val isVideoCue = (effect == KeyWordEffect.NONE && !isGolden) && (
-                (t in 47.0f..53.5f && seq % 2 == 1) ||
-                (t in 123.0f..128.5f && seq % 2 == 1)
-            )
+            val beatNumber = (t / beatSec).roundToInt()
+            val isVideoCue = (effect == KeyWordEffect.NONE && !isGolden) && (beatNumber in videoRelicBeats)
 
             cues.add(
                 BeatOrbCue(
@@ -437,7 +464,7 @@ object MusicLibrary {
             seq++
 
             val stepBeats = when {
-                inIntroOrOutro -> 1.5f
+                inIntroOrOutro -> 2.0f // Spaced out false-ending pegs
                 inHush -> 1.0f
                 isChorus -> {
                     val sb = chorusStepPattern[chorusStepToggle % chorusStepPattern.size]
@@ -468,24 +495,22 @@ object MusicLibrary {
             unlockCost = 0,
             audioResName = "track_01",
             sections = listOf(
-                TrackSection(0f, "INTRO", JuiceTier.NONE, StageMode.ABYSSAL_WAVE, isGoldenOverdrive = false, maxEnemies = 0, enemySpeedMult = 0.0f, clearEnemiesOnEnter = true, allowAnomalies = false),
-                TrackSection(7.25f, "INTRO BUILD", JuiceTier.SECTION_SHIFT, StageMode.SPEED_PORTAL, isGoldenOverdrive = false, maxEnemies = 1, enemySpeedMult = 0.68f, clearEnemiesOnEnter = false, allowAnomalies = false),
-                TrackSection(14.5f, "CHORUS I", JuiceTier.EXTRA_JUICE, StageMode.GOLDEN_OVERDRIVE, isGoldenOverdrive = true, maxEnemies = 2, enemySpeedMult = 0.88f, clearEnemiesOnEnter = false, allowAnomalies = true),
-                TrackSection(31.0f, "VERSE ONE", JuiceTier.SECTION_SHIFT, StageMode.ABYSSAL_WAVE, isGoldenOverdrive = false, maxEnemies = 1, enemySpeedMult = 0.72f, clearEnemiesOnEnter = false, allowAnomalies = false),
-                TrackSection(45.5f, "PRE-CHORUS", JuiceTier.SLIGHT_EXTRA_JUICE, StageMode.SPEED_PORTAL, isGoldenOverdrive = false, maxEnemies = 2, enemySpeedMult = 0.82f, clearEnemiesOnEnter = false, allowAnomalies = true),
-                TrackSection(62.0f, "BREAKDOWN", JuiceTier.SECTION_SHIFT, StageMode.MAGIC_LANES, isGoldenOverdrive = false, maxEnemies = 0, enemySpeedMult = 0.0f, clearEnemiesOnEnter = true, allowAnomalies = false),
-                TrackSection(69.25f, "DRUM RISER", JuiceTier.SLIGHT_EXTRA_JUICE, StageMode.SPEED_PORTAL, isGoldenOverdrive = false, maxEnemies = 1, enemySpeedMult = 0.78f, clearEnemiesOnEnter = false, allowAnomalies = false),
-                TrackSection(75.5f, "CHORUS II", JuiceTier.EXTRA_JUICE, StageMode.GOLDEN_OVERDRIVE, isGoldenOverdrive = true, maxEnemies = 3, enemySpeedMult = 0.92f, clearEnemiesOnEnter = false, allowAnomalies = true),
-                TrackSection(93.0f, "VERSE TWO", JuiceTier.SECTION_SHIFT, StageMode.ABYSSAL_WAVE, isGoldenOverdrive = false, maxEnemies = 1, enemySpeedMult = 0.74f, clearEnemiesOnEnter = false, allowAnomalies = false),
-                TrackSection(108.0f, "VERSE SURGE", JuiceTier.SLIGHT_EXTRA_JUICE, StageMode.SPEED_PORTAL, isGoldenOverdrive = false, maxEnemies = 2, enemySpeedMult = 0.82f, clearEnemiesOnEnter = false, allowAnomalies = true),
-                TrackSection(124.0f, "BREAKDOWN II", JuiceTier.SECTION_SHIFT, StageMode.MAGIC_LANES, isGoldenOverdrive = false, maxEnemies = 0, enemySpeedMult = 0.0f, clearEnemiesOnEnter = true, allowAnomalies = false),
-                TrackSection(131.25f, "DRUM RISER II", JuiceTier.SLIGHT_EXTRA_JUICE, StageMode.SPEED_PORTAL, isGoldenOverdrive = false, maxEnemies = 1, enemySpeedMult = 0.80f, clearEnemiesOnEnter = false, allowAnomalies = false),
-                TrackSection(137.5f, "CHORUS III", JuiceTier.EXTRA_JUICE, StageMode.GOLDEN_OVERDRIVE, isGoldenOverdrive = true, maxEnemies = 3, enemySpeedMult = 0.95f, clearEnemiesOnEnter = false, allowAnomalies = true),
-                TrackSection(155.0f, "BRIDGE", JuiceTier.SECTION_SHIFT, StageMode.ABYSSAL_WAVE, isGoldenOverdrive = false, maxEnemies = 1, enemySpeedMult = 0.72f, clearEnemiesOnEnter = false, allowAnomalies = false),
-                TrackSection(169.5f, "BRIDGE BUILD", JuiceTier.SLIGHT_EXTRA_JUICE, StageMode.SPEED_PORTAL, isGoldenOverdrive = false, maxEnemies = 2, enemySpeedMult = 0.86f, clearEnemiesOnEnter = false, allowAnomalies = true),
-                TrackSection(183.5f, "ENDING BREAKDOWN", JuiceTier.EXTRA_JUICE, StageMode.GOLDEN_OVERDRIVE, isGoldenOverdrive = true, maxEnemies = 4, enemySpeedMult = 0.98f, clearEnemiesOnEnter = false, allowAnomalies = true),
-                TrackSection(201.0f, "SUB-BASS PULSE", JuiceTier.SLIGHT_EXTRA_JUICE, StageMode.OVERDRIVE_SHATTER, isGoldenOverdrive = true, maxEnemies = 2, enemySpeedMult = 0.85f, clearEnemiesOnEnter = false, allowAnomalies = false),
-                TrackSection(207.8f, "OUTRO", JuiceTier.SECTION_SHIFT, StageMode.ABYSSAL_WAVE, isGoldenOverdrive = false, maxEnemies = 0, enemySpeedMult = 0.0f, clearEnemiesOnEnter = true, allowAnomalies = false)
+                TrackSection(0f, "INTRO DRIFT", JuiceTier.NONE, StageMode.ABYSSAL_WAVE, isGoldenOverdrive = false, maxEnemies = 0, enemySpeedMult = 0.0f, clearEnemiesOnEnter = true, allowAnomalies = false),
+                TrackSection(7.0f, "FIRST TRANSITION • DRUM CADENCE", JuiceTier.SECTION_SHIFT, StageMode.SPEED_PORTAL, isGoldenOverdrive = false, maxEnemies = 1, enemySpeedMult = 0.65f, clearEnemiesOnEnter = false, allowAnomalies = false),
+                TrackSection(15.0f, "CHORUS I • 24K GOLD OVERDRIVE", JuiceTier.EXTRA_JUICE, StageMode.GOLDEN_OVERDRIVE, isGoldenOverdrive = true, maxEnemies = 2, enemySpeedMult = 0.85f, clearEnemiesOnEnter = false, allowAnomalies = true),
+                TrackSection(31.0f, "VERSE ONE • VIDEO RELIC BUILD", JuiceTier.SECTION_SHIFT, StageMode.ABYSSAL_WAVE, isGoldenOverdrive = false, maxEnemies = 1, enemySpeedMult = 0.70f, clearEnemiesOnEnter = false, allowAnomalies = false),
+                TrackSection(45.0f, "FLOWY WHISPY BREAKDOWN", JuiceTier.SLIGHT_EXTRA_JUICE, StageMode.SPEED_PORTAL, isGoldenOverdrive = false, maxEnemies = 0, enemySpeedMult = 0.0f, clearEnemiesOnEnter = true, allowAnomalies = false),
+                TrackSection(60.0f, "VIDEO MONTAGE I • SLOW-MO", JuiceTier.SECTION_SHIFT, StageMode.MAGIC_LANES, isGoldenOverdrive = false, maxEnemies = 0, enemySpeedMult = 0.0f, clearEnemiesOnEnter = true, allowAnomalies = false),
+                TrackSection(68.5f, "DRUM RISER • CADENCE", JuiceTier.SLIGHT_EXTRA_JUICE, StageMode.SPEED_PORTAL, isGoldenOverdrive = false, maxEnemies = 1, enemySpeedMult = 0.76f, clearEnemiesOnEnter = false, allowAnomalies = false),
+                TrackSection(77.42f, "CHORUS II • 24K SPECTACLE", JuiceTier.EXTRA_JUICE, StageMode.GOLDEN_OVERDRIVE, isGoldenOverdrive = true, maxEnemies = 3, enemySpeedMult = 0.90f, clearEnemiesOnEnter = false, allowAnomalies = true),
+                TrackSection(93.0f, "VERSE TWO", JuiceTier.SECTION_SHIFT, StageMode.ABYSSAL_WAVE, isGoldenOverdrive = false, maxEnemies = 1, enemySpeedMult = 0.72f, clearEnemiesOnEnter = false, allowAnomalies = false),
+                TrackSection(108.0f, "SPOKEN VOCAL FLOAT", JuiceTier.SLIGHT_EXTRA_JUICE, StageMode.SPEED_PORTAL, isGoldenOverdrive = false, maxEnemies = 0, enemySpeedMult = 0.0f, clearEnemiesOnEnter = true, allowAnomalies = false),
+                TrackSection(124.0f, "BUILD-UP • VIDEO RELIC BUILD II", JuiceTier.SECTION_SHIFT, StageMode.MAGIC_LANES, isGoldenOverdrive = false, maxEnemies = 1, enemySpeedMult = 0.76f, clearEnemiesOnEnter = false, allowAnomalies = false),
+                TrackSection(137.5f, "CHORUS III • HIGH VELOCITY", JuiceTier.EXTRA_JUICE, StageMode.GOLDEN_OVERDRIVE, isGoldenOverdrive = true, maxEnemies = 3, enemySpeedMult = 0.95f, clearEnemiesOnEnter = false, allowAnomalies = true),
+                TrackSection(156.0f, "VIDEO MONTAGE II • VOCAL OOOHS", JuiceTier.SLIGHT_EXTRA_JUICE, StageMode.SPEED_PORTAL, isGoldenOverdrive = false, maxEnemies = 0, enemySpeedMult = 0.0f, clearEnemiesOnEnter = true, allowAnomalies = false),
+                TrackSection(170.0f, "RESOLVING CADENCE", JuiceTier.SECTION_SHIFT, StageMode.ABYSSAL_WAVE, isGoldenOverdrive = false, maxEnemies = 1, enemySpeedMult = 0.72f, clearEnemiesOnEnter = false, allowAnomalies = false),
+                TrackSection(185.0f, "ENDING RIFF CLIMAX • 24K", JuiceTier.EXTRA_JUICE, StageMode.GOLDEN_OVERDRIVE, isGoldenOverdrive = true, maxEnemies = 3, enemySpeedMult = 0.95f, clearEnemiesOnEnter = false, allowAnomalies = true),
+                TrackSection(202.0f, "SLOWDOWN • SURPRISE OUTRO", JuiceTier.SECTION_SHIFT, StageMode.ABYSSAL_WAVE, isGoldenOverdrive = false, maxEnemies = 0, enemySpeedMult = 0.0f, clearEnemiesOnEnter = true, allowAnomalies = false)
             ),
             orbChart = buildConfideOrbChart()
         ),
@@ -497,19 +522,16 @@ object MusicLibrary {
             unlockCost = 1200,
             audioResName = "track_02",
             sections = listOf(
-                TrackSection(0f, "INTRO", JuiceTier.NONE, StageMode.ABYSSAL_WAVE, isGoldenOverdrive = false, maxEnemies = 0, enemySpeedMult = 0.0f, clearEnemiesOnEnter = true, allowAnomalies = false),
-                TrackSection(9.8f, "INTRO GROOVE", JuiceTier.SECTION_SHIFT, StageMode.ABYSSAL_WAVE, isGoldenOverdrive = false, maxEnemies = 1, enemySpeedMult = 0.68f, clearEnemiesOnEnter = false, allowAnomalies = false),
-                TrackSection(21.0f, "VERSE ONE", JuiceTier.SECTION_SHIFT, StageMode.ABYSSAL_WAVE, isGoldenOverdrive = false, maxEnemies = 1, enemySpeedMult = 0.72f, clearEnemiesOnEnter = false, allowAnomalies = false),
-                TrackSection(43.5f, "PRE-CHORUS", JuiceTier.SLIGHT_EXTRA_JUICE, StageMode.SPEED_PORTAL, isGoldenOverdrive = false, maxEnemies = 2, enemySpeedMult = 0.82f, clearEnemiesOnEnter = false, allowAnomalies = true),
-                TrackSection(51.0f, "BUILD-UP", JuiceTier.NONE, StageMode.MAGIC_LANES, isGoldenOverdrive = false, maxEnemies = 0, enemySpeedMult = 0.0f, clearEnemiesOnEnter = true, allowAnomalies = false),
-                TrackSection(54.5f, "CHORUS I", JuiceTier.EXTRA_JUICE, StageMode.GOLDEN_OVERDRIVE, isGoldenOverdrive = true, maxEnemies = 3, enemySpeedMult = 0.90f, clearEnemiesOnEnter = false, allowAnomalies = true),
-                TrackSection(75.5f, "VERSE TWO", JuiceTier.SECTION_SHIFT, StageMode.ABYSSAL_WAVE, isGoldenOverdrive = false, maxEnemies = 1, enemySpeedMult = 0.72f, clearEnemiesOnEnter = false, allowAnomalies = false),
-                TrackSection(91.5f, "VERSE II CADENCE", JuiceTier.SLIGHT_EXTRA_JUICE, StageMode.MAGIC_LANES, isGoldenOverdrive = false, maxEnemies = 2, enemySpeedMult = 0.85f, clearEnemiesOnEnter = false, allowAnomalies = true),
-                TrackSection(98.5f, "PRE-CHORUS II", JuiceTier.SECTION_SHIFT, StageMode.SPEED_PORTAL, isGoldenOverdrive = false, maxEnemies = 2, enemySpeedMult = 0.82f, clearEnemiesOnEnter = false, allowAnomalies = false),
-                TrackSection(105.0f, "BUILD-UP II", JuiceTier.NONE, StageMode.MAGIC_LANES, isGoldenOverdrive = false, maxEnemies = 0, enemySpeedMult = 0.0f, clearEnemiesOnEnter = true, allowAnomalies = false),
-                TrackSection(109.0f, "CHORUS II", JuiceTier.EXTRA_JUICE, StageMode.GOLDEN_OVERDRIVE, isGoldenOverdrive = true, maxEnemies = 3, enemySpeedMult = 0.94f, clearEnemiesOnEnter = false, allowAnomalies = true),
-                TrackSection(129.0f, "ENDING BREAKDOWN", JuiceTier.EXTRA_JUICE, StageMode.GOLDEN_OVERDRIVE, isGoldenOverdrive = true, maxEnemies = 4, enemySpeedMult = 0.98f, clearEnemiesOnEnter = false, allowAnomalies = true),
-                TrackSection(152.5f, "OUTRO", JuiceTier.SECTION_SHIFT, StageMode.ABYSSAL_WAVE, isGoldenOverdrive = false, maxEnemies = 0, enemySpeedMult = 0.0f, clearEnemiesOnEnter = true, allowAnomalies = false)
+                TrackSection(0f, "INTRO DRIFT", JuiceTier.NONE, StageMode.ABYSSAL_WAVE, isGoldenOverdrive = false, maxEnemies = 0, enemySpeedMult = 0.0f, clearEnemiesOnEnter = true, allowAnomalies = false),
+                TrackSection(9.8f, "INTRO GROOVE • DRUM CADENCE", JuiceTier.SECTION_SHIFT, StageMode.ABYSSAL_WAVE, isGoldenOverdrive = false, maxEnemies = 1, enemySpeedMult = 0.65f, clearEnemiesOnEnter = false, allowAnomalies = false),
+                TrackSection(21.0f, "CHORUS I • 24K GOLD OVERDRIVE", JuiceTier.EXTRA_JUICE, StageMode.GOLDEN_OVERDRIVE, isGoldenOverdrive = true, maxEnemies = 2, enemySpeedMult = 0.85f, clearEnemiesOnEnter = false, allowAnomalies = true),
+                TrackSection(43.5f, "PRE-CHORUS • VIDEO RELIC BUILD", JuiceTier.SLIGHT_EXTRA_JUICE, StageMode.SPEED_PORTAL, isGoldenOverdrive = false, maxEnemies = 2, enemySpeedMult = 0.80f, clearEnemiesOnEnter = false, allowAnomalies = true),
+                TrackSection(54.5f, "VIDEO MONTAGE I • SLOW-MO", JuiceTier.SECTION_SHIFT, StageMode.MAGIC_LANES, isGoldenOverdrive = false, maxEnemies = 0, enemySpeedMult = 0.0f, clearEnemiesOnEnter = true, allowAnomalies = false),
+                TrackSection(65.0f, "DRUM RE-ENTRY • VERSE TWO", JuiceTier.SECTION_SHIFT, StageMode.ABYSSAL_WAVE, isGoldenOverdrive = false, maxEnemies = 1, enemySpeedMult = 0.72f, clearEnemiesOnEnter = false, allowAnomalies = false),
+                TrackSection(91.5f, "VERSE II CADENCE • 24K DROP", JuiceTier.EXTRA_JUICE, StageMode.GOLDEN_OVERDRIVE, isGoldenOverdrive = true, maxEnemies = 2, enemySpeedMult = 0.88f, clearEnemiesOnEnter = false, allowAnomalies = true),
+                TrackSection(105.0f, "VOCAL FLOAT • VIDEO RELIC BUILD II", JuiceTier.SLIGHT_EXTRA_JUICE, StageMode.SPEED_PORTAL, isGoldenOverdrive = false, maxEnemies = 0, enemySpeedMult = 0.0f, clearEnemiesOnEnter = true, allowAnomalies = false),
+                TrackSection(129.0f, "VIDEO MONTAGE II • CLIMAX", JuiceTier.EXTRA_JUICE, StageMode.GOLDEN_OVERDRIVE, isGoldenOverdrive = true, maxEnemies = 3, enemySpeedMult = 0.95f, clearEnemiesOnEnter = false, allowAnomalies = true),
+                TrackSection(148.0f, "OUTRO SLOWDOWN • SURPRISE PEGS", JuiceTier.SECTION_SHIFT, StageMode.ABYSSAL_WAVE, isGoldenOverdrive = false, maxEnemies = 0, enemySpeedMult = 0.0f, clearEnemiesOnEnter = true, allowAnomalies = false)
             ),
             orbChart = buildNumberOneOrbChart()
         )
