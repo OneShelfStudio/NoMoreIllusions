@@ -278,87 +278,97 @@ fun MenuUI(
     }
 
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                Brush.radialGradient(
-                    colors = listOf(
-                        modeAccent.copy(alpha = 0.16f),
-                        Color(0xCC040812L),
-                        Color(0xF8010205L)
-                    )
-                )
-            )
-            .statusBarsPadding()
-            .navigationBarsPadding()
-            .padding(top = 10.dp, bottom = 6.dp, start = 18.dp, end = 18.dp)
+        modifier = Modifier.fillMaxSize()
     ) {
-        // Top Frameless Stage Bar: ♪ Music Notes Balance + Lobby Synth Switcher (Zero Boxy Pills!)
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
-            modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.TopCenter)
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .clickable { onMusicDemo(1) }
-                    .padding(horizontal = 4.dp, vertical = 6.dp)
-            ) {
-                Text(
-                    text = "$pulsePoints NOTES",
-                    color = Color(0xFFFACC15L),
-                    fontSize = 11.5.sp,
-                    fontWeight = FontWeight.Black,
-                    letterSpacing = 0.8.sp
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = if (isVipUnlocked) "• VIP ACTIVE" else "• VIP PASS",
-                    color = if (isVipUnlocked) Color(0xFF4ADE80L) else Color(0xFFC084FCL),
-                    fontSize = 9.5.sp,
-                    fontWeight = FontWeight.Black
-                )
-            }
-
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .clickable { onCycleLobbyTrack() }
-                    .padding(horizontal = 4.dp, vertical = 6.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(6.dp)
-                        .clip(CircleShape)
-                        .background(modeAccent)
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = "STAGE SYNTH: ${activeLobbyTrack.title.uppercase()} ↻",
-                    color = Color(0xFFC7D2FEL),
-                    fontSize = 9.5.sp,
-                    fontWeight = FontWeight.Black,
-                    letterSpacing = 0.8.sp
-                )
-            }
-        }
+        // Starbloom-Grade Atmospheric Floating Motes & Starlight Background
+        FloatingMotesBackground(stageAccent = modeAccent)
 
         Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.SpaceBetween,
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 34.dp, bottom = 0.dp)
+                .statusBarsPadding()
+                .navigationBarsPadding()
+                .padding(top = 10.dp, bottom = 8.dp, start = 18.dp, end = 18.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.SpaceBetween
         ) {
+            // Top Frameless Stage Bar: ♪ Music Notes Balance + Lobby Synth Switcher
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                // Notes Balance Pill
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(50))
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(Color(0xF510233D), Color(0xF5060E1A))
+                            )
+                        )
+                        .border(1.2.dp, Color(0xFFFACC15L).copy(alpha = 0.75f), RoundedCornerShape(50))
+                        .clickable { onMusicDemo(1) }
+                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = "%,d ♪".format(pulsePoints),
+                            color = Color(0xFFFACC15L),
+                            fontSize = 11.5.sp,
+                            fontWeight = FontWeight.Black,
+                            letterSpacing = 0.8.sp
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = if (isVipUnlocked) "• VIP ACTIVE" else "• VIP PASS",
+                            color = if (isVipUnlocked) Color(0xFF4ADE80L) else Color(0xFFC084FCL),
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Black
+                        )
+                    }
+                }
+
+                // Stage Synth Switcher Pill
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(50))
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(Color(0xF50B1B2F), Color(0xF5040913))
+                            )
+                        )
+                        .border(1.2.dp, modeAccent.copy(alpha = 0.65f), RoundedCornerShape(50))
+                        .clickable { onCycleLobbyTrack() }
+                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(7.dp)
+                                .clip(CircleShape)
+                                .background(modeAccent)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "STAGE: ${activeLobbyTrack.title.uppercase()} ↻",
+                            color = Color(0xFFC7D2FEL),
+                            fontSize = 9.5.sp,
+                            fontWeight = FontWeight.Black,
+                            letterSpacing = 0.8.sp
+                        )
+                    }
+                }
+            }
+
+            // Centerpiece Content Column with Proportional Weight
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.SpaceEvenly,
                 modifier = Modifier
                     .weight(1f)
-                    .fillMaxWidth(),
-                verticalArrangement = Arrangement.SpaceEvenly
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp)
             ) {
             // BESPOKE HOLOGRAPHIC VINYL TURNTABLE CAROUSEL SHOWCASE
             val isTrack02AltCover = prefs.getBoolean("track02_alt_cover", false)
@@ -375,19 +385,16 @@ fun MenuUI(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 // Carousel Prev Track Button
-                Box(
-                    modifier = Modifier
-                        .size(42.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFF0F172AL).copy(alpha = 0.85f))
-                        .border(1.6.dp, Color.White.copy(alpha = 0.28f), CircleShape)
-                        .clickable {
-                            val prev = if (selectedTrackIndex <= 1) MusicLibrary.TOTAL_TRACKS else selectedTrackIndex - 1
-                            onSelectQuickTrack(prev)
-                        },
-                    contentAlignment = Alignment.Center
+                StudioIconButton(
+                    onClick = {
+                        val prev = if (selectedTrackIndex <= 1) MusicLibrary.TOTAL_TRACKS else selectedTrackIndex - 1
+                        onSelectQuickTrack(prev)
+                    },
+                    size = 40.dp,
+                    accentColor = modeAccent,
+                    contentDescription = "Previous Track"
                 ) {
-                    Text("‹", color = Color(0xFFFAF8F5L), fontSize = 26.sp, fontWeight = FontWeight.Light)
+                    Text("‹", color = Color(0xFFFAF8F5L), fontSize = 24.sp, fontWeight = FontWeight.Light)
                 }
 
                 Spacer(modifier = Modifier.width(14.dp))
@@ -492,19 +499,16 @@ fun MenuUI(
                 Spacer(modifier = Modifier.width(14.dp))
 
                 // Carousel Next Track Button
-                Box(
-                    modifier = Modifier
-                        .size(42.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFF0F172AL).copy(alpha = 0.85f))
-                        .border(1.6.dp, Color.White.copy(alpha = 0.28f), CircleShape)
-                        .clickable {
-                            val next = if (selectedTrackIndex >= MusicLibrary.TOTAL_TRACKS) 1 else selectedTrackIndex + 1
-                            onSelectQuickTrack(next)
-                        },
-                    contentAlignment = Alignment.Center
+                StudioIconButton(
+                    onClick = {
+                        val next = if (selectedTrackIndex >= MusicLibrary.TOTAL_TRACKS) 1 else selectedTrackIndex + 1
+                        onSelectQuickTrack(next)
+                    },
+                    size = 40.dp,
+                    accentColor = modeAccent,
+                    contentDescription = "Next Track"
                 ) {
-                    Text("›", color = Color(0xFFFAF8F5L), fontSize = 26.sp, fontWeight = FontWeight.Light)
+                    Text("›", color = Color(0xFFFAF8F5L), fontSize = 24.sp, fontWeight = FontWeight.Light)
                 }
             }
 
@@ -519,7 +523,7 @@ fun MenuUI(
                     val isSel = idx == selectedTrackIndex
                     Box(
                         modifier = Modifier
-                            .size(width = if (isSel) 22.dp else 8.dp, height = 8.dp)
+                            .size(width = if (isSel) 20.dp else 8.dp, height = 7.dp)
                             .clip(RoundedCornerShape(4.dp))
                             .background(if (isSel) Color(0xFFFACC15L) else Color.White.copy(alpha = 0.25f))
                             .clickable { onSelectQuickTrack(idx) }
@@ -622,15 +626,21 @@ fun MenuUI(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             modifier = Modifier
                                 .weight(1f)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(if (isActive) gemCol.copy(alpha = 0.20f) else Color(0xFF070C18L))
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(
+                                    if (isActive) Brush.verticalGradient(
+                                        listOf(gemCol.copy(alpha = 0.28f), Color(0xFF081224))
+                                    ) else Brush.verticalGradient(
+                                        listOf(Color(0xFF08101E), Color(0xFF040810))
+                                    )
+                                )
                                 .border(
-                                    width = if (isActive) 1.8.dp else 1.dp,
-                                    color = if (isActive) gemCol else Color.White.copy(alpha = 0.14f),
-                                    shape = RoundedCornerShape(12.dp)
+                                    width = if (isActive) 1.6.dp else 1.dp,
+                                    color = if (isActive) gemCol else Color.White.copy(alpha = 0.12f),
+                                    shape = RoundedCornerShape(14.dp)
                                 )
                                 .clickable { onSelectRemixMode(mode) }
-                                .padding(vertical = 9.dp, horizontal = 6.dp)
+                                .padding(vertical = 8.dp, horizontal = 4.dp)
                         ) {
                             Text(
                                 text = label,
@@ -697,50 +707,20 @@ fun MenuUI(
                 }
             }
 
-            // 3. GRAND PULSING NEON JEWEL LAUNCH BUTTON
+            // 3. Tactile 3D Studio Pill Launch Button (Starbloom Standard)
             val isCurrentLaunchUnlocked = selectedTrackIndex == 1 || unlockedTrackCount >= selectedTrackIndex || isVipUnlocked || prefs.getBoolean("art_unlocked_$selectedTrackIndex", false) || prefs.getBoolean("track_unlocked_$selectedTrackIndex", false)
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth(0.94f)
-                    .height(56.dp)
-                    .clip(RoundedCornerShape(28.dp))
-                    .background(
-                        Brush.linearGradient(
-                            listOf(
-                                Color(0xFF10B981L).copy(alpha = 0.90f),
-                                Color(0xFF0284C7L).copy(alpha = 0.90f),
-                                Color(0xFFFACC15L).copy(alpha = 0.80f)
-                            )
-                        )
-                    )
-                    .border(
-                        width = 2.dp,
-                        color = Color.White.copy(alpha = 0.65f),
-                        shape = RoundedCornerShape(28.dp)
-                    )
-                    .clickable { onStart() },
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = if (!isCurrentLaunchUnlocked) "UNLOCK TRACK 0$selectedTrackIndex (${selectedTrack.unlockCost} NOTES)"
-                        else if (isBandHeroMode) "PLAY 4-LANE HIGHWAY"
-                        else "PLAY ${selectedTrack.title.uppercase()}",
-                        color = Color.White,
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Black,
-                        letterSpacing = 1.5.sp
-                    )
-                    Text(
-                        text = if (!isCurrentLaunchUnlocked) "TAP TO UNLOCK WITH COLLECTED NOTES"
-                        else "${selectedRemixMode.displayName} • STUDIO MASTER",
-                        color = Color.White.copy(alpha = 0.90f),
-                        fontSize = 8.5.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 0.9.sp
-                    )
-                }
-            }
+            StudioPillButton(
+                text = if (!isCurrentLaunchUnlocked) "UNLOCK TRACK 0$selectedTrackIndex (${selectedTrack.unlockCost} NOTES)"
+                       else if (isBandHeroMode) "PLAY 4-LANE HIGHWAY"
+                       else "PLAY ${selectedTrack.title.uppercase()}",
+                subText = if (!isCurrentLaunchUnlocked) "TAP TO UNLOCK WITH NOTES"
+                          else "${selectedRemixMode.displayName} • STUDIO MASTER",
+                palette = if (!isCurrentLaunchUnlocked) StudioPillPalette.SOLAR_GOLD else StudioPillPalette.EMERALD_STAGE,
+                onClick = onStart,
+                height = 54.dp,
+                fontSize = 15.sp,
+                modifier = Modifier.fillMaxWidth(0.94f)
+            )
 
             // Artist Social Links Dock (Official Ethan Correa / No More Illusions)
             Row(
@@ -808,120 +788,17 @@ fun StudioBottomNavDock(
     onNavigateSettings: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val navItems = listOf(
-        Triple("HOME", "HOME", onNavigateHome),
-        Triple("ALBUM", "ALBUM", onNavigateAlbum),
-        Triple("VAULT", "VAULT", onNavigateVault),
-        Triple("SKINS", "SKINS", onNavigateSkins),
-        Triple("SETTINGS", "SETTINGS", onNavigateSettings)
-    )
-    Row(
+    StudioNavDock(
+        currentDestination = currentDestination,
+        onNavigateHome = onNavigateHome,
+        onNavigateAlbum = onNavigateAlbum,
+        onNavigateVault = onNavigateVault,
+        onNavigateSkins = onNavigateSkins,
+        onNavigateSettings = onNavigateSettings,
         modifier = modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(22.dp))
-            .background(Color(0xF5080D1CL))
-            .border(1.2.dp, Color(0x55FACC15L), RoundedCornerShape(22.dp))
-            .padding(horizontal = 8.dp, vertical = 9.dp),
-        horizontalArrangement = Arrangement.SpaceEvenly,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        navItems.forEach { (key, label, action) ->
-            val isSel = currentDestination == key
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier
-                    .weight(1f)
-                    .clip(RoundedCornerShape(12.dp))
-                    .clickable { action() }
-                    .padding(vertical = 3.dp)
-            ) {
-                BottomNavGlyph(type = key, isSelected = isSel)
-                Spacer(modifier = Modifier.height(3.dp))
-                Text(
-                    text = label,
-                    color = if (isSel) Color(0xFFFACC15L) else Color(0xFF94A3B8L),
-                    fontSize = 8.5.sp,
-                    fontWeight = if (isSel) FontWeight.Black else FontWeight.SemiBold,
-                    maxLines = 1
-                )
-            }
-        }
-    }
+    )
 }
 
-@Composable
-fun BottomNavGlyph(type: String, isSelected: Boolean) {
-    val tint = if (isSelected) Color(0xFFFACC15L) else Color(0xFF94A3B8L)
-    Canvas(modifier = Modifier.size(19.dp)) {
-        val w = size.width
-        val h = size.height
-        when (type) {
-            "HOME" -> {
-                val path = Path().apply {
-                    moveTo(w * 0.5f, h * 0.15f)
-                    lineTo(w * 0.85f, h * 0.45f)
-                    lineTo(w * 0.72f, h * 0.45f)
-                    lineTo(w * 0.72f, h * 0.85f)
-                    lineTo(w * 0.28f, h * 0.85f)
-                    lineTo(w * 0.28f, h * 0.45f)
-                    lineTo(w * 0.15f, h * 0.45f)
-                    close()
-                }
-                drawPath(path, color = tint, style = Stroke(width = 1.8.dp.toPx()))
-            }
-            "SKINS" -> {
-                val path = Path().apply {
-                    moveTo(w * 0.5f, h * 0.10f)
-                    lineTo(w * 0.60f, h * 0.40f)
-                    lineTo(w * 0.90f, h * 0.50f)
-                    lineTo(w * 0.60f, h * 0.60f)
-                    lineTo(w * 0.5f, h * 0.90f)
-                    lineTo(w * 0.40f, h * 0.60f)
-                    lineTo(w * 0.10f, h * 0.50f)
-                    lineTo(w * 0.40f, h * 0.40f)
-                    close()
-                }
-                drawPath(path, color = tint, style = Stroke(width = 1.8.dp.toPx()))
-            }
-            "ALBUM" -> {
-                drawCircle(color = tint, radius = w * 0.42f, style = Stroke(width = 1.8.dp.toPx()))
-                drawCircle(color = tint, radius = w * 0.16f, style = Stroke(width = 1.5.dp.toPx()))
-                drawCircle(color = tint, radius = w * 0.05f)
-            }
-            "VAULT" -> {
-                val path = Path().apply {
-                    moveTo(w * 0.5f, h * 0.12f)
-                    lineTo(w * 0.88f, h * 0.50f)
-                    lineTo(w * 0.5f, h * 0.88f)
-                    lineTo(w * 0.12f, h * 0.50f)
-                    close()
-                }
-                drawPath(path, color = tint, style = Stroke(width = 1.8.dp.toPx()))
-                drawCircle(color = tint, radius = w * 0.12f)
-            }
-            "SETTINGS" -> {
-                drawCircle(color = tint, radius = w * 0.40f, style = Stroke(width = 1.8.dp.toPx()))
-                drawCircle(color = tint, radius = w * 0.16f, style = Stroke(width = 1.4.dp.toPx()))
-            }
-            "EXCLUSIVES" -> {
-                val path = Path().apply {
-                    moveTo(w * 0.5f, h * 0.10f)
-                    lineTo(w * 0.62f, h * 0.35f)
-                    lineTo(w * 0.90f, h * 0.38f)
-                    lineTo(w * 0.70f, h * 0.58f)
-                    lineTo(w * 0.76f, h * 0.85f)
-                    lineTo(w * 0.5f, h * 0.72f)
-                    lineTo(w * 0.24f, h * 0.85f)
-                    lineTo(w * 0.30f, h * 0.58f)
-                    lineTo(w * 0.10f, h * 0.38f)
-                    lineTo(w * 0.38f, h * 0.35f)
-                    close()
-                }
-                drawPath(path, color = tint, style = Stroke(width = 1.8.dp.toPx()))
-            }
-        }
-    }
-}
 
 @Composable
 private fun MenuBentoTile(
@@ -994,57 +871,70 @@ fun HowToPlayUI(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xF504060CL))
             .statusBarsPadding()
-            .padding(horizontal = 20.dp, vertical = 18.dp),
-        contentAlignment = Alignment.Center
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(vertical = 12.dp)
-        ) {
-            Text(
-                text = "HOW TO PLAY • MUSIC GUIDE",
-                color = Color(0xFFEAB308L),
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Black,
-                letterSpacing = 1.8.sp
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = "Fluid Glide Rhythm • Unlock Tracks • Classic Mode (Guitar Hero Style)",
-                color = Color(0xFFCBD5E1L),
-                fontSize = 11.sp,
-                fontWeight = FontWeight.SemiBold
-            )
-            Spacer(modifier = Modifier.height(16.dp))
+        FloatingMotesBackground()
 
-            InstructionItem(
-                "1. GATHER NOTES",
-                "Glide into notes along the steady rhythm of the music. Catch them on beat to build your combo and unlock new songs!"
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp, vertical = 12.dp)
+        ) {
+            StudioScreenHeader(
+                title = "HOW TO PLAY",
+                subtitle = "FLUID GLIDE RHYTHM GUIDE",
+                onBack = onBack
             )
-            InstructionItem(
-                "2. AVOID ENEMIES",
-                "Dodge red enemy hazards to protect your streak and multiplier."
-            )
-            InstructionItem(
-                "3. HIT SPECIAL PEGS",
-                "Hit electric harmonic pegs and bomb pegs to clear enemies and transform the stage with spectacular visual surges!"
-            )
-            InstructionItem(
-                "4. CLASSIC MODE (Guitar Hero Style)",
-                "Toggle Classic Mode on the main menu anytime to play vertical highway rhythm lanes!"
-            )
-            Spacer(modifier = Modifier.height(20.dp))
-            ArcadePillButton(
-                text = "BACK TO STUDIO MENU",
-                pillBitmap = btnPillCyan,
-                onClick = onBack,
-                modifier = Modifier.width(240.dp).height(46.dp)
-            )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+            ) {
+                StudioGlassCard(
+                    accentColor = Color(0xFFFACC15),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        InstructionItem(
+                            "1. GATHER NOTES",
+                            "Glide into notes along the steady rhythm of the music. Catch them on beat to build your combo and unlock new songs!"
+                        )
+                        InstructionItem(
+                            "2. AVOID ENEMIES",
+                            "Dodge red enemy hazards to protect your streak and multiplier."
+                        )
+                        InstructionItem(
+                            "3. HIT SPECIAL PEGS",
+                            "Hit electric harmonic pegs and bomb pegs to clear enemies and transform the stage with spectacular visual surges!"
+                        )
+                        InstructionItem(
+                            "4. CLASSIC MODE (Guitar Hero Style)",
+                            "Toggle Classic Mode on the main menu anytime to play vertical highway rhythm lanes!"
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                StudioPillButton(
+                    text = "BACK TO STUDIO MENU",
+                    palette = StudioPillPalette.CYAN_SYNTH,
+                    onClick = onBack,
+                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                    fontSize = 12.sp
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+            }
         }
     }
 }
@@ -1071,212 +961,248 @@ fun SettingsUI(
     var vipCodeInput by remember { mutableStateOf("") }
     var vipError by remember { mutableStateOf(false) }
     var vipSuccess by remember { mutableStateOf(isVipUnlocked) }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xF2030605L))
-            .padding(24.dp),
-        contentAlignment = Alignment.Center
+            .statusBarsPadding()
     ) {
+        FloatingMotesBackground()
+
         Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp, vertical = 12.dp)
         ) {
-            Text(
-                text = "SETTINGS",
-                color = Color(0xFF4ADE80L),
-                fontSize = 26.sp,
-                fontWeight = FontWeight.Black,
-                letterSpacing = 2.sp
+            StudioScreenHeader(
+                title = "SETTINGS",
+                subtitle = "AUDIO, DIFFICULTY & VIP PASSCODE",
+                onBack = onBack
             )
-            Spacer(modifier = Modifier.height(20.dp))
 
-            Box(
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Column(
                 modifier = Modifier
+                    .weight(1f)
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(Color(0xFF070D0AL))
-                    .border(1.dp, Color(0xFF6366F1L).copy(alpha = 0.4f), RoundedCornerShape(16.dp))
-                    .padding(16.dp)
+                    .verticalScroll(rememberScrollState())
             ) {
-                Column {
-                    ToggleItem("MUSIC", isMusic, onMusicToggle)
-                    ToggleItem("SOUND FX", isSound, onSoundToggle)
-                    ToggleItem("HAPTICS", isHaptic, onHapticToggle)
-                    ToggleItem("MUSIC VIDEO B-ROLL", isBrollVideo, onBrollVideoToggle)
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = "LOBBY BACKGROUND MUSIC (STUDIO SYNTH)",
-                color = Color(0xFFA5B4FCL),
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Black,
-                letterSpacing = 1.sp
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                LobbyTrack.entries.forEach { lt ->
-                    val sel = lt == activeLobbyTrack
-                    Box(
+                // Audio & Visual Options
+                StudioGlassCard(
+                    accentColor = Color(0xFF4ADE80),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
                         modifier = Modifier
-                            .weight(1f)
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(if (sel) Color(0xFF0E291AL) else Color(0xFF060B12L))
-                            .border(1.2.dp, if (sel) Color(0xFF4ADE80L) else Color.White.copy(alpha = 0.14f), RoundedCornerShape(10.dp))
-                            .clickable { onLobbyTrackChange(lt) }
-                            .padding(vertical = 8.dp, horizontal = 6.dp),
-                        contentAlignment = Alignment.Center
+                            .fillMaxWidth()
+                            .padding(14.dp)
                     ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(
-                                text = lt.title.uppercase(),
-                                color = if (sel) Color(0xFF4ADE80L) else Color.White,
-                                fontSize = 9.5.sp,
-                                fontWeight = FontWeight.Black,
-                                maxLines = 1
-                            )
-                            Text(
-                                text = "AMBIENT",
-                                color = Color.White.copy(alpha = 0.55f),
-                                fontSize = 8.sp,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                        }
+                        ToggleItem("MUSIC", isMusic, onMusicToggle)
+                        ToggleItem("SOUND FX", isSound, onSoundToggle)
+                        ToggleItem("HAPTICS", isHaptic, onHapticToggle)
+                        ToggleItem("MUSIC VIDEO B-ROLL", isBrollVideo, onBrollVideoToggle)
                     }
                 }
-            }
 
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = "GAME DIFFICULTY",
-                color = Color.White,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Bold
-            )
-            Row(modifier = Modifier.padding(top = 8.dp)) {
-                DifficultyOption(GameDifficulty.EASY, difficulty == GameDifficulty.EASY) { onDifficultyChange(it) }
-                DifficultyOption(GameDifficulty.REGULAR, difficulty == GameDifficulty.REGULAR) { onDifficultyChange(it) }
-                DifficultyOption(GameDifficulty.HARD, difficulty == GameDifficulty.HARD) { onDifficultyChange(it) }
-            }
+                Spacer(modifier = Modifier.height(12.dp))
 
-            Spacer(modifier = Modifier.height(16.dp))
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(Color(0xFF0A0D18L))
-                    .border(
-                        1.2.dp,
-                        if (vipSuccess || isVipUnlocked) Color(0xFF4ADE80L) else Color(0xFFFACC15L).copy(alpha = 0.65f),
-                        RoundedCornerShape(14.dp)
-                    )
-                    .padding(12.dp)
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        text = if (vipSuccess || isVipUnlocked) "ARTIST VIP PASSCODE ACTIVE (ALL UNLOCKED!)" else "ARTIST VIP PASSCODE (UNLOCK ALL OPTIONS)",
-                        color = if (vipSuccess || isVipUnlocked) Color(0xFF4ADE80L) else Color(0xFFFACC15L),
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Black,
-                        letterSpacing = 0.8.sp
-                    )
-                    if (!vipSuccess && !isVipUnlocked) {
+                // Lobby Ambient Synth & Game Difficulty
+                StudioGlassCard(
+                    accentColor = Color(0xFFA5B4FC),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(14.dp)
+                    ) {
+                        Text(
+                            text = "LOBBY BACKGROUND MUSIC (STUDIO SYNTH)",
+                            color = Color(0xFFA5B4FCL),
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Black,
+                            letterSpacing = 0.8.sp
+                        )
                         Spacer(modifier = Modifier.height(8.dp))
                         Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(38.dp)
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(Color(0xFF04070FL))
-                                    .border(
-                                        1.dp,
-                                        if (vipError) Color(0xFFF43F5EL) else Color(0xFF6366F1L).copy(alpha = 0.6f),
-                                        RoundedCornerShape(8.dp)
-                                    )
-                                    .padding(horizontal = 10.dp),
-                                contentAlignment = Alignment.CenterStart
+                            LobbyTrack.entries.forEach { lt ->
+                                val sel = lt == activeLobbyTrack
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .background(if (sel) Color(0xFF0E291AL) else Color(0xFF060B12L))
+                                        .border(
+                                            1.2.dp,
+                                            if (sel) Color(0xFF4ADE80L) else Color.White.copy(alpha = 0.14f),
+                                            RoundedCornerShape(10.dp)
+                                        )
+                                        .clickable { onLobbyTrackChange(lt) }
+                                        .padding(vertical = 8.dp, horizontal = 4.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Text(
+                                            text = lt.title.uppercase(),
+                                            color = if (sel) Color(0xFF4ADE80L) else Color.White,
+                                            fontSize = 9.sp,
+                                            fontWeight = FontWeight.Black,
+                                            maxLines = 1
+                                        )
+                                        Text(
+                                            text = "AMBIENT",
+                                            color = Color.White.copy(alpha = 0.55f),
+                                            fontSize = 7.5.sp,
+                                            fontWeight = FontWeight.SemiBold
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(14.dp))
+
+                        Text(
+                            text = "GAME DIFFICULTY",
+                            color = Color.White,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Black,
+                            letterSpacing = 0.8.sp
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            DifficultyOption(GameDifficulty.EASY, difficulty == GameDifficulty.EASY) { onDifficultyChange(it) }
+                            DifficultyOption(GameDifficulty.REGULAR, difficulty == GameDifficulty.REGULAR) { onDifficultyChange(it) }
+                            DifficultyOption(GameDifficulty.HARD, difficulty == GameDifficulty.HARD) { onDifficultyChange(it) }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Artist VIP Backstage Passcode
+                StudioGlassCard(
+                    accentColor = Color(0xFFFACC15),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(14.dp)
+                    ) {
+                        Text(
+                            text = if (vipSuccess || isVipUnlocked) "★ ARTIST VIP PASSCODE ACTIVE (ALL UNLOCKED!)" else "ARTIST VIP PASSCODE (UNLOCK ALL OPTIONS)",
+                            color = if (vipSuccess || isVipUnlocked) Color(0xFF4ADE80L) else Color(0xFFFACC15L),
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Black,
+                            letterSpacing = 0.8.sp
+                        )
+                        if (!vipSuccess && !isVipUnlocked) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                modifier = Modifier.fillMaxWidth()
                             ) {
-                                if (vipCodeInput.isEmpty()) {
-                                    Text(
-                                        text = "ENTER PASSCODE...",
-                                        color = Color(0xFF64748BL),
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Bold
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .height(38.dp)
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(Color(0xFF04070FL))
+                                        .border(
+                                            1.dp,
+                                            if (vipError) Color(0xFFF43F5EL) else Color(0xFF6366F1L).copy(alpha = 0.6f),
+                                            RoundedCornerShape(8.dp)
+                                        )
+                                        .padding(horizontal = 10.dp),
+                                    contentAlignment = Alignment.CenterStart
+                                ) {
+                                    if (vipCodeInput.isEmpty()) {
+                                        Text(
+                                            text = "ENTER PASSCODE...",
+                                            color = Color(0xFF64748BL),
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                    BasicTextField(
+                                        value = vipCodeInput,
+                                        onValueChange = {
+                                            vipCodeInput = it.uppercase()
+                                            vipError = false
+                                        },
+                                        singleLine = true,
+                                        textStyle = TextStyle(
+                                            color = Color.White,
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Black
+                                        ),
+                                        modifier = Modifier.fillMaxWidth()
                                     )
                                 }
-                                BasicTextField(
-                                    value = vipCodeInput,
-                                    onValueChange = {
-                                        vipCodeInput = it.uppercase()
-                                        vipError = false
-                                    },
-                                    singleLine = true,
-                                    textStyle = TextStyle(
-                                        color = Color.White,
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Black
-                                    ),
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                            }
-                            Box(
-                                modifier = Modifier
-                                    .height(38.dp)
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(
-                                        Brush.horizontalGradient(
-                                            listOf(Color(0xFFFACC15L), Color(0xFFD97706L))
+                                Box(
+                                    modifier = Modifier
+                                        .height(38.dp)
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(
+                                            Brush.horizontalGradient(
+                                                listOf(Color(0xFFFACC15L), Color(0xFFD97706L))
+                                            )
                                         )
-                                    )
-                                    .clickable {
-                                        val clean = vipCodeInput.trim().uppercase()
-                                        if (clean == "ETHAN" || clean == "CONFIDE" || clean == "ILLUSIONS2026" || clean == "NMI2026") {
-                                            vipSuccess = true
-                                            vipError = false
-                                            onActivateVipPasscode()
-                                        } else {
-                                            vipError = true
+                                        .clickable {
+                                            val clean = vipCodeInput.trim().uppercase()
+                                            if (clean == "ETHAN" || clean == "CONFIDE" || clean == "ILLUSIONS2026" || clean == "NMI2026") {
+                                                vipSuccess = true
+                                                vipError = false
+                                                onActivateVipPasscode()
+                                            } else {
+                                                vipError = true
+                                            }
                                         }
-                                    }
-                                    .padding(horizontal = 14.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = "UNLOCK",
-                                    color = Color(0xFF050811L),
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Black
-                                )
+                                        .padding(horizontal = 14.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "UNLOCK",
+                                        color = Color(0xFF050811L),
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Black
+                                    )
+                                }
                             }
                         }
                     }
                 }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                StudioPillButton(
+                    text = "SAVE & RETURN TO MENU",
+                    palette = StudioPillPalette.SOLAR_GOLD,
+                    onClick = onBack,
+                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                    fontSize = 12.sp
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
             StudioBottomNavDock(
                 currentDestination = "SETTINGS",
                 onNavigateHome = onBack,
-                onNavigateSkins = onBack,
+                onNavigateAlbum = onBack,
                 onNavigateVault = onBack,
+                onNavigateSkins = onBack,
                 onNavigateSettings = { /* Already in settings */ }
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            ArcadePillButton(
-                text = "SAVE & BACK",
-                pillBitmap = btnPillGold,
-                onClick = onBack,
-                modifier = Modifier.width(240.dp).height(48.dp)
             )
         }
     }

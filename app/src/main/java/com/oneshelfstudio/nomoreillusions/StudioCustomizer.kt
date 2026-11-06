@@ -483,12 +483,12 @@ fun StudioCustomizerSuite(
 
             Spacer(modifier = Modifier.height(22.dp))
 
-            ArcadePillButton(
-                text = "LAUNCH SELECTED TRACK",
-                pillBitmap = btnPillGreen,
+            StudioPillButton(
+                text = "LAUNCH SELECTED TRACK ▶",
+                palette = StudioPillPalette.EMERALD_STAGE,
                 onClick = onLaunchTestGame,
-                fontSize = 15.sp,
-                modifier = Modifier.fillMaxWidth().height(52.dp)
+                fontSize = 13.sp,
+                modifier = Modifier.fillMaxWidth().height(50.dp)
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -496,143 +496,97 @@ fun StudioCustomizerSuite(
 
         // Artist VIP Passcode Modal Overlay
         if (showPasscodeModal) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.84f))
-                    .clickable(enabled = true) {},
-                contentAlignment = Alignment.Center
+            StudioDialog(
+                title = "ARTIST VIP TESTING PASSCODE",
+                onDismiss = { showPasscodeModal = false },
+                accentColor = Color(0xFFFACC15)
             ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
+                Text(
+                    text = "Enter your artist passcode to unlock all Customizer skins, Wave Palettes, Vault Exclusives, and +50,000 ♪ Notes for testing.",
+                    color = Color.White.copy(alpha = 0.78f),
+                    fontSize = 11.sp,
+                    textAlign = TextAlign.Center
+                )
+                Spacer(modifier = Modifier.height(14.dp))
+
+                Box(
                     modifier = Modifier
-                        .fillMaxWidth(0.92f)
-                        .clip(RoundedCornerShape(18.dp))
-                        .background(
-                            Brush.verticalGradient(
-                                listOf(Color(0xFF0B132BL), Color(0xFF050814L))
-                            )
+                        .fillMaxWidth()
+                        .height(44.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(Color(0xFF03060CL))
+                        .border(
+                            1.2.dp,
+                            if (passcodeError) Color(0xFFFF1E42L) else Color(0xFF6366F1L),
+                            RoundedCornerShape(10.dp)
                         )
-                        .border(1.5.dp, Color(0xFFFACC15L).copy(alpha = 0.8f), RoundedCornerShape(18.dp))
-                        .padding(20.dp)
+                        .padding(horizontal = 14.dp),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = "ARTIST VIP TESTING PASSCODE",
-                        color = Color(0xFFFACC15L),
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Black,
-                        letterSpacing = 1.sp
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(
-                        text = "Enter your artist passcode to unlock all Customizer skins, Wave Palettes, Vault Exclusives, and +50,000 ♪ Notes for testing.",
-                        color = Color.White.copy(alpha = 0.78f),
-                        fontSize = 11.sp,
-                        textAlign = TextAlign.Center
-                    )
-                    Spacer(modifier = Modifier.height(14.dp))
-
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(44.dp)
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(Color(0xFF03060CL))
-                            .border(
-                                1.2.dp,
-                                if (passcodeError) Color(0xFFFF1E42L) else Color(0xFF6366F1L),
-                                RoundedCornerShape(10.dp)
-                            )
-                            .padding(horizontal = 14.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        if (passcodeText.isEmpty()) {
-                            Text(
-                                text = if (BuildConfig.DEBUG) "ENTER PASSCODE (e.g. ILLUSIONS2026)" else "ENTER SECRET PASSCODE",
-                                color = Color.White.copy(alpha = 0.35f),
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                        BasicTextField(
-                            value = passcodeText,
-                            onValueChange = {
-                                passcodeText = it.uppercase()
-                                passcodeError = false
-                            },
-                            singleLine = true,
-                            cursorBrush = SolidColor(Color(0xFFFACC15L)),
-                            textStyle = TextStyle(
-                                color = Color.White,
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Black,
-                                textAlign = TextAlign.Center,
-                                letterSpacing = 1.5.sp
-                            ),
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
-
-                    if (passcodeError) {
-                        Spacer(modifier = Modifier.height(6.dp))
+                    if (passcodeText.isEmpty()) {
                         Text(
-                            text = if (BuildConfig.DEBUG) "Invalid passcode. Try ILLUSIONS2026 or CONFIDE" else "Invalid passcode. Please check and try again.",
-                            color = Color(0xFFFF1E42L),
-                            fontSize = 10.sp,
+                            text = if (BuildConfig.DEBUG) "ENTER PASSCODE (e.g. ILLUSIONS2026)" else "ENTER SECRET PASSCODE",
+                            color = Color.White.copy(alpha = 0.35f),
+                            fontSize = 12.sp,
                             fontWeight = FontWeight.Bold
                         )
                     }
+                    BasicTextField(
+                        value = passcodeText,
+                        onValueChange = {
+                            passcodeText = it.uppercase()
+                            passcodeError = false
+                        },
+                        singleLine = true,
+                        cursorBrush = SolidColor(Color(0xFFFACC15L)),
+                        textStyle = TextStyle(
+                            color = Color.White,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Black,
+                            textAlign = TextAlign.Center,
+                            letterSpacing = 1.5.sp
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                if (passcodeError) {
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = if (BuildConfig.DEBUG) "Invalid passcode. Try ILLUSIONS2026 or CONFIDE" else "Invalid passcode. Please check and try again.",
+                        color = Color(0xFFFF1E42L),
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
 
-                    Row(modifier = Modifier.fillMaxWidth()) {
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(42.dp)
-                                .clip(RoundedCornerShape(50))
-                                .background(Color.White.copy(alpha = 0.10f))
-                                .clickable { showPasscodeModal = false },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "CANCEL",
-                                color = Color.White.copy(alpha = 0.8f),
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Black
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Box(
-                            modifier = Modifier
-                                .weight(1.3f)
-                                .height(42.dp)
-                                .clip(RoundedCornerShape(50))
-                                .background(
-                                    Brush.horizontalGradient(
-                                        listOf(Color(0xFFFACC15L), Color(0xFFD97706L))
-                                    )
-                                )
-                                .clickable {
-                                    val clean = passcodeText.trim().uppercase()
-                                    if (clean == "ILLUSIONS2026" || clean == "CONFIDE" || clean == "NMI2026" || clean == "ETHAN") {
-                                        onActivateVipPasscode()
-                                        showPasscodeModal = false
-                                        statusBanner = "★ ARTIST VIP MODE ACTIVE: ALL ITEMS + 50,000 ♪ UNLOCKED!"
-                                    } else {
-                                        passcodeError = true
-                                    }
-                                },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "UNLOCK ALL",
-                                color = Color(0xFF030712L),
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Black
-                            )
-                        }
-                    }
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    StudioPillButton(
+                        text = "CANCEL",
+                        palette = StudioPillPalette.SLATE_OBSIDIAN,
+                        onClick = { showPasscodeModal = false },
+                        modifier = Modifier.weight(1f).height(42.dp),
+                        fontSize = 11.sp
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    StudioPillButton(
+                        text = "UNLOCK ALL",
+                        palette = StudioPillPalette.SOLAR_GOLD,
+                        onClick = {
+                            val clean = passcodeText.trim().uppercase()
+                            if (clean == "ILLUSIONS2026" || clean == "CONFIDE" || clean == "NMI2026" || clean == "ETHAN") {
+                                onActivateVipPasscode()
+                                showPasscodeModal = false
+                                statusBanner = "★ ARTIST VIP MODE ACTIVE: ALL ITEMS + 50,000 ♪ UNLOCKED!"
+                            } else {
+                                passcodeError = true
+                            }
+                        },
+                        modifier = Modifier.weight(1.3f).height(42.dp),
+                        fontSize = 11.sp
+                    )
                 }
             }
         }

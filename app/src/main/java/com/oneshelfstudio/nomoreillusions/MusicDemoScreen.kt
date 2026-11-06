@@ -211,23 +211,19 @@ fun MusicDemoScreen(
     }
 
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        Color(0xFF03060EL),
-                        Color(0xFF050B18L),
-                        Color(0xFF020408L)
-                    )
-                )
-            )
-            .statusBarsPadding()
-            .navigationBarsPadding()
-            .padding(horizontal = 18.dp, vertical = 10.dp)
+        modifier = Modifier.fillMaxSize()
     ) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            // Clean, Uncrowded Studio Header Bar (Section Title + Notes Balance)
+        // Starbloom Atmospheric Floating Motes & Starlight Background
+        FloatingMotesBackground(stageAccent = Color(0xFF38BDF8))
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+                .navigationBarsPadding()
+                .padding(horizontal = 18.dp, vertical = 8.dp)
+        ) {
+            // Clean, Uncrowded Starbloom Header Bar (Section Title + Golden Filament + Notes Balance)
             val headerTitle = when (activeTab) {
                 0 -> "ARTIST VAULT"
                 2 -> "SKINS & STAGE FX"
@@ -238,53 +234,37 @@ fun MusicDemoScreen(
                 2 -> "Customize Your Core & Stage Palette"
                 else -> "Ethan Correa • No Morē Illusīons"
             }
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 4.dp)
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = headerTitle,
-                        color = Color.White,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Black,
-                        letterSpacing = 1.2.sp
-                    )
-                    Text(
-                        text = headerSub,
-                        color = Color(0xFF94A3B8L),
-                        fontSize = 10.5.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
 
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(50))
-                        .background(
-                            Brush.verticalGradient(
-                                listOf(Color(0xFF061A10L), Color(0xFF030D08L))
+            StudioScreenHeader(
+                title = headerTitle,
+                subtitle = headerSub,
+                onBack = onBack,
+                accentColor = Color(0xFFFACC15),
+                trailingContent = {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(50))
+                            .background(
+                                Brush.verticalGradient(
+                                    listOf(Color(0xF510233D), Color(0xF5060E1A))
+                                )
                             )
+                            .border(1.2.dp, Color(0xFFFACC15L).copy(alpha = 0.75f), RoundedCornerShape(50))
+                            .padding(horizontal = 12.dp, vertical = 6.dp)
+                    ) {
+                        Text(
+                            text = "%,d ♪".format(localPoints),
+                            color = Color(0xFFFACC15L),
+                            fontSize = 11.5.sp,
+                            fontWeight = FontWeight.Black,
+                            maxLines = 1,
+                            softWrap = false
                         )
-                        .border(1.2.dp, Color(0xFF22C55EL).copy(alpha = 0.65f), RoundedCornerShape(50))
-                        .padding(horizontal = 14.dp, vertical = 7.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "%,d ♪".format(localPoints),
-                        color = Color(0xFF4ADE80L),
-                        fontSize = 12.5.sp,
-                        fontWeight = FontWeight.Black,
-                        maxLines = 1,
-                        softWrap = false
-                    )
+                    }
                 }
-            }
+            )
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             if (activeTab == 0) {
                 ArtistExclusivesSpecialsHub(
@@ -348,34 +328,16 @@ fun MusicDemoScreen(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Featured Track Deck (Generous Breathable Padding)
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .shadow(12.dp, RoundedCornerShape(18.dp), ambientColor = Color(0xFF6366F1L), spotColor = Color(0xFF22C55EL))
-                        .clip(RoundedCornerShape(18.dp))
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(
-                                    Color(0xF2081226L),
-                                    Color(0xF5050B18L),
-                                    Color(0xFA02050BL)
-                                )
-                            )
-                        )
-                        .border(
-                            width = 1.5.dp,
-                            brush = Brush.verticalGradient(
-                                colors = listOf(
-                                    Color(0xFF4ADE80L).copy(alpha = 0.72f),
-                                    Color(0xFF6366F1L).copy(alpha = 0.45f)
-                                )
-                            ),
-                            shape = RoundedCornerShape(18.dp)
-                        )
-                        .padding(16.dp)
+                // Featured Track Deck (Starbloom-Grade StudioGlassCard)
+                StudioGlassCard(
+                    accentColor = Color(0xFF38BDF8),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Column(modifier = Modifier.fillMaxWidth()) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(14.dp)
+                    ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.fillMaxWidth()
@@ -473,32 +435,32 @@ fun MusicDemoScreen(
 
                         Spacer(modifier = Modifier.height(10.dp))
 
-                        // Action Buttons Row
+                        // Action Buttons Row (Starbloom 3D Tactile Pill Standard)
                         if (!isPlayable(selected)) {
                             Row(modifier = Modifier.fillMaxWidth()) {
                                 if (selected.index == localUnlocked + 1 && localPoints >= selected.unlockCost) {
-                                    ArcadePillButton(
+                                    StudioPillButton(
                                         text = "UNLOCK (${selected.unlockCost} ♪)",
-                                        pillBitmap = btnPillGold,
+                                        palette = StudioPillPalette.SOLAR_GOLD,
                                         onClick = { tryUnlock(selected) },
-                                        modifier = Modifier.weight(1f).height(42.dp),
+                                        modifier = Modifier.weight(1f).height(44.dp),
                                         fontSize = 11.sp
                                     )
                                 } else {
-                                    ArcadePillButton(
+                                    StudioPillButton(
                                         text = "BUY TRACK ($0.99)",
-                                        pillBitmap = btnPillGold,
+                                        palette = StudioPillPalette.SOLAR_GOLD,
                                         onClick = { onBuyTrack(selected.index) },
-                                        modifier = Modifier.weight(1f).height(42.dp),
+                                        modifier = Modifier.weight(1f).height(44.dp),
                                         fontSize = 11.sp
                                     )
                                 }
                                 Spacer(modifier = Modifier.width(8.dp))
-                                ArcadePillButton(
+                                StudioPillButton(
                                     text = "UNLOCK ALL ($1.99)",
-                                    pillBitmap = btnPillCyan,
+                                    palette = StudioPillPalette.CYAN_SYNTH,
                                     onClick = { onBuyAlbum() },
-                                    modifier = Modifier.weight(1f).height(42.dp),
+                                    modifier = Modifier.weight(1f).height(44.dp),
                                     fontSize = 11.sp
                                 )
                             }
@@ -507,22 +469,22 @@ fun MusicDemoScreen(
                                 verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                ArcadePillButton(
+                                StudioPillButton(
                                     text = if (isPlaying) "PAUSE" else "LISTEN",
-                                    pillBitmap = btnPillGreen,
+                                    palette = StudioPillPalette.EMERALD_STAGE,
                                     onClick = { if (isPlaying) stopPlayback() else startPlayback() },
-                                    modifier = Modifier.weight(0.95f).height(42.dp),
+                                    modifier = Modifier.weight(0.95f).height(44.dp),
                                     fontSize = 12.sp
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
-                                ArcadePillButton(
+                                StudioPillButton(
                                     text = "PLAY ${selected.title.uppercase()}",
-                                    pillBitmap = btnPillCyan,
+                                    palette = StudioPillPalette.CYAN_SYNTH,
                                     onClick = {
                                         stopPlayback()
                                         onPlayGame(selectedTrackIndexLocal)
                                     },
-                                    modifier = Modifier.weight(1.25f).height(42.dp),
+                                    modifier = Modifier.weight(1.25f).height(44.dp),
                                     fontSize = 12.sp
                                 )
                             }
@@ -531,23 +493,23 @@ fun MusicDemoScreen(
                                 verticalAlignment = Alignment.CenterVertically,
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                ArcadePillButton(
+                                StudioPillButton(
                                     text = "PLAY TO UNLOCK ART",
-                                    pillBitmap = btnPillGreen,
+                                    palette = StudioPillPalette.EMERALD_STAGE,
                                     onClick = {
                                         stopPlayback()
                                         onPlayGame(selectedTrackIndexLocal)
                                     },
-                                    modifier = Modifier.weight(1.3f).height(42.dp),
+                                    modifier = Modifier.weight(1.3f).height(44.dp),
                                     fontSize = 12.sp
                                 )
                                 if (localUnlocked < totalTracks) {
                                     Spacer(modifier = Modifier.width(8.dp))
-                                    ArcadePillButton(
+                                    StudioPillButton(
                                         text = "UNLOCK ALL",
-                                        pillBitmap = btnPillGold,
+                                        palette = StudioPillPalette.SOLAR_GOLD,
                                         onClick = { onBuyAlbum() },
-                                        modifier = Modifier.weight(0.9f).height(42.dp),
+                                        modifier = Modifier.weight(0.9f).height(44.dp),
                                         fontSize = 11.sp
                                     )
                                 }

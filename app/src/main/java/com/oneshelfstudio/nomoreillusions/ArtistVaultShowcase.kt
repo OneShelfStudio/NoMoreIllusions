@@ -40,56 +40,32 @@ internal fun ArtistVaultShowcaseModal(
 ) {
     var selectedSubTab by remember(vaultId) { mutableIntStateOf(0) }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.88f))
-            .clickable(enabled = true) {},
-        contentAlignment = Alignment.Center
+    val title = when (vaultId) {
+        "VAULT_LYRICS" -> "DIRECTOR'S CUT LYRIC BOOKLET"
+        "VAULT_POLAROIDS" -> "NO MORĒ ILLUSĪONS ERA ARCHIVE"
+        else -> "4K HOLOGRAPHIC ART & VINYL VAULT"
+    }
+    val badge = when (vaultId) {
+        "VAULT_LYRICS" -> "SONG ARCHITECTURE & SECTION TIMELINE"
+        "VAULT_POLAROIDS" -> "BEHIND THE SCENES • STUDIO NOTES"
+        else -> "COLLECTOR'S PRESSING • HIGH-RES COVER ART"
+    }
+
+    StudioDialog(
+        title = title,
+        onDismiss = onClose,
+        accentColor = Color(0xFFFACC15)
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier
-                .fillMaxWidth(0.95f)
-                .clip(RoundedCornerShape(20.dp))
-                .background(
-                    Brush.verticalGradient(
-                        listOf(Color(0xFF0A1228L), Color(0xFF040711L))
-                    )
-                )
-                .border(1.5.dp, Color(0xFFFACC15L).copy(alpha = 0.85f), RoundedCornerShape(20.dp))
-                .padding(18.dp)
-        ) {
-            val title = when (vaultId) {
-                "VAULT_LYRICS" -> "DIRECTOR'S CUT LYRIC BOOKLET"
-                "VAULT_POLAROIDS" -> "NO MORĒ ILLUSĪONS ERA ARCHIVE"
-                else -> "4K HOLOGRAPHIC ART & VINYL VAULT"
-            }
-            val badge = when (vaultId) {
-                "VAULT_LYRICS" -> "SONG ARCHITECTURE & SECTION TIMELINE"
-                "VAULT_POLAROIDS" -> "BEHIND THE SCENES • STUDIO NOTES"
-                else -> "COLLECTOR'S PRESSING • HIGH-RES COVER ART"
-            }
+        Text(
+            text = badge,
+            color = Color(0xFF38BDF8L),
+            fontSize = 9.5.sp,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 0.8.sp,
+            textAlign = TextAlign.Center
+        )
 
-            Text(
-                text = title,
-                color = Color(0xFFFACC15L),
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Black,
-                letterSpacing = 1.sp,
-                textAlign = TextAlign.Center
-            )
-            Spacer(modifier = Modifier.height(3.dp))
-            Text(
-                text = badge,
-                color = Color(0xFF38BDF8L),
-                fontSize = 9.sp,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 0.8.sp,
-                textAlign = TextAlign.Center
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
             when (vaultId) {
                 "VAULT_LYRICS" -> {
@@ -235,47 +211,24 @@ internal fun ArtistVaultShowcaseModal(
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
-            Row(modifier = Modifier.fillMaxWidth()) {
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(40.dp)
-                        .clip(RoundedCornerShape(50))
-                        .background(Color.White.copy(alpha = 0.12f))
-                        .clickable { onClose() },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "CLOSE VAULT",
-                        color = Color.White,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Black
-                    )
-                }
-                Spacer(modifier = Modifier.width(10.dp))
-                Box(
-                    modifier = Modifier
-                        .weight(1.25f)
-                        .height(40.dp)
-                        .clip(RoundedCornerShape(50))
-                        .background(
-                            Brush.horizontalGradient(
-                                listOf(Color(0xFF22C55EL), Color(0xFF15803DL))
-                            )
-                        )
-                        .clickable { onLaunchTrack() },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "LAUNCH STAGE ▶",
-                        color = Color.White,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Black
-                    )
-                }
-            }
+        Row(modifier = Modifier.fillMaxWidth()) {
+            StudioPillButton(
+                text = "CLOSE",
+                palette = StudioPillPalette.SLATE_OBSIDIAN,
+                onClick = onClose,
+                modifier = Modifier.weight(1f).height(42.dp),
+                fontSize = 11.sp
+            )
+            Spacer(modifier = Modifier.width(10.dp))
+            StudioPillButton(
+                text = "LAUNCH STAGE ▶",
+                palette = StudioPillPalette.EMERALD_STAGE,
+                onClick = onLaunchTrack,
+                modifier = Modifier.weight(1.3f).height(42.dp),
+                fontSize = 11.sp
+            )
         }
     }
 }
@@ -403,101 +356,95 @@ fun ArtistExclusivesSpecialsHub(
                 .verticalScroll(rememberScrollState())
                 .padding(bottom = 14.dp)
         ) {
-            // 1. Breathable Collector's Progress Header & 3 Authentic Archive Launchers (No nonsensical Reels sub-menu!)
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(18.dp))
-                    .background(
-                        Brush.verticalGradient(
-                            listOf(Color(0xFF101D3BL), Color(0xFF060B18L))
-                        )
-                    )
-                    .border(1.5.dp, Color(0xFFFACC15L).copy(alpha = 0.75f), RoundedCornerShape(18.dp))
-                    .padding(16.dp)
+            // 1. Breathable Collector's Progress Header & 3 Authentic Archive Launchers (Starbloom Glass Standard)
+            StudioGlassCard(
+                accentColor = Color(0xFFFACC15),
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        text = "COLLECTION PROGRESS",
-                        color = Color(0xFFFACC15L),
-                        fontSize = 11.5.sp,
-                        fontWeight = FontWeight.Black,
-                        letterSpacing = 0.8.sp
-                    )
-                    Box(
-                        modifier = Modifier
-                            .clip(CircleShape)
-                            .background(Color(0xFF4ADE80L).copy(alpha = 0.18f))
-                            .border(1.dp, Color(0xFF4ADE80L), CircleShape)
-                            .padding(horizontal = 10.dp, vertical = 4.dp)
-                    ) {
-                        Text(
-                            text = "$unlockedCount / ${ARTIST_EXCLUSIVES_CATALOG.size} UNLOCKED",
-                            color = Color(0xFF4ADE80L),
-                            fontSize = 9.5.sp,
-                            fontWeight = FontWeight.Black
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                val pct = (unlockedCount.toFloat() / ARTIST_EXCLUSIVES_CATALOG.size.toFloat()).coerceIn(0.08f, 1f)
-                Box(
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(8.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFF040812L))
-                        .border(1.dp, Color.White.copy(alpha = 0.15f), CircleShape)
+                        .padding(16.dp)
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth(pct)
-                            .fillMaxHeight()
-                            .clip(CircleShape)
-                            .background(
-                                Brush.horizontalGradient(
-                                    listOf(Color(0xFFFACC15L), Color(0xFF4ADE80L), Color(0xFF38BDF8L))
-                                )
-                            )
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(14.dp))
-
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    listOf(
-                        Triple("VAULT_LYRICS", "LYRIC BOOK", Color(0xFF38BDF8L)),
-                        Triple("VAULT_POLAROIDS", "STUDIO NOTES", Color(0xFFE879F9L)),
-                        Triple("VAULT_WALLPAPER", "4K ARTWORK", Color(0xFF4ADE80L))
-                    ).forEach { (id, label, col) ->
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = "COLLECTION PROGRESS",
+                            color = Color(0xFFFACC15L),
+                            fontSize = 11.5.sp,
+                            fontWeight = FontWeight.Black,
+                            letterSpacing = 0.8.sp
+                        )
                         Box(
                             modifier = Modifier
-                                .weight(1f)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(col.copy(alpha = 0.14f))
-                                .border(1.dp, col.copy(alpha = 0.65f), RoundedCornerShape(12.dp))
-                                .clickable { activeModalId = id }
-                                .padding(vertical = 10.dp, horizontal = 6.dp),
-                            contentAlignment = Alignment.Center
+                                .clip(CircleShape)
+                                .background(Color(0xFF4ADE80L).copy(alpha = 0.18f))
+                                .border(1.dp, Color(0xFF4ADE80L), CircleShape)
+                                .padding(horizontal = 10.dp, vertical = 4.dp)
                         ) {
                             Text(
-                                text = label,
-                                color = Color.White,
+                                text = "$unlockedCount / ${ARTIST_EXCLUSIVES_CATALOG.size} UNLOCKED",
+                                color = Color(0xFF4ADE80L),
                                 fontSize = 9.5.sp,
-                                fontWeight = FontWeight.Black,
-                                textAlign = TextAlign.Center,
-                                maxLines = 1
+                                fontWeight = FontWeight.Black
                             )
                         }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    val pct = (unlockedCount.toFloat() / ARTIST_EXCLUSIVES_CATALOG.size.toFloat()).coerceIn(0.08f, 1f)
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(8.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFF040812L))
+                            .border(1.dp, Color.White.copy(alpha = 0.15f), CircleShape)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth(pct)
+                                .fillMaxHeight()
+                                .clip(CircleShape)
+                                .background(
+                                    Brush.horizontalGradient(
+                                        listOf(Color(0xFFFACC15L), Color(0xFF4ADE80L), Color(0xFF38BDF8L))
+                                    )
+                                )
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        StudioPillButton(
+                            text = "LYRIC BOOK",
+                            palette = StudioPillPalette.CYAN_SYNTH,
+                            onClick = { activeModalId = "VAULT_LYRICS" },
+                            modifier = Modifier.weight(1f).height(42.dp),
+                            fontSize = 10.sp
+                        )
+                        StudioPillButton(
+                            text = "STUDIO NOTES",
+                            palette = StudioPillPalette.VELVET_AMETHYST,
+                            onClick = { activeModalId = "VAULT_POLAROIDS" },
+                            modifier = Modifier.weight(1f).height(42.dp),
+                            fontSize = 10.sp
+                        )
+                        StudioPillButton(
+                            text = "4K ARTWORK",
+                            palette = StudioPillPalette.EMERALD_STAGE,
+                            onClick = { activeModalId = "VAULT_WALLPAPER" },
+                            modifier = Modifier.weight(1f).height(42.dp),
+                            fontSize = 10.sp
+                        )
                     }
                 }
             }
@@ -771,97 +718,87 @@ fun ArtistExclusivesSpecialsHub(
         }
 
         if (showVipDialog) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.85f))
-                    .clickable(enabled = true) {},
-                contentAlignment = Alignment.Center
+            StudioDialog(
+                title = "VIP BACKSTAGE PASSCODE",
+                onDismiss = { showVipDialog = false },
+                accentColor = Color(0xFFFACC15)
             ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
+                Text(
+                    text = "Enter Ethan's backstage code to unlock all Artist Secrets and +50,000 ♪ Notes instantly.",
+                    color = Color.White.copy(alpha = 0.78f),
+                    fontSize = 11.sp,
+                    textAlign = TextAlign.Center
+                )
+                Spacer(modifier = Modifier.height(14.dp))
+                Box(
                     modifier = Modifier
-                        .fillMaxWidth(0.92f)
-                        .clip(RoundedCornerShape(18.dp))
-                        .background(Color(0xFF0A1228L))
-                        .border(1.5.dp, Color(0xFFFACC15L), RoundedCornerShape(18.dp))
-                        .padding(18.dp)
+                        .fillMaxWidth()
+                        .height(44.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(Color(0xFF03060CL))
+                        .border(1.dp, if (vipError) Color(0xFFFF1E42L) else Color(0xFF38BDF8L), RoundedCornerShape(10.dp))
+                        .padding(horizontal = 12.dp),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = "VIP BACKSTAGE PASSCODE",
-                        color = Color(0xFFFACC15L),
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Black
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(42.dp)
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(Color(0xFF03060CL))
-                            .border(1.dp, if (vipError) Color(0xFFFF1E42L) else Color(0xFF38BDF8L), RoundedCornerShape(10.dp))
-                            .padding(horizontal = 12.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        if (vipCodeInput.isEmpty()) {
-                            Text(
-                                text = if (BuildConfig.DEBUG) "ENTER CODE (e.g. ETHAN / CONFIDE)" else "ENTER ARTIST VIP CODE",
-                                color = Color.White.copy(alpha = 0.35f),
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                        BasicTextField(
-                            value = vipCodeInput,
-                            onValueChange = {
-                                vipCodeInput = it.uppercase()
-                                vipError = false
-                            },
-                            singleLine = true,
-                            cursorBrush = SolidColor(Color(0xFFFACC15L)),
-                            textStyle = TextStyle(
-                                color = Color.White,
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Black,
-                                textAlign = TextAlign.Center
-                            ),
-                            modifier = Modifier.fillMaxWidth()
+                    if (vipCodeInput.isEmpty()) {
+                        Text(
+                            text = if (BuildConfig.DEBUG) "ENTER CODE (e.g. ETHAN / CONFIDE)" else "ENTER ARTIST VIP CODE",
+                            color = Color.White.copy(alpha = 0.35f),
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold
                         )
                     }
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(40.dp)
-                                .clip(RoundedCornerShape(50))
-                                .background(Color.White.copy(alpha = 0.12f))
-                                .clickable { showVipDialog = false },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text("CANCEL", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Black)
-                        }
-                        Box(
-                            modifier = Modifier
-                                .weight(1.2f)
-                                .height(40.dp)
-                                .clip(RoundedCornerShape(50))
-                                .background(Color(0xFFFACC15L))
-                                .clickable {
-                                    val clean = vipCodeInput.trim().uppercase()
-                                    if (clean in listOf("ETHAN", "CONFIDE", "ILLUSIONS2026", "NMI2026")) {
-                                        onActivateVipPasscode()
-                                        showVipDialog = false
-                                    } else {
-                                        vipError = true
-                                    }
-                                },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text("UNLOCK ALL", color = Color(0xFF020617L), fontSize = 11.sp, fontWeight = FontWeight.Black)
-                        }
-                    }
+                    BasicTextField(
+                        value = vipCodeInput,
+                        onValueChange = {
+                            vipCodeInput = it.uppercase()
+                            vipError = false
+                        },
+                        singleLine = true,
+                        cursorBrush = SolidColor(Color(0xFFFACC15L)),
+                        textStyle = TextStyle(
+                            color = Color.White,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Black,
+                            textAlign = TextAlign.Center,
+                            letterSpacing = 1.5.sp
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+                if (vipError) {
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = if (BuildConfig.DEBUG) "Invalid code. Try ETHAN or CONFIDE" else "Invalid code. Please check and try again.",
+                        color = Color(0xFFFF1E42L),
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                    StudioPillButton(
+                        text = "CANCEL",
+                        palette = StudioPillPalette.SLATE_OBSIDIAN,
+                        onClick = { showVipDialog = false },
+                        modifier = Modifier.weight(1f).height(42.dp),
+                        fontSize = 11.sp
+                    )
+                    StudioPillButton(
+                        text = "UNLOCK ALL",
+                        palette = StudioPillPalette.SOLAR_GOLD,
+                        onClick = {
+                            val clean = vipCodeInput.trim().uppercase()
+                            if (clean in listOf("ETHAN", "CONFIDE", "ILLUSIONS2026", "NMI2026")) {
+                                onActivateVipPasscode()
+                                showVipDialog = false
+                            } else {
+                                vipError = true
+                            }
+                        },
+                        modifier = Modifier.weight(1.2f).height(42.dp),
+                        fontSize = 11.sp
+                    )
                 }
             }
         }
