@@ -53,6 +53,7 @@ fun StudioCustomizerSuite(
     btnPillGreen: ImageBitmap,
     modifier: Modifier = Modifier
 ) {
+    val haptics = rememberStudioHaptics()
     var bgTheme by remember(customBgTheme) { mutableStateOf(customBgTheme) }
     var heroSkin by remember(customHeroSkin) { mutableStateOf(customHeroSkin) }
     var enemyStyle by remember(customEnemyStyle) { mutableStateOf(customEnemyStyle) }
@@ -195,6 +196,7 @@ fun StudioCustomizerSuite(
                         )
                         .border(1.2.dp, Color(0xFF4ADE80L), RoundedCornerShape(10.dp))
                         .clickable {
+                            haptics.confirm()
                             onWatchAdForNotes()
                             statusBanner = "+150 ♪ MUSIC NOTES EARNED!"
                         }
@@ -231,12 +233,15 @@ fun StudioCustomizerSuite(
                             if (isVipUnlocked) Color(0xFFFACC15L) else Color(0xFF818CF8L),
                             RoundedCornerShape(10.dp)
                         )
-                        .clickable { showPasscodeModal = true }
+                        .clickable {
+                            haptics.tick()
+                            showPasscodeModal = true
+                        }
                         .padding(horizontal = 10.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = if (isVipUnlocked) "★ VIP UNLOCKED" else "🔑 VIP PASSCODE",
+                        text = if (isVipUnlocked) "★ VIP ACTIVE" else "★ VIP PASSCODE",
                         color = if (isVipUnlocked) Color(0xFFFEF08AL) else Color(0xFFC7D2FEL),
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Black,
@@ -368,7 +373,10 @@ fun StudioCustomizerSuite(
                             if (palettesSel) Brush.horizontalGradient(listOf(Color(0xFF0284C7L), Color(0xFF4338CAL)))
                             else Brush.horizontalGradient(listOf(Color.Transparent, Color.Transparent))
                         )
-                        .clickable { selectedCategoryIndex = 0 },
+                        .clickable {
+                            haptics.tick()
+                            selectedCategoryIndex = 0
+                        },
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
@@ -390,7 +398,10 @@ fun StudioCustomizerSuite(
                             if (coresSel) Brush.horizontalGradient(listOf(Color(0xFF16A34AL), Color(0xFF0D9488L)))
                             else Brush.horizontalGradient(listOf(Color.Transparent, Color.Transparent))
                         )
-                        .clickable { selectedCategoryIndex = 1 },
+                        .clickable {
+                            haptics.tick()
+                            selectedCategoryIndex = 1
+                        },
                     contentAlignment = Alignment.Center
                 ) {
                     Text(

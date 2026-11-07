@@ -9,7 +9,7 @@ import android.media.SoundPool
 class AudioEngine(private val context: Context) {
 
     private val soundPool: SoundPool = SoundPool.Builder()
-        .setMaxStreams(12)
+        .setMaxStreams(16)
         .setAudioAttributes(
             AudioAttributes.Builder()
                 .setUsage(AudioAttributes.USAGE_GAME)
@@ -25,6 +25,10 @@ class AudioEngine(private val context: Context) {
     private var levelUpSound: Int = 0
     private var deathSound: Int = 0
     private var victorySound: Int = 0
+    private var special24kChimeSound: Int = 0
+    private var hyper24kChimeSound: Int = 0
+    private var videoRelicChimeSound: Int = 0
+    private var videoMontageUnlockSound: Int = 0
 
     private var themePlayer: MediaPlayer? = null
     private var trackPlayer: MediaPlayer? = null
@@ -94,6 +98,18 @@ class AudioEngine(private val context: Context) {
 
         val victoryId = context.resources.getIdentifier("victory_fanfare", "raw", context.packageName)
         if (victoryId != 0) victorySound = soundPool.load(context, victoryId, 1)
+
+        val chime24kId = context.resources.getIdentifier("sfx_special_24k_chime", "raw", context.packageName)
+        if (chime24kId != 0) special24kChimeSound = soundPool.load(context, chime24kId, 1)
+
+        val hyper24kId = context.resources.getIdentifier("sfx_hyper_24k_chime", "raw", context.packageName)
+        if (hyper24kId != 0) hyper24kChimeSound = soundPool.load(context, hyper24kId, 1)
+
+        val videoRelicId = context.resources.getIdentifier("sfx_video_relic_chime", "raw", context.packageName)
+        if (videoRelicId != 0) videoRelicChimeSound = soundPool.load(context, videoRelicId, 1)
+
+        val videoUnlockId = context.resources.getIdentifier("sfx_video_montage_unlock", "raw", context.packageName)
+        if (videoUnlockId != 0) videoMontageUnlockSound = soundPool.load(context, videoUnlockId, 1)
     }
 
     fun playHit() { if (isSoundEnabled && hitSound != 0) soundPool.play(hitSound, 0.35f, 0.35f, 0, 0, 1f) }
@@ -123,8 +139,62 @@ class AudioEngine(private val context: Context) {
 
     private val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
 
+    /**
+     * Mastered Celesta + Bowed Glass + Harp Fmaj9 ascending bloom for Tier-1 24K Milestone Orbs.
+     */
+    fun playSpecial24kChime(pitch: Float = 1.0f) {
+        if (!isSoundEnabled) return
+        if (special24kChimeSound != 0) {
+            soundPool.play(special24kChimeSound, 0.48f, 0.48f, 2, 0, pitch.coerceIn(0.75f, 1.45f))
+        } else if (focusSound != 0) {
+            soundPool.play(focusSound, 0.36f, 0.36f, 1, 0, 1.25f)
+        }
+    }
+
+    /**
+     * Mastered Harp Glissando + Crystal + Halo Pad shimmer for Tier-2 Hyper-24K & 100% Supernova.
+     */
+    fun playHyper24kChime() {
+        if (!isSoundEnabled) return
+        if (hyper24kChimeSound != 0) {
+            soundPool.play(hyper24kChimeSound, 0.55f, 0.55f, 2, 0, 1.0f)
+        } else {
+            playSpecial24kChime(1.12f)
+        }
+    }
+
+    /**
+     * Pitch-stepped Vibraphone + Crystal Bell fifth interval as each VHS Video Relic fills 1/5 -> 4/5.
+     */
+    fun playVideoRelicChime(step: Int) {
+        if (!isSoundEnabled) return
+        val stepPitches = floatArrayOf(0.92f, 1.00f, 1.08f, 1.17f, 1.26f)
+        val rate = stepPitches[(step - 1).coerceIn(0, stepPitches.lastIndex)]
+        if (videoRelicChimeSound != 0) {
+            soundPool.play(videoRelicChimeSound, 0.44f, 0.44f, 2, 0, rate)
+        } else if (focusSound != 0) {
+            soundPool.play(focusSound, 0.32f, 0.32f, 1, 0, rate)
+        }
+    }
+
+    /**
+     * Warm Chorused Rhodes + Harp + Atmosphere resolving bloom when the 5/5 Video Montage unlocks.
+     */
+    fun playVideoMontageUnlockChime() {
+        if (!isSoundEnabled) return
+        if (videoMontageUnlockSound != 0) {
+            soundPool.play(videoMontageUnlockSound, 0.56f, 0.56f, 2, 0, 1.0f)
+        } else {
+            playSpecial24kChime(1.08f)
+        }
+    }
+
     fun playElectricSurgeStinger() {
         if (!isSoundEnabled) return
+        if (special24kChimeSound != 0) {
+            soundPool.play(special24kChimeSound, 0.48f, 0.48f, 2, 0, 1.0f)
+            return
+        }
         val arps = listOf(1.0f, 1.259f, 1.498f, 1.887f)
         arps.forEachIndexed { i, rate ->
             mainHandler.postDelayed({
@@ -135,6 +205,10 @@ class AudioEngine(private val context: Context) {
 
     fun playPrismBloomStinger() {
         if (!isSoundEnabled) return
+        if (videoMontageUnlockSound != 0) {
+            soundPool.play(videoMontageUnlockSound, 0.48f, 0.48f, 2, 0, 1.08f)
+            return
+        }
         val chord = listOf(1.0f, 1.259f, 1.498f, 1.887f, 2.245f)
         chord.forEach { rate ->
             if (focusSound != 0) soundPool.play(focusSound, 0.22f, 0.22f, 1, 0, rate)
@@ -143,17 +217,28 @@ class AudioEngine(private val context: Context) {
 
     fun playSlowMoStinger() {
         if (!isSoundEnabled) return
-        if (nearMissSound != 0) soundPool.play(nearMissSound, 0.45f, 0.45f, 1, 0, 0.65f)
+        if (special24kChimeSound != 0) {
+            soundPool.play(special24kChimeSound, 0.44f, 0.44f, 2, 0, 0.84f)
+        } else if (nearMissSound != 0) {
+            soundPool.play(nearMissSound, 0.45f, 0.45f, 1, 0, 0.65f)
+        }
     }
 
     fun playSolarNovaStinger() {
         if (!isSoundEnabled) return
-        if (deathSound != 0) soundPool.play(deathSound, 0.50f, 0.50f, 1, 0, 0.70f)
-        if (powerUpSound != 0) soundPool.play(powerUpSound, 0.45f, 0.45f, 1, 0, 1.8f)
+        if (hyper24kChimeSound != 0) {
+            soundPool.play(hyper24kChimeSound, 0.54f, 0.54f, 2, 0, 0.94f)
+        } else if (powerUpSound != 0) {
+            soundPool.play(powerUpSound, 0.45f, 0.45f, 1, 0, 1.8f)
+        }
     }
 
     fun playAegisStinger() {
         if (!isSoundEnabled) return
+        if (special24kChimeSound != 0) {
+            soundPool.play(special24kChimeSound, 0.44f, 0.44f, 2, 0, 1.12f)
+            return
+        }
         if (powerUpSound != 0) soundPool.play(powerUpSound, 0.38f, 0.38f, 1, 0, 1.0f)
         mainHandler.postDelayed({
             if (isSoundEnabled && powerUpSound != 0) soundPool.play(powerUpSound, 0.32f, 0.32f, 1, 0, 2.0f)
@@ -169,16 +254,8 @@ class AudioEngine(private val context: Context) {
         when (kind) {
             "VICTORY" -> {
                 if (nearMissSound != 0) soundPool.play(nearMissSound, 0.34f, 0.34f, 1, 0, 1.12f)
-                val notes = listOf(1.0f, 1.259f, 1.498f, 2.0f)
-                notes.forEachIndexed { idx, rate ->
-                    mainHandler.postDelayed({
-                        if (isSoundEnabled && focusSound != 0) {
-                            soundPool.play(focusSound, 0.42f, 0.42f, 1, 0, rate)
-                        }
-                        if (isSoundEnabled && idx == notes.lastIndex && powerUpSound != 0) {
-                            soundPool.play(powerUpSound, 0.48f, 0.48f, 1, 0, rate)
-                        }
-                    }, 70L + idx * 85L)
+                if (hyper24kChimeSound != 0) {
+                    soundPool.play(hyper24kChimeSound, 0.52f, 0.52f, 2, 0, 1.0f)
                 }
                 if (victorySound != 0) {
                     mainHandler.postDelayed({

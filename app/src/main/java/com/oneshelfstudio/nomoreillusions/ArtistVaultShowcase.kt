@@ -1,10 +1,15 @@
 package com.oneshelfstudio.nomoreillusions
 
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -16,6 +21,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -244,11 +250,19 @@ fun ThemeCard(
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
+    val haptics = rememberStudioHaptics()
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.95f else if (isSelected && isUnlocked) 1.01f else 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
+        label = "ThemeCardScale"
+    )
     val cardBrush = when {
         isSelected && isUnlocked -> Brush.verticalGradient(
             listOf(
                 accentColor.copy(alpha = 0.30f),
-                Color(0xFF070E1AL),
+                Color(0xFF0A1628L),
                 Color(0xFF03060CL)
             )
         )
@@ -260,7 +274,7 @@ fun ThemeCard(
         )
         else -> Brush.verticalGradient(
             listOf(
-                Color(0xFF070C16L),
+                Color(0xFF091224L),
                 Color(0xFF03060CL)
             )
         )
@@ -268,18 +282,25 @@ fun ThemeCard(
 
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(14.dp))
+            .scale(scale)
+            .clip(RoundedCornerShape(16.dp))
             .background(cardBrush)
             .border(
                 width = if (isSelected && isUnlocked) 1.8.dp else 1.dp,
                 color = when {
                     isSelected && isUnlocked -> accentColor
-                    !isUnlocked -> Color(0xFFFACC15L).copy(alpha = 0.32f)
+                    !isUnlocked -> Color(0xFFFACC15L).copy(alpha = 0.38f)
                     else -> Color.White.copy(alpha = 0.14f)
                 },
-                shape = RoundedCornerShape(14.dp)
+                shape = RoundedCornerShape(16.dp)
             )
-            .clickable { onClick() }
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null
+            ) {
+                haptics.tick()
+                onClick()
+            }
             .padding(vertical = 14.dp, horizontal = 12.dp),
         contentAlignment = Alignment.Center
     ) {
@@ -297,10 +318,10 @@ fun ThemeCard(
                             }
                         )
                 )
-                Spacer(modifier = Modifier.width(5.dp))
+                Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = if (isUnlocked) title else "🔒 $title",
-                    color = if (isUnlocked) Color.White else Color.White.copy(alpha = 0.65f),
+                    text = if (isUnlocked) title else "LOCKED • $title",
+                    color = if (isUnlocked) Color.White else Color.White.copy(alpha = 0.72f),
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Black,
                     maxLines = 1,
@@ -313,7 +334,7 @@ fun ThemeCard(
                 color = when {
                     !isUnlocked -> Color(0xFFFDE047L)
                     isSelected -> accentColor
-                    else -> Color.White.copy(alpha = 0.48f)
+                    else -> Color.White.copy(alpha = 0.55f)
                 },
                 fontSize = 9.sp,
                 fontWeight = FontWeight.Bold,
@@ -338,6 +359,7 @@ fun ArtistExclusivesSpecialsHub(
     onActivateVipPasscode: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val haptics = rememberStudioHaptics()
     var activeModalId by remember { mutableStateOf<String?>(null) }
     var showVipDialog by remember { mutableStateOf(false) }
     var vipCodeInput by remember { mutableStateOf("") }
@@ -478,7 +500,10 @@ fun ArtistExclusivesSpecialsHub(
                             else Color.White.copy(alpha = if (isExpanded) 0.35f else 0.15f),
                             shape = RoundedCornerShape(14.dp)
                         )
-                        .clickable { expandedItemId = if (isExpanded) null else item.id }
+                        .clickable {
+                            haptics.tick()
+                            expandedItemId = if (isExpanded) null else item.id
+                        }
                         .padding(horizontal = 16.dp, vertical = 14.dp)
                 ) {
                     Row(
@@ -521,7 +546,7 @@ fun ArtistExclusivesSpecialsHub(
                         ) {
                             Text(
                                 text = if (unlocked) (if (isExpanded) "✓ OPEN ▴" else "✓ READ ▾")
-                                else (if (isExpanded) "🔒 HOW ▴" else "🔒 PEEK ▾"),
+                                else (if (isExpanded) "LOCKED ▴" else "PEEK ▾"),
                                 color = if (unlocked) Color(0xFF4ADE80L) else Color(0xFFFACC15L),
                                 fontSize = 8.5.sp,
                                 fontWeight = FontWeight.Black
@@ -666,23 +691,22 @@ fun ArtistExclusivesSpecialsHub(
             Spacer(modifier = Modifier.height(6.dp))
 
             // 3. VIP Fan / Artist Passcode Card at bottom
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(Color(0xFF070D1CL))
-                    .border(1.dp, Color(0xFFC084FCL).copy(alpha = 0.55f), RoundedCornerShape(14.dp))
-                    .clickable { showVipDialog = true }
-                    .padding(16.dp)
+            StudioGlassCard(
+                accentColor = Color(0xFFC084FC),
+                shape = RoundedCornerShape(16.dp),
+                onClick = { showVipDialog = true },
+                modifier = Modifier.fillMaxWidth()
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = if (isVipUnlocked) "★ VIP BACKSTAGE PASS ACTIVE" else "🔑 ARTIST VIP PASSCODE",
+                            text = if (isVipUnlocked) "★ VIP BACKSTAGE PASS ACTIVE" else "★ ARTIST VIP PASSCODE",
                             color = Color(0xFFC084FCL),
                             fontSize = 10.5.sp,
                             fontWeight = FontWeight.Black
@@ -690,7 +714,7 @@ fun ArtistExclusivesSpecialsHub(
                         Text(
                             text = if (isVipUnlocked) "All Artist Secrets & +50,000 ♪ Notes Unlocked!"
                             else "Have Ethan's backstage code? Tap to unlock everything.",
-                            color = Color.White.copy(alpha = 0.75f),
+                            color = Color.White.copy(alpha = 0.78f),
                             fontSize = 9.5.sp
                         )
                     }

@@ -156,7 +156,7 @@ class GameOrbCollectionTest {
     }
 
     @Test
-    fun testConfideAndNumberOne_spawnAllFiveVideoRelicsPerWindowEvenInTrainingMode() {
+    fun testConfideAndNumberOne_spawnSixVideoRelicsPerWindowWithCleanSeparationAndWideWindow2Stagger() {
         for (trackIdx in listOf(1, 2)) {
             val track = MusicLibrary.getTrack(trackIdx)
             val beatDur = 60f / track.bpm
@@ -210,12 +210,30 @@ class GameOrbCollectionTest {
                 )
 
                 val cutoffMid = if (trackIdx == 1) 80f else 70f
-                val set1Relics = spawnedAll.count { it.isMusicVideoOrb && it.targetBeatSec < cutoffMid }
-                val set2Relics = spawnedAll.count { it.isMusicVideoOrb && it.targetBeatSec >= cutoffMid }
-                assertEquals("Track $trackIdx (training=$training) must spawn 5 Video Relics before Montage 1", 5, set1Relics)
-                assertEquals("Track $trackIdx (training=$training) must spawn 5 Video Relics before Montage 2", 5, set2Relics)
+                val montage1Cutoff = if (trackIdx == 1) 58.0f else 53.0f
+                val montage1End = if (trackIdx == 1) 68.5f else 63.0f
+                val montage2Cutoff = if (trackIdx == 1) 155.0f else 117.5f
+
+                val set1Relics = spawnedAll.filter { it.isMusicVideoOrb && it.targetBeatSec < cutoffMid }.sortedBy { it.targetBeatSec }
+                val set2Relics = spawnedAll.filter { it.isMusicVideoOrb && it.targetBeatSec >= cutoffMid }.sortedBy { it.targetBeatSec }
+
+                assertEquals("Track $trackIdx (training=$training) must spawn 6 Video Relics in Window 1 (5 needed + 1 buffer)", 6, set1Relics.size)
+                assertTrue("All Window 1 Video Relics must arrive well before Montage 1 ($montage1Cutoff s)", set1Relics.all { it.targetBeatSec <= montage1Cutoff })
+
+                assertEquals("Track $trackIdx (training=$training) must spawn 6 Video Relics in Window 2 (5 needed + 1 buffer)", 6, set2Relics.size)
+                assertTrue("All Window 2 Video Relics must arrive before Montage 2 ($montage2Cutoff s)", set2Relics.all { it.targetBeatSec <= montage2Cutoff })
+
+                val breatherGap = set2Relics.first().targetBeatSec - montage1End
+                assertTrue("Clean breather separation between Montage 1 end and Window 2 start must be >= 16.0s, was $breatherGap", breatherGap >= 16.0f)
+
+                val avgWindow2Spacing = (set2Relics.last().targetBeatSec - set2Relics.first().targetBeatSec) / (set2Relics.size - 1).toFloat()
+                val minExpectedAvg = if (trackIdx == 1) 11.5f else 6.8f
+                assertTrue("Window 2 Video Relics must be widely staggered (avg >= $minExpectedAvg s), was $avgWindow2Spacing", avgWindow2Spacing >= minExpectedAvg)
             }
         }
+
+        // Verify all 5 RippleWaveStyle shockwave archetypes construct cleanly
+        assertEquals(5, RippleWaveStyle.entries.size)
     }
 
     @Test

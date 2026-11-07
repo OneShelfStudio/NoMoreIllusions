@@ -1,5 +1,10 @@
 package com.oneshelfstudio.nomoreillusions
 
+import android.content.Context
+import android.os.Build
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -39,6 +44,7 @@ import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -48,6 +54,63 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.math.sin
 import kotlin.random.Random
+
+val LocalStudioHapticsEnabled = compositionLocalOf { true }
+
+class StudioHaptics(
+    private val vibrator: Vibrator?,
+    private val enabled: Boolean
+) {
+    fun tick() {
+        val vib = vibrator ?: return
+        if (!enabled) return
+        runCatching {
+            if (!vib.hasVibrator()) return
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                vib.vibrate(VibrationEffect.createPredefined(VibrationEffect.EFFECT_TICK))
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                vib.vibrate(VibrationEffect.createOneShot(12L, 110))
+            } else {
+                @Suppress("DEPRECATION")
+                vib.vibrate(12L)
+            }
+        }
+    }
+
+    fun confirm() {
+        val vib = vibrator ?: return
+        if (!enabled) return
+        runCatching {
+            if (!vib.hasVibrator()) return
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                vib.vibrate(VibrationEffect.createPredefined(VibrationEffect.EFFECT_CLICK))
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                vib.vibrate(VibrationEffect.createOneShot(22L, 180))
+            } else {
+                @Suppress("DEPRECATION")
+                vib.vibrate(22L)
+            }
+        }
+    }
+}
+
+@Composable
+fun rememberStudioHaptics(): StudioHaptics {
+    val context = LocalContext.current
+    val enabled = LocalStudioHapticsEnabled.current
+    val vibrator = remember(context) {
+        runCatching {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                val vm = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager
+                vm?.defaultVibrator
+            } else {
+                @Suppress("DEPRECATION")
+                context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
+            }
+        }.getOrNull()
+    }
+    return remember(vibrator, enabled) { StudioHaptics(vibrator, enabled) }
+}
 
 // ---------------------------------------------------------------------------
 // 1. Color Palettes & Tokens (Starbloom-Grade 3D Shaders)
@@ -264,6 +327,7 @@ fun StudioPillButton(
     enabled: Boolean = true
 ) {
     val colors = remember(palette) { resolveStudioColors(palette) }
+    val haptics = rememberStudioHaptics()
     val pillShape = RoundedCornerShape(percent = 50)
     val contentAlpha = if (enabled) 1f else 0.45f
     val interactionSource = remember { MutableInteractionSource() }
@@ -315,6 +379,7 @@ fun StudioPillButton(
                 indication = null,
                 enabled = enabled
             ) {
+                haptics.confirm()
                 onClick()
             },
         contentAlignment = Alignment.Center
@@ -486,6 +551,7 @@ fun StudioIconButton(
     }
 ) {
     val shape = RoundedCornerShape(14.dp)
+    val haptics = rememberStudioHaptics()
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
@@ -525,6 +591,7 @@ fun StudioIconButton(
                 indication = null,
                 enabled = enabled
             ) {
+                haptics.tick()
                 onClick()
             },
         contentAlignment = Alignment.Center
@@ -594,15 +661,22 @@ fun StudioScreenHeader(
                 textAlign = TextAlign.Center
             )
 
-            // Starbloom signature horizontal filament divider line with center starlight diamond
+            // Starbloom signature tapered diamond light-filament with center starlight jewel
             Canvas(
                 modifier = Modifier
-                    .width(130.dp)
-                    .height(6.dp)
+                    .width(136.dp)
+                    .height(8.dp)
             ) {
                 val midY = size.height / 2f
                 val cx = size.width / 2f
-                drawLine(
+                val taperPath = Path().apply {
+                    moveTo(0f, midY)
+                    quadraticTo(cx, midY - 1.6.dp.toPx(), size.width, midY)
+                    quadraticTo(cx, midY + 1.6.dp.toPx(), 0f, midY)
+                    close()
+                }
+                drawPath(
+                    path = taperPath,
                     brush = Brush.horizontalGradient(
                         listOf(
                             Color.Transparent,
@@ -611,16 +685,18 @@ fun StudioScreenHeader(
                             accentColor.copy(alpha = 0.85f),
                             Color.Transparent
                         )
-                    ),
-                    start = Offset(0f, midY),
-                    end = Offset(size.width, midY),
-                    strokeWidth = 1.6.dp.toPx()
+                    )
                 )
-                drawCircle(
-                    color = Color.White,
-                    radius = 2.2.dp.toPx(),
-                    center = Offset(cx, midY)
-                )
+                val d = 3.2.dp.toPx()
+                val starPath = Path().apply {
+                    moveTo(cx, midY - d)
+                    quadraticTo(cx, midY, cx + d, midY)
+                    quadraticTo(cx, midY, cx, midY + d)
+                    quadraticTo(cx, midY, cx - d, midY)
+                    quadraticTo(cx, midY, cx, midY - d)
+                    close()
+                }
+                drawPath(starPath, color = Color.White)
             }
 
             if (subtitle != null) {
@@ -657,6 +733,7 @@ fun StudioGlassCard(
     onClick: (() -> Unit)? = null,
     content: @Composable BoxScope.() -> Unit
 ) {
+    val haptics = rememberStudioHaptics()
     val interactionSource = remember(onClick) { if (onClick != null) MutableInteractionSource() else null }
     val isPressed = interactionSource?.collectIsPressedAsState()?.value ?: false
     val scale by animateFloatAsState(
@@ -677,7 +754,10 @@ fun StudioGlassCard(
                     Modifier.clickable(
                         interactionSource = interactionSource,
                         indication = null,
-                        onClick = onClick
+                        onClick = {
+                            haptics.tick()
+                            onClick()
+                        }
                     )
                 } else Modifier
             ),
@@ -722,8 +802,9 @@ fun StudioGlassCard(
                     radius = size.width * 0.65f,
                     center = Offset(size.width * 0.5f, 0f)
                 )
-                // Top Horizon Specular Line
-                drawLine(
+                // Top Horizon Specular Sheen Capsule
+                val sheenW = size.width * 0.80f
+                drawRoundRect(
                     brush = Brush.horizontalGradient(
                         listOf(
                             Color.Transparent,
@@ -733,9 +814,9 @@ fun StudioGlassCard(
                             Color.Transparent
                         )
                     ),
-                    start = Offset(size.width * 0.1f, 1.5f),
-                    end = Offset(size.width * 0.9f, 1.5f),
-                    strokeWidth = 1.8f
+                    topLeft = Offset(size.width * 0.10f, 1.0f),
+                    size = Size(sheenW, 2.2f),
+                    cornerRadius = CornerRadius(2f, 2f)
                 )
             }
             content()
@@ -818,6 +899,7 @@ fun StudioNavDock(
     onNavigateSettings: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val haptics = rememberStudioHaptics()
     val navItems = listOf(
         Triple("HOME", "HOME", onNavigateHome),
         Triple("ALBUM", "ALBUM", onNavigateAlbum),
@@ -885,6 +967,7 @@ fun StudioNavDock(
                             interactionSource = interactionSource,
                             indication = null
                         ) {
+                            haptics.tick()
                             action()
                         }
                         .padding(horizontal = 6.dp, vertical = 4.dp)
@@ -1034,17 +1117,32 @@ fun StudioDialog(
 
                 Spacer(modifier = Modifier.height(4.dp))
 
-                // Filament divider line
-                Canvas(modifier = Modifier.width(120.dp).height(6.dp)) {
+                // Tapered diamond filament divider
+                Canvas(modifier = Modifier.width(128.dp).height(8.dp)) {
                     val midY = size.height / 2f
-                    drawLine(
+                    val cx = size.width / 2f
+                    val taperPath = Path().apply {
+                        moveTo(0f, midY)
+                        quadraticTo(cx, midY - 1.6.dp.toPx(), size.width, midY)
+                        quadraticTo(cx, midY + 1.6.dp.toPx(), 0f, midY)
+                        close()
+                    }
+                    drawPath(
+                        path = taperPath,
                         brush = Brush.horizontalGradient(
                             listOf(Color.Transparent, accentColor, Color(0xFFFDE68A), accentColor, Color.Transparent)
-                        ),
-                        start = Offset(0f, midY),
-                        end = Offset(size.width, midY),
-                        strokeWidth = 1.8f
+                        )
                     )
+                    val d = 3.0.dp.toPx()
+                    val starPath = Path().apply {
+                        moveTo(cx, midY - d)
+                        quadraticTo(cx, midY, cx + d, midY)
+                        quadraticTo(cx, midY, cx, midY + d)
+                        quadraticTo(cx, midY, cx - d, midY)
+                        quadraticTo(cx, midY, cx, midY - d)
+                        close()
+                    }
+                    drawPath(starPath, color = Color.White)
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))

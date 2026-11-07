@@ -467,6 +467,10 @@ fun GameScreen(
     var cipherArmedAtSec by remember { mutableFloatStateOf(0f) }
     var videoWindowIndex by remember { mutableIntStateOf(0) }
     var videoWindowFailed by remember { mutableStateOf(false) }
+    var videoOrbsCollectedInWindow by remember { mutableIntStateOf(0) }
+    var videoOrbsMissedInWindow by remember { mutableIntStateOf(0) }
+    var montage1Triggered by remember { mutableStateOf(false) }
+    var montage2Triggered by remember { mutableStateOf(false) }
     var activeGoldenTier by remember { mutableIntStateOf(0) }
 
     val difficultyScoreMultiplier = getDifficultyScoreMultiplier(gameDifficulty, selectedRemixMode)
@@ -528,6 +532,10 @@ fun GameScreen(
         cipherArmedAtSec = 0f
         videoWindowIndex = 0
         videoWindowFailed = false
+        videoOrbsCollectedInWindow = 0
+        videoOrbsMissedInWindow = 0
+        montage1Triggered = false
+        montage2Triggered = false
         brollActive = false
         brollTimer = 0f
         brollClipFadeAlpha = 0f
@@ -727,6 +735,13 @@ fun GameScreen(
                 if (selectedRemixMode == TrackRemixMode.ENDLESS && audioEngine.loopCycleCount > lastLoopCycleSeen) {
                     lastLoopCycleSeen = audioEngine.loopCycleCount
                     nextOrbCueIdx = 0
+                    videoWindowIndex = 0
+                    videoWindowFailed = false
+                    videoOrbsCollectedInWindow = 0
+                    videoOrbsMissedInWindow = 0
+                    montage1Triggered = false
+                    montage2Triggered = false
+                    isCipherArmed = false
                     val newSpd = (1.0f + lastLoopCycleSeen * 0.08f).coerceAtMost(1.65f)
                     score += 500 * lastLoopCycleSeen
                     pulsePoints += 25
@@ -761,26 +776,75 @@ fun GameScreen(
                 val trackSec = if (isAudioRunning) rawTrackSec else (preMusicElapsed - 1.0f).coerceIn(-1.0f, 0.0f)
                 liveTrackSec = trackSec
 
-                // Manage Video Relic Window 1 vs Window 2 reset cleanly
+                // Manage Video Relic Window 1 vs Window 2 reset cleanly (starts ahead of first Video Orb spawn!)
                 val curWindowIdx = if (selectedTrackIndex == 1) {
                     when {
-                        trackSec in 30.5f..60.8f -> 1
-                        trackSec in 114.5f..156.8f -> 2
+                        trackSec in 28.5f..61.0f -> 1
+                        trackSec in 83.5f..157.0f -> 2
                         else -> 0
                     }
                 } else {
                     when {
-                        trackSec in 31.5f..55.2f -> 1
-                        trackSec in 94.5f..119.2f -> 2
+                        trackSec in 28.5f..55.4f -> 1
+                        trackSec in 76.0f..119.4f -> 2
                         else -> 0
                     }
                 }
                 if (curWindowIdx != 0 && curWindowIdx != videoWindowIndex) {
                     videoWindowIndex = curWindowIdx
                     videoWindowFailed = false
+                    isCipherArmed = false
+                    videoOrbsCollectedInWindow = 0
+                    videoOrbsMissedInWindow = 0
                     if (!brollActive) {
                         cipherMeterProgress = 0f
                     }
+                }
+
+                // Cue-Locked Montage Launch: If the player collected 5/5 Video Relics ahead of the musical cue,
+                // launch Montage 1 right at 1:00 (0:54.5 Track 2) and Montage 2 right at 2:36 (1:58.5 Track 2)!
+                val montageCueDropSec = if (selectedTrackIndex == 1) {
+                    if (videoWindowIndex == 1) 59.5f else 155.5f
+                } else {
+                    if (videoWindowIndex == 1) 54.2f else 118.0f
+                }
+                val montageEndTargetSec = if (selectedTrackIndex == 1) {
+                    if (videoWindowIndex == 1) 68.5f else 170.0f
+                } else {
+                    if (videoWindowIndex == 1) 63.0f else 131.5f
+                }
+                val alreadyFiredThisWindow = (videoWindowIndex == 1 && montage1Triggered) || (videoWindowIndex == 2 && montage2Triggered)
+                if (isCipherArmed && !brollActive && !alreadyFiredThisWindow && trackSec >= montageCueDropSec) {
+                    isCipherArmed = false
+                    if (videoWindowIndex == 1) montage1Triggered = true else if (videoWindowIndex == 2) montage2Triggered = true
+                    brollBaseClip = if (videoWindowIndex == 1) 0 else 2
+                    brollClipIndex = brollBaseClip
+                    val montageDuration = (montageEndTargetSec - trackSec).coerceIn(8.0f, 16.0f)
+                    brollDurationTotal = montageDuration
+                    brollTimer = montageDuration
+                    brollActive = true
+                    audioEngine.playVideoMontageUnlockChime()
+                    triggerHaptic(58L)
+                    shockwaves.add(
+                        Shockwave(
+                            screenWidth * 0.5f,
+                            screenHeight * 0.45f,
+                            0f,
+                            maxOf(screenWidth, screenHeight) * 0.80f,
+                            Color(0xFF05D9E8L),
+                            1.05f,
+                            RippleWaveStyle.VHS_CHROMATIC_RIPPLE
+                        )
+                    )
+                    activePowerUpToast = PowerUpBannerToast(
+                        icon = "✦",
+                        title = if (videoWindowIndex == 1) "MONTAGE I UNLOCKED!" else "MONTAGE II UNLOCKED!",
+                        subtitle = "SLOW-MO STUDIO REEL ACTIVE",
+                        accentColor = Color(0xFF05D9E8L),
+                        timer = 2.6f,
+                        maxTimer = 2.6f
+                    )
+                    toastTimeLeft = 2.6f
                 }
 
                 val activeTrack = MusicLibrary.getTrack(selectedTrackIndex)
@@ -819,11 +883,12 @@ fun GameScreen(
                             shakeAmount = 14f
                             cameraPunch = 0.06f
                             beatFlashIntensity = 1.0f
-                            audioEngine.playElectricSurgeStinger()
-                            shockwaves.add(Shockwave(player.x, player.y, 0f, 650f, Color(0xFFFACC15L), 1.3f))
-                            shockwaves.add(Shockwave(player.x, player.y, 0f, 450f, Color(0xFF38BDF8L), 1.1f))
+                            if (primed.goldenTier >= 2) audioEngine.playHyper24kChime() else audioEngine.playSpecial24kChime()
+                            val mainStyle = if (primed.goldenTier >= 2) RippleWaveStyle.HYPER_CORONA_BLOOM else RippleWaveStyle.SOLAR_MANDALA_RIPPLE
+                            shockwaves.add(Shockwave(player.x, player.y, 0f, 650f, Color(0xFFFACC15L), 1.3f, mainStyle))
+                            shockwaves.add(Shockwave(player.x, player.y, 0f, 450f, Color(0xFF38BDF8L), 1.1f, RippleWaveStyle.PRISM_CAUSTIC_BLOOM))
                             activePowerUpToast = PowerUpBannerToast(
-                                icon = "⚡",
+                                icon = "✦",
                                 title = if (primed.goldenTier >= 2) "24K HYPER-SPECTACLE!" else "24K GOLD MODE!",
                                 subtitle = if (primed.goldenTier >= 2) "SOLAR MANDALA + TWIN-RING PULSE" else "SYNTH AURORA & 4X OVERDRIVE",
                                 accentColor = Color(0xFFFACC15L),
@@ -836,10 +901,10 @@ fun GameScreen(
                             beatFlashIntensity = 0.90f
                             cameraPunch = 0.045f
                             audioEngine.playPrismBloomStinger()
-                            shockwaves.add(Shockwave(player.x, player.y, 0f, 500f, Color(0xFF4ADE80L), 1.2f))
-                            shockwaves.add(Shockwave(player.x, player.y, 0f, 320f, Color(0xFFEC4899L), 1.0f))
+                            shockwaves.add(Shockwave(player.x, player.y, 0f, 500f, Color(0xFF4ADE80L), 1.2f, RippleWaveStyle.PRISM_CAUSTIC_BLOOM))
+                            shockwaves.add(Shockwave(player.x, player.y, 0f, 320f, Color(0xFFEC4899L), 1.0f, RippleWaveStyle.PRISM_CAUSTIC_BLOOM))
                             activePowerUpToast = PowerUpBannerToast(
-                                icon = "✨",
+                                icon = "◈",
                                 title = "PRISM VOCAL BLOOM!",
                                 subtitle = "CRYSTAL HARMONY & ART REVEAL",
                                 accentColor = Color(0xFF4ADE80L),
@@ -851,9 +916,9 @@ fun GameScreen(
                         PowerUpType.SLOW_MO -> {
                             slowMoTime = maxOf(slowMoTime, 6.0f)
                             audioEngine.playSlowMoStinger()
-                            shockwaves.add(Shockwave(player.x, player.y, 0f, 420f, Color(0xFFC084FCL), 1.1f))
+                            shockwaves.add(Shockwave(player.x, player.y, 0f, 420f, Color(0xFFC084FCL), 1.1f, RippleWaveStyle.PRISM_CAUSTIC_BLOOM))
                             activePowerUpToast = PowerUpBannerToast(
-                                icon = "🌀",
+                                icon = "◎",
                                 title = "VORTEX TIME-WARP!",
                                 subtitle = "50% SLOW-MO BREAKDOWN FLOW",
                                 accentColor = Color(0xFFC084FCL),
@@ -867,7 +932,7 @@ fun GameScreen(
                             cameraPunch = 0.055f
                             beatFlashIntensity = 0.95f
                             audioEngine.playSolarNovaStinger()
-                            shockwaves.add(Shockwave(player.x, player.y, 0f, 750f, Color(0xFFF97316L), 1.4f))
+                            shockwaves.add(Shockwave(player.x, player.y, 0f, 750f, Color(0xFFF97316L), 1.4f, RippleWaveStyle.HYPER_CORONA_BLOOM))
                             enemies.clear()
                             enemyTelegraphs.clear()
                             for (s in 0 until 28) {
@@ -1112,26 +1177,34 @@ fun GameScreen(
                     magnetActive = magnetTime > 0f && !isBandHeroMode,
                     isBandHeroMode = isBandHeroMode,
                     onBeatMissed = { missedOrb ->
-                        if (missedOrb.isMusicVideoOrb && !brollActive) {
-                            // Missing ANY of the 5 video relics resets the VHS meter with double-pulse haptic & glitch feedback!
-                            cipherMeterProgress = 0f
-                            videoWindowFailed = true
-                            triggerErrorHaptic()
-                            shakeAmount = maxOf(shakeAmount, 8.5f)
-                            chromaticAmount = maxOf(chromaticAmount, 3.2f)
+                        val windowDone = (videoWindowIndex == 1 && montage1Triggered) || (videoWindowIndex == 2 && montage2Triggered)
+                        if (missedOrb.isMusicVideoOrb && !brollActive && !isCipherArmed && !windowDone && !videoWindowFailed) {
+                            videoOrbsMissedInWindow++
                             val missY = missedOrb.y.coerceIn(screenHeight * 0.25f, screenHeight * 0.85f)
                             val missX = missedOrb.x.coerceIn(screenWidth * 0.15f, screenWidth * 0.85f)
-                            shockwaves.add(Shockwave(missX, missY, 0f, 280f, Color(0xFFFF2A6DL), 0.85f))
-                            shockwaves.add(Shockwave(missX, missY, 0f, 180f, Color(0xFF05D9E8L), 0.65f))
-                            activePowerUpToast = PowerUpBannerToast(
-                                icon = "📼",
-                                title = "VIDEO REEL MISSED!",
-                                subtitle = "SIGNAL LOST • VHS METER RESET",
-                                accentColor = Color(0xFFFF2A6DL),
-                                timer = 2.4f,
-                                maxTimer = 2.4f
-                            )
-                            toastTimeLeft = 2.4f
+                            // 6 Video Orbs spawn per window and 5 are needed: 1st miss still leaves 5 obtainable orbs!
+                            if (videoOrbsMissedInWindow >= 2) {
+                                cipherMeterProgress = 0f
+                                videoWindowFailed = true
+                                triggerErrorHaptic()
+                                shakeAmount = maxOf(shakeAmount, 8.5f)
+                                chromaticAmount = maxOf(chromaticAmount, 3.2f)
+                                shockwaves.add(Shockwave(missX, missY, 0f, 280f, Color(0xFFFF2A6DL), 0.85f, RippleWaveStyle.VHS_CHROMATIC_RIPPLE))
+                                shockwaves.add(Shockwave(missX, missY, 0f, 180f, Color(0xFF05D9E8L), 0.65f, RippleWaveStyle.VHS_CHROMATIC_RIPPLE))
+                                activePowerUpToast = PowerUpBannerToast(
+                                    icon = "◈",
+                                    title = "VIDEO REEL MISSED!",
+                                    subtitle = "SIGNAL LOST • VHS METER RESET",
+                                    accentColor = Color(0xFFFF2A6DL),
+                                    timer = 2.4f,
+                                    maxTimer = 2.4f
+                                )
+                                toastTimeLeft = 2.4f
+                            } else {
+                                triggerHaptic(28L)
+                                chromaticAmount = maxOf(chromaticAmount, 1.4f)
+                                shockwaves.add(Shockwave(missX, missY, 0f, 150f, Color(0xFFFF2A6DL), 0.60f, RippleWaveStyle.VHS_CHROMATIC_RIPPLE))
+                            }
                         }
                         if (isGoldenActive) {
                             // protected during 24K Overdrive rush!
@@ -1232,7 +1305,7 @@ fun GameScreen(
                     val distSecondary = if (secPos != null) hypot(p.x - secPos.x, p.y - secPos.y) else 9999f
                     val distTetherMid = if (secPos != null) hypot(p.x - (player.x + secPos.x) * 0.5f, p.y - (player.y + secPos.y) * 0.5f) else 9999f
                     val dist = minOf(distPrimary, minOf(distSecondary, distTetherMid))
-                    val catchRadius = p.radius + player.radius + (if (isGoldenActive) 22f else 18f)
+                    val catchRadius = p.radius + player.radius + (if (isGoldenActive) 22f else 18f) + (if (p.isMusicVideoOrb) 10f else 0f)
                     if (dist < catchRadius) {
                         orbsCollectedThisRun++
                         rhythmCombo++
@@ -1267,49 +1340,83 @@ fun GameScreen(
                             onBeatHitsThisRun++
                         }
 
-                        // Enigmatic Cipher / VHS Spool Orb: 5 video orbs fill the bar (+20% each), 5th triggers Slow-Mo Montage!
+                        // Enigmatic Cipher / VHS Spool Orb: 5 video orbs fill the bar (+20% each), arming Slow-Mo Montage 1 & Montage 2!
                         if (p.isMusicVideoOrb && !isSpecialTransitionOrb && isBrollEnabled) {
-                            if (!brollActive && !videoWindowFailed) {
-                                cipherMeterProgress = (cipherMeterProgress + 0.20f).coerceAtMost(1.0f)
-                                val reelNum = (cipherMeterProgress * 5f + 0.05f).toInt().coerceIn(1, 5)
-                                shockwaves.add(Shockwave(p.x, p.y, 0f, 150f, Color(0xFF05D9E8L), 0.60f))
-                                shockwaves.add(Shockwave(p.x, p.y, 0f, 105f, Color(0xFFFF2A6DL), 0.48f))
-                                if (cipherMeterProgress >= 0.99f) {
-                                    cipherMeterProgress = 1.0f
-                                    isCipherArmed = false
-                                    brollBaseClip = (brollBaseClip + 1) % 4
-                                    brollClipIndex = brollBaseClip
-                                    // End Montage 1 right as drum beat returns (1:08.5 on Confide) and Montage 2 right at 2:50 ("I")!
-                                    val endTargetSec = if (selectedTrackIndex == 1) {
-                                        if (trackSec < 100f) 68.5f else 170.0f
+                            val windowAlreadyFired = (videoWindowIndex == 1 && montage1Triggered) || (videoWindowIndex == 2 && montage2Triggered)
+                            if (!brollActive && !videoWindowFailed && !windowAlreadyFired) {
+                                videoOrbsCollectedInWindow++
+                                if (!isCipherArmed) {
+                                    cipherMeterProgress = (videoOrbsCollectedInWindow * 0.20f).coerceIn(0f, 1.0f)
+                                    val reelNum = videoOrbsCollectedInWindow.coerceIn(1, 5)
+                                    shockwaves.add(Shockwave(p.x, p.y, 0f, 210f, Color(0xFF05D9E8L), 0.78f, RippleWaveStyle.VHS_CHROMATIC_RIPPLE))
+                                    if (videoOrbsCollectedInWindow >= 5) {
+                                        cipherMeterProgress = 1.0f
+                                        val cueSec = if (selectedTrackIndex == 1) {
+                                            if (videoWindowIndex == 1) 59.5f else 155.5f
+                                        } else {
+                                            if (videoWindowIndex == 1) 54.2f else 118.0f
+                                        }
+                                        val endSec = if (selectedTrackIndex == 1) {
+                                            if (videoWindowIndex == 1) 68.5f else 170.0f
+                                        } else {
+                                            if (videoWindowIndex == 1) 63.0f else 131.5f
+                                        }
+                                        if (trackSec >= cueSec - 1.2f) {
+                                            // Already at the montage drop cue — launch immediately!
+                                            isCipherArmed = false
+                                            if (videoWindowIndex == 1) montage1Triggered = true else if (videoWindowIndex == 2) montage2Triggered = true
+                                            brollBaseClip = if (videoWindowIndex == 1) 0 else 2
+                                            brollClipIndex = brollBaseClip
+                                            val montageDuration = (endSec - trackSec).coerceIn(8.0f, 16.0f)
+                                            brollDurationTotal = montageDuration
+                                            brollTimer = montageDuration
+                                            brollActive = true
+                                            audioEngine.playVideoMontageUnlockChime()
+                                            triggerHaptic(58L)
+                                            shockwaves.add(Shockwave(screenWidth * 0.5f, screenHeight * 0.45f, 0f, maxOf(screenWidth, screenHeight) * 0.80f, Color(0xFF05D9E8L), 1.05f, RippleWaveStyle.VHS_CHROMATIC_RIPPLE))
+                                            activePowerUpToast = PowerUpBannerToast(
+                                                icon = "✦",
+                                                title = if (videoWindowIndex == 1) "MONTAGE I UNLOCKED (5/5)!" else "MONTAGE II UNLOCKED (5/5)!",
+                                                subtitle = "SLOW-MO STUDIO REEL ACTIVE",
+                                                accentColor = Color(0xFF05D9E8L),
+                                                timer = 2.6f,
+                                                maxTimer = 2.6f
+                                            )
+                                            toastTimeLeft = 2.6f
+                                        } else {
+                                            // Armed early — lock 100% VHS gauge and fire right on the musical beat!
+                                            isCipherArmed = true
+                                            cipherArmedAtSec = trackSec
+                                            audioEngine.playVideoMontageUnlockChime()
+                                            triggerHaptic(52L)
+                                            shockwaves.add(Shockwave(p.x, p.y, 0f, 340f, Color(0xFF05D9E8L), 0.95f, RippleWaveStyle.VHS_CHROMATIC_RIPPLE))
+                                            activePowerUpToast = PowerUpBannerToast(
+                                                icon = "✦",
+                                                title = "VHS REEL ARMED (5/5)!",
+                                                subtitle = "MONTAGE LOCKED FOR NEXT CUE",
+                                                accentColor = Color(0xFF05D9E8L),
+                                                timer = 2.3f,
+                                                maxTimer = 2.3f
+                                            )
+                                            toastTimeLeft = 2.3f
+                                        }
                                     } else {
-                                        if (trackSec < 85f) 63.0f else 131.5f
+                                        audioEngine.playVideoRelicChime(reelNum)
+                                        activePowerUpToast = PowerUpBannerToast(
+                                            icon = "◈",
+                                            title = "VIDEO REEL $reelNum / 5",
+                                            subtitle = "COLLECT 5 TO UNLOCK MONTAGE",
+                                            accentColor = Color(0xFF05D9E8L),
+                                            timer = 1.45f,
+                                            maxTimer = 1.45f
+                                        )
+                                        toastTimeLeft = 1.45f
                                     }
-                                    val montageDuration = (endTargetSec - trackSec).coerceIn(8.0f, 16.0f)
-                                    brollDurationTotal = montageDuration
-                                    brollTimer = montageDuration
-                                    brollActive = true
-                                    triggerHaptic(55L)
-                                    shockwaves.add(Shockwave(screenWidth * 0.5f, screenHeight * 0.45f, 0f, maxOf(screenWidth, screenHeight) * 0.78f, Color(0xFF05D9E8L), 0.95f))
-                                    activePowerUpToast = PowerUpBannerToast(
-                                        icon = "🎬",
-                                        title = "VHS REEL UNLOCKED (5/5)!",
-                                        subtitle = "SLOW-MO VIDEO MONTAGE ACTIVE",
-                                        accentColor = Color(0xFF05D9E8L),
-                                        timer = 2.5f,
-                                        maxTimer = 2.5f
-                                    )
-                                    toastTimeLeft = 2.5f
                                 } else {
-                                    activePowerUpToast = PowerUpBannerToast(
-                                        icon = "📼",
-                                        title = "VIDEO REEL $reelNum / 5",
-                                        subtitle = "COLLECT ALL 5 TO UNLOCK MONTAGE",
-                                        accentColor = Color(0xFF05D9E8L),
-                                        timer = 1.5f,
-                                        maxTimer = 1.5f
-                                    )
-                                    toastTimeLeft = 1.5f
+                                    // Bonus 6th Video Orb collected while already armed!
+                                    audioEngine.playVideoRelicChime(5)
+                                    score += (250 * difficultyScoreMultiplier).toInt()
+                                    shockwaves.add(Shockwave(p.x, p.y, 0f, 220f, Color(0xFF05D9E8L), 0.80f, RippleWaveStyle.VHS_CHROMATIC_RIPPLE))
                                 }
                             }
                         }
@@ -1345,8 +1452,14 @@ fun GameScreen(
                                 }
                                 scoreMultiplier = maxOf(scoreMultiplier, 4)
                                 multiplierTime = maxOf(multiplierTime, 12.0f)
-                                shockwaves.add(Shockwave(p.x, p.y, 0f, 540f, Color(0xFFFACC15L), 1.15f))
-                                shockwaves.add(Shockwave(p.x, p.y, 0f, 360f, Color(0xFF38BDF8L), 0.92f))
+                                val isHyperGold = p.goldenTier >= 2
+                                val primaryRipple = when {
+                                    isHyperGold -> RippleWaveStyle.HYPER_CORONA_BLOOM
+                                    p.goldenTier == 1 || p.keyWordEffect == KeyWordEffect.CONSTELLATION_STAR -> RippleWaveStyle.SOLAR_MANDALA_RIPPLE
+                                    else -> RippleWaveStyle.PRISM_CAUSTIC_BLOOM
+                                }
+                                shockwaves.add(Shockwave(p.x, p.y, 0f, 560f, Color(0xFFFACC15L), 1.22f, primaryRipple))
+                                shockwaves.add(Shockwave(p.x, p.y, 0f, 380f, Color(0xFF38BDF8L), 0.98f, RippleWaveStyle.PRISM_CAUSTIC_BLOOM))
 
                                 if (hasSpecialPower) {
                                     val pickupRes = handleRegularOrbPowerUp(
@@ -1376,14 +1489,16 @@ fun GameScreen(
                                     cameraPunch = pickupRes.newCameraPunch
                                     beatFlashIntensity = pickupRes.newBeatFlashIntensity
                                     score += pickupRes.bonusScore
-                                    when (p.powerUpType) {
-                                        PowerUpType.ELECTRIC_HARMONIC -> audioEngine.playElectricSurgeStinger()
-                                        PowerUpType.PRISM_HARMONY -> audioEngine.playPrismBloomStinger()
-                                        PowerUpType.SLOW_MO -> audioEngine.playSlowMoStinger()
-                                        PowerUpType.BLAST -> audioEngine.playSolarNovaStinger()
-                                        PowerUpType.SHIELD -> audioEngine.playAegisStinger()
-                                        else -> {}
+                                    when {
+                                        isHyperGold -> audioEngine.playHyper24kChime()
+                                        p.powerUpType == PowerUpType.ELECTRIC_HARMONIC -> audioEngine.playSpecial24kChime()
+                                        p.powerUpType == PowerUpType.PRISM_HARMONY -> audioEngine.playPrismBloomStinger()
+                                        p.powerUpType == PowerUpType.SLOW_MO -> audioEngine.playSlowMoStinger()
+                                        p.powerUpType == PowerUpType.BLAST -> audioEngine.playSolarNovaStinger()
+                                        p.powerUpType == PowerUpType.SHIELD -> audioEngine.playAegisStinger()
                                     }
+                                } else {
+                                    if (isHyperGold) audioEngine.playHyper24kChime() else audioEngine.playSpecial24kChime()
                                 }
                                 if (isSupernovaOrb) {
                                     val supRes = handleSupernovaOrbPickup(
@@ -1426,16 +1541,26 @@ fun GameScreen(
                                     }
                                 }
                             } else if (isSwellLockWindow) {
-                                // PRIMED FOR EXACT SWELL: Caught while approaching — locks in and ignites right on targetBeatSec!
-                                triggerHaptic(34L)
+                                // PRIMED FOR EXACT SWELL: Caught while approaching — play radiant lock-in chime + mandala ripple and ignite right on targetBeatSec!
+                                triggerHaptic(38L)
                                 score += (450 * difficultyScoreMultiplier).toInt()
-                                shockwaves.add(Shockwave(p.x, p.y, 0f, 200f, Color(0xFFFACC15L), 0.70f))
+                                val lockTier = if (p.goldenTier > 0) p.goldenTier else if (p.keyWordEffect == KeyWordEffect.CONSTELLATION_STAR) 1 else 0
+                                if (lockTier >= 2) {
+                                    audioEngine.playHyper24kChime()
+                                    shockwaves.add(Shockwave(p.x, p.y, 0f, 290f, Color(0xFFFACC15L), 0.90f, RippleWaveStyle.HYPER_CORONA_BLOOM))
+                                } else if (lockTier == 1) {
+                                    audioEngine.playSpecial24kChime(0.96f)
+                                    shockwaves.add(Shockwave(p.x, p.y, 0f, 260f, Color(0xFFFACC15L), 0.85f, RippleWaveStyle.SOLAR_MANDALA_RIPPLE))
+                                } else {
+                                    audioEngine.playPrismBloomStinger()
+                                    shockwaves.add(Shockwave(p.x, p.y, 0f, 250f, Color(0xFF38BDF8L), 0.85f, RippleWaveStyle.PRISM_CAUSTIC_BLOOM))
+                                }
                                 primedSectionEffect = PrimedSectionEffect(
                                     type = p.powerUpType ?: PowerUpType.NONE,
                                     targetSec = p.targetBeatSec,
                                     title = "SWELL LOCKED",
                                     keyWordEffect = p.keyWordEffect,
-                                    goldenTier = if (p.goldenTier > 0) p.goldenTier else if (p.keyWordEffect == KeyWordEffect.CONSTELLATION_STAR) 1 else 0
+                                    goldenTier = lockTier
                                 )
                             }
                         } else {
@@ -1466,15 +1591,15 @@ fun GameScreen(
                                     cameraPunch = maxOf(cameraPunch, 0.055f)
                                     beatFlashIntensity = 0.95f
                                     triggerHaptic(65L)
-                                    audioEngine.playElectricSurgeStinger()
+                                    audioEngine.playHyper24kChime()
                                     powerUps.forEach { activeOrb ->
                                         if (!activeOrb.isMusicVideoOrb) {
                                             activeOrb.isGoldenOrb = true
                                             activeOrb.color = Color(0xFFFACC15L)
                                         }
                                     }
-                                    shockwaves.add(Shockwave(player.x, player.y, 0f, 680f, Color(0xFFFACC15L), 1.25f))
-                                    shockwaves.add(Shockwave(player.x, player.y, 0f, 460f, Color(0xFF38BDF8L), 1.05f))
+                                    shockwaves.add(Shockwave(player.x, player.y, 0f, 680f, Color(0xFFFACC15L), 1.25f, RippleWaveStyle.HYPER_CORONA_BLOOM))
+                                    shockwaves.add(Shockwave(player.x, player.y, 0f, 460f, Color(0xFF38BDF8L), 1.05f, RippleWaveStyle.SOLAR_MANDALA_RIPPLE))
                                     repeat(22) { sp ->
                                         val ang = (sp / 22f) * 6.283185f
                                         particles.add(
@@ -1716,17 +1841,17 @@ fun GameScreen(
                 }
 
                 // If montage timestamp arrived but player did not gather all 5 relics, reset the meter with haptic & glitch
-                val isMontageCutoff = (selectedTrackIndex == 1 && ((trackSec in 60.5f..61.8f) || (trackSec in 156.5f..157.8f))) ||
-                    (selectedTrackIndex == 2 && ((trackSec in 54.5f..55.8f) || (trackSec in 118.5f..119.8f)))
-                if (isMontageCutoff && cipherMeterProgress > 0f && cipherMeterProgress < 0.99f && !brollActive) {
+                val isMontageCutoff = (selectedTrackIndex == 1 && ((trackSec in 60.5f..61.8f && !montage1Triggered) || (trackSec in 156.5f..157.8f && !montage2Triggered))) ||
+                    (selectedTrackIndex == 2 && ((trackSec in 54.8f..56.0f && !montage1Triggered) || (trackSec in 118.8f..120.0f && !montage2Triggered)))
+                if (isMontageCutoff && cipherMeterProgress > 0f && !isCipherArmed && !brollActive && !videoWindowFailed) {
                     cipherMeterProgress = 0f
                     videoWindowFailed = true
                     triggerErrorHaptic()
                     chromaticAmount = maxOf(chromaticAmount, 3.0f)
                     shakeAmount = maxOf(shakeAmount, 7.5f)
-                    shockwaves.add(Shockwave(screenWidth * 0.5f, screenHeight * 0.45f, 0f, 260f, Color(0xFFFF2A6DL), 0.80f))
+                    shockwaves.add(Shockwave(screenWidth * 0.5f, screenHeight * 0.45f, 0f, 260f, Color(0xFFFF2A6DL), 0.80f, RippleWaveStyle.VHS_CHROMATIC_RIPPLE))
                     activePowerUpToast = PowerUpBannerToast(
-                        icon = "📼",
+                        icon = "◈",
                         title = "REEL INCOMPLETE",
                         subtitle = "WINDOW MISSED • VHS METER RESET",
                         accentColor = Color(0xFFFF2A6DL),
@@ -1771,6 +1896,7 @@ fun GameScreen(
         }
     }
 
+    CompositionLocalProvider(LocalStudioHapticsEnabled provides isHapticEnabled) {
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         screenWidth = constraints.maxWidth.toFloat()
         screenHeight = constraints.maxHeight.toFloat()
@@ -1907,7 +2033,8 @@ fun GameScreen(
                             it.color = Color(0xFFFACC15L)
                         }
                     }
-                    audioEngine.playElectricSurgeStinger()
+                    audioEngine.playHyper24kChime()
+                    triggerHaptic(60L)
                 },
                 onPause = { if (gameState == GameState.PLAYING) gameState = GameState.PAUSED }
             )
@@ -2040,10 +2167,22 @@ fun GameScreen(
                 }
             )
 
-            GameState.HOW_TO_PLAY -> HowToPlayUI(btnPillCyan = btnPillCyan) {
-                audioEngine.playMenuNote()
-                gameState = GameState.MENU
-            }
+            GameState.HOW_TO_PLAY -> HowToPlayUI(
+                btnPillCyan = btnPillCyan,
+                onNavigateHome = { audioEngine.playMenuNote(); gameState = GameState.MENU },
+                onNavigateAlbum = { audioEngine.playMenuNote(); initialDemoTab = 1; gameState = GameState.MUSIC_DEMO },
+                onNavigateVault = { audioEngine.playMenuNote(); initialDemoTab = 0; gameState = GameState.MUSIC_DEMO },
+                onNavigateSkins = { audioEngine.playMenuNote(); initialDemoTab = 2; gameState = GameState.MUSIC_DEMO },
+                onNavigateSettings = {
+                    audioEngine.playMenuNote()
+                    settingsReturnState = GameState.HOW_TO_PLAY
+                    gameState = GameState.SETTINGS
+                },
+                onBack = {
+                    audioEngine.playMenuNote()
+                    gameState = GameState.MENU
+                }
+            )
 
             GameState.SETTINGS -> SettingsUI(
                 isMusic = isMusicEnabled,
@@ -2072,6 +2211,10 @@ fun GameScreen(
                     pulsePoints += 50000
                     audioEngine.playVictory()
                 },
+                onNavigateHome = { audioEngine.playMenuNote(); gameState = GameState.MENU },
+                onNavigateAlbum = { audioEngine.playMenuNote(); initialDemoTab = 1; gameState = GameState.MUSIC_DEMO },
+                onNavigateVault = { audioEngine.playMenuNote(); initialDemoTab = 0; gameState = GameState.MUSIC_DEMO },
+                onNavigateSkins = { audioEngine.playMenuNote(); initialDemoTab = 2; gameState = GameState.MUSIC_DEMO },
                 onBack = { audioEngine.playMenuNote(); gameState = settingsReturnState }
             )
 
@@ -2254,6 +2397,7 @@ fun GameScreen(
                 }
             )
         }
+    }
     }
 }
 

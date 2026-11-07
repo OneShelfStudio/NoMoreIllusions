@@ -5,7 +5,6 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -41,52 +40,52 @@ enum class FirstTimeDiscovery(
 ) {
     FAN_WELCOME(
         prefKey = "seen_discovery_fan_welcome_v2",
-        badge = "★ QUICK GUIDE ★",
-        title = "HOW TO PLAY",
-        subtitle = "GATHER NOTES • AVOID ENEMIES • HIT SPECIAL PEGS",
-        body = "Glide smoothly with your finger to intercept rhythmic notes, dodge hazards, and trigger electrifying stage transformations!",
-        tip = "Hit steady beat notes to unlock new songs and artist vault secrets!",
-        buttonText = "LET'S PLAY ♪",
+        badge = "STUDIO STAGE BRIEFING",
+        title = "RHYTHM & RELICS",
+        subtitle = "FLUID GLIDE • 24K SPECTACLES • VHS MONTAGES",
+        body = "Glide freely across the stage to catch beat-synced orbs, dodge red void hazards, and unlock two slow-motion music video montages per song!",
+        tip = "Touch with a second finger anytime to weave a curved Dual-Hero plasma ribbon!",
+        buttonText = "DROP THE NEEDLE ▶",
         accentColor = Color(0xFFFACC15L)
     ),
     BEAT_CHAIN(
         prefKey = "seen_discovery_beat_chain_v2",
-        badge = "NEW MECHANIC • RHYTHM PHRASE",
-        title = "NUMBERED BEAT CHAINS (1 → 2 → 3 → 4)",
-        subtitle = "HIT BEATS IN ORDER AS THE OUTER RING LOCKS IN",
-        body = "Stationary Beat Orbs spawn along a curved silk stream in musical 4-beat phrases (1 → 2 → 3 → 4). Glide into #1 right as its shrinking outer ring reaches the orb for PERFECT! (+250) timing!",
-        tip = "CASUAL-FRIENDLY: Missing a beat's timer only resets your Combo multiplier—it NEVER damages your health or ends your run.",
-        buttonText = "GOT IT — RESUME TRACK",
+        badge = "RHYTHM FLOW • BEAT ORBS",
+        title = "MULTI-DIRECTIONAL BEAT ORBS",
+        subtitle = "CATCH ORBS ON THE DRUM GROOVE • UNVEIL THE ALBUM",
+        body = "Luminous Beat Orbs drift in from every angle and pulse to the live drum beat. Glide smoothly through them to build your combo multiplier and progressively unveil the official album artwork.",
+        tip = "FLOW STATE: Orbs phase smoothly past one another—focus on riding the musical groove!",
+        buttonText = "RESUME TRACK ▶",
         accentColor = Color(0xFF38BDF8L)
     ),
     SUPERNOVA_ORB(
         prefKey = "seen_discovery_supernova_v2",
-        badge = "NEW MECHANIC • VOCAL DROP",
-        title = "24K GOLD LYRIC SUPERNOVA ORB",
-        subtitle = "STAGE PHENOMENON & 2X RHYTHM RUSH",
-        body = "On signature vocal drops, a blazing 24K Gold Supernova Orb appears! Collecting it triggers a full-stage visual phenomenon, vaporizes nearby hazards, and activates 2x Constellation Rush.",
-        tip = "PRO TIP: Follow your hero's golden compass arc whenever a Supernova Beat materializes!",
-        buttonText = "GOT IT — RESUME TRACK",
+        badge = "STAGE PHENOMENON • 24K RELIC",
+        title = "24K GOLD SPECTACLE ORBS",
+        subtitle = "TOP-CENTER MILESTONES & 24K SUPERNOVA METER",
+        body = "At signature musical transitions (0:15, 1:18, and key riffs), a radiant 24K Gold Milestone Orb floats into the upper-center stage. Catching it unleashes golden solar ripples, vaporizes nearby hazards, and ignites 24K Overdrive!",
+        tip = "TAP THE RIGHT HUD CAPSULE whenever your 24K bar hits 100% for an instant Supernova burst!",
+        buttonText = "RESUME TRACK ▶",
         accentColor = Color(0xFFFACC15L)
     ),
     SLIDE_STREAM(
         prefKey = "seen_discovery_slide_stream_v2",
-        badge = "NEW MECHANIC • MUSICAL HOLD SLIDE",
-        title = "SLIDE-STREAM WORMHOLE RIBBON",
-        subtitle = "SLIDE ♪ ENTRY → 5 RHYTHM PEARLS → EXIT ★",
-        body = "Fly into the glowing SLIDE ♪ portal to automatically surf the curved musical light-ribbon across space! You are 100% invulnerable while sliding and collect all 5 rhythm pearls (+500 bonus) on the beat.",
-        tip = "RHYTHM FLOW: Slide streams carry you safely past hazards straight into the next musical phrase!",
-        buttonText = "GOT IT — RESUME TRACK",
+        badge = "DIRECTOR'S REEL • 5/5 VHS RELICS",
+        title = "MUSIC VIDEO MONTAGE RELICS",
+        subtitle = "COLLECT 5 VHS ORBS TO ARM EACH SLOW-MO MONTAGE",
+        body = "Holographic cyan-violet VHS Relics appear across two dedicated song windows. Collect 5 Relics to arm your left VHS Meter—launching a dreamy slow-motion music video montage right on the vocal drop!",
+        tip = "STAY SHARP: Missing too many VHS Relics resets the current window's reel meter!",
+        buttonText = "RESUME TRACK ▶",
         accentColor = Color(0xFFE879F9L)
     ),
     HAZARD_SHIELD(
         prefKey = "seen_discovery_hazard_shield_v2",
-        badge = "NEW MECHANIC • ARENA AWARENESS",
-        title = "PERIMETER BEACONS & VOID HAZARDS",
-        subtitle = "DODGE RED HAZARDS • CHARGE YOUR SHIELD",
-        body = "Pulsing red beacons on the screen edge warn you 2 beats before a Void Hazard enters the arena. Dodge red hazards while hitting beats to spawn Shield, Slow-Mo, and Overdrive Blast orbs!",
-        tip = "NEED MORE BREATHING ROOM? You can switch between Chill, Normal, and Intense anytime on the Main Menu.",
-        buttonText = "GOT IT — RESUME TRACK",
+        badge = "ARENA AWARENESS • PROTECTION",
+        title = "VOID HAZARDS & AEGIS RELICS",
+        subtitle = "DODGE CRIMSON PULSARS • CATCH SHIELD & SLOW-MO ORBS",
+        body = "Soft perimeter beacons warn you before crimson Void Hazards enter the stage. Weave around hazards while catching Prism, Aegis Shield, and Vortex Slow-Mo relics to protect your combo streak.",
+        tip = "CUSTOM PACE: Adjust Chill, Regular, or Hard difficulty anytime in Studio Settings.",
+        buttonText = "RESUME TRACK ▶",
         accentColor = Color(0xFFFB7185L)
     )
 }
@@ -156,6 +155,137 @@ fun countUnlockedExclusives(prefs: SharedPreferences, highScore: Int, points: In
 }
 
 @Composable
+fun LiveGuideEmblemCanvas(
+    emblemKind: Int,
+    animPhase: Float,
+    accentColor: Color,
+    modifier: Modifier = Modifier.size(48.dp)
+) {
+    Canvas(modifier = modifier) {
+        val cx = size.width * 0.5f
+        val cy = size.height * 0.5f
+        val r = size.minDimension * 0.42f
+        val pulse = 0.5f + 0.5f * sin(animPhase * 2f)
+
+        // Ambient radial bloom
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(accentColor.copy(alpha = 0.34f), Color.Transparent),
+                center = Offset(cx, cy),
+                radius = r * 1.35f
+            ),
+            radius = r * 1.35f,
+            center = Offset(cx, cy)
+        )
+
+        when (emblemKind) {
+            0 -> {
+                // Touch & Dual-Glide Silk Orbit
+                val orbitX = cx + cos(animPhase) * (r * 0.46f)
+                val orbitY = cy + sin(animPhase * 2f) * (r * 0.28f)
+                val trailPath = Path().apply {
+                    moveTo(cx - r * 0.55f, cy + r * 0.18f)
+                    quadraticTo(cx, cy - r * 0.48f, orbitX, orbitY)
+                }
+                drawPath(
+                    path = trailPath,
+                    brush = Brush.horizontalGradient(
+                        listOf(Color.Transparent, Color(0xFF38BDF8), Color(0xFF4ADE80))
+                    ),
+                    style = Stroke(width = 4.2f, cap = StrokeCap.Round)
+                )
+                drawCircle(
+                    color = Color(0xFF4ADE80).copy(alpha = 0.38f),
+                    radius = r * (0.42f + 0.10f * pulse),
+                    center = Offset(orbitX, orbitY)
+                )
+                drawCircle(
+                    color = Color.White,
+                    radius = r * 0.22f,
+                    center = Offset(orbitX, orbitY)
+                )
+            }
+            1 -> {
+                // Beat Orb + Velvet Water-Drop Ripple
+                val rippleFrac = (animPhase / 6.283185f)
+                drawCircle(
+                    color = Color(0xFF38BDF8).copy(alpha = (1f - rippleFrac) * 0.65f),
+                    radius = r * (0.45f + rippleFrac * 0.65f),
+                    center = Offset(cx, cy),
+                    style = Stroke(width = 2.4f * (1f - rippleFrac * 0.5f))
+                )
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(Color.White, Color(0xFF4ADE80), Color(0xFF0284C7)),
+                        center = Offset(cx - r * 0.12f, cy - r * 0.12f),
+                        radius = r * 0.55f
+                    ),
+                    radius = r * (0.46f + 0.08f * pulse),
+                    center = Offset(cx, cy)
+                )
+            }
+            2 -> {
+                // 24K Solar Lotus Relic
+                val petalCount = 6
+                val rot = animPhase * 0.5f
+                val lotus = Path()
+                for (i in 0 until petalCount) {
+                    val a0 = rot + i * (6.283185f / petalCount)
+                    val aMid = a0 + (3.14159f / petalCount)
+                    val a1 = a0 + (6.283185f / petalCount)
+                    val p0 = Offset(cx + cos(a0) * r * 0.42f, cy + sin(a0) * r * 0.42f)
+                    val ctrl = Offset(cx + cos(aMid) * r * 0.95f, cy + sin(aMid) * r * 0.95f)
+                    val p1 = Offset(cx + cos(a1) * r * 0.42f, cy + sin(a1) * r * 0.42f)
+                    if (i == 0) lotus.moveTo(p0.x, p0.y)
+                    lotus.quadraticTo(ctrl.x, ctrl.y, p1.x, p1.y)
+                }
+                lotus.close()
+                drawPath(
+                    path = lotus,
+                    color = Color(0xFFFDE68A).copy(alpha = 0.85f),
+                    style = Stroke(width = 2.2f)
+                )
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(Color.White, Color(0xFFFACC15), Color(0xFFD97706)),
+                        center = Offset(cx, cy),
+                        radius = r * 0.48f
+                    ),
+                    radius = r * (0.42f + 0.07f * pulse),
+                    center = Offset(cx, cy)
+                )
+            }
+            else -> {
+                // VHS Chromatic Montage Lens (5/5)
+                val shift = 2.2f + 1.4f * pulse
+                drawCircle(
+                    color = Color(0xFF22D3EE).copy(alpha = 0.78f),
+                    radius = r * 0.72f,
+                    center = Offset(cx - shift, cy),
+                    style = Stroke(width = 2.2f)
+                )
+                drawCircle(
+                    color = Color(0xFFE879F9).copy(alpha = 0.78f),
+                    radius = r * 0.72f,
+                    center = Offset(cx + shift, cy),
+                    style = Stroke(width = 2.2f)
+                )
+                for (i in 0 until 5) {
+                    val a = animPhase * 0.8f + i * (6.283185f / 5f)
+                    val hx = cx + cos(a) * (r * 0.40f)
+                    val hy = cy + sin(a) * (r * 0.40f)
+                    drawCircle(
+                        color = if (i % 2 == 0) Color(0xFFFDE68A) else Color.White,
+                        radius = r * 0.11f,
+                        center = Offset(hx, hy)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
 fun FirstTimeDiscoveryModal(
     discovery: FirstTimeDiscovery,
     onDismiss: () -> Unit
@@ -170,346 +300,200 @@ fun FirstTimeDiscoveryModal(
         label = "phase"
     )
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xE602050CL))
-            .clickable(enabled = true) {},
-        contentAlignment = Alignment.Center
+    StudioDialog(
+        title = discovery.title,
+        onDismiss = onDismiss,
+        accentColor = discovery.accentColor
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
+        // Top Pill Badge
+        Box(
             modifier = Modifier
-                .widthIn(max = 350.dp)
-                .fillMaxWidth(0.92f)
-                .clip(RoundedCornerShape(24.dp))
-                .background(
-                    Brush.verticalGradient(
-                        listOf(Color(0xFF0B152CL), Color(0xFF050914L))
-                    )
-                )
-                .border(2.dp, discovery.accentColor.copy(alpha = 0.88f), RoundedCornerShape(24.dp))
-                .padding(horizontal = 20.dp, vertical = 18.dp)
+                .clip(CircleShape)
+                .background(discovery.accentColor.copy(alpha = 0.16f))
+                .border(1.dp, discovery.accentColor.copy(alpha = 0.70f), CircleShape)
+                .padding(horizontal = 12.dp, vertical = 4.dp)
         ) {
-            // Top Pill Badge
-            Box(
-                modifier = Modifier
-                    .clip(CircleShape)
-                    .background(discovery.accentColor.copy(alpha = 0.16f))
-                    .border(1.dp, discovery.accentColor.copy(alpha = 0.65f), CircleShape)
-                    .padding(horizontal = 12.dp, vertical = 4.dp)
-            ) {
-                Text(
-                    text = discovery.badge,
-                    color = discovery.accentColor,
-                    fontSize = 9.5.sp,
-                    fontWeight = FontWeight.Black,
-                    letterSpacing = 0.9.sp
-                )
-            }
-
-            Spacer(modifier = Modifier.height(10.dp))
-
             Text(
-                text = discovery.title,
-                color = Color.White,
-                fontSize = 17.sp,
-                fontWeight = FontWeight.Black,
-                textAlign = TextAlign.Center,
-                letterSpacing = 0.5.sp
-            )
-            Spacer(modifier = Modifier.height(3.dp))
-            Text(
-                text = discovery.subtitle,
+                text = discovery.badge,
                 color = discovery.accentColor,
-                fontSize = 10.5.sp,
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center,
-                letterSpacing = 0.6.sp
+                fontSize = 9.5.sp,
+                fontWeight = FontWeight.Black,
+                letterSpacing = 1.0.sp
             )
+        }
 
-            Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(6.dp))
 
-            // Smooth Animated Visual Spotlight Canvas (Zero straight lines!)
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(108.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(Color(0xFF040812L))
-                    .border(1.dp, discovery.accentColor.copy(alpha = 0.35f), RoundedCornerShape(16.dp)),
-                contentAlignment = Alignment.Center
+        Text(
+            text = discovery.subtitle,
+            color = Color(0xFFCBD5E1L),
+            fontSize = 10.sp,
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center,
+            letterSpacing = 0.7.sp
+        )
+
+        Spacer(modifier = Modifier.height(14.dp))
+
+        if (discovery == FirstTimeDiscovery.FAN_WELCOME) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(9.dp),
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Canvas(modifier = Modifier.fillMaxSize()) {
-                    val cx = size.width * 0.5f
-                    val cy = size.height * 0.5f
-                    val pulse = 0.5f + 0.5f * sin(animPhase * 2f)
-
-                    // Soft radial aura
-                    drawCircle(
-                        brush = Brush.radialGradient(
-                            colors = listOf(discovery.accentColor.copy(alpha = 0.28f), Color.Transparent),
-                            center = Offset(cx, cy),
-                            radius = size.height * 0.72f
-                        ),
-                        radius = size.height * 0.72f,
-                        center = Offset(cx, cy)
-                    )
-
-                    when (discovery) {
-                        FirstTimeDiscovery.BEAT_CHAIN -> {
-                            val x1 = size.width * 0.24f
-                            val x2 = size.width * 0.50f
-                            val x3 = size.width * 0.76f
-                            val y1 = cy + 10f
-                            val y2 = cy - 14f
-                            val y3 = cy + 8f
-                            val stream = Path().apply {
-                                moveTo(x1, y1)
-                                quadraticTo((x1 + x2) * 0.5f, cy - 28f, x2, y2)
-                                quadraticTo((x2 + x3) * 0.5f, cy + 22f, x3, y3)
-                            }
-                            drawPath(
-                                path = stream,
-                                color = Color(0xFF38BDF8L).copy(alpha = 0.45f),
-                                style = Stroke(width = 4f, cap = StrokeCap.Round)
-                            )
-                            val shrinkR = 20f * (1.05f + (1f - (animPhase / 6.283185f)) * 0.9f)
-                            drawCircle(
-                                color = Color(0xFF4ADE80L),
-                                radius = shrinkR,
-                                center = Offset(x1, y1),
-                                style = Stroke(width = 2.6f)
-                            )
-                            listOf(Offset(x1, y1), Offset(x2, y2), Offset(x3, y3)).forEachIndexed { idx, pt ->
-                                drawCircle(
-                                    color = if (idx == 0) Color(0xFF38BDF8L) else Color(0xFF0E1D3AL),
-                                    radius = 16f,
-                                    center = pt
-                                )
-                                drawCircle(
-                                    color = Color.White,
-                                    radius = 16f,
-                                    center = pt,
-                                    style = Stroke(width = 2f)
-                                )
-                            }
-                        }
-                        FirstTimeDiscovery.SLIDE_STREAM -> {
-                            val ax = size.width * 0.22f
-                            val bx = size.width * 0.78f
-                            val ribbon = Path().apply {
-                                moveTo(ax, cy + 12f)
-                                quadraticTo(cx, cy - 38f, bx, cy + 12f)
-                            }
-                            drawPath(
-                                path = ribbon,
-                                color = Color(0xFFE879F9L).copy(alpha = 0.35f),
-                                style = Stroke(width = 16f, cap = StrokeCap.Round)
-                            )
-                            drawPath(
-                                path = ribbon,
-                                color = Color.White.copy(alpha = 0.88f),
-                                style = Stroke(width = 3f, cap = StrokeCap.Round)
-                            )
-                            for (i in 1..4) {
-                                val t = i / 5f
-                                val inv = 1f - t
-                                val px = inv * inv * ax + 2f * inv * t * cx + t * t * bx
-                                val py = inv * inv * (cy + 12f) + 2f * inv * t * (cy - 38f) + t * t * (cy + 12f)
-                                drawCircle(color = Color(0xFFFACC15L), radius = 5.5f, center = Offset(px, py))
-                            }
-                            drawCircle(color = Color(0xFF38BDF8L), radius = 18f, center = Offset(ax, cy + 12f), style = Stroke(width = 3f))
-                            drawCircle(color = Color(0xFFE879F9L), radius = 18f, center = Offset(bx, cy + 12f), style = Stroke(width = 3f))
-                        }
-                        else -> {
-                            for (ring in 0..2) {
-                                val r = 24f + ring * 13f
-                                val startDeg = ((animPhase * 57.3f * (if (ring % 2 == 0) 1f else -1f)) + ring * 60f) % 360f
-                                drawArc(
-                                    color = discovery.accentColor.copy(alpha = 0.85f - ring * 0.2f),
-                                    startAngle = startDeg,
-                                    sweepAngle = 120f,
-                                    useCenter = false,
-                                    topLeft = Offset(cx - r, cy - r),
-                                    size = Size(r * 2f, r * 2f),
-                                    style = Stroke(width = 3f, cap = StrokeCap.Round)
-                                )
-                            }
-                            drawCircle(
-                                color = discovery.accentColor,
-                                radius = 14f + pulse * 3f,
-                                center = Offset(cx, cy)
-                            )
-                            drawCircle(
-                                color = Color.White,
-                                radius = 6.5f,
-                                center = Offset(cx, cy)
-                            )
-                        }
-                    }
-                }
+                DiscoveryFeatureCard(
+                    emblemKind = 1,
+                    animPhase = animPhase,
+                    accent = Color(0xFF4ADE80L),
+                    title = "BEAT-SYNCED ORBS",
+                    desc = "Glide freely to catch multi-directional notes on the drum beat & unveil album art."
+                )
+                DiscoveryFeatureCard(
+                    emblemKind = 2,
+                    animPhase = animPhase,
+                    accent = Color(0xFFFACC15L),
+                    title = "24K GOLD MILESTONES",
+                    desc = "Catch upper-center 24K Orbs (0:15 & 1:18) to ignite solar ripples & wipe hazards."
+                )
+                DiscoveryFeatureCard(
+                    emblemKind = 3,
+                    animPhase = animPhase,
+                    accent = Color(0xFFE879F9L),
+                    title = "VHS VIDEO MONTAGES (5/5)",
+                    desc = "Collect 5 chromatic VHS Relics per window to unlock slow-mo music video clips!"
+                )
+            }
+        } else {
+            val emblemKind = when (discovery) {
+                FirstTimeDiscovery.BEAT_CHAIN -> 1
+                FirstTimeDiscovery.SUPERNOVA_ORB -> 2
+                FirstTimeDiscovery.SLIDE_STREAM -> 3
+                FirstTimeDiscovery.HAZARD_SHIELD -> 0
+                else -> 1
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
-
-            if (discovery == FirstTimeDiscovery.FAN_WELCOME) {
-                // Visual-First 3-Card Guide (Zero Reading Overhead!)
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    // Card 1: Gather Notes
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier
-                            .weight(1f)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(Color(0xFF070E1DL))
-                            .border(1.2.dp, Color(0xFFFACC15L).copy(alpha = 0.55f), RoundedCornerShape(12.dp))
-                            .padding(vertical = 10.dp, horizontal = 4.dp)
-                    ) {
-                        Text(text = "🎵", fontSize = 26.sp)
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Text(
-                            text = "GATHER",
-                            color = Color(0xFFFACC15L),
-                            fontSize = 10.5.sp,
-                            fontWeight = FontWeight.Black
-                        )
-                        Text(
-                            text = "Beat Notes",
-                            color = Color(0xFF94A3B8L),
-                            fontSize = 8.5.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-
-                    // Card 2: Avoid Enemies
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier
-                            .weight(1f)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(Color(0xFF070E1DL))
-                            .border(1.2.dp, Color(0xFFF43F5EL).copy(alpha = 0.55f), RoundedCornerShape(12.dp))
-                            .padding(vertical = 10.dp, horizontal = 4.dp)
-                    ) {
-                        Text(text = "👾", fontSize = 26.sp)
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Text(
-                            text = "AVOID",
-                            color = Color(0xFFF43F5EL),
-                            fontSize = 10.5.sp,
-                            fontWeight = FontWeight.Black
-                        )
-                        Text(
-                            text = "Enemies",
-                            color = Color(0xFF94A3B8L),
-                            fontSize = 8.5.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-
-                    // Card 3: Special Pegs
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier
-                            .weight(1f)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(Color(0xFF070E1DL))
-                            .border(1.2.dp, Color(0xFF38BDF8L).copy(alpha = 0.55f), RoundedCornerShape(12.dp))
-                            .padding(vertical = 10.dp, horizontal = 4.dp)
-                    ) {
-                        Text(text = "⚡", fontSize = 26.sp)
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Text(
-                            text = "SPECIAL",
-                            color = Color(0xFF38BDF8L),
-                            fontSize = 10.5.sp,
-                            fontWeight = FontWeight.Black
-                        )
-                        Text(
-                            text = "Power Pegs",
-                            color = Color(0xFF94A3B8L),
-                            fontSize = 8.5.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                Text(
-                    text = "Unlock tracks & artist vault secrets as you play!",
-                    color = Color(0xFFCBD5E1L),
-                    fontSize = 10.5.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    textAlign = TextAlign.Center
-                )
-            } else {
-                Text(
-                    text = discovery.body,
-                    color = Color.White.copy(alpha = 0.92f),
-                    fontSize = 12.sp,
-                    lineHeight = 17.sp,
-                    textAlign = TextAlign.Center
-                )
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                Box(
+            StudioGlassCard(
+                accentColor = discovery.accentColor,
+                shape = RoundedCornerShape(18.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(Color(0xFF071124L))
-                        .border(1.dp, discovery.accentColor.copy(alpha = 0.40f), RoundedCornerShape(10.dp))
-                        .padding(horizontal = 12.dp, vertical = 8.dp)
+                        .padding(horizontal = 16.dp, vertical = 14.dp)
                 ) {
+                    LiveGuideEmblemCanvas(
+                        emblemKind = emblemKind,
+                        animPhase = animPhase,
+                        accentColor = discovery.accentColor,
+                        modifier = Modifier.size(68.dp)
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
                     Text(
-                        text = discovery.tip,
-                        color = discovery.accentColor,
-                        fontSize = 10.5.sp,
-                        fontWeight = FontWeight.Bold,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth()
+                        text = discovery.body,
+                        color = Color.White.copy(alpha = 0.92f),
+                        fontSize = 12.sp,
+                        lineHeight = 17.sp,
+                        textAlign = TextAlign.Center
                     )
                 }
             }
+        }
 
-            Spacer(modifier = Modifier.height(14.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
-            // Primary Action Button
+        // Studio Tip Ribbon
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .background(Color(0xFF071124L))
+                .border(1.dp, discovery.accentColor.copy(alpha = 0.42f), RoundedCornerShape(12.dp))
+                .padding(horizontal = 12.dp, vertical = 8.dp)
+        ) {
+            Text(
+                text = discovery.tip,
+                color = discovery.accentColor,
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        val pillPalette = when (discovery) {
+            FirstTimeDiscovery.FAN_WELCOME, FirstTimeDiscovery.SUPERNOVA_ORB -> StudioPillPalette.SOLAR_GOLD
+            FirstTimeDiscovery.SLIDE_STREAM -> StudioPillPalette.VELVET_AMETHYST
+            FirstTimeDiscovery.HAZARD_SHIELD -> StudioPillPalette.COSMIC_ROSE
+            else -> StudioPillPalette.EMERALD_STAGE
+        }
+
+        StudioPillButton(
+            text = discovery.buttonText,
+            palette = pillPalette,
+            onClick = onDismiss,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp),
+            fontSize = 13.sp
+        )
+    }
+}
+
+@Composable
+private fun DiscoveryFeatureCard(
+    emblemKind: Int,
+    animPhase: Float,
+    accent: Color,
+    title: String,
+    desc: String
+) {
+    StudioGlassCard(
+        accentColor = accent,
+        shape = RoundedCornerShape(16.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 10.dp)
+        ) {
             Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(46.dp)
-                    .clip(RoundedCornerShape(50))
-                    .background(
-                        Brush.horizontalGradient(
-                            listOf(discovery.accentColor, Color(0xFF38BDF8L))
-                        )
-                    )
-                    .clickable { onDismiss() },
+                    .size(48.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color(0xFF040915L))
+                    .border(1.dp, accent.copy(alpha = 0.45f), RoundedCornerShape(12.dp)),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = if (discovery == FirstTimeDiscovery.FAN_WELCOME) "LET'S PLAY ♪" else discovery.buttonText,
-                    color = Color(0xFF020617L),
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Black,
-                    letterSpacing = 0.8.sp
+                LiveGuideEmblemCanvas(
+                    emblemKind = emblemKind,
+                    animPhase = animPhase,
+                    accentColor = accent,
+                    modifier = Modifier.size(40.dp)
                 )
             }
-
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = "SHOWN ONCE • AUTO-SAVED TO YOUR PROFILE",
-                color = Color.White.copy(alpha = 0.45f),
-                fontSize = 8.5.sp,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 0.8.sp
-            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    color = accent,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Black,
+                    letterSpacing = 0.7.sp
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = desc,
+                    color = Color(0xFFE2E8F0L),
+                    fontSize = 10.5.sp,
+                    lineHeight = 14.sp,
+                    fontWeight = FontWeight.Medium
+                )
+            }
         }
     }
 }

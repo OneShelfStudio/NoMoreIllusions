@@ -1,5 +1,8 @@
 package com.oneshelfstudio.nomoreillusions
 
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -7,23 +10,27 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -48,16 +55,16 @@ fun ArcadeDialog(
             .shadow(
                 elevation = 18.dp,
                 shape = dialogShape,
-                ambientColor = Color(0xFF6366F1),
-                spotColor = Color(0xFF16A34A)
+                ambientColor = Color(0xFF38BDF8),
+                spotColor = Color(0xFFFACC15)
             )
             .clip(dialogShape)
             .background(
                 Brush.verticalGradient(
                     listOf(
-                        Color(0xFA060B09),
-                        Color(0xFA04060D),
-                        Color(0xFA020306)
+                        Color(0xFA0E1C33),
+                        Color(0xFA081122),
+                        Color(0xFA03070E)
                     )
                 )
             )
@@ -65,9 +72,9 @@ fun ArcadeDialog(
                 width = 1.5.dp,
                 brush = Brush.verticalGradient(
                     listOf(
-                        Color(0xFF6366F1).copy(alpha = 0.85f),
-                        Color(0xFF22C55E).copy(alpha = 0.55f),
-                        Color(0xFF1E1B4B).copy(alpha = 0.7f)
+                        Color(0xFFFACC15).copy(alpha = 0.85f),
+                        Color(0xFF38BDF8).copy(alpha = 0.45f),
+                        Color(0xFF1E293B).copy(alpha = 0.7f)
                     )
                 ),
                 shape = dialogShape
@@ -78,8 +85,8 @@ fun ArcadeDialog(
             drawCircle(
                 brush = Brush.radialGradient(
                     colors = listOf(
-                        Color(0xFF6366F1).copy(alpha = 0.18f),
-                        Color(0xFF16A34A).copy(alpha = 0.08f),
+                        Color(0xFFFACC15).copy(alpha = 0.16f),
+                        Color(0xFF38BDF8).copy(alpha = 0.08f),
                         Color.Transparent
                     ),
                     center = Offset(size.width / 2f, 0f),
@@ -96,43 +103,16 @@ fun ArcadeDialog(
                 .fillMaxWidth()
                 .padding(top = 20.dp, bottom = 22.dp, start = 20.dp, end = 20.dp)
         ) {
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(percent = 50))
-                    .background(
-                        Brush.horizontalGradient(
-                            listOf(
-                                Color(0xFF0A2E18),
-                                Color(0xFF1E1B4B),
-                                Color(0xFF0A2E18)
-                            )
-                        )
-                    )
-                    .border(
-                        width = 1.2.dp,
-                        brush = Brush.horizontalGradient(
-                            listOf(
-                                Color(0xFF22C55E).copy(alpha = 0.65f),
-                                Color(0xFFA5B4FC).copy(alpha = 0.90f),
-                                Color(0xFF22C55E).copy(alpha = 0.65f)
-                            )
-                        ),
-                        shape = RoundedCornerShape(percent = 50)
-                    )
-                    .padding(horizontal = 22.dp, vertical = 6.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = title,
-                    color = Color.White,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Black,
-                    letterSpacing = 2.sp,
-                    textAlign = TextAlign.Center
-                )
-            }
+            Text(
+                text = title,
+                color = Color.White,
+                fontSize = 17.sp,
+                fontWeight = FontWeight.Black,
+                letterSpacing = 2.sp,
+                textAlign = TextAlign.Center
+            )
 
-            Spacer(modifier = Modifier.height(18.dp))
+            Spacer(modifier = Modifier.height(16.dp))
             content()
         }
 
@@ -169,17 +149,17 @@ fun ArcadeStatCapsule(
             .clip(shape)
             .background(
                 Brush.verticalGradient(
-                    listOf(Color(0xE6091410), Color(0xE604060E))
+                    listOf(Color(0xE60B182C), Color(0xE6040812))
                 )
             )
-            .border(1.dp, Color(0xFF6366F1).copy(alpha = 0.55f), shape)
+            .border(1.dp, Color(0xFF38BDF8).copy(alpha = 0.55f), shape)
     ) {
         Column(
             modifier = Modifier.padding(horizontal = 18.dp, vertical = 4.dp)
         ) {
             Text(
                 text = label,
-                color = Color(0xFF86EFAC),
+                color = Color(0xFF7DD3FC),
                 fontSize = 10.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 1.sp
@@ -203,8 +183,12 @@ fun GameButton(
     enabled: Boolean = true,
     modifier: Modifier = Modifier.width(260.dp).height(54.dp)
 ) {
+    val haptics = rememberStudioHaptics()
     Button(
-        onClick = onClick,
+        onClick = {
+            haptics.confirm()
+            onClick()
+        },
         enabled = enabled,
         colors = ButtonDefaults.buttonColors(
             containerColor = color.copy(alpha = if (enabled) 0.88f else 0.25f),
@@ -224,29 +208,93 @@ fun GameButton(
 }
 
 @Composable
-fun ToggleItem(label: String, checked: Boolean, onToggle: (Boolean) -> Unit) {
+fun ToggleItem(
+    label: String,
+    checked: Boolean,
+    onToggle: (Boolean) -> Unit,
+    subtitle: String? = null
+) {
+    val haptics = rememberStudioHaptics()
+    val interactionSource = remember { MutableInteractionSource() }
+    val thumbProgress by animateFloatAsState(
+        targetValue = if (checked) 1f else 0f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium
+        ),
+        label = "ToggleThumb"
+    )
+
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
-    ) {
-        Text(
-            text = label,
-            color = Color.White,
-            fontSize = 15.sp,
-            fontWeight = FontWeight.Bold,
-            letterSpacing = 0.8.sp,
-            modifier = Modifier.weight(1f)
-        )
-        Switch(
-            checked = checked,
-            onCheckedChange = onToggle,
-            colors = SwitchDefaults.colors(
-                checkedThumbColor = Color(0xFF4ADE80),
-                checkedTrackColor = Color(0xFF4F46E5).copy(alpha = 0.65f),
-                uncheckedThumbColor = Color(0xFF94A3B8),
-                uncheckedTrackColor = Color(0xFF0F172A)
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color(0xFF060E1E).copy(alpha = 0.72f))
+            .border(
+                width = 1.dp,
+                color = if (checked) Color(0xFF4ADE80).copy(alpha = 0.38f) else Color.White.copy(alpha = 0.08f),
+                shape = RoundedCornerShape(12.dp)
             )
-        )
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null
+            ) {
+                haptics.tick()
+                onToggle(!checked)
+            }
+            .padding(horizontal = 12.dp, vertical = 9.dp)
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = label,
+                color = Color.White,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Black,
+                letterSpacing = 0.8.sp
+            )
+            if (subtitle != null) {
+                Text(
+                    text = subtitle,
+                    color = Color(0xFF94A3B8),
+                    fontSize = 9.5.sp,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+        }
+
+        // Custom Glowing Pill Switch
+        Box(
+            modifier = Modifier
+                .width(48.dp)
+                .height(26.dp)
+                .clip(CircleShape)
+                .background(
+                    if (checked) {
+                        Brush.horizontalGradient(listOf(Color(0xFF059669), Color(0xFF10B981)))
+                    } else {
+                        Brush.horizontalGradient(listOf(Color(0xFF0F172A), Color(0xFF1E293B)))
+                    }
+                )
+                .border(
+                    width = 1.2.dp,
+                    color = if (checked) Color(0xFF6EE7B7) else Color(0xFF475569),
+                    shape = CircleShape
+                )
+                .padding(horizontal = 3.dp),
+            contentAlignment = Alignment.CenterStart
+        ) {
+            Box(
+                modifier = Modifier
+                    .offset(x = (20f * thumbProgress).dp)
+                    .size(20.dp)
+                    .shadow(if (checked) 4.dp else 1.dp, CircleShape, ambientColor = Color(0xFF4ADE80))
+                    .clip(CircleShape)
+                    .background(
+                        if (checked) Color.White else Color(0xFF94A3B8)
+                    )
+            )
+        }
     }
 }
 
@@ -254,47 +302,79 @@ fun ToggleItem(label: String, checked: Boolean, onToggle: (Boolean) -> Unit) {
 fun DifficultyOption(
     difficulty: GameDifficulty,
     isSelected: Boolean,
+    modifier: Modifier = Modifier,
     onClick: (GameDifficulty) -> Unit
 ) {
-    val (label, desc) = when (difficulty) {
-        GameDifficulty.EASY -> "EASY" to "0.5x PTS"
-        GameDifficulty.REGULAR -> "REGULAR" to "1.0x PTS"
-        GameDifficulty.HARD -> "HARD" to "1.5x PTS"
+    val haptics = rememberStudioHaptics()
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.94f else if (isSelected) 1.02f else 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
+        label = "DiffScale"
+    )
+
+    val (label, desc, accent) = when (difficulty) {
+        GameDifficulty.EASY -> Triple("CHILL", "0.5x PTS", Color(0xFF38BDF8))
+        GameDifficulty.REGULAR -> Triple("REGULAR", "1.0x PTS", Color(0xFF4ADE80))
+        GameDifficulty.HARD -> Triple("INTENSE", "1.5x PTS", Color(0xFFFACC15))
     }
-    val shape = RoundedCornerShape(12.dp)
+    val shape = RoundedCornerShape(14.dp)
+
     Box(
-        modifier = Modifier
-            .padding(horizontal = 5.dp, vertical = 4.dp)
+        modifier = modifier
+            .scale(scale)
+            .shadow(
+                elevation = if (isSelected) 8.dp else 0.dp,
+                shape = shape,
+                ambientColor = accent.copy(alpha = 0.45f),
+                spotColor = accent.copy(alpha = 0.45f)
+            )
             .clip(shape)
             .background(
                 if (isSelected) {
-                    Brush.verticalGradient(listOf(Color(0xFF4F46E5), Color(0xFF15803D)))
+                    Brush.verticalGradient(
+                        listOf(
+                            accent.copy(alpha = 0.28f),
+                            Color(0xFF0A192F),
+                            Color(0xFF040914)
+                        )
+                    )
                 } else {
-                    Brush.verticalGradient(listOf(Color(0xFF0F172A), Color(0xFF05080F)))
+                    Brush.verticalGradient(listOf(Color(0xFF0B1426), Color(0xFF050912)))
                 }
             )
             .border(
-                width = 1.2.dp,
-                color = if (isSelected) Color(0xFF86EFAC) else Color.White.copy(alpha = 0.15f),
+                width = if (isSelected) 1.6.dp else 1.dp,
+                color = if (isSelected) accent else Color.White.copy(alpha = 0.14f),
                 shape = shape
             )
-            .clickable { onClick(difficulty) }
-            .padding(horizontal = 16.dp, vertical = 10.dp),
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null
+            ) {
+                haptics.tick()
+                onClick(difficulty)
+            }
+            .padding(horizontal = 8.dp, vertical = 10.dp),
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 text = label,
-                color = if (isSelected) Color.White else Color.White.copy(alpha = 0.75f),
-                fontSize = 12.sp,
+                color = if (isSelected) Color.White else Color.White.copy(alpha = 0.72f),
+                fontSize = 11.5.sp,
                 fontWeight = FontWeight.Black,
-                letterSpacing = 0.8.sp
+                letterSpacing = 0.8.sp,
+                maxLines = 1
             )
+            Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = desc,
-                color = if (isSelected) Color(0xFF86EFAC) else Color(0xFF94A3B8),
+                color = if (isSelected) accent else Color(0xFF94A3B8),
                 fontSize = 9.sp,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                maxLines = 1
             )
         }
     }
@@ -302,30 +382,34 @@ fun DifficultyOption(
 
 @Composable
 fun InstructionItem(title: String, desc: String) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
+    StudioGlassCard(
+        accentColor = Color(0xFF38BDF8),
+        shape = RoundedCornerShape(14.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 6.dp)
-            .clip(RoundedCornerShape(12.dp))
-            .background(Color(0xFF060B09).copy(alpha = 0.85f))
-            .border(1.dp, Color(0xFF6366F1).copy(alpha = 0.35f), RoundedCornerShape(12.dp))
-            .padding(horizontal = 14.dp, vertical = 10.dp)
+            .padding(vertical = 4.dp)
     ) {
-        Text(
-            text = title,
-            color = Color(0xFF4ADE80),
-            fontSize = 13.sp,
-            fontWeight = FontWeight.Black,
-            letterSpacing = 1.sp
-        )
-        Text(
-            text = desc,
-            color = Color.White.copy(alpha = 0.85f),
-            fontSize = 12.sp,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(top = 3.dp)
-        )
+        Column(
+            horizontalAlignment = Alignment.Start,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 12.dp)
+        ) {
+            Text(
+                text = title,
+                color = Color(0xFF4ADE80),
+                fontSize = 12.5.sp,
+                fontWeight = FontWeight.Black,
+                letterSpacing = 0.8.sp
+            )
+            Spacer(modifier = Modifier.height(3.dp))
+            Text(
+                text = desc,
+                color = Color.White.copy(alpha = 0.88f),
+                fontSize = 11.5.sp,
+                lineHeight = 16.sp
+            )
+        }
     }
 }
 
@@ -339,7 +423,7 @@ fun ArcadeFocusButton(
 ) {
     val canActivate = focusPower > 0.15f
     val pulseAlpha = if (isActive) 0.98f else if (canActivate) 0.88f else 0.40f
-    val borderColor = if (isActive) Color(0xFF4ADE80) else if (canActivate) Color(0xFF818CF8) else Color.White.copy(alpha = 0.22f)
+    val borderColor = if (isActive) Color(0xFF4ADE80) else if (canActivate) Color(0xFF38BDF8) else Color.White.copy(alpha = 0.22f)
 
     Box(
         modifier = modifier
@@ -354,9 +438,9 @@ fun ArcadeFocusButton(
             .background(
                 Brush.radialGradient(
                     colors = if (isActive) {
-                        listOf(Color(0xEE15803D), Color(0xEE1E1B4B))
+                        listOf(Color(0xEE15803D), Color(0xEE0F172A))
                     } else {
-                        listOf(Color(0xD91E1B4B), Color(0xD904060A))
+                        listOf(Color(0xD90E1C33), Color(0xD904060A))
                     }
                 )
             )
@@ -377,11 +461,21 @@ fun ArcadeFocusButton(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Text(
-                text = "⚡",
-                color = if (isActive) Color(0xFF4ADE80) else Color(0xFFA5B4FC),
-                fontSize = 16.sp
-            )
+            Canvas(modifier = Modifier.size(16.dp)) {
+                val cx = size.width * 0.5f
+                val cy = size.height * 0.5f
+                val s = size.minDimension * 0.45f
+                val star = Path().apply {
+                    moveTo(cx, cy - s)
+                    quadraticTo(cx, cy, cx + s, cy)
+                    quadraticTo(cx, cy, cx, cy + s)
+                    quadraticTo(cx, cy, cx - s, cy)
+                    quadraticTo(cx, cy, cx, cy - s)
+                    close()
+                }
+                drawPath(star, color = if (isActive) Color(0xFF4ADE80) else Color(0xFF7DD3FC))
+            }
+            Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = if (isActive) "ILLUSION" else "FOCUS",
                 color = Color.White.copy(alpha = pulseAlpha),

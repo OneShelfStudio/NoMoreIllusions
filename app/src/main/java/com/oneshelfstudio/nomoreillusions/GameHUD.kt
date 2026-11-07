@@ -1,19 +1,18 @@
 package com.oneshelfstudio.nomoreillusions
 
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.CutCornerShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -22,16 +21,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.animation.core.LinearEasing
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -74,14 +72,13 @@ fun HUD(
     onActivate24K: () -> Unit = {},
     onPause: () -> Unit
 ) {
-    // Ultra-Clean Open-Stage HUD (< 4% screen footprint — clean score, combo streak, zero cluttered popups!)
     Box(
         modifier = Modifier
             .fillMaxSize()
             .statusBarsPadding()
             .padding(top = 16.dp, start = 14.dp, end = 14.dp)
     ) {
-        // 3. Upper-Middle on-screen Combo & Streak Zoom Popup Banner
+        // Upper-Middle on-screen Combo & Streak Zoom Popup Banner
         if (comboBanner != null && comboBanner.timer > 0f) {
             val elapsed = comboBanner.maxTimer - comboBanner.timer
             val progress = (elapsed / comboBanner.maxTimer).coerceIn(0f, 1f)
@@ -139,15 +136,79 @@ fun HUD(
                 }
             }
         }
+
+        // Compact Frosted Relic / Milestone Toast Pill (shows Video Reel 1..5/5, Armed, Miss Reset, & 24K Spectacles!)
+        if (activePowerUpToast != null && toastTimeLeft > 0f && (comboBanner == null || comboBanner.timer <= 0f)) {
+            val maxT = activePowerUpToast.maxTimer.coerceAtLeast(0.5f)
+            val elapsed = (maxT - toastTimeLeft).coerceAtLeast(0f)
+            val popScale = (1f + 0.16f * exp(-elapsed * 14f) * cos(elapsed * 20f)).coerceIn(0.92f, 1.18f)
+            val fadeAlpha = (toastTimeLeft / 0.28f).coerceIn(0f, 1f)
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = 132.dp)
+                    .graphicsLayer {
+                        scaleX = popScale
+                        scaleY = popScale
+                        alpha = fadeAlpha
+                    }
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(Color(0xEB0B1528L), Color(0xF2040812L))
+                        )
+                    )
+                    .border(
+                        width = 1.4.dp,
+                        brush = Brush.horizontalGradient(
+                            listOf(
+                                activePowerUpToast.accentColor.copy(alpha = 0.90f),
+                                Color.White.copy(alpha = 0.45f),
+                                activePowerUpToast.accentColor.copy(alpha = 0.90f)
+                            )
+                        ),
+                        shape = RoundedCornerShape(16.dp)
+                    )
+                    .padding(horizontal = 14.dp, vertical = 6.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = activePowerUpToast.icon,
+                        color = activePowerUpToast.accentColor,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Black
+                    )
+                    Column(horizontalAlignment = Alignment.Start) {
+                        Text(
+                            text = activePowerUpToast.title,
+                            color = Color.White,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Black,
+                            letterSpacing = 0.8.sp
+                        )
+                        Text(
+                            text = activePowerUpToast.subtitle,
+                            color = activePowerUpToast.accentColor.copy(alpha = 0.92f),
+                            fontSize = 8.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 0.6.sp
+                        )
+                    }
+                }
+            }
+        }
+
         Column(modifier = Modifier.fillMaxWidth()) {
-            // 1. Magic Tiles Milestone Header (★ ★ ★ 👑 👑 👑 — Thick 8dp Neon Groove)
+            // 1. Milestone Header (Thick 8dp Neon Groove)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(30.dp),
                 contentAlignment = Alignment.CenterStart
             ) {
-                // Background Track Line (8dp High)
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -168,7 +229,6 @@ fun HUD(
                     )
                 }
 
-                // Milestones: 3 Stars (16.6%, 33.3%, 50%) and 3 Crowns (66.6%, 83.3%, 98%)
                 val milestones = listOf(
                     Pair(0.166f, false),
                     Pair(0.333f, false),
@@ -210,10 +270,10 @@ fun HUD(
                     if (shieldTime > 0f) {
                         Box(
                             modifier = Modifier
-                                .clip(RoundedCornerShape(4.dp))
+                                .clip(RoundedCornerShape(6.dp))
                                 .background(Color(0x3338BDF8L))
-                                .border(1.dp, Color(0xFF38BDF8L), RoundedCornerShape(4.dp))
-                                .padding(horizontal = 5.dp, vertical = 2.dp)
+                                .border(1.dp, Color(0xFF38BDF8L), RoundedCornerShape(6.dp))
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
                         ) {
                             Text(text = "SHIELD", color = Color(0xFF38BDF8L), fontSize = 9.sp, fontWeight = FontWeight.Black)
                         }
@@ -222,24 +282,24 @@ fun HUD(
                     if (starPowerTime > 0f) {
                         Box(
                             modifier = Modifier
-                                .clip(RoundedCornerShape(4.dp))
+                                .clip(RoundedCornerShape(6.dp))
                                 .background(Color(0x33FACC15L))
-                                .border(1.dp, Color(0xFFFACC15L), RoundedCornerShape(4.dp))
-                                .padding(horizontal = 5.dp, vertical = 2.dp)
+                                .border(1.dp, Color(0xFFFACC15L), RoundedCornerShape(6.dp))
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
                         ) {
-                            Text(text = "4X MULT", color = Color(0xFFFACC15L), fontSize = 9.sp, fontWeight = FontWeight.Black)
+                            Text(text = "24K 4X", color = Color(0xFFFACC15L), fontSize = 9.sp, fontWeight = FontWeight.Black)
                         }
                         Spacer(modifier = Modifier.width(6.dp))
                     }
                     if (slowMoTime > 0f) {
                         Box(
                             modifier = Modifier
-                                .clip(RoundedCornerShape(4.dp))
+                                .clip(RoundedCornerShape(6.dp))
                                 .background(Color(0x33C084FCL))
-                                .border(1.dp, Color(0xFFC084FCL), RoundedCornerShape(4.dp))
-                                .padding(horizontal = 5.dp, vertical = 2.dp)
+                                .border(1.dp, Color(0xFFC084FCL), RoundedCornerShape(6.dp))
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
                         ) {
-                            Text(text = "SLOW-MO", color = Color(0xFFC084FCL), fontSize = 9.sp, fontWeight = FontWeight.Black)
+                            Text(text = "FLOW", color = Color(0xFFC084FCL), fontSize = 9.sp, fontWeight = FontWeight.Black)
                         }
                     }
                 }
@@ -247,19 +307,18 @@ fun HUD(
                 ArcadeIconButton(
                     iconBitmap = btnIconPause,
                     onClick = onPause,
-                    modifier = Modifier.size(34.dp)
+                    modifier = Modifier.size(36.dp)
                 )
             }
         }
 
-        // 3. Center Magic Tiles Score & Angled Judgment Badges
+        // 3. Center Score & Angled Judgment Badges
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .padding(top = 46.dp)
         ) {
-            // Big Score Digits
             Text(
                 text = "%,d".format(score),
                 color = Color.White,
@@ -275,7 +334,6 @@ fun HUD(
                 )
             )
 
-            // Angled Rating Badge (e.g. PERFECT / GREAT)
             val hasRecentHit = (rhythmCombo > 1 || (comboBanner != null && comboBanner.timer > 0f)) && !is24KOverdrive
             if (hasRecentHit) {
                 Spacer(modifier = Modifier.height(2.dp))
@@ -305,7 +363,6 @@ fun HUD(
                 }
             }
 
-            // Soft Multiplier Row (× 3)
             val displayMult = if (multiplier > 1) multiplier else if (rhythmCombo > 1) (rhythmCombo / 4 + 1).coerceIn(1, 8) else 1
             if (displayMult > 1) {
                 Spacer(modifier = Modifier.height(2.dp))
@@ -326,7 +383,6 @@ fun HUD(
                 }
             }
 
-            // 5-Star Band Hero Overdrive Gauge & 24K Overdrive Trigger
             Spacer(modifier = Modifier.height(4.dp))
             val filledStars = (overdriveProgress * 5).toInt().coerceIn(0, 5)
             Column(
@@ -359,7 +415,6 @@ fun HUD(
                 }
             }
 
-            // Endless Mode Loop Counter (Magic Tiles Accelerating Style)
             if (endlessLoopCount > 0) {
                 Spacer(modifier = Modifier.height(4.dp))
                 Box(
@@ -370,7 +425,7 @@ fun HUD(
                         .padding(horizontal = 8.dp, vertical = 2.dp)
                 ) {
                     Text(
-                        text = "LOOP ${endlessLoopCount + 1} • +${(endlessLoopCount * 6)}% SPEED",
+                        text = "LOOP ${endlessLoopCount + 1} • +${(endlessLoopCount * 8)}% SPEED",
                         color = Color(0xFFFACC15L),
                         fontSize = 9.sp,
                         fontWeight = FontWeight.Black
@@ -379,137 +434,162 @@ fun HUD(
             }
         }
 
-        // 3b. Mysterious Left-Edge Analog Cipher Gauge (Fills via Enigmatic Spool/Iris Orbs -> Triggers VHS Video on Musical Transition!)
+        // 3b. Left-Edge Analog VHS Cipher Gauge (5-Step Meter -> Armed Glow -> Slow-Mo Montage!)
         val cipherSpinInf = rememberInfiniteTransition(label = "cipherGauge")
         val cipherSpinDeg by cipherSpinInf.animateFloat(
             initialValue = 0f,
             targetValue = 360f,
             animationSpec = infiniteRepeatable(
-                animation = tween(durationMillis = if (isCipherArmed || isBrollPlaying) 2400 else 6800, easing = LinearEasing),
+                animation = tween(durationMillis = if (isCipherArmed || isBrollPlaying) 2200 else 6400, easing = LinearEasing),
                 repeatMode = RepeatMode.Restart
             ),
             label = "cipherSpin"
         )
         val cipherPulse by cipherSpinInf.animateFloat(
             initialValue = 1.0f,
-            targetValue = if (isCipherArmed || isBrollPlaying) 1.09f else 1.0f,
+            targetValue = if (isCipherArmed || isBrollPlaying) 1.10f else 1.0f,
             animationSpec = infiniteRepeatable(
-                animation = tween(durationMillis = 580, easing = FastOutSlowInEasing),
+                animation = tween(durationMillis = 540, easing = FastOutSlowInEasing),
                 repeatMode = RepeatMode.Reverse
             ),
             label = "cipherPulse"
         )
-        val cipherDisplayFill = if (isBrollPlaying) brollPlayProgress.coerceIn(0.05f, 1f) else cipherMeterProgress.coerceIn(0f, 1f)
+        val cipherDisplayFill = when {
+            isBrollPlaying -> brollPlayProgress.coerceIn(0.05f, 1f)
+            isCipherArmed -> 1.0f
+            else -> cipherMeterProgress.coerceIn(0f, 1f)
+        }
         if (cipherDisplayFill > 0.01f || isCipherArmed || isBrollPlaying) {
             Box(
                 modifier = Modifier
                     .align(Alignment.CenterStart)
-                    .padding(start = 4.dp)
-                    .graphicsLayer {
-                        scaleX = cipherPulse
-                        scaleY = cipherPulse
-                    }
-                    .width(34.dp)
-                    .height(115.dp)
-                    .clip(RoundedCornerShape(17.dp))
-                    .background(Color(0xD9050814L))
-                    .border(
-                        width = if (isCipherArmed || isBrollPlaying) 2.dp else 1.2.dp,
-                        brush = if (isCipherArmed || isBrollPlaying) {
-                            Brush.verticalGradient(
-                                listOf(
-                                    Color(0xFF05D9E8L),
-                                    Color(0xFFFACC15L),
-                                    Color(0xFFFF2A6DL)
-                                )
-                            )
-                        } else {
-                            Brush.verticalGradient(
-                                listOf(
-                                    Color(0x8805D9E8L),
-                                    Color(0x66FF2A6DL)
-                                )
-                            )
-                        },
-                        shape = RoundedCornerShape(17.dp)
-                    ),
-                contentAlignment = Alignment.BottomCenter
+                    .padding(start = 4.dp),
+                contentAlignment = Alignment.Center
             ) {
-                // Chromatic VHS Liquid Fill (4 Discrete Segment Notches + Smooth Phosphor Column)
+                if (isCipherArmed || isBrollPlaying) {
+                    Canvas(modifier = Modifier.size(56.dp, 132.dp)) {
+                        drawCircle(
+                            brush = Brush.radialGradient(
+                                colors = listOf(
+                                    Color(0xFF05D9E8L).copy(alpha = 0.42f),
+                                    Color(0xFFFF2A6DL).copy(alpha = 0.20f),
+                                    Color.Transparent
+                                ),
+                                center = Offset(size.width * 0.5f, size.height * 0.5f),
+                                radius = size.width * 0.85f
+                            ),
+                            radius = size.width * 0.85f,
+                            center = Offset(size.width * 0.5f, size.height * 0.5f)
+                        )
+                    }
+                }
+
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .fillMaxHeight(cipherDisplayFill)
-                        .clip(RoundedCornerShape(bottomStart = 17.dp, bottomEnd = 17.dp))
-                        .background(
-                            Brush.verticalGradient(
-                                listOf(
-                                    Color(0xFF05D9E8L).copy(alpha = 0.92f),
-                                    Color(0xFF818CF8L).copy(alpha = 0.88f),
-                                    Color(0xFFFF2A6DL).copy(alpha = 0.92f)
+                        .graphicsLayer {
+                            scaleX = cipherPulse
+                            scaleY = cipherPulse
+                        }
+                        .width(34.dp)
+                        .height(115.dp)
+                        .clip(RoundedCornerShape(17.dp))
+                        .background(Color(0xD9050814L))
+                        .border(
+                            width = if (isCipherArmed || isBrollPlaying) 2.dp else 1.2.dp,
+                            brush = if (isCipherArmed || isBrollPlaying) {
+                                Brush.verticalGradient(
+                                    listOf(
+                                        Color(0xFF05D9E8L),
+                                        Color(0xFFFACC15L),
+                                        Color(0xFFFF2A6DL)
+                                    )
+                                )
+                            } else {
+                                Brush.verticalGradient(
+                                    listOf(
+                                        Color(0x8805D9E8L),
+                                        Color(0x66FF2A6DL)
+                                    )
+                                )
+                            },
+                            shape = RoundedCornerShape(17.dp)
+                        ),
+                    contentAlignment = Alignment.BottomCenter
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .fillMaxHeight(cipherDisplayFill)
+                            .clip(RoundedCornerShape(bottomStart = 17.dp, bottomEnd = 17.dp))
+                            .background(
+                                Brush.verticalGradient(
+                                    listOf(
+                                        Color(0xFF05D9E8L).copy(alpha = 0.94f),
+                                        Color(0xFF818CF8L).copy(alpha = 0.90f),
+                                        Color(0xFFFF2A6DL).copy(alpha = 0.94f)
+                                    )
                                 )
                             )
+                    )
+
+                    // Smooth Chromatic Crescent Lens Sigil (zero thin spoke lines!)
+                    Canvas(
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .size(22.dp)
+                    ) {
+                        val cx = size.width * 0.5f
+                        val cy = size.height * 0.5f
+                        val r = size.minDimension * 0.44f
+
+                        drawCircle(
+                            color = Color(0xFFFF2A6DL).copy(alpha = 0.85f),
+                            radius = r,
+                            center = Offset(cx + 1.1f, cy),
+                            style = Stroke(width = 1.8f)
                         )
-                )
+                        drawCircle(
+                            color = Color(0xFF05D9E8L).copy(alpha = 0.90f),
+                            radius = r,
+                            center = Offset(cx - 1.1f, cy),
+                            style = Stroke(width = 1.8f)
+                        )
+                        drawCircle(
+                            color = Color(0xFF050814L).copy(alpha = 0.88f),
+                            radius = r * 0.82f,
+                            center = Offset(cx, cy)
+                        )
 
-                // Bespoke Enigmatic Iris & Twin-Spool Sigil (Zero Words, Zero Emojis!)
-                Canvas(
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .size(22.dp)
-                ) {
-                    val cx = size.width * 0.5f
-                    val cy = size.height * 0.5f
-                    val r = size.minDimension * 0.44f
-                    val rotRad = Math.toRadians(cipherSpinDeg.toDouble()).toFloat()
-
-                    // Outer Chromatic Split Ring
-                    drawCircle(
-                        color = Color(0xFFFF2A6DL).copy(alpha = 0.85f),
-                        radius = r,
-                        center = Offset(cx + 1.1f, cy),
-                        style = Stroke(width = 1.6f)
-                    )
-                    drawCircle(
-                        color = Color(0xFF05D9E8L).copy(alpha = 0.90f),
-                        radius = r,
-                        center = Offset(cx - 1.1f, cy),
-                        style = Stroke(width = 1.6f)
-                    )
-                    drawCircle(
-                        color = Color(0xFF050814L).copy(alpha = 0.86f),
-                        radius = r * 0.84f,
-                        center = Offset(cx, cy)
-                    )
-
-                    // 6 Rotating Aperture Spokes
-                    for (b in 0 until 6) {
-                        val a = rotRad + b * (Math.PI.toFloat() / 3f)
-                        drawLine(
-                            color = if (b % 2 == 0) Color(0xFF05D9E8L) else Color(0xFFFACC15L),
-                            start = Offset(cx + cos(a) * r * 0.28f, cy + sin(a) * r * 0.28f),
-                            end = Offset(cx + cos(a + 0.42f) * r * 0.82f, cy + sin(a + 0.42f) * r * 0.82f),
-                            strokeWidth = 1.6f,
-                            cap = StrokeCap.Round
+                        for (arc in 0 until 3) {
+                            val startDeg = (cipherSpinDeg + arc * 120f) % 360f
+                            val rArc = r * 0.60f
+                            drawArc(
+                                color = if (arc % 2 == 0) Color(0xFF05D9E8L) else Color(0xFFFACC15L),
+                                startAngle = startDeg,
+                                sweepAngle = 72f,
+                                useCenter = false,
+                                topLeft = Offset(cx - rArc, cy - rArc),
+                                size = Size(rArc * 2f, rArc * 2f),
+                                style = Stroke(width = 2.0f, cap = StrokeCap.Round)
+                            )
+                        }
+                        drawCircle(
+                            color = if (isCipherArmed || isBrollPlaying) Color.White else Color(0xFFFACC15L),
+                            radius = r * 0.24f,
+                            center = Offset(cx, cy)
                         )
                     }
-                    // Center Glowing Aperture Pupil
-                    drawCircle(
-                        color = if (isCipherArmed || isBrollPlaying) Color.White else Color(0xFFFACC15L),
-                        radius = r * 0.22f,
-                        center = Offset(cx, cy)
-                    )
                 }
             }
         }
 
-        // 4. Floating Right-Edge 24K Liquid Energy Capsule (High-Energy Radiant Solar Flare Beacon when Full!)
+        // 4. Floating Right-Edge 24K Liquid Energy Capsule
         val isReady = overdriveProgress >= 0.75f || is24KOverdrive
         val isFullMax = overdriveProgress >= 0.99f || is24KOverdrive
         val infiniteTransition = rememberInfiniteTransition(label = "capsulePulse")
         val pulseScale by infiniteTransition.animateFloat(
             initialValue = 1.0f,
-            targetValue = if (isFullMax) 1.15f else if (isReady) 1.08f else 1.0f,
+            targetValue = if (isFullMax) 1.14f else if (isReady) 1.07f else 1.0f,
             animationSpec = infiniteRepeatable(
                 animation = tween(durationMillis = if (isFullMax) 420 else 650, easing = FastOutSlowInEasing),
                 repeatMode = RepeatMode.Reverse
@@ -541,17 +621,15 @@ fun HUD(
                 .padding(end = 4.dp),
             contentAlignment = Alignment.Center
         ) {
-            // Extra Special Radiant Solar Aura when 24K Bar is Full!
             if (isReady) {
                 Canvas(modifier = Modifier.size(62.dp, 135.dp)) {
                     val cx = size.width / 2f
                     val cy = size.height / 2f
-                    // Golden expanding corona glow
                     drawCircle(
                         brush = Brush.radialGradient(
                             listOf(
-                                Color(0xFFFACC15L).copy(alpha = if (isFullMax) 0.55f * pulseGlow else 0.28f * pulseGlow),
-                                Color(0xFFFF8C00L).copy(alpha = if (isFullMax) 0.32f * pulseGlow else 0.14f * pulseGlow),
+                                Color(0xFFFACC15L).copy(alpha = if (isFullMax) 0.52f * pulseGlow else 0.28f * pulseGlow),
+                                Color(0xFFFF8C00L).copy(alpha = if (isFullMax) 0.28f * pulseGlow else 0.14f * pulseGlow),
                                 Color.Transparent
                             ),
                             center = Offset(cx, cy),
@@ -560,17 +638,18 @@ fun HUD(
                         radius = size.width * (if (isFullMax) 0.95f else 0.70f),
                         center = Offset(cx, cy)
                     )
-                    // Rotating electric starburst rays
+                    // Smooth rotating golden crescent halos instead of rigid straight ray lines
                     if (isFullMax) {
-                        for (r in 0 until 8) {
-                            val rayRot = Math.toRadians((beaconRayAngle + r * 45f).toDouble()).toFloat()
-                            val rx = cx + kotlin.math.cos(rayRot) * (size.width * 0.48f)
-                            val ry = cy + kotlin.math.sin(rayRot) * (size.height * 0.42f)
-                            drawLine(
-                                color = Color(0xFFFFFBEBL).copy(alpha = 0.65f * pulseGlow),
-                                start = Offset(cx, cy),
-                                end = Offset(rx, ry),
-                                strokeWidth = 1.8f
+                        val haloR = size.width * 0.44f
+                        for (arc in 0 until 3) {
+                            drawArc(
+                                color = Color(0xFFFEF08AL).copy(alpha = 0.72f * pulseGlow),
+                                startAngle = (beaconRayAngle + arc * 120f) % 360f,
+                                sweepAngle = 68f,
+                                useCenter = false,
+                                topLeft = Offset(cx - haloR, cy - haloR),
+                                size = Size(haloR * 2f, haloR * 2f),
+                                style = Stroke(width = 2.4f, cap = StrokeCap.Round)
                             )
                         }
                     }
@@ -612,8 +691,7 @@ fun HUD(
                     },
                 contentAlignment = Alignment.BottomCenter
             ) {
-                // Liquid fill rising from bottom
-                val fillHeightFraction = if (is24KOverdrive) (starPowerTime / 9.0f).coerceIn(0f, 1f) else overdriveProgress.coerceIn(0f, 1f)
+                val fillHeightFraction = if (is24KOverdrive) (starPowerTime / 15.5f).coerceIn(0f, 1f) else overdriveProgress.coerceIn(0f, 1f)
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -631,26 +709,27 @@ fun HUD(
                         )
                 )
 
-                // Central Lightning Bolt Icon (Pure Visual, Zero Words)
+                // Sculpted 4-Point Golden Starlight Emblem
                 Canvas(
                     modifier = Modifier
                         .align(Alignment.Center)
                         .size(20.dp)
                 ) {
-                    val w = size.width
-                    val h = size.height
-                    val boltPath = Path().apply {
-                        moveTo(w * 0.58f, 0f)
-                        lineTo(w * 0.18f, h * 0.54f)
-                        lineTo(w * 0.48f, h * 0.54f)
-                        lineTo(w * 0.38f, h)
-                        lineTo(w * 0.82f, h * 0.42f)
-                        lineTo(w * 0.52f, h * 0.42f)
+                    val cx = size.width * 0.5f
+                    val cy = size.height * 0.5f
+                    val rOut = size.minDimension * 0.48f
+                    val rCtrl = size.minDimension * 0.14f
+                    val star = Path().apply {
+                        moveTo(cx, cy - rOut)
+                        quadraticTo(cx + rCtrl, cy - rCtrl, cx + rOut, cy)
+                        quadraticTo(cx + rCtrl, cy + rCtrl, cx, cy + rOut)
+                        quadraticTo(cx - rCtrl, cy + rCtrl, cx - rOut, cy)
+                        quadraticTo(cx - rCtrl, cy - rCtrl, cx, cy - rOut)
                         close()
                     }
                     drawPath(
-                        path = boltPath,
-                        color = if (isReady) Color(0xFF0F172AL) else Color(0xFFFACC15L).copy(alpha = 0.65f)
+                        path = star,
+                        color = if (isReady) Color(0xFF0F172AL) else Color(0xFFFACC15L).copy(alpha = 0.75f)
                     )
                 }
             }
@@ -663,18 +742,16 @@ private fun MilestoneGlyph(isCrown: Boolean, isUnlocked: Boolean, modifier: Modi
     val tint = if (isUnlocked) Color(0xFFFACC15L) else Color.White.copy(alpha = 0.32f)
     Canvas(modifier = modifier.size(13.dp)) {
         if (!isCrown) {
+            val cx = size.width / 2f
+            val cy = size.height / 2f
+            val rOut = size.width * 0.48f
+            val rCtrl = size.width * 0.16f
             val path = Path().apply {
-                val cx = size.width / 2f
-                val cy = size.height / 2f
-                val outerR = size.width / 2f
-                val innerR = outerR * 0.45f
-                for (i in 0 until 10) {
-                    val r = if (i % 2 == 0) outerR else innerR
-                    val angle = (i * Math.PI / 5.0 - Math.PI / 2.0).toFloat()
-                    val x = cx + r * cos(angle)
-                    val y = cy + r * sin(angle)
-                    if (i == 0) moveTo(x, y) else lineTo(x, y)
-                }
+                moveTo(cx, cy - rOut)
+                quadraticTo(cx + rCtrl, cy - rCtrl, cx + rOut, cy)
+                quadraticTo(cx + rCtrl, cy + rCtrl, cx, cy + rOut)
+                quadraticTo(cx - rCtrl, cy + rCtrl, cx - rOut, cy)
+                quadraticTo(cx - rCtrl, cy - rCtrl, cx, cy - rOut)
                 close()
             }
             drawPath(path, color = tint)

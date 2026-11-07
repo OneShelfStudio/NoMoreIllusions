@@ -115,14 +115,283 @@ fun DrawScope.drawPlayerTrail(
     }
 }
 
+private val sharedRipplePath = Path()
+
 fun DrawScope.drawShockwaves(shockwaves: List<Shockwave>, applyCB: (Color) -> Color) {
     shockwaves.forEach { sw ->
-        drawCircle(
-            color = applyCB(sw.color).copy(alpha = (sw.life * 0.58f).coerceIn(0f, 1f)),
-            radius = sw.radius,
-            center = Offset(sw.x, sw.y),
-            style = Stroke(width = 3.6f * sw.life)
-        )
+        val life = sw.life.coerceIn(0f, 1.4f)
+        val normLife = (life / 1.25f).coerceIn(0f, 1f)
+        val baseCol = applyCB(sw.color)
+        val center = Offset(sw.x, sw.y)
+        val r = sw.radius.coerceAtLeast(2f)
+
+        when (sw.style) {
+            RippleWaveStyle.VELVET_WATER_DROP -> {
+                // Soft inner radial bloom + twin concentric liquid rings
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(
+                            baseCol.copy(alpha = (normLife * 0.22f).coerceIn(0f, 0.35f)),
+                            Color.Transparent
+                        ),
+                        center = center,
+                        radius = (r * 1.15f).coerceAtLeast(8f)
+                    ),
+                    radius = (r * 1.15f).coerceAtLeast(8f),
+                    center = center,
+                    blendMode = BlendMode.Screen
+                )
+                drawCircle(
+                    color = baseCol.copy(alpha = (normLife * 0.56f).coerceIn(0f, 1f)),
+                    radius = r,
+                    center = center,
+                    style = Stroke(width = (3.4f * normLife).coerceAtLeast(1.1f))
+                )
+                if (r > 24f) {
+                    drawCircle(
+                        color = Color.White.copy(alpha = (normLife * 0.30f).coerceIn(0f, 1f)),
+                        radius = r * 0.68f,
+                        center = center,
+                        style = Stroke(width = (1.8f * normLife).coerceAtLeast(0.8f))
+                    )
+                }
+            }
+
+            RippleWaveStyle.SOLAR_MANDALA_RIPPLE -> {
+                // Warm golden sun-wash + smooth scalloped 8-petal caustic wave + staggered harmonic echo rings
+                val washR = (r * 1.22f).coerceAtLeast(16f)
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(
+                            Color(0xFFFEF08AL).copy(alpha = (normLife * 0.30f).coerceIn(0f, 0.42f)),
+                            baseCol.copy(alpha = (normLife * 0.16f).coerceIn(0f, 0.25f)),
+                            Color.Transparent
+                        ),
+                        center = center,
+                        radius = washR
+                    ),
+                    radius = washR,
+                    center = center,
+                    blendMode = BlendMode.Screen
+                )
+
+                val pts = 48
+                sharedRipplePath.reset()
+                var prevX = 0f
+                var prevY = 0f
+                var firstX = 0f
+                var firstY = 0f
+                for (i in 0..pts) {
+                    val theta = (i.toFloat() / pts) * 2f * PI.toFloat()
+                    val scallop = 1f + 0.065f * sin(theta * 8f + (1f - normLife) * 5f)
+                    val px = sw.x + cos(theta) * r * scallop
+                    val py = sw.y + sin(theta) * r * scallop
+                    if (i == 0) {
+                        firstX = px
+                        firstY = py
+                        sharedRipplePath.moveTo(px, py)
+                    } else {
+                        val mx = (prevX + px) * 0.5f
+                        val my = (prevY + py) * 0.5f
+                        sharedRipplePath.quadraticTo(prevX, prevY, mx, my)
+                    }
+                    prevX = px
+                    prevY = py
+                }
+                sharedRipplePath.quadraticTo(prevX, prevY, firstX, firstY)
+                sharedRipplePath.close()
+
+                drawPath(
+                    path = sharedRipplePath,
+                    color = baseCol.copy(alpha = (normLife * 0.32f).coerceIn(0f, 1f)),
+                    style = Stroke(width = (11f * normLife).coerceAtLeast(2f), cap = StrokeCap.Round),
+                    blendMode = BlendMode.Screen
+                )
+                drawPath(
+                    path = sharedRipplePath,
+                    color = Color(0xFFFEF9C3L).copy(alpha = (normLife * 0.82f).coerceIn(0f, 1f)),
+                    style = Stroke(width = (3.2f * normLife).coerceAtLeast(1.2f), cap = StrokeCap.Round)
+                )
+                if (r > 36f) {
+                    drawCircle(
+                        color = baseCol.copy(alpha = (normLife * 0.52f).coerceIn(0f, 1f)),
+                        radius = r * 0.74f,
+                        center = center,
+                        style = Stroke(width = (2.4f * normLife).coerceAtLeast(1f))
+                    )
+                    drawCircle(
+                        color = Color(0xFF38BDF8L).copy(alpha = (normLife * 0.36f).coerceIn(0f, 1f)),
+                        radius = r * 0.48f,
+                        center = center,
+                        style = Stroke(width = (1.8f * normLife).coerceAtLeast(0.8f))
+                    )
+                }
+            }
+
+            RippleWaveStyle.HYPER_CORONA_BLOOM -> {
+                // Screen-spanning 24K Hyper-Corona: volumetric aurora wash + 12-petal lotus wave + triple echo rings
+                val washR = (r * 1.28f).coerceAtLeast(24f)
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(
+                            Color.White.copy(alpha = (normLife * 0.28f).coerceIn(0f, 0.42f)),
+                            Color(0xFFFACC15L).copy(alpha = (normLife * 0.22f).coerceIn(0f, 0.34f)),
+                            Color(0xFF38BDF8L).copy(alpha = (normLife * 0.12f).coerceIn(0f, 0.20f)),
+                            Color.Transparent
+                        ),
+                        center = center,
+                        radius = washR
+                    ),
+                    radius = washR,
+                    center = center,
+                    blendMode = BlendMode.Screen
+                )
+
+                val pts = 60
+                sharedRipplePath.reset()
+                var prevX = 0f
+                var prevY = 0f
+                var firstX = 0f
+                var firstY = 0f
+                for (i in 0..pts) {
+                    val theta = (i.toFloat() / pts) * 2f * PI.toFloat()
+                    val petalWave = 1f + 0.085f * sin(theta * 12f - (1f - normLife) * 6.5f)
+                    val px = sw.x + cos(theta) * r * petalWave
+                    val py = sw.y + sin(theta) * r * petalWave
+                    if (i == 0) {
+                        firstX = px
+                        firstY = py
+                        sharedRipplePath.moveTo(px, py)
+                    } else {
+                        val mx = (prevX + px) * 0.5f
+                        val my = (prevY + py) * 0.5f
+                        sharedRipplePath.quadraticTo(prevX, prevY, mx, my)
+                    }
+                    prevX = px
+                    prevY = py
+                }
+                sharedRipplePath.quadraticTo(prevX, prevY, firstX, firstY)
+                sharedRipplePath.close()
+
+                drawPath(
+                    path = sharedRipplePath,
+                    color = Color(0xFFFACC15L).copy(alpha = (normLife * 0.38f).coerceIn(0f, 1f)),
+                    style = Stroke(width = (16f * normLife).coerceAtLeast(3f), cap = StrokeCap.Round),
+                    blendMode = BlendMode.Screen
+                )
+                drawPath(
+                    path = sharedRipplePath,
+                    color = Color.White.copy(alpha = (normLife * 0.90f).coerceIn(0f, 1f)),
+                    style = Stroke(width = (3.8f * normLife).coerceAtLeast(1.4f), cap = StrokeCap.Round)
+                )
+                for (echo in 1..3) {
+                    val echoFrac = 1f - echo * 0.21f
+                    val echoCol = if (echo % 2 == 1) Color(0xFFFDE047L) else Color(0xFF38BDF8L)
+                    drawCircle(
+                        color = echoCol.copy(alpha = (normLife * (0.62f - echo * 0.14f)).coerceIn(0f, 1f)),
+                        radius = (r * echoFrac).coerceAtLeast(4f),
+                        center = center,
+                        style = Stroke(width = ((3.4f - echo * 0.6f) * normLife).coerceAtLeast(1f))
+                    )
+                }
+            }
+
+            RippleWaveStyle.VHS_CHROMATIC_RIPPLE -> {
+                // Twin phase-shifted Cyan & Magenta chromatic dispersion rings + luminous white interference halo
+                val shift = 3.5f + (1f - normLife) * 4.5f
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(
+                            Color(0xFF05D9E8L).copy(alpha = (normLife * 0.24f).coerceIn(0f, 0.36f)),
+                            Color(0xFFFF2A6DL).copy(alpha = (normLife * 0.14f).coerceIn(0f, 0.24f)),
+                            Color.Transparent
+                        ),
+                        center = center,
+                        radius = (r * 1.18f).coerceAtLeast(14f)
+                    ),
+                    radius = (r * 1.18f).coerceAtLeast(14f),
+                    center = center,
+                    blendMode = BlendMode.Screen
+                )
+                drawCircle(
+                    color = applyCB(Color(0xFF05D9E8L)).copy(alpha = (normLife * 0.72f).coerceIn(0f, 1f)),
+                    radius = r,
+                    center = Offset(sw.x - shift, sw.y),
+                    style = Stroke(width = (3.8f * normLife).coerceAtLeast(1.2f)),
+                    blendMode = BlendMode.Screen
+                )
+                drawCircle(
+                    color = applyCB(Color(0xFFFF2A6DL)).copy(alpha = (normLife * 0.68f).coerceIn(0f, 1f)),
+                    radius = (r * 0.96f).coerceAtLeast(3f),
+                    center = Offset(sw.x + shift, sw.y),
+                    style = Stroke(width = (3.6f * normLife).coerceAtLeast(1.2f)),
+                    blendMode = BlendMode.Screen
+                )
+                drawCircle(
+                    color = Color.White.copy(alpha = (normLife * 0.65f).coerceIn(0f, 1f)),
+                    radius = (r * 0.72f).coerceAtLeast(2f),
+                    center = center,
+                    style = Stroke(width = (2.0f * normLife).coerceAtLeast(0.9f))
+                )
+            }
+
+            RippleWaveStyle.PRISM_CAUSTIC_BLOOM -> {
+                // Smooth 6-petal iridescent prism caustic wave + harmonic inner rings
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(
+                            baseCol.copy(alpha = (normLife * 0.26f).coerceIn(0f, 0.38f)),
+                            Color(0xFFE879F9L).copy(alpha = (normLife * 0.12f).coerceIn(0f, 0.20f)),
+                            Color.Transparent
+                        ),
+                        center = center,
+                        radius = (r * 1.20f).coerceAtLeast(14f)
+                    ),
+                    radius = (r * 1.20f).coerceAtLeast(14f),
+                    center = center,
+                    blendMode = BlendMode.Screen
+                )
+                val pts = 42
+                sharedRipplePath.reset()
+                var prevX = 0f
+                var prevY = 0f
+                var firstX = 0f
+                var firstY = 0f
+                for (i in 0..pts) {
+                    val theta = (i.toFloat() / pts) * 2f * PI.toFloat()
+                    val caustic = 1f + 0.055f * cos(theta * 6f + (1f - normLife) * 4f)
+                    val px = sw.x + cos(theta) * r * caustic
+                    val py = sw.y + sin(theta) * r * caustic
+                    if (i == 0) {
+                        firstX = px
+                        firstY = py
+                        sharedRipplePath.moveTo(px, py)
+                    } else {
+                        val mx = (prevX + px) * 0.5f
+                        val my = (prevY + py) * 0.5f
+                        sharedRipplePath.quadraticTo(prevX, prevY, mx, my)
+                    }
+                    prevX = px
+                    prevY = py
+                }
+                sharedRipplePath.quadraticTo(prevX, prevY, firstX, firstY)
+                sharedRipplePath.close()
+
+                drawPath(
+                    path = sharedRipplePath,
+                    color = baseCol.copy(alpha = (normLife * 0.72f).coerceIn(0f, 1f)),
+                    style = Stroke(width = (4.2f * normLife).coerceAtLeast(1.2f), cap = StrokeCap.Round)
+                )
+                if (r > 28f) {
+                    drawCircle(
+                        color = Color(0xFFE879F9L).copy(alpha = (normLife * 0.46f).coerceIn(0f, 1f)),
+                        radius = r * 0.66f,
+                        center = center,
+                        style = Stroke(width = (2.2f * normLife).coerceAtLeast(0.9f))
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -202,17 +471,37 @@ fun DrawScope.drawOrbitalPhenomenonAndSatellites(
             val petals = 12
             val baseR = 54f + (1f - lifeAlpha) * 24f
             val path = Path()
+            var prevX = 0f
+            var prevY = 0f
+            var firstX = 0f
+            var firstY = 0f
             for (s in 0..72) {
                 val theta = (s / 72f) * 2f * PI.toFloat()
-                val r = baseR * (0.68f + 0.32f * sin(theta * (petals / 2f) + time * 4f))
+                val r = baseR * (0.72f + 0.28f * sin(theta * (petals / 2f) + time * 4f))
                 val px = cx + cos(theta) * r
                 val py = cy + sin(theta) * r
-                if (s == 0) path.moveTo(px, py) else path.lineTo(px, py)
+                if (s == 0) {
+                    firstX = px
+                    firstY = py
+                    path.moveTo(px, py)
+                } else {
+                    path.quadraticTo(prevX, prevY, (prevX + px) * 0.5f, (prevY + py) * 0.5f)
+                }
+                prevX = px
+                prevY = py
             }
+            path.quadraticTo(prevX, prevY, firstX, firstY)
+            path.close()
             drawPath(
                 path = path,
-                color = Color(0xFFE879F9L).copy(alpha = lifeAlpha * 0.72f),
-                style = Stroke(width = 2.2f)
+                color = Color(0xFFE879F9L).copy(alpha = lifeAlpha * 0.28f),
+                style = Stroke(width = 9.0f, cap = StrokeCap.Round),
+                blendMode = BlendMode.Screen
+            )
+            drawPath(
+                path = path,
+                color = Color.White.copy(alpha = lifeAlpha * 0.78f),
+                style = Stroke(width = 2.6f, cap = StrokeCap.Round)
             )
             val beamColors = listOf(Color(0xFF22D3EEL), Color(0xFFE879F9L), Color(0xFFFDE047L))
             for (arm in 0..2) {
@@ -349,18 +638,18 @@ fun DrawScope.drawParticles(particles: List<GameObject>) {
                 center = Offset(pt.x, pt.y),
                 blendMode = BlendMode.Screen
             )
-            drawLine(
-                brush = Brush.verticalGradient(
-                    colors = listOf(Color.Transparent, pt.color.copy(alpha = alpha * 0.85f), Color.White.copy(alpha = alpha))
-                ),
-                start = Offset(pt.x - sin(pt.phase) * 6f, pt.y - r * 4.2f),
-                end = Offset(pt.x, pt.y),
-                strokeWidth = r * 0.85f,
-                cap = StrokeCap.Round
+            // Soft curved comet bloom (zero straight drawLine sticks)
+            val tailX = pt.x - sin(pt.phase) * 5f
+            val tailY = pt.y - r * 3.2f
+            drawCircle(
+                color = pt.color.copy(alpha = alpha * 0.55f),
+                radius = r * 1.15f,
+                center = Offset((pt.x + tailX) * 0.5f, (pt.y + tailY) * 0.5f),
+                blendMode = BlendMode.Screen
             )
             drawCircle(
                 color = Color.White.copy(alpha = alpha),
-                radius = r * 0.55f,
+                radius = r * 0.62f,
                 center = Offset(pt.x, pt.y)
             )
         } else {
@@ -887,18 +1176,27 @@ fun DrawScope.drawDualHeroPlasmaTether(
 
     for (sIdx in 0..2) {
         val path = Path()
-        val steps = 20
+        val steps = 24
         val amp = (14f + 10f * beatKick) * (if (sIdx % 2 == 0) 1f else -1f)
         val freq = 3.0f + sIdx * 1.3f
         val speed = 10f + sIdx * 3.5f
+        var prevX = p1.x
+        var prevY = p1.y
         for (i in 0..steps) {
             val t = i / steps.toFloat()
             val env = sin(t * PI.toFloat())
             val wave = sin(t * freq * PI.toFloat() + time * speed + sIdx * 1.9f) * amp * env
             val px = p1.x + dx * t + nx * wave
             val py = p1.y + dy * t + ny * wave
-            if (i == 0) path.moveTo(px, py) else path.lineTo(px, py)
+            if (i == 0) {
+                path.moveTo(px, py)
+            } else {
+                path.quadraticTo(prevX, prevY, (prevX + px) * 0.5f, (prevY + py) * 0.5f)
+            }
+            prevX = px
+            prevY = py
         }
+        path.lineTo(prevX, prevY)
         drawPath(
             path = path,
             color = strandCols[sIdx].copy(alpha = if (sIdx == 2) 0.95f else 0.72f),

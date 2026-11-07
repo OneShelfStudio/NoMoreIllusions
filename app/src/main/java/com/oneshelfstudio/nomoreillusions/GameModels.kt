@@ -10,6 +10,17 @@ enum class ColorBlindMode { NONE, PROTANOPIA, DEUTERANOPIA, TRITANOPIA }
 enum class GameDifficulty { EASY, REGULAR, HARD }
 
 /**
+ * Organic multi-wave ripple archetypes for orb & milestone pickups.
+ */
+enum class RippleWaveStyle {
+    VELVET_WATER_DROP,
+    SOLAR_MANDALA_RIPPLE,
+    HYPER_CORONA_BLOOM,
+    VHS_CHROMATIC_RIPPLE,
+    PRISM_CAUSTIC_BLOOM
+}
+
+/**
  * Candy-Catcher-style On-Screen Power-Up Pickup Toast & Active Buff Pill.
  */
 data class PowerUpBannerToast(
@@ -319,7 +330,8 @@ data class Shockwave(
     var radius: Float = 0f,
     val maxRadius: Float = 150f,
     val color: Color = Color.White,
-    var life: Float = 1f
+    var life: Float = 1f,
+    val style: RippleWaveStyle = RippleWaveStyle.VELVET_WATER_DROP
 )
 
 data class ThemeColors(

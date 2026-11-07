@@ -9,11 +9,11 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.CutCornerShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -26,6 +26,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
@@ -35,6 +36,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+@Suppress("UNUSED_PARAMETER")
 @Composable
 fun PausedUI(
     uiDialogPanel: ImageBitmap,
@@ -47,48 +49,69 @@ fun PausedUI(
     onSettings: () -> Unit,
     onMenu: () -> Unit
 ) {
-    Box(
+    StudioDialog(
+        title = "STAGE PAUSED",
+        onDismiss = onResume,
+        accentColor = Color(0xFF38BDF8),
         modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.84f)),
-        contentAlignment = Alignment.Center
+            .widthIn(max = 356.dp)
+            .fillMaxWidth(0.90f)
+            .wrapContentHeight()
     ) {
-        ArcadeDialog(
-            title = "PAUSED",
-            panelBitmap = uiDialogPanel,
-            modifier = Modifier.width(320.dp).wrapContentHeight()
-        ) {
-            ArcadePillButton(
-                text = "RESUME",
-                pillBitmap = btnPillGreen,
-                onClick = onResume,
-                modifier = Modifier.fillMaxWidth().height(46.dp)
-            )
-            Spacer(modifier = Modifier.height(10.dp))
-            ArcadePillButton(
-                text = "REPLAY TRACK",
-                pillBitmap = btnPillCyan,
-                onClick = onReplay,
-                modifier = Modifier.fillMaxWidth().height(44.dp)
-            )
-            Spacer(modifier = Modifier.height(10.dp))
-            ArcadePillButton(
-                text = "SETTINGS",
-                pillBitmap = btnPillGold,
-                onClick = onSettings,
-                modifier = Modifier.fillMaxWidth().height(44.dp)
-            )
-            Spacer(modifier = Modifier.height(10.dp))
-            ArcadePillButton(
-                text = "MAIN MENU",
-                pillBitmap = btnPillPink,
-                onClick = onMenu,
-                modifier = Modifier.fillMaxWidth().height(44.dp)
-            )
-        }
+        Text(
+            text = "AUDIO DECK ON STANDBY",
+            color = Color(0xFF7DD3FC),
+            fontSize = 10.sp,
+            fontWeight = FontWeight.ExtraBold,
+            letterSpacing = 1.4.sp,
+            textAlign = TextAlign.Center
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        StudioPillButton(
+            text = "RESUME TRACK ▶",
+            palette = StudioPillPalette.EMERALD_STAGE,
+            onClick = onResume,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp),
+            fontSize = 13.5.sp
+        )
+        Spacer(modifier = Modifier.height(10.dp))
+        StudioPillButton(
+            text = "REPLAY FROM START",
+            palette = StudioPillPalette.CYAN_SYNTH,
+            onClick = onReplay,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(46.dp),
+            fontSize = 12.5.sp
+        )
+        Spacer(modifier = Modifier.height(10.dp))
+        StudioPillButton(
+            text = "STUDIO SETTINGS",
+            palette = StudioPillPalette.SOLAR_GOLD,
+            onClick = onSettings,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(46.dp),
+            fontSize = 12.5.sp
+        )
+        Spacer(modifier = Modifier.height(10.dp))
+        StudioPillButton(
+            text = "MAIN MENU",
+            palette = StudioPillPalette.SLATE_OBSIDIAN,
+            onClick = onMenu,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(44.dp),
+            fontSize = 12.sp
+        )
     }
 }
 
+@Suppress("UNUSED_PARAMETER")
 @Composable
 fun GameOverUI(
     pulsePoints: Int,
@@ -110,168 +133,198 @@ fun GameOverUI(
     onBackToAlbum: () -> Unit,
     onBuyPoints: () -> Unit
 ) {
-    Box(
+    val haptics = rememberStudioHaptics()
+    val context = LocalContext.current
+    val orbPct = ((orbsCollected * 100f) / totalTrackOrbs.coerceAtLeast(1)).toInt().coerceIn(0, 100)
+
+    StudioDialog(
+        title = "TRACK INTERRUPTED",
+        onDismiss = {},
+        accentColor = Color(0xFFFB7185),
         modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.88f)),
-        contentAlignment = Alignment.Center
+            .widthIn(max = 368.dp)
+            .fillMaxWidth(0.92f)
+            .wrapContentHeight()
     ) {
-        ArcadeDialog(
-            title = "TRACK INTERRUPTED",
-            panelBitmap = uiDialogPanel,
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
-                .width(320.dp)
-                .wrapContentHeight()
+                .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
         ) {
-            Text(
-                text = trackLabel.uppercase(),
-                color = Color(0xFF4ADE80L),
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Black,
-                letterSpacing = 1.sp
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Score readout badge
             Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(Color(0xFF050B16L))
-                    .border(1.5.dp, Color(0xFF6366F1L).copy(alpha = 0.45f), RoundedCornerShape(10.dp))
-                    .padding(vertical = 8.dp, horizontal = 14.dp),
-                contentAlignment = Alignment.Center
+                    .clip(CircleShape)
+                    .background(Color(0xFF4ADE80).copy(alpha = 0.14f))
+                    .border(1.dp, Color(0xFF4ADE80).copy(alpha = 0.65f), CircleShape)
+                    .padding(horizontal = 12.dp, vertical = 4.dp)
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("FINAL SCORE", color = Color(0xFFA5B4FCL), fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                    Text("%,d".format(score), color = Color.White, fontSize = 24.sp, fontWeight = FontWeight.Black)
-                    if (highScore > 0) {
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text("BEST SCORE: %,d".format(highScore), color = Color(0xFFA5B4FCL), fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
-                    }
-                    Spacer(modifier = Modifier.height(4.dp))
-                    val orbPct = ((orbsCollected * 100f) / totalTrackOrbs.coerceAtLeast(1)).toInt().coerceIn(0, 100)
+                Text(
+                    text = trackLabel.uppercase(),
+                    color = Color(0xFF4ADE80),
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Black,
+                    letterSpacing = 0.9.sp
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Starbloom Telemetry Glass Card
+            StudioGlassCard(
+                accentColor = Color(0xFF38BDF8),
+                shape = RoundedCornerShape(18.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 14.dp, vertical = 12.dp)
+                ) {
                     Text(
-                        text = "ORB HARMONY: $orbPct% ($orbsCollected / $totalTrackOrbs)",
-                        color = Color(0xFF38BDF8L),
-                        fontSize = 10.5.sp,
+                        text = "RUN SCORE",
+                        color = Color(0xFF94A3B8),
+                        fontSize = 9.5.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        letterSpacing = 1.2.sp
+                    )
+                    Text(
+                        text = "%,d".format(score),
+                        color = Color.White,
+                        fontSize = 26.sp,
                         fontWeight = FontWeight.Black
                     )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text("NOTES BALANCE: %,d".format(pulsePoints), color = Color(0xFFFACC15L), fontSize = 11.5.sp, fontWeight = FontWeight.Black)
-                }
-            }
-
-            Spacer(modifier = Modifier.height(14.dp))
-
-            // 1. Revive Using 250 Notes (Primary Note Revive Option)
-            ArcadePillButton(
-                text = if (canContinue) "USE 250 NOTES TO REVIVE" else "NEED 250 NOTES TO REVIVE",
-                pillBitmap = btnPillCyan,
-                onClick = { if (canContinue) onContinue() else onBuyPoints() },
-                enabled = true,
-                modifier = Modifier.fillMaxWidth().height(46.dp)
-            )
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // 2. Google-Compliant Uniquely Identifiable Rewarded Ad Revive Button
-            if (hasAd || BuildConfig.DEBUG) {
-                ArcadeAdPillButton(
-                    text = "WATCH AD TO REVIVE",
-                    onClick = onWatchAd,
-                    modifier = Modifier.fillMaxWidth().height(54.dp)
-                )
-                Spacer(modifier = Modifier.height(10.dp))
-            }
-
-            // 3. Prominent Restart / Replay Button
-            ArcadePillButton(
-                text = "REPLAY TRACK",
-                pillBitmap = btnPillGreen,
-                onClick = onReplayTrack,
-                icon = btnIconRestart,
-                fontSize = 15.sp,
-                modifier = Modifier.fillMaxWidth().height(46.dp)
-            )
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // Viral Social Sharing CTA Card
-            val context = LocalContext.current
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(Color(0xFF1E143CL).copy(alpha = 0.85f))
-                    .border(1.2.dp, Color(0xFFFACC15L), RoundedCornerShape(12.dp))
-                    .padding(8.dp)
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = "SHARE YOUR RUN & TAG THE ARTIST",
-                        color = Color(0xFFFACC15L),
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Black,
-                        letterSpacing = 0.6.sp
-                    )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = "Post with #NoMoreIllusions & tag @EthanCorrea on TikTok / IG for official credit!",
-                        color = Color(0xFFCBD5E1L),
-                        fontSize = 8.5.sp,
-                        textAlign = TextAlign.Center,
-                        lineHeight = 11.5.sp
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(34.dp)
-                            .clip(RoundedCornerShape(17.dp))
-                            .background(
-                                Brush.horizontalGradient(
-                                    listOf(Color(0xFFEC4899L), Color(0xFF8B5CF6L), Color(0xFFFACC15L))
-                                )
-                            )
-                            .clickable {
-                                val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                                    type = "text/plain"
-                                    putExtra(
-                                        Intent.EXTRA_TEXT,
-                                        "Just scored %,d in No More Illusions! Tagging @EthanCorrea #NoMoreIllusions Check out the gamified album: https://oneshelfstudio.github.io/NoMoreIllusions/".format(score)
-                                    )
-                                }
-                                context.startActivity(Intent.createChooser(shareIntent, "Share Run"))
-                            },
-                        contentAlignment = Alignment.Center
-                    ) {
+                    if (highScore > 0) {
                         Text(
-                            text = "SHARE TO TIKTOK / INSTAGRAM",
-                            color = Color.White,
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Black,
-                            letterSpacing = 0.6.sp
+                            text = "PERSONAL BEST • %,d".format(highScore),
+                            color = Color(0xFF7DD3FC),
+                            fontSize = 9.5.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        VictoryStatChip(
+                            label = "ORB HARMONY",
+                            value = "$orbPct% ($orbsCollected/$totalTrackOrbs)",
+                            accent = Color(0xFF38BDF8),
+                            modifier = Modifier.weight(1f)
+                        )
+                        VictoryStatChip(
+                            label = "NOTES BANK",
+                            value = "%,d ♪".format(pulsePoints),
+                            accent = Color(0xFFFACC15),
+                            modifier = Modifier.weight(1f)
                         )
                     }
                 }
             }
 
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // 1. Revive Using 250 Notes
+            StudioPillButton(
+                text = if (canContinue) "REVIVE FOR 250 ♪ NOTES" else "NEED 250 ♪ NOTES TO REVIVE",
+                palette = StudioPillPalette.CYAN_SYNTH,
+                onClick = { if (canContinue) onContinue() else onBuyPoints() },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(46.dp),
+                fontSize = 12.sp
+            )
+
+            Spacer(modifier = Modifier.height(9.dp))
+
+            // 2. Google-Compliant Uniquely Identifiable Rewarded Ad Revive Button
+            if (hasAd || BuildConfig.DEBUG) {
+                ArcadeAdPillButton(
+                    text = "WATCH AD TO REVIVE",
+                    onClick = {
+                        haptics.confirm()
+                        onWatchAd()
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(54.dp)
+                )
+                Spacer(modifier = Modifier.height(9.dp))
+            }
+
+            // 3. Prominent Replay Button
+            StudioPillButton(
+                text = "REPLAY TRACK ▶",
+                palette = StudioPillPalette.EMERALD_STAGE,
+                onClick = onReplayTrack,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                fontSize = 13.5.sp
+            )
+
             Spacer(modifier = Modifier.height(10.dp))
 
+            // Social Sharing Card
+            StudioGlassCard(
+                accentColor = Color(0xFFFACC15),
+                shape = RoundedCornerShape(14.dp),
+                onClick = {
+                    val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                        type = "text/plain"
+                        putExtra(
+                            Intent.EXTRA_TEXT,
+                            "Just scored %,d in No More Illusions! Tagging @EthanCorrea #NoMoreIllusions Check out the gamified album: https://oneshelfstudio.github.io/NoMoreIllusions/".format(score)
+                        )
+                    }
+                    context.startActivity(Intent.createChooser(shareIntent, "Share Run"))
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 9.dp)
+                ) {
+                    Text(
+                        text = "SHARE YOUR RUN • TAG @ETHANCORREA",
+                        color = Color(0xFFFACC15),
+                        fontSize = 9.5.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 0.7.sp
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = "Tap to post your score with #NoMoreIllusions on TikTok / IG",
+                        color = Color(0xFFCBD5E1),
+                        fontSize = 9.sp,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(9.dp))
+
             // 4. Back to Album & Shop
-            ArcadePillButton(
-                text = "ALBUM & SHOP",
-                pillBitmap = btnPillGold,
+            StudioPillButton(
+                text = "ALBUM & STUDIO SHOP",
+                palette = StudioPillPalette.SOLAR_GOLD,
                 onClick = onBackToAlbum,
-                modifier = Modifier.fillMaxWidth().height(44.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(44.dp),
+                fontSize = 12.sp
             )
         }
     }
 }
 
+@Suppress("UNUSED_PARAMETER")
 @Composable
 fun LevelCompleteUI(
     trackIndex: Int,
@@ -290,11 +343,12 @@ fun LevelCompleteUI(
     onOpenArtistVault: () -> Unit = onBackToAlbum,
     onPlayBandHeroStyle: () -> Unit = {}
 ) {
+    val context = LocalContext.current
     val currentTrack = MusicLibrary.getTrack(trackIndex)
     val nextTrack = if (trackIndex < MusicLibrary.TOTAL_TRACKS) MusicLibrary.getTrack(trackIndex + 1) else null
 
-    val victoryZoom = remember { Animatable(0.3f) }
-    androidx.compose.runtime.LaunchedEffect(trackIndex) {
+    val victoryZoom = remember { Animatable(0.35f) }
+    LaunchedEffect(trackIndex) {
         victoryZoom.animateTo(
             targetValue = 1.0f,
             animationSpec = spring(
@@ -308,13 +362,13 @@ fun LevelCompleteUI(
     val spinDeg by infinite.animateFloat(
         initialValue = 0f,
         targetValue = 360f,
-        animationSpec = infiniteRepeatable(tween(4200, easing = LinearEasing)),
+        animationSpec = infiniteRepeatable(tween(4600, easing = LinearEasing)),
         label = "spin"
     )
     val starPulse by infinite.animateFloat(
         initialValue = 0.94f,
-        targetValue = 1.12f,
-        animationSpec = infiniteRepeatable(tween(720, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+        targetValue = 1.10f,
+        animationSpec = infiniteRepeatable(tween(780, easing = FastOutSlowInEasing), RepeatMode.Reverse),
         label = "starPulse"
     )
 
@@ -326,420 +380,405 @@ fun LevelCompleteUI(
         else -> ARTIST_EXCLUSIVES_CATALOG.first()
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xEE02050DL)),
-        contentAlignment = Alignment.Center
-    ) {
-        ArcadeDialog(
-            title = "★ CONGRATS! YOU WON! ★",
-            panelBitmap = uiDialogPanel,
+    Box(modifier = Modifier.fillMaxSize()) {
+        StudioDialog(
+            title = "STAGE MASTERED",
+            onDismiss = {},
+            accentColor = Color(0xFFFACC15),
             modifier = Modifier
-                .width(348.dp)
+                .widthIn(max = 376.dp)
+                .fillMaxWidth(0.93f)
                 .wrapContentHeight()
-                .verticalScroll(rememberScrollState())
         ) {
-            // Clear, Immediate Prize Banner
-            Text(
-                text = "UNLOCKED SONG ADDED TO YOUR ALBUM!",
-                color = Color(0xFF4ADE80L),
-                fontSize = 12.5.sp,
-                fontWeight = FontWeight.Black,
-                letterSpacing = 0.8.sp,
-                textAlign = TextAlign.Center
-            )
-            Spacer(modifier = Modifier.height(2.dp))
-            Text(
-                text = "TRACK 0$trackIndex • \"${currentTrack.title.uppercase()}\"",
-                color = Color.White,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Black,
-                letterSpacing = 1.sp,
-                textAlign = TextAlign.Center
-            )
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // HUGE 216dp Centerpiece: Celebratory Zoom on Full Unveiled Album Artwork!
-            Box(
-                modifier = Modifier
-                    .size(216.dp)
-                    .graphicsLayer {
-                        scaleX = victoryZoom.value
-                        scaleY = victoryZoom.value
-                    },
-                contentAlignment = Alignment.Center
-            ) {
-                Canvas(modifier = Modifier.fillMaxSize()) {
-                    val cx = size.width * 0.5f
-                    val cy = size.height * 0.5f
-                    val maxR = size.minDimension * 0.49f
-                    drawCircle(
-                        brush = Brush.radialGradient(
-                            colors = listOf(
-                                Color(0xFFFACC15L).copy(alpha = 0.42f),
-                                Color(0xFF38BDF8L).copy(alpha = 0.18f),
-                                Color.Transparent
-                            ),
-                            center = Offset(cx, cy),
-                            radius = maxR * 1.12f
-                        ),
-                        radius = maxR * 1.12f,
-                        center = Offset(cx, cy)
-                    )
-                    for (ring in 0..2) {
-                        val r = maxR * (0.84f + ring * 0.07f)
-                        val startA = (spinDeg * (if (ring % 2 == 0) 1f else -1f) + ring * 60f) % 360f
-                        drawArc(
-                            color = if (ring % 2 == 0) Color(0xFFFACC15L) else Color(0xFF4ADE80L),
-                            startAngle = startA,
-                            sweepAngle = 115f,
-                            useCenter = false,
-                            topLeft = Offset(cx - r, cy - r),
-                            size = Size(r * 2f, r * 2f),
-                            style = Stroke(width = 3.5f - ring * 0.6f, cap = StrokeCap.Round)
-                        )
-                    }
-                }
-                Box(
-                    modifier = Modifier
-                        .size(168.dp)
-                        .clip(RoundedCornerShape(20.dp))
-                        .border(2.5.dp, Color(0xFFFACC15L), RoundedCornerShape(20.dp)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    TrackRevealOverlay(
-                        trackIndex = trackIndex,
-                        progress = 1.0f,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Compact 1-Line Run Summary Pill + Orb Collection Percentage Mastery Card
-            val safeTotalOrbs = totalTrackOrbs.coerceAtLeast(1)
-            val orbPct = ((orbsCollected * 100f) / safeTotalOrbs).toInt().coerceIn(0, 100)
-            val tierColor = when {
-                orbPct >= 100 -> Color(0xFFFACC15L)
-                orbPct >= 90 -> Color(0xFF4ADE80L)
-                orbPct >= 75 -> Color(0xFF38BDF8L)
-                else -> Color(0xFFA5B4FCL)
-            }
-            val tierLabel = when {
-                orbPct >= 100 -> "★ 100% PERFECT HARMONY • +1,000 BONUS ♪"
-                orbPct >= 90 -> "★ GOLD ORB SYNC • +$collectionBonusNotes BONUS ♪"
-                orbPct >= 75 -> "★ SILVER ORB SYNC • +$collectionBonusNotes BONUS ♪"
-                else -> "HIT 75% / 90% / 100% ORBS FOR BONUS ♪"
-            }
-
-            Box(
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(Color(0xFF060C1AL))
-                    .border(1.4.dp, tierColor.copy(alpha = 0.72f), RoundedCornerShape(14.dp))
-                    .padding(horizontal = 14.dp, vertical = 10.dp)
+                    .verticalScroll(rememberScrollState())
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(
-                            text = "ORBS COLLECTED: $orbPct%",
-                            color = tierColor,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Black
+                Box(
+                    modifier = Modifier
+                        .clip(CircleShape)
+                        .background(Color(0xFF4ADE80).copy(alpha = 0.16f))
+                        .border(1.dp, Color(0xFF4ADE80).copy(alpha = 0.70f), CircleShape)
+                        .padding(horizontal = 12.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        text = "TRACK 0$trackIndex UNVEILED • \"${currentTrack.title.uppercase()}\"",
+                        color = Color(0xFF4ADE80),
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 0.8.sp,
+                        textAlign = TextAlign.Center
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Celebratory Zoom on Full Unveiled Album Artwork
+                Box(
+                    modifier = Modifier
+                        .size(198.dp)
+                        .graphicsLayer {
+                            scaleX = victoryZoom.value
+                            scaleY = victoryZoom.value
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Canvas(modifier = Modifier.fillMaxSize()) {
+                        val cx = size.width * 0.5f
+                        val cy = size.height * 0.5f
+                        val maxR = size.minDimension * 0.49f
+                        drawCircle(
+                            brush = Brush.radialGradient(
+                                colors = listOf(
+                                    Color(0xFFFACC15).copy(alpha = 0.40f),
+                                    Color(0xFF38BDF8).copy(alpha = 0.18f),
+                                    Color.Transparent
+                                ),
+                                center = Offset(cx, cy),
+                                radius = maxR * 1.14f
+                            ),
+                            radius = maxR * 1.14f,
+                            center = Offset(cx, cy)
                         )
-                        Text(
-                            text = "$orbsCollected / $safeTotalOrbs",
-                            color = Color.White,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold
-                        )
+                        for (ring in 0..2) {
+                            val r = maxR * (0.83f + ring * 0.07f)
+                            val startA = (spinDeg * (if (ring % 2 == 0) 1f else -1f) + ring * 60f) % 360f
+                            drawArc(
+                                color = if (ring % 2 == 0) Color(0xFFFACC15) else Color(0xFF4ADE80),
+                                startAngle = startA,
+                                sweepAngle = 115f,
+                                useCenter = false,
+                                topLeft = Offset(cx - r, cy - r),
+                                size = Size(r * 2f, r * 2f),
+                                style = Stroke(width = 3.4f - ring * 0.6f, cap = StrokeCap.Round)
+                            )
+                        }
                     }
-                    Spacer(modifier = Modifier.height(6.dp))
                     Box(
                         modifier = Modifier
+                            .size(156.dp)
+                            .clip(RoundedCornerShape(20.dp))
+                            .border(2.2.dp, Color(0xFFFACC15), RoundedCornerShape(20.dp)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        TrackRevealOverlay(
+                            trackIndex = trackIndex,
+                            progress = 1.0f,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Harmony Mastery Glass Card
+                val safeTotalOrbs = totalTrackOrbs.coerceAtLeast(1)
+                val orbPct = ((orbsCollected * 100f) / safeTotalOrbs).toInt().coerceIn(0, 100)
+                val tierColor = when {
+                    orbPct >= 100 -> Color(0xFFFACC15)
+                    orbPct >= 90 -> Color(0xFF4ADE80)
+                    orbPct >= 75 -> Color(0xFF38BDF8)
+                    else -> Color(0xFFA5B4FC)
+                }
+                val tierLabel = when {
+                    orbPct >= 100 -> "100% PERFECT HARMONY • +1,000 BONUS ♪"
+                    orbPct >= 90 -> "GOLD ORB SYNC • +$collectionBonusNotes BONUS ♪"
+                    orbPct >= 75 -> "SILVER ORB SYNC • +$collectionBonusNotes BONUS ♪"
+                    else -> "HIT 75% / 90% / 100% ORBS FOR BONUS ♪"
+                }
+
+                StudioGlassCard(
+                    accentColor = tierColor,
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier
                             .fillMaxWidth()
-                            .height(7.dp)
-                            .clip(CircleShape)
-                            .background(Color.White.copy(alpha = 0.12f))
+                            .padding(horizontal = 14.dp, vertical = 10.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = "ORB HARMONY • $orbPct%",
+                                color = tierColor,
+                                fontSize = 11.5.sp,
+                                fontWeight = FontWeight.Black
+                            )
+                            Text(
+                                text = "$orbsCollected / $safeTotalOrbs",
+                                color = Color.White,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(7.dp)
+                                .clip(CircleShape)
+                                .background(Color.White.copy(alpha = 0.12f))
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxHeight()
+                                    .fillMaxWidth((orbPct / 100f).coerceIn(0.05f, 1f))
+                                    .clip(CircleShape)
+                                    .background(
+                                        Brush.horizontalGradient(
+                                            listOf(Color(0xFF38BDF8), Color(0xFF4ADE80), Color(0xFFFACC15))
+                                        )
+                                    )
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = tierLabel,
+                            color = tierColor,
+                            fontSize = 9.5.sp,
+                            fontWeight = FontWeight.Black
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            VictoryStatChip(
+                                label = "SCORE",
+                                value = "%,d".format(score),
+                                accent = Color.White,
+                                modifier = Modifier.weight(1f)
+                            )
+                            VictoryStatChip(
+                                label = "PEAK STREAK",
+                                value = "x$maxCombo",
+                                accent = Color(0xFF38BDF8),
+                                modifier = Modifier.weight(1f)
+                            )
+                            VictoryStatChip(
+                                label = "EARNED",
+                                value = "+%,d ♪".format(notesEarned + collectionBonusNotes),
+                                accent = Color(0xFFFACC15),
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Vault Secret Unlocked Card with Sculpted Starlight Jewel
+                StudioGlassCard(
+                    accentColor = Color(0xFFFACC15),
+                    shape = RoundedCornerShape(16.dp),
+                    onClick = { showExclusivePopup = true },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 10.dp)
                     ) {
                         Box(
                             modifier = Modifier
-                                .fillMaxHeight()
-                                .fillMaxWidth((orbPct / 100f).coerceIn(0.04f, 1f))
+                                .size(42.dp)
+                                .graphicsLayer(scaleX = starPulse, scaleY = starPulse)
                                 .clip(CircleShape)
                                 .background(
-                                    Brush.horizontalGradient(
-                                        listOf(Color(0xFF38BDF8L), Color(0xFF4ADE80L), Color(0xFFFACC15L))
+                                    Brush.radialGradient(
+                                        listOf(Color(0xFFFACC15), Color(0xFFD97706), Color(0xFF1E1B4B))
                                     )
                                 )
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(
-                        text = tierLabel,
-                        color = tierColor,
-                        fontSize = 9.5.sp,
-                        fontWeight = FontWeight.Black
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "SCORE: %,d  •  STREAK: x%d  •  TOTAL +%,d ♪".format(score, maxCombo, notesEarned + collectionBonusNotes),
-                        color = Color(0xFFE2E8F0L),
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Interactive Spinning Star / Music Note Curiosity Emblem (Tap to Pop Open Vault Exclusive!)
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(
-                        Brush.horizontalGradient(
-                            listOf(Color(0xFF1E1505L), Color(0xFF0D182EL), Color(0xFF1E1505L))
-                        )
-                    )
-                    .border(1.8.dp, Color(0xFFFACC15L), RoundedCornerShape(16.dp))
-                    .clickable { showExclusivePopup = true }
-                    .padding(horizontal = 12.dp, vertical = 10.dp)
-            ) {
-                // Glowing Spinning Star & Music Note Icon
-                Box(
-                    modifier = Modifier
-                        .size(46.dp)
-                        .graphicsLayer(
-                            scaleX = starPulse,
-                            scaleY = starPulse
-                        )
-                        .clip(CircleShape)
-                        .background(
-                            Brush.radialGradient(
-                                listOf(Color(0xFFFACC15L), Color(0xFFD97706L), Color(0xFF1E1B4BL))
+                                .border(1.4.dp, Color.White, CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Canvas(
+                                modifier = Modifier
+                                    .size(22.dp)
+                                    .graphicsLayer(rotationZ = (spinDeg * 0.35f) % 360f)
+                            ) {
+                                val cx = size.width * 0.5f
+                                val cy = size.height * 0.5f
+                                val s = size.minDimension * 0.45f
+                                val star = Path().apply {
+                                    moveTo(cx, cy - s)
+                                    quadraticTo(cx, cy, cx + s, cy)
+                                    quadraticTo(cx, cy, cx, cy + s)
+                                    quadraticTo(cx, cy, cx - s, cy)
+                                    quadraticTo(cx, cy, cx, cy - s)
+                                    close()
+                                }
+                                drawPath(star, color = Color.White)
+                            }
+                        }
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "ARTIST VAULT RELIC UNLOCKED",
+                                color = Color(0xFFFACC15),
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Black,
+                                letterSpacing = 0.6.sp
                             )
-                        )
-                        .border(1.5.dp, Color.White, CircleShape),
-                    contentAlignment = Alignment.Center
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "Tap to inspect your unlocked studio archive ($unlockedVaultCount/${ARTIST_EXCLUSIVES_CATALOG.size})",
+                                color = Color(0xFFE2E8F0),
+                                fontSize = 9.5.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Social Share CTA
+                StudioGlassCard(
+                    accentColor = Color(0xFFE879F9),
+                    shape = RoundedCornerShape(14.dp),
+                    onClick = {
+                        val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(
+                                Intent.EXTRA_TEXT,
+                                "Just mastered Track 0%d in No More Illusions with %,d pts! Tagging @EthanCorrea #NoMoreIllusions Stream the gamified album: https://oneshelfstudio.github.io/NoMoreIllusions/".format(trackIndex, score)
+                            )
+                        }
+                        context.startActivity(Intent.createChooser(shareIntent, "Share Run"))
+                    },
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text(
-                        text = "★",
-                        color = Color(0xFF020617L),
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Black,
-                        modifier = Modifier.graphicsLayer(rotationZ = (spinDeg * 0.35f) % 360f)
-                    )
-                }
-                Spacer(modifier = Modifier.width(10.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "NEW VAULT SECRET UNLOCKED!",
-                        color = Color(0xFFFACC15L),
-                        fontSize = 10.5.sp,
-                        fontWeight = FontWeight.Black,
-                        letterSpacing = 0.5.sp
-                    )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = "Tap the glowing star to see what you won ($unlockedVaultCount/${ARTIST_EXCLUSIVES_CATALOG.size})",
-                        color = Color.White.copy(alpha = 0.90f),
-                        fontSize = 9.5.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // Viral Social Sharing CTA Card
-            val context = LocalContext.current
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(Color(0xFF1E143CL).copy(alpha = 0.85f))
-                    .border(1.2.dp, Color(0xFFFACC15L), RoundedCornerShape(12.dp))
-                    .padding(8.dp)
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = "SHARE YOUR WIN & TAG THE ARTIST",
-                        color = Color(0xFFFACC15L),
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Black,
-                        letterSpacing = 0.6.sp
-                    )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = "Post with #NoMoreIllusions & tag @EthanCorrea on TikTok / IG for official credit!",
-                        color = Color(0xFFCBD5E1L),
-                        fontSize = 8.5.sp,
-                        textAlign = TextAlign.Center,
-                        lineHeight = 11.5.sp
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Box(
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(34.dp)
-                            .clip(RoundedCornerShape(17.dp))
-                            .background(
-                                Brush.horizontalGradient(
-                                    listOf(Color(0xFFEC4899L), Color(0xFF8B5CF6L), Color(0xFFFACC15L))
-                                )
-                            )
-                            .clickable {
-                                val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                                    type = "text/plain"
-                                    putExtra(
-                                        Intent.EXTRA_TEXT,
-                                        "Just won Track 0%d in No More Illusions with %,d pts! Tagging @EthanCorrea #NoMoreIllusions Stream the gamified album: https://oneshelfstudio.github.io/NoMoreIllusions/".format(trackIndex, score)
-                                    )
-                                }
-                                context.startActivity(Intent.createChooser(shareIntent, "Share Run"))
-                            },
-                        contentAlignment = Alignment.Center
+                            .padding(horizontal = 12.dp, vertical = 8.dp)
                     ) {
                         Text(
-                            text = "SHARE TO TIKTOK / INSTAGRAM",
-                            color = Color.White,
-                            fontSize = 10.sp,
+                            text = "SHARE YOUR WIN • TAG @ETHANCORREA",
+                            color = Color(0xFFE879F9),
+                            fontSize = 9.5.sp,
                             fontWeight = FontWeight.Black,
-                            letterSpacing = 0.6.sp
+                            letterSpacing = 0.7.sp
+                        )
+                        Text(
+                            text = "Post with #NoMoreIllusions on TikTok / IG for artist credit",
+                            color = Color(0xFFCBD5E1),
+                            fontSize = 8.5.sp,
+                            textAlign = TextAlign.Center
                         )
                     }
                 }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                StudioPillButton(
+                    text = if (nextTrack != null) "PLAY TRACK 0${trackIndex + 1} ▶" else "REPLAY TRACK ▶",
+                    palette = StudioPillPalette.EMERALD_STAGE,
+                    onClick = onNextTrack,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    fontSize = 13.5.sp
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    StudioPillButton(
+                        text = "ARTIST VAULT",
+                        palette = StudioPillPalette.SOLAR_GOLD,
+                        onClick = onOpenArtistVault,
+                        modifier = Modifier
+                            .weight(1.15f)
+                            .height(44.dp),
+                        fontSize = 11.sp
+                    )
+                    StudioPillButton(
+                        text = "MAIN MENU",
+                        palette = StudioPillPalette.SLATE_OBSIDIAN,
+                        onClick = onBackToAlbum,
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(44.dp),
+                        fontSize = 11.sp
+                    )
+                }
             }
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            ArcadePillButton(
-                text = if (nextTrack != null) "▶ PLAY TRACK ${trackIndex + 1}" else "↻ REPLAY TRACK",
-                pillBitmap = btnPillGreen,
-                onClick = onNextTrack,
-                modifier = Modifier.fillMaxWidth().height(46.dp),
-                fontSize = 13.5.sp
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            ArcadePillButton(
-                text = "OPEN ARTIST VAULT",
-                pillBitmap = btnPillGold,
-                onClick = onOpenArtistVault,
-                modifier = Modifier.fillMaxWidth().height(42.dp),
-                fontSize = 12.sp
-            )
-            Spacer(modifier = Modifier.height(6.dp))
-            Text(
-                text = "Return to Main Menu",
-                color = Color(0xFF94A3B8L),
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier
-                    .clickable { onBackToAlbum() }
-                    .padding(vertical = 4.dp)
-            )
         }
 
         // Tap-to-Open Vault Exclusive Pop-Up Modal
         if (showExclusivePopup) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.85f))
-                    .clickable { showExclusivePopup = false },
-                contentAlignment = Alignment.Center
+            StudioDialog(
+                title = "VAULT ARCHIVE UNLOCKED",
+                onDismiss = { showExclusivePopup = false },
+                accentColor = Color(0xFFFACC15)
             ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier
-                        .width(332.dp)
-                        .clip(RoundedCornerShape(20.dp))
-                        .background(
-                            Brush.verticalGradient(
-                                listOf(Color(0xFF101D3AL), Color(0xFF060B16L))
-                            )
-                        )
-                        .border(2.dp, Color(0xFFFACC15L), RoundedCornerShape(20.dp))
-                        .clickable(enabled = false) {}
-                        .padding(18.dp)
+                Text(
+                    text = featuredNote.title,
+                    color = Color.White,
+                    fontSize = 14.5.sp,
+                    fontWeight = FontWeight.Black,
+                    textAlign = TextAlign.Center
+                )
+                Spacer(modifier = Modifier.height(10.dp))
+                StudioGlassCard(
+                    accentColor = Color(0xFF38BDF8),
+                    shape = RoundedCornerShape(14.dp),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text(
-                        text = "VAULT EXCLUSIVE UNLOCKED",
-                        color = Color(0xFFFACC15L),
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Black,
-                        letterSpacing = 1.sp
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text(
-                        text = featuredNote.title,
-                        color = Color.White,
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Black,
-                        textAlign = TextAlign.Center
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(Color(0xFF040812L))
-                            .border(1.dp, Color(0xFF38BDF8L).copy(alpha = 0.5f), RoundedCornerShape(12.dp))
-                            .padding(12.dp)
-                    ) {
-                        Column {
-                            Text(
-                                text = featuredNote.artistNoteQuote,
-                                color = Color(0xFFF8FAFCL),
-                                fontSize = 11.sp,
-                                lineHeight = 15.5.sp
-                            )
-                            Spacer(modifier = Modifier.height(6.dp))
-                            Text(
-                                text = "✓ ${featuredNote.exclusiveDetail}",
-                                color = Color(0xFF4ADE80L),
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
+                    Column(modifier = Modifier.padding(14.dp)) {
+                        Text(
+                            text = featuredNote.artistNoteQuote,
+                            color = Color(0xFFF8FAFC),
+                            fontSize = 11.sp,
+                            lineHeight = 16.sp
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "✓ ${featuredNote.exclusiveDetail}",
+                            color = Color(0xFF4ADE80),
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
-                    Spacer(modifier = Modifier.height(12.dp))
-                    ArcadePillButton(
-                        text = "OPEN ARTIST VAULT",
-                        pillBitmap = btnPillGold,
+                }
+                Spacer(modifier = Modifier.height(14.dp))
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    StudioPillButton(
+                        text = "CLOSE",
+                        palette = StudioPillPalette.SLATE_OBSIDIAN,
+                        onClick = { showExclusivePopup = false },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(44.dp),
+                        fontSize = 11.sp
+                    )
+                    StudioPillButton(
+                        text = "OPEN VAULT ▶",
+                        palette = StudioPillPalette.SOLAR_GOLD,
                         onClick = {
                             showExclusivePopup = false
                             onOpenArtistVault()
                         },
-                        modifier = Modifier.fillMaxWidth().height(44.dp),
-                        fontSize = 12.5.sp
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(50))
-                            .background(Color.White.copy(alpha = 0.12f))
-                            .clickable { showExclusivePopup = false }
-                            .padding(horizontal = 20.dp, vertical = 8.dp)
-                    ) {
-                        Text(
-                            text = "CLOSE",
-                            color = Color.White,
-                            fontSize = 10.5.sp,
-                            fontWeight = FontWeight.Black
-                        )
-                    }
+                            .weight(1.3f)
+                            .height(44.dp),
+                        fontSize = 11.sp
+                    )
                 }
             }
         }
@@ -757,24 +796,26 @@ private fun VictoryStatChip(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = modifier
             .clip(RoundedCornerShape(10.dp))
-            .background(Color(0xFF060C1AL))
-            .border(1.dp, accent.copy(alpha = 0.48f), RoundedCornerShape(10.dp))
+            .background(Color(0xFF060C1A))
+            .border(1.dp, accent.copy(alpha = 0.42f), RoundedCornerShape(10.dp))
             .padding(vertical = 7.dp, horizontal = 4.dp)
     ) {
         Text(
             text = label,
-            color = Color.White.copy(alpha = 0.65f),
+            color = Color.White.copy(alpha = 0.62f),
             fontSize = 8.sp,
             fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center
+            textAlign = TextAlign.Center,
+            maxLines = 1
         )
         Spacer(modifier = Modifier.height(2.dp))
         Text(
             text = value,
             color = accent,
-            fontSize = 12.5.sp,
+            fontSize = 11.5.sp,
             fontWeight = FontWeight.Black,
-            textAlign = TextAlign.Center
+            textAlign = TextAlign.Center,
+            maxLines = 1
         )
     }
 }

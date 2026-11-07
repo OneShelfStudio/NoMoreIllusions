@@ -309,15 +309,23 @@ fun DrawScope.drawPowerUps(
                         style = Stroke(width = 1.8f * perspScale)
                     )
                     for (sp in 0 until 4) {
-                        val spAng = sp * (PI.toFloat() * 0.5f) + time * 2.4f
-                        val rIn = coreRad * 1.05f
-                        val rOut = coreRad * (1.42f + 0.36f * beatKick)
-                        drawLine(
-                            color = Color(0xFFFEF08AL).copy(alpha = (0.50f + 0.45f * beatKick) * ttlAlpha),
-                            start = Offset(center3D.x + cos(spAng) * rIn, center3D.y + sin(spAng) * rIn),
-                            end = Offset(center3D.x + cos(spAng) * rOut, center3D.y + sin(spAng) * rOut),
-                            strokeWidth = 2.4f * perspScale,
-                            cap = StrokeCap.Round
+                        val spAng = sp * (PI.toFloat() * 0.5f) + time * 1.8f
+                        val flareDist = coreRad * (1.28f + 0.22f * beatKick)
+                        val fx = center3D.x + cos(spAng) * flareDist
+                        val fy = center3D.y + sin(spAng) * flareDist
+                        drawCircle(
+                            brush = Brush.radialGradient(
+                                colors = listOf(
+                                    Color.White.copy(alpha = (0.85f + 0.15f * beatKick) * ttlAlpha),
+                                    Color(0xFFFEF08AL).copy(alpha = 0.52f * ttlAlpha),
+                                    Color.Transparent
+                                ),
+                                center = Offset(fx, fy),
+                                radius = 7.5f * perspScale
+                            ),
+                            radius = 7.5f * perspScale,
+                            center = Offset(fx, fy),
+                            blendMode = BlendMode.Screen
                         )
                     }
                 }
@@ -432,28 +440,27 @@ private fun DrawScope.drawElectricSurgeRelic(
         center = center3D
     )
 
-    // 6 Procedural Crackling High-Voltage Lightning Filaments inside & across rim
-    for (arc in 0 until 6) {
-        val baseAng = arc * (PI.toFloat() / 3f) + time * 2.8f
-        val jitter1 = sin(time * 24f + arc * 1.9f) * 0.34f
-        val jitter2 = cos(time * 31f - arc * 2.3f) * 0.28f
-        val rMid1 = coreRad * 0.42f
-        val rMid2 = coreRad * 0.78f
-        val rOut = coreRad * (1.06f + beatKick * 0.16f)
-
-        val filament = sharedFilamentPath.apply {
-            reset()
-            moveTo(center3D.x, center3D.y)
-            lineTo(center3D.x + cos(baseAng + jitter1) * rMid1, center3D.y + sin(baseAng + jitter1) * rMid1)
-            lineTo(center3D.x + cos(baseAng - jitter2) * rMid2, center3D.y + sin(baseAng - jitter2) * rMid2)
-            lineTo(center3D.x + cos(baseAng + jitter1 * 0.5f) * rOut, center3D.y + sin(baseAng + jitter1 * 0.5f) * rOut)
-        }
-        drawPath(
-            path = filament,
-            color = (if (arc % 2 == 0) Color.White else Color(0xFF7DD3FCL)).copy(alpha = 0.94f * ttlAlpha),
-            style = Stroke(width = 2.2f * perspScale, cap = StrokeCap.Round)
+    // Smooth Counter-Rotating Plasma Crescent Arcs & Expanding Ripple Halos (zero jagged stick-lightning!)
+    for (arc in 0 until 4) {
+        val startDeg = (time * 165f + arc * 90f) % 360f
+        val arcR = coreRad * (0.66f + (arc % 2) * 0.22f + beatKick * 0.08f)
+        drawArc(
+            color = (if (arc % 2 == 0) Color.White else Color(0xFF7DD3FCL)).copy(alpha = 0.88f * ttlAlpha),
+            startAngle = startDeg,
+            sweepAngle = 56f,
+            useCenter = false,
+            topLeft = Offset(center3D.x - arcR, center3D.y - arcR),
+            size = Size(arcR * 2f, arcR * 2f),
+            style = Stroke(width = 2.8f * perspScale, cap = StrokeCap.Round)
         )
     }
+    val ripplePhase = (time * 1.35f) % 1f
+    drawCircle(
+        color = Color(0xFFFDE047L).copy(alpha = (1f - ripplePhase) * 0.72f * ttlAlpha),
+        radius = coreRad * (1.05f + ripplePhase * 0.75f),
+        center = center3D,
+        style = Stroke(width = 2.4f * (1f - ripplePhase * 0.5f) * perspScale)
+    )
 
     // Incandescent White-Gold Plasma Singularity Core
     drawCircle(
@@ -504,51 +511,38 @@ private fun DrawScope.drawPrismLotusRelic(
         Color(0xFFFACC15L), Color(0xFF2DD4BFL), Color(0xFF818CF8L), Color(0xFFF472B6L)
     )
 
-    // Outer 8-Petal Rotating Crystalline Star-Lotus
+    // Outer 8-Petal Curved Bezier Lotus (smooth organic petals, zero sharp polygon corners)
     for (pIdx in 0 until 8) {
         val ang = time * 0.95f + pIdx * (PI.toFloat() * 0.25f)
-        val tipR = coreRad * (1.22f + (if (pIdx % 2 == 0) 0.14f else 0.0f) + beatKick * 0.10f)
-        val sideR = coreRad * 0.56f
-        val spread = 0.30f
+        val tipR = coreRad * (1.22f + (if (pIdx % 2 == 0) 0.12f else 0.0f) + beatKick * 0.10f)
+        val ctrlR = coreRad * 0.84f
+        val spread = 0.36f
 
         val tip = Offset(center3D.x + cos(ang) * tipR, center3D.y + sin(ang) * tipR)
-        val left = Offset(center3D.x + cos(ang - spread) * sideR, center3D.y + sin(ang - spread) * sideR)
-        val right = Offset(center3D.x + cos(ang + spread) * sideR, center3D.y + sin(ang + spread) * sideR)
+        val leftCtrl = Offset(center3D.x + cos(ang - spread) * ctrlR, center3D.y + sin(ang - spread) * ctrlR)
+        val rightCtrl = Offset(center3D.x + cos(ang + spread) * ctrlR, center3D.y + sin(ang + spread) * ctrlR)
 
         val petal = sharedPetalPath.apply {
             reset()
             moveTo(center3D.x, center3D.y)
-            lineTo(left.x, left.y)
-            lineTo(tip.x, tip.y)
-            lineTo(right.x, right.y)
+            quadraticTo(leftCtrl.x, leftCtrl.y, tip.x, tip.y)
+            quadraticTo(rightCtrl.x, rightCtrl.y, center3D.x, center3D.y)
             close()
         }
         drawPath(
             path = petal,
-            color = spectrumCols[pIdx].copy(alpha = 0.84f * ttlAlpha)
+            color = spectrumCols[pIdx].copy(alpha = 0.80f * ttlAlpha)
         )
         drawPath(
             path = petal,
-            color = Color.White.copy(alpha = 0.72f * ttlAlpha),
-            style = Stroke(width = 1.5f * perspScale)
+            color = Color.White.copy(alpha = 0.65f * ttlAlpha),
+            style = Stroke(width = 1.6f * perspScale, cap = StrokeCap.Round)
         )
     }
 
-    // Inner Counter-Rotating Diamond Crown Table
-    val innerRot = -time * 1.35f
-    val crownR = coreRad * 0.58f
-    val facet = sharedFacetPath.apply {
-        reset()
-        for (k in 0 until 6) {
-            val ka = innerRot + k * (PI.toFloat() / 3f)
-            val kx = center3D.x + cos(ka) * crownR
-            val ky = center3D.y + sin(ka) * crownR
-            if (k == 0) moveTo(kx, ky) else lineTo(kx, ky)
-        }
-        close()
-    }
-    drawPath(
-        path = facet,
+    // Inner Luminous Pearl Sphere Core (replaces flat straight-sided hexagon)
+    val crownR = coreRad * 0.56f
+    drawCircle(
         brush = Brush.radialGradient(
             colors = listOf(
                 Color.White.copy(alpha = 0.99f * ttlAlpha),
@@ -557,12 +551,15 @@ private fun DrawScope.drawPrismLotusRelic(
             ),
             center = lightOrigin,
             radius = crownR * 1.3f
-        )
+        ),
+        radius = crownR,
+        center = center3D
     )
-    drawPath(
-        path = facet,
-        color = Color.White.copy(alpha = 0.96f * ttlAlpha),
-        style = Stroke(width = 2.4f * perspScale)
+    drawCircle(
+        color = Color.White.copy(alpha = 0.95f * ttlAlpha),
+        radius = crownR,
+        center = center3D,
+        style = Stroke(width = 2.2f * perspScale)
     )
 
     // 6 Orbiting Spectral Prism Motes
@@ -625,7 +622,7 @@ private fun DrawScope.drawVortexSingularityRelic(
         )
     }
 
-    // 4 Logarithmic Accretion Spirals
+    // 4 Smooth Bezier Logarithmic Accretion Spirals
     withTransform({
         rotate(degrees = (time * 148f) % 360f, pivot = center3D)
     }) {
@@ -633,19 +630,28 @@ private fun DrawScope.drawVortexSingularityRelic(
             val baseAng = arm * (PI.toFloat() * 0.5f)
             val spiral = sharedFilamentPath.apply {
                 reset()
-                for (st in 0..12) {
-                    val tNorm = st / 12f
+                var prevX = center3D.x
+                var prevY = center3D.y
+                for (st in 0..18) {
+                    val tNorm = st / 18f
                     val r = coreRad * (0.32f + tNorm * 1.08f)
                     val theta = baseAng + tNorm * 2.35f
                     val ax = center3D.x + cos(theta) * r
                     val ay = center3D.y + sin(theta) * r
-                    if (st == 0) moveTo(ax, ay) else lineTo(ax, ay)
+                    if (st == 0) {
+                        moveTo(ax, ay)
+                    } else {
+                        quadraticTo(prevX, prevY, (prevX + ax) * 0.5f, (prevY + ay) * 0.5f)
+                        if (st == 18) lineTo(ax, ay)
+                    }
+                    prevX = ax
+                    prevY = ay
                 }
             }
             drawPath(
                 path = spiral,
                 color = (if (arm % 2 == 0) Color(0xFFF3E8FFL) else Color(0xFF38BDF8L)).copy(alpha = 0.86f * ttlAlpha),
-                style = Stroke(width = 2.6f * perspScale, cap = StrokeCap.Round)
+                style = Stroke(width = 2.8f * perspScale, cap = StrokeCap.Round)
             )
         }
     }
@@ -701,19 +707,31 @@ private fun DrawScope.drawSolarNovaRelic(
         blendMode = BlendMode.Screen
     )
 
-    // 12-Spike Undulating Solar Corona Starburst
+    // Smooth Scalloped Bezier Solar Corona (replaces jagged 24-vertex sawtooth polygon)
     val corona = sharedPlasmaContourPath.apply {
         reset()
-        val pts = 24
-        for (i in 0 until pts) {
-            val ang = time * 0.85f + i * (2f * PI.toFloat() / pts)
-            val isTip = i % 2 == 0
-            val pulse = sin(time * 7f + i) * 0.08f
-            val r = coreRad * (if (isTip) (1.38f + beatKick * 0.16f + pulse) else 0.88f)
-            val x = center3D.x + cos(ang) * r
-            val y = center3D.y + sin(ang) * r
-            if (i == 0) moveTo(x, y) else lineTo(x, y)
+        val pts = 48
+        var prevX = 0f
+        var prevY = 0f
+        var firstX = 0f
+        var firstY = 0f
+        for (i in 0..pts) {
+            val theta = time * 0.85f + (i.toFloat() / pts) * 2f * PI.toFloat()
+            val petalMod = 1.10f + (0.24f + beatKick * 0.12f) * sin(theta * 8f + time * 4f)
+            val r = coreRad * petalMod
+            val x = center3D.x + cos(theta) * r
+            val y = center3D.y + sin(theta) * r
+            if (i == 0) {
+                firstX = x
+                firstY = y
+                moveTo(x, y)
+            } else {
+                quadraticTo(prevX, prevY, (prevX + x) * 0.5f, (prevY + y) * 0.5f)
+            }
+            prevX = x
+            prevY = y
         }
+        quadraticTo(prevX, prevY, firstX, firstY)
         close()
     }
     drawPath(
@@ -793,18 +811,20 @@ private fun DrawScope.drawAegisGeodesicRelic(
         radius = coreRad,
         center = center3D
     )
-    // Rotating Hexagonal Force-Field Struts
-    val hex = sharedFacetPath.apply {
-        reset()
-        for (i in 0 until 6) {
-            val a = time * 0.9f + i * (PI.toFloat() / 3f)
-            val hx = center3D.x + cos(a) * (coreRad * 0.72f)
-            val hy = center3D.y + sin(a) * (coreRad * 0.72f)
-            if (i == 0) moveTo(hx, hy) else lineTo(hx, hy)
-        }
-        close()
+    // Twin Counter-Rotating Sapphire Crescent Shield Arcs (replaces rigid hexagon wireframe)
+    for (arc in 0..2) {
+        val deg = (time * 95f + arc * 120f) % 360f
+        val rArc = coreRad * 0.72f
+        drawArc(
+            color = Color.White.copy(alpha = 0.86f * ttlAlpha),
+            startAngle = deg,
+            sweepAngle = 72f,
+            useCenter = false,
+            topLeft = Offset(center3D.x - rArc, center3D.y - rArc),
+            size = Size(rArc * 2f, rArc * 2f),
+            style = Stroke(width = 2.4f * perspScale, cap = StrokeCap.Round)
+        )
     }
-    drawPath(hex, color = Color.White.copy(alpha = 0.82f * ttlAlpha), style = Stroke(width = 2.0f * perspScale))
     drawCircle(
         color = Color.White.copy(alpha = 0.95f * ttlAlpha),
         radius = coreRad * (1.0f + beatKick * 0.04f),
@@ -873,87 +893,85 @@ private fun DrawScope.drawEnigmaticCipherRelic(
         center = center3D
     )
 
-    // 3. 6-Blade Breathing Mechanical Aperture Shutter
-    val irisOpenFrac = 0.34f + 0.14f * sin(time * 4.2f + seed) + beatKick * 0.10f
-    for (b in 0 until 6) {
-        val baseA = time * 1.1f + b * (PI.toFloat() / 3f)
-        val aNext = baseA + 0.88f
-        val outer1 = Offset(center3D.x + cos(baseA) * (coreRad * 0.90f), center3D.y + sin(baseA) * (coreRad * 0.90f))
-        val outer2 = Offset(center3D.x + cos(aNext) * (coreRad * 0.90f), center3D.y + sin(aNext) * (coreRad * 0.90f))
-        val innerPt = Offset(
-            center3D.x + cos(baseA + 0.52f) * (coreRad * irisOpenFrac),
-            center3D.y + sin(baseA + 0.52f) * (coreRad * irisOpenFrac)
-        )
-        val blade = sharedPetalPath.apply {
-            reset()
-            moveTo(outer1.x, outer1.y)
-            lineTo(outer2.x, outer2.y)
-            lineTo(innerPt.x, innerPt.y)
-            close()
+    // 3. Holographic Chromatic Crescent Shutter Rings (smooth curved arcs, zero thin wire spokes or triangles!)
+    for (arc in 0 until 3) {
+        val rotDeg = (time * 125f + seed * 37f + arc * 120f) % 360f
+        val rIris = coreRad * (0.78f + beatKick * 0.06f)
+        val arcCol = when (arc) {
+            0 -> Color(0xFF05D9E8L)
+            1 -> Color(0xFFFF2A6DL)
+            else -> Color(0xFFFACC15L)
         }
-        val bladeCol = if (b % 2 == 0) Color(0xFF05D9E8L) else Color(0xFFFF2A6DL)
-        drawPath(blade, color = bladeCol.copy(alpha = 0.24f * ttlAlpha))
-        drawPath(blade, color = bladeCol.copy(alpha = 0.78f * ttlAlpha), style = Stroke(width = 1.4f * perspScale))
+        drawArc(
+            color = arcCol.copy(alpha = 0.88f * ttlAlpha),
+            startAngle = rotDeg,
+            sweepAngle = 76f,
+            useCenter = false,
+            topLeft = Offset(center3D.x - rIris, center3D.y - rIris),
+            size = Size(rIris * 2f, rIris * 2f),
+            style = Stroke(width = 2.8f * perspScale, cap = StrokeCap.Round)
+        )
     }
 
-    // 4. Twin Counter-Rotating Analog Tape Micro-Spools + Magnetic Ribbon Thread
-    val spoolDist = coreRad * 0.44f
-    val spoolR = coreRad * 0.27f
+    // 4. Twin Luminous Studio Reel Pearls + Smooth Curved Ribbon Bridge
+    val spoolDist = coreRad * 0.40f
+    val spoolR = coreRad * 0.25f
     val leftSpool = Offset(center3D.x - spoolDist, center3D.y)
     val rightSpool = Offset(center3D.x + spoolDist, center3D.y)
 
-    // Magnetic gold tape thread bridging both spools across top & bottom
-    drawLine(
-        color = Color(0xFFFACC15L).copy(alpha = 0.88f * ttlAlpha),
-        start = Offset(leftSpool.x, leftSpool.y - spoolR * 0.88f),
-        end = Offset(rightSpool.x, rightSpool.y - spoolR * 0.88f),
-        strokeWidth = 1.8f * perspScale,
-        cap = StrokeCap.Round
-    )
-    drawLine(
-        color = Color(0xFF05D9E8L).copy(alpha = 0.75f * ttlAlpha),
-        start = Offset(leftSpool.x, leftSpool.y + spoolR * 0.88f),
-        end = Offset(rightSpool.x, rightSpool.y + spoolR * 0.88f),
-        strokeWidth = 1.6f * perspScale,
-        cap = StrokeCap.Round
+    val bridgePath = sharedFilamentPath.apply {
+        reset()
+        moveTo(leftSpool.x, leftSpool.y - spoolR * 0.85f)
+        quadraticTo(center3D.x, center3D.y - spoolR * 1.25f, rightSpool.x, rightSpool.y - spoolR * 0.85f)
+    }
+    drawPath(
+        path = bridgePath,
+        color = Color(0xFFFACC15L).copy(alpha = 0.86f * ttlAlpha),
+        style = Stroke(width = 2.2f * perspScale, cap = StrokeCap.Round)
     )
 
     for (sIdx in 0..1) {
         val sc = if (sIdx == 0) leftSpool else rightSpool
         val spinDir = if (sIdx == 0) 1f else -1f
+        val reelCol = if (sIdx == 0) Color(0xFF05D9E8L) else Color(0xFFFF2A6DL)
         drawCircle(
             color = Color(0xFF060914L).copy(alpha = 0.95f * ttlAlpha),
             radius = spoolR,
             center = sc
         )
         drawCircle(
-            color = Color.White.copy(alpha = 0.90f * ttlAlpha),
+            color = Color.White.copy(alpha = 0.92f * ttlAlpha),
             radius = spoolR,
             center = sc,
-            style = Stroke(width = 1.8f * perspScale)
+            style = Stroke(width = 2.0f * perspScale)
         )
-        for (spoke in 0..2) {
-            val spAng = time * 4.5f * spinDir + spoke * (2f * PI.toFloat() / 3f)
-            drawLine(
-                color = Color(0xFFFACC15L).copy(alpha = 0.92f * ttlAlpha),
-                start = sc,
-                end = Offset(sc.x + cos(spAng) * spoolR * 0.85f, sc.y + sin(spAng) * spoolR * 0.85f),
-                strokeWidth = 1.8f * perspScale,
-                cap = StrokeCap.Round
-            )
-        }
+        val orbAng = time * 4.2f * spinDir
         drawCircle(
-            color = if (sIdx == 0) Color(0xFF05D9E8L) else Color(0xFFFF2A6DL),
-            radius = spoolR * 0.28f,
+            color = Color(0xFFFACC15L).copy(alpha = 0.95f * ttlAlpha),
+            radius = spoolR * 0.26f,
+            center = Offset(sc.x + cos(orbAng) * spoolR * 0.56f, sc.y + sin(orbAng) * spoolR * 0.56f)
+        )
+        drawCircle(
+            color = reelCol.copy(alpha = 0.96f * ttlAlpha),
+            radius = spoolR * 0.34f,
             center = sc
         )
     }
 
-    // 5. Incandescent Enigmatic Center Eye + Precision Rim
+    // 5. Incandescent Enigmatic Center Lens Bloom + Precision Rim
     drawCircle(
-        color = Color.White.copy(alpha = (0.75f + 0.25f * beatKick) * ttlAlpha),
-        radius = coreRad * 0.14f,
-        center = center3D
+        brush = Brush.radialGradient(
+            colors = listOf(
+                Color.White.copy(alpha = (0.90f + 0.10f * beatKick) * ttlAlpha),
+                Color(0xFF05D9E8L).copy(alpha = 0.45f * ttlAlpha),
+                Color.Transparent
+            ),
+            center = center3D,
+            radius = coreRad * 0.42f
+        ),
+        radius = coreRad * 0.42f,
+        center = center3D,
+        blendMode = BlendMode.Screen
     )
     drawCircle(
         brush = Brush.sweepGradient(

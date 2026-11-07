@@ -1,6 +1,5 @@
 package com.oneshelfstudio.nomoreillusions
 
-import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
@@ -12,12 +11,12 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipRect
-import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import kotlin.math.*
 
 private val sharedAuroraPath = Path()
+private val sharedMandalaPath = Path()
 
 fun getThemePalette(bgTheme: String, isFocus: Boolean): ThemeColors {
     return when (bgTheme) {
@@ -139,58 +138,43 @@ fun DrawScope.drawNebulaBackground(
         )
     )
 
-    // 1b. Authentic VHS Grainy Tape & Chromatic Tracking Texture when B-roll Video is active
+    // 1b. Silky Anamorphic Film Halation & Atmospheric Vignette when B-roll Video is active (zero harsh CRT horizontal scanlines!)
     if (brollOverlayAlpha > 0.01f) {
         val vhsA = brollOverlayAlpha.coerceIn(0f, 1f)
-        // Subtle VHS Cyan/Magenta Chromatic Edge Bleed
+        // Soft Chromatic Cyan/Rose Anamorphic Edge Halation
         drawRect(
             brush = Brush.horizontalGradient(
                 colors = listOf(
-                    Color(0xFF05D9E8L).copy(alpha = 0.12f * vhsA),
+                    Color(0xFF05D9E8L).copy(alpha = 0.14f * vhsA),
                     Color.Transparent,
                     Color.Transparent,
-                    Color(0xFFFF2A6DL).copy(alpha = 0.12f * vhsA)
+                    Color(0xFFFF2A6DL).copy(alpha = 0.14f * vhsA)
                 )
             )
         )
-        // Soft CRT Phosphor Scanlines
-        var scanY = 0f
-        while (scanY < size.height) {
-            drawLine(
-                color = Color.Black.copy(alpha = 0.18f * vhsA),
-                start = Offset(0f, scanY),
-                end = Offset(size.width, scanY),
-                strokeWidth = 1.3f
-            )
-            scanY += 5.5f
-        }
-        // Rolling Analog VHS Tracking Band
-        val trackBandY = ((time * 88f) % (size.height + 140f)) - 70f
+        // Warm Golden-Amber Top & Bottom Cinema Letterbox Bloom
         drawRect(
             brush = Brush.verticalGradient(
                 colors = listOf(
+                    Color(0xFF02040AL).copy(alpha = 0.62f * vhsA),
+                    Color(0xFFFACC15L).copy(alpha = 0.06f * vhsA),
                     Color.Transparent,
-                    Color.White.copy(alpha = 0.07f * vhsA),
-                    Color(0xFF05D9E8L).copy(alpha = 0.06f * vhsA),
-                    Color.Transparent
-                ),
-                startY = trackBandY - 26f,
-                endY = trackBandY + 26f
-            ),
-            topLeft = Offset(0f, (trackBandY - 26f).coerceAtLeast(0f)),
-            size = Size(size.width, 52f)
+                    Color(0xFF05D9E8L).copy(alpha = 0.05f * vhsA),
+                    Color(0xFF02040AL).copy(alpha = 0.66f * vhsA)
+                )
+            )
         )
-        // Deterministic 12fps Analog Film Grain Flecks (Seizure-safe, warm vintage feel)
-        val grainFrame = (time * 12f).toInt()
-        for (g in 0 until 22) {
+        // Gentle Floating Cinema Bokeh Motes (12fps smooth drift)
+        val grainFrame = (time * 8f).toInt()
+        for (g in 0 until 14) {
             val h1 = ((grainFrame * 73856093) xor (g * 19349663)) and 0x7FFFFFFF
             val h2 = ((grainFrame * 83492791) xor (g * 297121507)) and 0x7FFFFFFF
             val gx = (h1 % 1000) / 1000f * size.width
             val gy = (h2 % 1000) / 1000f * size.height
-            val gCol = if (g % 5 == 0) Color(0xFFFEF08AL) else Color.White
+            val gCol = if (g % 3 == 0) Color(0xFFFEF08AL) else Color(0xFF7DD3FCL)
             drawCircle(
-                color = gCol.copy(alpha = 0.14f * vhsA),
-                radius = if (g % 4 == 0) 2.1f else 1.3f,
+                color = gCol.copy(alpha = 0.10f * vhsA),
+                radius = if (g % 4 == 0) 3.2f else 1.8f,
                 center = Offset(gx, gy)
             )
         }
@@ -199,10 +183,10 @@ fun DrawScope.drawNebulaBackground(
             brush = Brush.radialGradient(
                 colors = listOf(
                     Color.Transparent,
-                    Color(0xFF02040AL).copy(alpha = 0.56f * vhsA)
+                    Color(0xFF02040AL).copy(alpha = 0.54f * vhsA)
                 ),
                 center = Offset(size.width * 0.5f, size.height * 0.5f),
-                radius = maxOf(size.width, size.height) * 0.62f
+                radius = maxOf(size.width, size.height) * 0.64f
             )
         )
     }
@@ -229,8 +213,6 @@ fun DrawScope.drawNebulaBackground(
     )
 
     // 3. SUB-BASS GRAVITY THUMP RINGS (driven directly by the 25–160Hz Sub-Bass Stem!)
-    // When the kick & bass guitar pump, expanding gravity rings throb outward on the beat;
-    // when the bass drops out (e.g. Confide 1:02–1:09 & 2:04–2:11), the rings vanish into zero-gravity silence!
     if (!multiBand.bassDropOut && bass > 0.22f) {
         val bassRingCount = 3
         for (bIdx in 0 until bassRingCount) {
@@ -248,7 +230,6 @@ fun DrawScope.drawNebulaBackground(
     }
 
     // 4. VOCAL-DRIVEN SOLAR AURORA BOREALIS SILK RIBBONS + NEURAL SYNAPSE NODES
-    // Directly coupled to the 220–3200Hz Vocal/Midrange stem so the silk waves rise and bloom with Ethan's voice!
     val ribbonCount = 3
     for (rIdx in 0 until ribbonCount) {
         val baseY = size.height * (0.26f + rIdx * 0.24f)
@@ -293,7 +274,6 @@ fun DrawScope.drawNebulaBackground(
         }
         val silkAlpha = (0.05f + vocal * 0.18f + swellBoost * 0.12f).coerceAtMost(0.32f)
 
-        // Outer soft volumetric silk aurora glow
         drawPath(
             path = path,
             brush = Brush.horizontalGradient(
@@ -306,7 +286,6 @@ fun DrawScope.drawNebulaBackground(
             ),
             style = Stroke(width = (26f + vocal * 36f - rIdx * 5f), cap = StrokeCap.Round)
         )
-        // Soft inner bioluminescent ribbon
         drawPath(
             path = path,
             brush = Brush.horizontalGradient(
@@ -320,7 +299,6 @@ fun DrawScope.drawNebulaBackground(
             style = Stroke(width = 4.5f + vocal * 5.0f, cap = StrokeCap.Round)
         )
 
-        // Living Bioluminescent Bokeh Orbs drifting along the aurora currents (zero straight lines!)
         if (vocal > 0.34f || high > 0.32f) {
             val nodeCount = 7
             for (n in 0 until nodeCount) {
@@ -351,7 +329,7 @@ fun DrawScope.drawNebulaBackground(
         }
     }
 
-    // 5. HIGH-SHIMMER KERR SINGULARITY SPIRAL GALAXY VORTEX (driven by High Shimmer 3.2–12kHz & Chorus Energy!)
+    // 5. HIGH-SHIMMER KERR SINGULARITY SPIRAL GALAXY VORTEX
     val galaxyDrive = maxOf(high * 1.15f, energy * 0.85f)
     if (galaxyDrive >= 0.46f && !multiBand.bassDropOut) {
         val vortexStrength = ((galaxyDrive - 0.44f) / 0.56f).coerceIn(0f, 1f)
@@ -381,7 +359,7 @@ fun DrawScope.drawNebulaBackground(
         }
     }
 
-    // 6. VOLUMETRIC CHORUS AURORA CROWNS & PERIMETER HARMONIC BLOOMS (Zero straight laser lines or boxy bars!)
+    // 6. VOLUMETRIC CHORUS AURORA CROWNS & PERIMETER HARMONIC BLOOMS
     val overdriveFlash = maxOf(goldBlend, beatFlashIntensity.coerceIn(0f, 1f))
     if (overdriveFlash > 0.04f) {
         val bloomCount = 4
@@ -409,7 +387,7 @@ fun DrawScope.drawNebulaBackground(
         }
     }
 
-    // 7. Organic Concentric Harmonic Halo Waves (Replaces boxy rectangular squircle tunnel with smooth circular/arc ripples!)
+    // 7. Organic Concentric Harmonic Halo Waves
     val ringCount = if (isEclipseActive) 4 else 6
     val ringSpeed = if (multiBand.bassDropOut) 0.035f else (0.06f + bass * 0.10f + high * 0.05f)
     for (i in 0 until ringCount) {
@@ -429,7 +407,7 @@ fun DrawScope.drawNebulaBackground(
 
         val fadeAlpha = sin(rawPhase * PI.toFloat()).coerceIn(0f, 1f)
         val finalAlpha = (fadeAlpha * (0.04f + energy * 0.16f + swellBoost * 0.12f)).coerceIn(0f, 0.28f)
-        val strokeW = 1.2f + rawPhase * (1.8f + bass * 2.4f)
+        val strokeW = 1.4f + rawPhase * (2.0f + bass * 2.4f)
         val rotDeg = (time * (18f + vocal * 16f) * (if (isEven) 1f else -1f) + i * 45f) % 360f
 
         for (petal in 0 until 3) {
@@ -445,8 +423,7 @@ fun DrawScope.drawNebulaBackground(
         }
     }
 
-    // 8. Progressive Waterfall Album Artwork Fill in Center (Top-to-Bottom Fill & Splash Meniscus)
-    // Completely ducks to 0 opacity when B-roll video overlay is playing for 100% unobstructed visibility!
+    // 8. Progressive Waterfall Album Artwork Fill in Center
     if (trackArtwork != null && brollOverlayAlpha < 0.95f) {
         val artVisibility = (1f - brollOverlayAlpha * 1.25f).coerceIn(0f, 1f)
         if (artVisibility > 0.01f) {
@@ -459,7 +436,6 @@ fun DrawScope.drawNebulaBackground(
             val dstH = (artRadius * 2f).toInt().coerceAtLeast(1)
             val waterLevelY = artTop + (artRadius * 2f) * p
 
-            // 8a. Frosted dark vinyl disc silhouette & subtle groove rings (unrevealed empty container)
             drawCircle(
                 color = Color(0xFF070B16).copy(alpha = 0.72f * artVisibility),
                 radius = artRadius,
@@ -476,11 +452,10 @@ fun DrawScope.drawNebulaBackground(
                     color = Color(0xFF94A3B8).copy(alpha = 0.08f * artVisibility),
                     radius = artRadius * (g / 5f),
                     center = Offset(centerX, centerY),
-                    style = Stroke(width = 1f)
+                    style = Stroke(width = 1.2f)
                 )
             }
 
-            // 8b. Waterfall clipped album artwork revealing from top down to waterLevelY
             clipRect(
                 left = artLeft - 10f,
                 top = artTop - 10f,
@@ -497,43 +472,51 @@ fun DrawScope.drawNebulaBackground(
                 )
             }
 
-        // 8c. Glowing undulating liquid meniscus wave across waterLevelY
-        if (p in 0.02f..0.995f) {
-            val wavePath = Path()
-            val waveStep = 6f
-            var first = true
-            var wx = artLeft
-            while (wx <= artLeft + dstW) {
-                val waveOffset = sin(wx * 0.055f + time * 7.5f) * 3.5f + cos(wx * 0.028f - time * 5f) * 2f
-                val wy = waterLevelY + waveOffset
-                if (first) {
-                    wavePath.moveTo(wx, wy)
-                    first = false
-                } else {
-                    wavePath.lineTo(wx, wy)
+            // 8c. Smooth Bezier liquid-light meniscus ribbon across waterLevelY (zero polygonal steps)
+            if (p in 0.02f..0.995f) {
+                val wavePath = Path()
+                val segs = 20
+                val stepW = dstW.toFloat() / segs
+                var prevX = artLeft
+                var prevY = waterLevelY
+                for (s in 0..segs) {
+                    val wx = artLeft + s * stepW
+                    val waveOffset = sin(wx * 0.055f + time * 7.5f) * 3.5f + cos(wx * 0.028f - time * 5f) * 2f
+                    val wy = waterLevelY + waveOffset
+                    if (s == 0) {
+                        wavePath.moveTo(wx, wy)
+                    } else {
+                        wavePath.quadraticTo(prevX, prevY, (prevX + wx) * 0.5f, (prevY + wy) * 0.5f)
+                        if (s == segs) wavePath.lineTo(wx, wy)
+                    }
+                    prevX = wx
+                    prevY = wy
                 }
-                wx += waveStep
+                val waveCol = if (isConstellationActive) Color(0xFFFACC15L) else Color(0xFF38BDF8L)
+                drawPath(
+                    path = wavePath,
+                    color = waveCol.copy(alpha = 0.35f * artVisibility),
+                    style = Stroke(width = 10f, cap = StrokeCap.Round),
+                    blendMode = BlendMode.Screen
+                )
+                drawPath(
+                    path = wavePath,
+                    color = waveCol.copy(alpha = 0.90f * artVisibility),
+                    style = Stroke(width = 3.2f, cap = StrokeCap.Round)
+                )
+                drawPath(
+                    path = wavePath,
+                    color = Color.White.copy(alpha = 0.85f * artVisibility),
+                    style = Stroke(width = 1.4f, cap = StrokeCap.Round)
+                )
+            } else if (p >= 0.995f) {
+                drawCircle(
+                    color = Color(0xFFFACC15).copy(alpha = (0.75f + 0.25f * sin(time * 6f)) * artVisibility),
+                    radius = artRadius,
+                    center = Offset(centerX, centerY),
+                    style = Stroke(width = 3.5f)
+                )
             }
-            val waveCol = if (isConstellationActive) Color(0xFFFACC15L) else Color(0xFF38BDF8L)
-            drawPath(
-                path = wavePath,
-                color = waveCol.copy(alpha = 0.95f),
-                style = Stroke(width = 3.5f, cap = StrokeCap.Round)
-            )
-            drawPath(
-                path = wavePath,
-                color = Color.White.copy(alpha = 0.85f),
-                style = Stroke(width = 1.5f, cap = StrokeCap.Round)
-            )
-        } else if (p >= 0.995f) {
-            // 100% UNLOCKED CROWN GLOW
-            drawCircle(
-                color = Color(0xFFFACC15).copy(alpha = (0.75f + 0.25f * sin(time * 6f)) * artVisibility),
-                radius = artRadius,
-                center = Offset(centerX, centerY),
-                style = Stroke(width = 3.5f)
-            )
-        }
         }
     }
 
@@ -550,61 +533,96 @@ fun DrawScope.drawNebulaBackground(
         )
     }
 
-    // 10. Dynamic Special Phase Transformations (Full-Screen Visual Overhauls)
+    // 10. Dynamic Special Phase Transformations (Full-Screen Organic Visual Spectacles)
     val isElectric = isConstellationActive
     val isPrism = activePhenomenon?.effect == KeyWordEffect.PRISM_SHATTER
     val isSlowMo = isFlowySwirlStage
     val isTier2GoldSpectacle = isElectric && goldenTier >= 2
 
     if (isTier2GoldSpectacle) {
-        // 1:18+ TIER-2 24K HYPER-SPECTACLE: Counter-Rotating Sacred Solar Mandala Rings + Sweeping Celestial Rays!
-        for (ray in 0 until 8) {
-            val rayAng = ray * (PI.toFloat() * 0.25f) + time * 0.28f
-            val rLen = maxDim * 0.72f
-            val rayCol = if (ray % 2 == 0) Color(0xFFFACC15L) else Color(0xFF38BDF8L)
-            drawLine(
-                brush = Brush.linearGradient(
-                    colors = listOf(
-                        rayCol.copy(alpha = (0.20f + beatPulse * 0.16f).coerceIn(0f, 0.42f)),
-                        Color.Transparent
-                    ),
-                    start = Offset(centerX, centerY),
-                    end = Offset(centerX + cos(rayAng) * rLen, centerY + sin(rayAng) * rLen)
-                ),
-                start = Offset(centerX, centerY),
-                end = Offset(centerX + cos(rayAng) * rLen, centerY + sin(rayAng) * rLen),
-                strokeWidth = 28f + beatPulse * 14f,
-                cap = StrokeCap.Round
+        // 1:18+ TIER-2 24K HYPER-SPECTACLE: Curved Sacred Solar Lotus Mandala + Expanding Scalloped Ripple Halos (Zero straight spokes!)
+        for (layer in 0..1) {
+            val dir = if (layer == 0) 1f else -1f
+            val baseR = size.width * (if (layer == 0) (0.34f + 0.04f * beatPulse) else (0.48f + 0.03f * sin(time * 2.2f)))
+            val petals = if (layer == 0) 8 else 12
+            val pts = 64
+            sharedMandalaPath.reset()
+            var prevX = 0f
+            var prevY = 0f
+            var firstX = 0f
+            var firstY = 0f
+            for (i in 0..pts) {
+                val theta = (i.toFloat() / pts) * 2f * PI.toFloat() + time * 0.35f * dir
+                val mod = 1f + 0.14f * sin(theta * petals + time * 1.8f * dir)
+                val px = centerX + cos(theta) * baseR * mod
+                val py = centerY + sin(theta) * baseR * mod
+                if (i == 0) {
+                    firstX = px
+                    firstY = py
+                    sharedMandalaPath.moveTo(px, py)
+                } else {
+                    sharedMandalaPath.quadraticTo(prevX, prevY, (prevX + px) * 0.5f, (prevY + py) * 0.5f)
+                }
+                prevX = px
+                prevY = py
+            }
+            sharedMandalaPath.quadraticTo(prevX, prevY, firstX, firstY)
+            sharedMandalaPath.close()
+
+            val col = if (layer == 0) Color(0xFFFACC15L) else Color(0xFF38BDF8L)
+            drawPath(
+                path = sharedMandalaPath,
+                color = col.copy(alpha = (0.16f + beatPulse * 0.12f).coerceIn(0f, 0.34f)),
+                style = Stroke(width = 16f + beatPulse * 8f, cap = StrokeCap.Round),
+                blendMode = BlendMode.Screen
+            )
+            drawPath(
+                path = sharedMandalaPath,
+                color = (if (layer == 0) Color(0xFFFEF08AL) else Color(0xFF7DD3FCL)).copy(alpha = 0.42f + 0.18f * beatPulse),
+                style = Stroke(width = 2.8f, cap = StrokeCap.Round)
             )
         }
-        val ringR1 = size.width * (0.34f + 0.04f * beatPulse)
-        val ringR2 = size.width * (0.48f + 0.05f * sin(time * 2.4f))
-        drawCircle(
-            color = Color(0xFFFACC15L).copy(alpha = 0.26f + 0.16f * beatPulse),
-            radius = ringR1,
-            center = Offset(centerX, centerY),
-            style = Stroke(width = 2.6f)
-        )
-        drawCircle(
-            color = Color(0xFF38BDF8L).copy(alpha = 0.20f + 0.12f * beatPulse),
-            radius = ringR2,
-            center = Offset(centerX, centerY),
-            style = Stroke(width = 1.8f)
-        )
+
+        // Expanding Harmonic Golden Water-Caustic Ripples radiating outward on the beat
+        for (rip in 0..2) {
+            val rPhase = ((time * 0.24f + rip * 0.33f) % 1f)
+            val ripR = size.width * (0.16f + rPhase * 0.58f)
+            val ripFade = sin(rPhase * PI.toFloat()).coerceIn(0f, 1f)
+            drawCircle(
+                color = (if (rip % 2 == 0) Color(0xFFFACC15L) else Color(0xFF38BDF8L)).copy(alpha = 0.26f * ripFade),
+                radius = ripR,
+                center = Offset(centerX, centerY),
+                style = Stroke(width = 3.2f * ripFade + 1.0f),
+                blendMode = BlendMode.Screen
+            )
+        }
+
+        val pearlRingR = size.width * (0.46f + 0.04f * sin(time * 2.4f))
         for (node in 0 until 12) {
             val nAng = node * (PI.toFloat() / 6f) - time * 0.55f
-            val nx = centerX + cos(nAng) * ringR2
-            val ny = centerY + sin(nAng) * ringR2
+            val nx = centerX + cos(nAng) * pearlRingR
+            val ny = centerY + sin(nAng) * pearlRingR
+            val pCol = if (node % 2 == 0) Color(0xFFFEF08AL) else Color(0xFF7DD3FCL)
             drawCircle(
-                color = if (node % 2 == 0) Color(0xFFFEF08AL).copy(alpha = 0.55f) else Color(0xFF7DD3FCL).copy(alpha = 0.45f),
-                radius = 4.5f + beatPulse * 3f,
+                brush = Brush.radialGradient(
+                    colors = listOf(pCol.copy(alpha = 0.65f), Color.Transparent),
+                    center = Offset(nx, ny),
+                    radius = 12f + beatPulse * 5f
+                ),
+                radius = 12f + beatPulse * 5f,
+                center = Offset(nx, ny),
+                blendMode = BlendMode.Screen
+            )
+            drawCircle(
+                color = Color.White.copy(alpha = 0.85f),
+                radius = 3.2f + beatPulse * 1.8f,
                 center = Offset(nx, ny)
             )
         }
     }
 
     if (isElectric) {
-        // ⚡ ELECTRIC HARMONIC: Volumetric Auroral Curtains & Rolling Ionized Plasma Clouds (No rigid lines)
+        // ELECTRIC HARMONIC: Volumetric Auroral Curtains & Smooth Bezier Ionized Ribbons
         val curY = centerY + size.height * 0.15f
         val fluidAlpha = (0.24f + beatPulse * 0.16f).coerceIn(0.1f, 0.45f)
         drawRect(
@@ -622,15 +640,24 @@ fun DrawScope.drawNebulaBackground(
             size = Size(size.width, size.height - curY)
         )
 
-        // Fluid undulating ionized ribbon waves
         for (r in 0 until 2) {
+            val segs = 20
+            val stepX = size.width / segs
             val wavePath = Path().apply {
                 moveTo(0f, size.height)
-                var wx = 0f
-                while (wx <= size.width) {
+                var prevX = 0f
+                var prevY = curY + 20f
+                for (s in 0..segs) {
+                    val wx = s * stepX
                     val waveY = curY + 20f + sin(wx * 0.008f + time * 2.2f + r * 1.5f) * 28f + cos(wx * 0.015f - time * 1.6f) * 16f
-                    lineTo(wx, waveY)
-                    wx += 16f
+                    if (s == 0) {
+                        lineTo(wx, waveY)
+                    } else {
+                        quadraticTo(prevX, prevY, (prevX + wx) * 0.5f, (prevY + waveY) * 0.5f)
+                        if (s == segs) lineTo(wx, waveY)
+                    }
+                    prevX = wx
+                    prevY = waveY
                 }
                 lineTo(size.width, size.height)
                 close()
@@ -639,7 +666,6 @@ fun DrawScope.drawNebulaBackground(
             drawPath(path = wavePath, color = ribbonColor)
         }
 
-        // Soft atmospheric radial ion blooms
         for (b in 0 until 3) {
             val bx = size.width * (0.22f + b * 0.28f + sin(time * 0.8f + b) * 0.08f)
             val by = centerY + cos(time * 0.9f + b * 1.4f) * (size.height * 0.18f)
@@ -659,7 +685,6 @@ fun DrawScope.drawNebulaBackground(
     }
 
     if (isPrism) {
-        // ✨ PRISM VOCAL BLOOM: Soft Atmospheric Radial Aurora (Zero harsh wireframe lines or seizure flash)
         val bloomRad = maxDim * 0.45f
         val pulseFactor = 1.0f + vocal * 0.15f
         drawCircle(
@@ -680,41 +705,52 @@ fun DrawScope.drawNebulaBackground(
     }
 
     if (isSlowMo) {
-        // 🌀 VORTEX SLOW-MO: Gravitational Accretion Disc + Time-Dilation Horizon Waves
+        // FLOWY WHISPY BREAKDOWN SWIRL: Smooth Bezier Silk-Nebula Spirals + Soft Water-Ripple Horizons (Zero polygonal kinks!)
         val armCount = 4
-        val spiralPoints = 24
+        val spiralPoints = 32
         for (a in 0 until armCount) {
-            val armOffset = a * (2f * PI.toFloat() / armCount) + time * 0.32f
+            val armOffset = a * (2f * PI.toFloat() / armCount) + time * 0.34f
             val spiralPath = Path()
-            for (s in 0 until spiralPoints) {
+            var prevX = centerX
+            var prevY = centerY
+            for (s in 0..spiralPoints) {
                 val st = s.toFloat() / spiralPoints
-                val sDist = st * maxDim * 0.70f
-                val sAngle = armOffset + st * 4.2f
+                val sDist = st * maxDim * 0.68f
+                val sAngle = armOffset + st * 4.0f
                 val sx = centerX + cos(sAngle) * sDist
                 val sy = centerY + sin(sAngle) * sDist
-                if (s == 0) spiralPath.moveTo(sx, sy) else spiralPath.lineTo(sx, sy)
+                if (s == 0) {
+                    spiralPath.moveTo(sx, sy)
+                } else {
+                    spiralPath.quadraticTo(prevX, prevY, (prevX + sx) * 0.5f, (prevY + sy) * 0.5f)
+                    if (s == spiralPoints) spiralPath.lineTo(sx, sy)
+                }
+                prevX = sx
+                prevY = sy
             }
             val aCol = if (a % 2 == 0) Color(0xFF7DD3FCL) else Color(0xFFD8B4FEL)
             drawPath(
                 path = spiralPath,
-                color = aCol.copy(alpha = 0.16f),
-                style = Stroke(width = 16.0f, cap = StrokeCap.Round)
+                color = aCol.copy(alpha = 0.14f),
+                style = Stroke(width = 22.0f, cap = StrokeCap.Round),
+                blendMode = BlendMode.Screen
             )
             drawPath(
                 path = spiralPath,
-                color = aCol.copy(alpha = 0.45f),
-                style = Stroke(width = 3.6f, cap = StrokeCap.Round)
+                color = aCol.copy(alpha = 0.34f),
+                style = Stroke(width = 4.2f, cap = StrokeCap.Round)
             )
         }
 
         for (v in 0 until 5) {
-            val vRadius = ((time * 0.14f + v * 0.20f) % 1.0f) * maxDim * 0.75f
-            val vFade = (1.0f - (vRadius / (maxDim * 0.75f))).coerceIn(0f, 1f)
+            val vRadius = ((time * 0.14f + v * 0.20f) % 1.0f) * maxDim * 0.72f
+            val vFade = sin((vRadius / (maxDim * 0.72f)).coerceIn(0f, 1f) * PI.toFloat())
             drawCircle(
-                color = Color(0xFFC084FC).copy(alpha = 0.45f * vFade),
-                radius = vRadius,
+                color = Color(0xFFC084FC).copy(alpha = 0.32f * vFade),
+                radius = vRadius.coerceAtLeast(4f),
                 center = Offset(centerX, centerY),
-                style = Stroke(width = 4.0f * vFade)
+                style = Stroke(width = (3.4f * vFade).coerceAtLeast(0.8f)),
+                blendMode = BlendMode.Screen
             )
         }
     }

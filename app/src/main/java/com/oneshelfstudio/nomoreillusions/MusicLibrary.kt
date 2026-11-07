@@ -206,10 +206,11 @@ object MusicLibrary {
             KeyWordAnchor(185.32f, KeyWordEffect.CONSTELLATION_STAR, goldenTier = 2, normY = 0.28f)  // 3:05.3 Riff 24K Climax
         )
 
-        // Exact 5 Video Relics prior to Montage 1 (1:00) and exact 5 prior to Montage 2 (2:36):
+        // 6 Video Relics in Window 1 (need 5 -> 1 buffer orb before 1:00 Montage 1)
+        // + 18.6s breather after Montage 1 + 6 widely staggered Video Relics (~13.4s apart) in Window 2 before 2:36 Montage 2:
         val videoRelicTimestamps = listOf(
-            33.39f, 39.68f, 46.45f, 53.23f, 59.52f,
-            116.61f, 126.29f, 135.48f, 146.13f, 155.81f
+            31.94f, 36.77f, 41.61f, 46.94f, 51.77f, 56.61f,
+            87.10f, 100.65f, 114.19f, 127.74f, 141.29f, 153.87f
         )
         val specialBeatIndices = specialMoments.map { (it.timestampSec / beatSec).roundToInt() }
         val videoBeatIndices = videoRelicTimestamps.map { (it / beatSec).roundToInt() }
@@ -320,6 +321,11 @@ object MusicLibrary {
             if (anchor != null) {
                 nx = 0.50f
                 ny = anchor.normY
+            } else if (isVideoCue) {
+                val dx = (rawX - prevX).coerceIn(-0.24f, 0.24f)
+                val dy = (rawY - prevY).coerceIn(-0.20f, 0.20f)
+                nx = (prevX + dx).coerceIn(0.28f, 0.72f)
+                ny = (prevY + dy).coerceIn(0.34f, 0.60f)
             } else if (inSurpriseEnding) {
                 nx = rawX.coerceIn(0.22f, 0.78f)
                 ny = rawY.coerceIn(0.34f, 0.66f)
@@ -343,6 +349,7 @@ object MusicLibrary {
 
             val desiredLead = when {
                 anchor != null -> 1.45f
+                isVideoCue && !inWhispyBreakdown -> 2.40f
                 inIntroDrift -> 2.55f
                 inWhispyBreakdown -> 3.30f
                 inSpokenFloat -> 2.85f
@@ -442,10 +449,11 @@ object MusicLibrary {
             KeyWordAnchor(141.14f, KeyWordEffect.CONSTELLATION_STAR, goldenTier = 2, normY = 0.28f)  // 2:21.1 Ending Riff 24K Climax
         )
 
-        // Exact 5 Video Relics prior to Montage 1 (0:54.5) and exact 5 prior to Montage 2 (1:58.5):
+        // 6 Video Relics in Window 1 (need 5 -> 1 buffer orb before 0:54.5 Montage 1)
+        // + 16.8s breather after Montage 1 + 6 staggered Video Relics (~7.4s apart) in Window 2 before 1:58.5 Montage 2:
         val videoRelicTimestamps = listOf(
-            33.41f, 38.86f, 43.64f, 49.09f, 53.86f,
-            96.14f, 101.59f, 106.36f, 112.50f, 117.95f
+            32.05f, 36.14f, 40.23f, 44.32f, 48.41f, 52.50f,
+            79.77f, 87.27f, 95.45f, 102.95f, 111.82f, 116.59f
         )
         val specialBeatIndices = specialMoments.map { (it.timestampSec / beatSec).roundToInt() }
         val videoBeatIndices = videoRelicTimestamps.map { (it / beatSec).roundToInt() }
@@ -544,6 +552,11 @@ object MusicLibrary {
             if (anchor != null) {
                 nx = 0.50f
                 ny = anchor.normY
+            } else if (isVideoCue) {
+                val dx = (rawX - prevX).coerceIn(-0.24f, 0.24f)
+                val dy = (rawY - prevY).coerceIn(-0.20f, 0.20f)
+                nx = (prevX + dx).coerceIn(0.28f, 0.72f)
+                ny = (prevY + dy).coerceIn(0.34f, 0.60f)
             } else if (inSurpriseEnding) {
                 nx = rawX.coerceIn(0.22f, 0.78f)
                 ny = rawY.coerceIn(0.34f, 0.66f)
@@ -567,6 +580,7 @@ object MusicLibrary {
 
             val desiredLead = when {
                 anchor != null -> 1.45f
+                isVideoCue && !inWhispyBreakdown -> 2.40f
                 inIntroDrift -> 2.55f
                 inWhispyBreakdown -> 3.30f
                 inSpokenFloat -> 2.85f

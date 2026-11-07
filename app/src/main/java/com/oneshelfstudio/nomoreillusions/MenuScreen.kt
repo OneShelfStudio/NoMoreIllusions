@@ -26,11 +26,13 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -839,106 +841,338 @@ private fun MenuBentoTile(
 @Composable
 fun CountdownUI(value: Int, visible: Boolean = true) {
     if (!visible) return
+    val pulseScale by animateFloatAsState(
+        targetValue = if (value == 0) 1.08f else 1.0f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "CountdownScale"
+    )
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
         val label = if (value > 0) value.toString() else "DROP!"
-        val color = if (value > 0) Color(0xFF38BDF8L) else Color(0xFF4ADE80L)
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                text = if (value > 0) "GET READY" else "MUSIC STARTING",
-                color = Color.White.copy(alpha = 0.78f),
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Black,
-                letterSpacing = 2.5.sp
-            )
-            Text(
-                text = label,
-                color = color,
-                fontSize = 104.sp,
-                fontWeight = FontWeight.Black
-            )
+        val color = if (value > 0) Color(0xFF38BDF8L) else Color(0xFFFACC15L)
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier.graphicsLayer {
+                scaleX = pulseScale
+                scaleY = pulseScale
+            }
+        ) {
+            Canvas(modifier = Modifier.size(210.dp)) {
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(color.copy(alpha = 0.28f), Color.Transparent),
+                        center = center,
+                        radius = size.minDimension * 0.5f
+                    ),
+                    radius = size.minDimension * 0.5f,
+                    center = center
+                )
+            }
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Box(
+                    modifier = Modifier
+                        .clip(CircleShape)
+                        .background(Color(0xCC060D1E))
+                        .border(1.dp, color.copy(alpha = 0.65f), CircleShape)
+                        .padding(horizontal = 14.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        text = if (value > 0) "STAGE STANDBY" else "NEEDLE DROPPING",
+                        color = color,
+                        fontSize = 10.5.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 2.2.sp
+                    )
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = label,
+                    style = TextStyle(
+                        color = Color.White,
+                        fontSize = if (value > 0) 96.sp else 74.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 2.sp,
+                        shadow = androidx.compose.ui.graphics.Shadow(
+                            color = color,
+                            offset = Offset.Zero,
+                            blurRadius = 28f
+                        )
+                    )
+                )
+            }
         }
     }
 }
 
+@Suppress("UNUSED_PARAMETER")
 @Composable
 fun HowToPlayUI(
     btnPillCyan: ImageBitmap,
+    onNavigateHome: () -> Unit = {},
+    onNavigateAlbum: () -> Unit = {},
+    onNavigateVault: () -> Unit = {},
+    onNavigateSkins: () -> Unit = {},
+    onNavigateSettings: () -> Unit = {},
     onBack: () -> Unit
 ) {
+    val infinite = rememberInfiniteTransition(label = "guideEmblems")
+    val animPhase by infinite.animateFloat(
+        initialValue = 0f,
+        targetValue = 6.283185f,
+        animationSpec = infiniteRepeatable(tween(2800, easing = LinearEasing)),
+        label = "guidePhase"
+    )
+    var appeared by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { appeared = true }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
             .statusBarsPadding()
+            .navigationBarsPadding()
     ) {
-        FloatingMotesBackground()
+        FloatingMotesBackground(stageAccent = Color(0xFF38BDF8))
 
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 16.dp, vertical = 12.dp)
+                .padding(horizontal = 16.dp, vertical = 10.dp)
         ) {
             StudioScreenHeader(
-                title = "HOW TO PLAY",
-                subtitle = "FLUID GLIDE RHYTHM GUIDE",
+                title = "STUDIO GUIDE",
+                subtitle = "RHYTHM, RELICS & VIDEO MONTAGES",
+                accentColor = Color(0xFFFACC15),
                 onBack = onBack
             )
 
             Spacer(modifier = Modifier.height(10.dp))
 
             Column(
+                verticalArrangement = Arrangement.spacedBy(10.dp),
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState())
             ) {
+                ExplainerShowcaseCard(
+                    stepIndex = 0,
+                    appeared = appeared,
+                    emblemKind = 0,
+                    animPhase = animPhase,
+                    badge = "CONTROLS",
+                    title = "FLUID GLIDE & DUAL TOUCH",
+                    body = "Slide anywhere to steer smoothly across the stage—or touch with a second finger to weave a curved Dual-Hero plasma ribbon.",
+                    accentColor = Color(0xFF4ADE80)
+                )
+                ExplainerShowcaseCard(
+                    stepIndex = 1,
+                    appeared = appeared,
+                    emblemKind = 1,
+                    animPhase = animPhase,
+                    badge = "RHYTHM FLOW",
+                    title = "MULTI-DIRECTIONAL BEAT ORBS",
+                    body = "Luminous orbs glide in from every angle and pulse to the drum groove. Catch them on-beat to build combos and unveil album art.",
+                    accentColor = Color(0xFF38BDF8)
+                )
+                ExplainerShowcaseCard(
+                    stepIndex = 2,
+                    appeared = appeared,
+                    emblemKind = 2,
+                    animPhase = animPhase,
+                    badge = "0:15 & 1:18",
+                    title = "24K GOLD SPECTACLE RELICS",
+                    body = "Catch upper-center 24K Milestone Orbs (or tap the right HUD capsule at 100%) to unleash golden lotus ripples & vaporize hazards.",
+                    accentColor = Color(0xFFFACC15)
+                )
+                ExplainerShowcaseCard(
+                    stepIndex = 3,
+                    appeared = appeared,
+                    emblemKind = 3,
+                    animPhase = animPhase,
+                    badge = "5/5 VHS REEL",
+                    title = "MUSIC VIDEO MONTAGES",
+                    body = "Collect 5 chromatic VHS Relics in each song window to arm your left VHS Meter—launching two slow-mo music video montages per song!",
+                    accentColor = Color(0xFFE879F9)
+                )
+
+                // Classic Highway Mode Bonus Strip
                 StudioGlassCard(
-                    accentColor = Color(0xFFFACC15),
+                    accentColor = Color(0xFF7DD3FC),
+                    shape = RoundedCornerShape(16.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Column(
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                            .padding(horizontal = 14.dp, vertical = 11.dp)
                     ) {
-                        InstructionItem(
-                            "1. GATHER NOTES",
-                            "Glide into notes along the steady rhythm of the music. Catch them on beat to build your combo and unlock new songs!"
-                        )
-                        InstructionItem(
-                            "2. AVOID ENEMIES",
-                            "Dodge red enemy hazards to protect your streak and multiplier."
-                        )
-                        InstructionItem(
-                            "3. HIT SPECIAL PEGS",
-                            "Hit electric harmonic pegs and bomb pegs to clear enemies and transform the stage with spectacular visual surges!"
-                        )
-                        InstructionItem(
-                            "4. CLASSIC MODE (Guitar Hero Style)",
-                            "Toggle Classic Mode on the main menu anytime to play vertical highway rhythm lanes!"
+                        Box(
+                            modifier = Modifier
+                                .clip(CircleShape)
+                                .background(Color(0xFF38BDF8).copy(alpha = 0.16f))
+                                .border(1.dp, Color(0xFF38BDF8).copy(alpha = 0.65f), CircleShape)
+                                .padding(horizontal = 9.dp, vertical = 4.dp)
+                        ) {
+                            Text(
+                                text = "BONUS MODE",
+                                color = Color(0xFF7DD3FC),
+                                fontSize = 8.5.sp,
+                                fontWeight = FontWeight.Black,
+                                letterSpacing = 0.8.sp
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            text = "Toggle CLASSIC HIGHWAY on the Home deck anytime for vertical 4-lane rhythm play.",
+                            color = Color(0xFFCBD5E1),
+                            fontSize = 10.sp,
+                            lineHeight = 14.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.weight(1f)
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(4.dp))
 
                 StudioPillButton(
-                    text = "BACK TO STUDIO MENU",
-                    palette = StudioPillPalette.CYAN_SYNTH,
+                    text = "RETURN TO STAGE DECK ▶",
+                    palette = StudioPillPalette.EMERALD_STAGE,
                     onClick = onBack,
-                    modifier = Modifier.fillMaxWidth().height(48.dp),
-                    fontSize = 12.sp
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    fontSize = 12.5.sp
                 )
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(6.dp))
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            StudioBottomNavDock(
+                currentDestination = "GUIDE",
+                onNavigateHome = onBack,
+                onNavigateAlbum = onNavigateAlbum,
+                onNavigateVault = onNavigateVault,
+                onNavigateSkins = onNavigateSkins,
+                onNavigateSettings = onNavigateSettings
+            )
+        }
+    }
+}
+
+@Composable
+private fun ExplainerShowcaseCard(
+    stepIndex: Int,
+    appeared: Boolean,
+    emblemKind: Int,
+    animPhase: Float,
+    badge: String,
+    title: String,
+    body: String,
+    accentColor: Color
+) {
+    val cardScale by animateFloatAsState(
+        targetValue = if (appeared) 1f else 0.90f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = (380f - stepIndex * 45f).coerceAtLeast(180f)
+        ),
+        label = "ExplainerCardScale_$stepIndex"
+    )
+    val cardAlpha by animateFloatAsState(
+        targetValue = if (appeared) 1f else 0f,
+        animationSpec = tween(durationMillis = 220 + stepIndex * 70),
+        label = "ExplainerCardAlpha_$stepIndex"
+    )
+
+    StudioGlassCard(
+        accentColor = accentColor,
+        shape = RoundedCornerShape(18.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .graphicsLayer {
+                scaleX = cardScale
+                scaleY = cardScale
+                alpha = cardAlpha
+            }
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 12.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(Color(0xFF040915))
+                    .border(1.2.dp, accentColor.copy(alpha = 0.52f), RoundedCornerShape(14.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                LiveGuideEmblemCanvas(
+                    emblemKind = emblemKind,
+                    animPhase = animPhase + stepIndex * 0.6f,
+                    accentColor = accentColor,
+                    modifier = Modifier.size(46.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.width(14.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = title,
+                        color = Color.White,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 0.6.sp,
+                        modifier = Modifier.weight(1f, fill = false)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Box(
+                        modifier = Modifier
+                            .clip(CircleShape)
+                            .background(accentColor.copy(alpha = 0.16f))
+                            .border(1.dp, accentColor.copy(alpha = 0.65f), CircleShape)
+                            .padding(horizontal = 7.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            text = badge,
+                            color = accentColor,
+                            fontSize = 8.sp,
+                            fontWeight = FontWeight.Black,
+                            letterSpacing = 0.6.sp
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = body,
+                    color = Color(0xFFCBD5E1),
+                    fontSize = 10.5.sp,
+                    lineHeight = 14.5.sp,
+                    fontWeight = FontWeight.Medium
+                )
             }
         }
     }
 }
 
+@Suppress("UNUSED_PARAMETER")
 @Composable
 fun SettingsUI(
     isMusic: Boolean,
@@ -956,8 +1190,13 @@ fun SettingsUI(
     onDifficultyChange: (GameDifficulty) -> Unit,
     isVipUnlocked: Boolean = false,
     onActivateVipPasscode: () -> Unit = {},
+    onNavigateHome: () -> Unit = {},
+    onNavigateAlbum: () -> Unit = {},
+    onNavigateVault: () -> Unit = {},
+    onNavigateSkins: () -> Unit = {},
     onBack: () -> Unit
 ) {
+    val haptics = rememberStudioHaptics()
     var vipCodeInput by remember { mutableStateOf("") }
     var vipError by remember { mutableStateOf(false) }
     var vipSuccess by remember { mutableStateOf(isVipUnlocked) }
@@ -966,17 +1205,19 @@ fun SettingsUI(
         modifier = Modifier
             .fillMaxSize()
             .statusBarsPadding()
+            .navigationBarsPadding()
     ) {
-        FloatingMotesBackground()
+        FloatingMotesBackground(stageAccent = Color(0xFFFACC15))
 
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 16.dp, vertical = 12.dp)
+                .padding(horizontal = 16.dp, vertical = 10.dp)
         ) {
             StudioScreenHeader(
                 title = "SETTINGS",
-                subtitle = "AUDIO, DIFFICULTY & VIP PASSCODE",
+                subtitle = "AUDIO, PACE & BACKSTAGE PASS",
+                accentColor = Color(0xFFFACC15),
                 onBack = onBack
             )
 
@@ -994,14 +1235,42 @@ fun SettingsUI(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(14.dp)
                     ) {
-                        ToggleItem("MUSIC", isMusic, onMusicToggle)
-                        ToggleItem("SOUND FX", isSound, onSoundToggle)
-                        ToggleItem("HAPTICS", isHaptic, onHapticToggle)
-                        ToggleItem("MUSIC VIDEO B-ROLL", isBrollVideo, onBrollVideoToggle)
+                        Text(
+                            text = "STUDIO MIX & FEEDBACK",
+                            color = Color(0xFF4ADE80),
+                            fontSize = 10.5.sp,
+                            fontWeight = FontWeight.Black,
+                            letterSpacing = 1.0.sp
+                        )
+                        ToggleItem(
+                            label = "MASTER MUSIC",
+                            checked = isMusic,
+                            onToggle = onMusicToggle,
+                            subtitle = "Album tracks & ambient studio synth"
+                        )
+                        ToggleItem(
+                            label = "HARMONIC SOUND FX",
+                            checked = isSound,
+                            onToggle = onSoundToggle,
+                            subtitle = "24K chimes, relic blooms & stingers"
+                        )
+                        ToggleItem(
+                            label = "TACTILE HAPTICS",
+                            checked = isHaptic,
+                            onToggle = onHapticToggle,
+                            subtitle = "Physical micro-pulse on orbs & buttons"
+                        )
+                        ToggleItem(
+                            label = "MUSIC VIDEO MONTAGES",
+                            checked = isBrollVideo,
+                            onToggle = onBrollVideoToggle,
+                            subtitle = "Slow-mo B-roll clips on 5/5 VHS meter"
+                        )
                     }
                 }
 
@@ -1009,7 +1278,7 @@ fun SettingsUI(
 
                 // Lobby Ambient Synth & Game Difficulty
                 StudioGlassCard(
-                    accentColor = Color(0xFFA5B4FC),
+                    accentColor = Color(0xFF38BDF8),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(
@@ -1018,15 +1287,15 @@ fun SettingsUI(
                             .padding(14.dp)
                     ) {
                         Text(
-                            text = "LOBBY BACKGROUND MUSIC (STUDIO SYNTH)",
-                            color = Color(0xFFA5B4FCL),
-                            fontSize = 11.sp,
+                            text = "LOBBY AMBIENT SYNTH",
+                            color = Color(0xFF7DD3FC),
+                            fontSize = 10.5.sp,
                             fontWeight = FontWeight.Black,
-                            letterSpacing = 0.8.sp
+                            letterSpacing = 1.0.sp
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Row(
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             LobbyTrack.entries.forEach { lt ->
@@ -1034,30 +1303,39 @@ fun SettingsUI(
                                 Box(
                                     modifier = Modifier
                                         .weight(1f)
-                                        .clip(RoundedCornerShape(10.dp))
-                                        .background(if (sel) Color(0xFF0E291AL) else Color(0xFF060B12L))
-                                        .border(
-                                            1.2.dp,
-                                            if (sel) Color(0xFF4ADE80L) else Color.White.copy(alpha = 0.14f),
-                                            RoundedCornerShape(10.dp)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(
+                                            if (sel) {
+                                                Brush.verticalGradient(listOf(Color(0xFF0E291A), Color(0xFF06131F)))
+                                            } else {
+                                                Brush.verticalGradient(listOf(Color(0xFF0B1426), Color(0xFF050912)))
+                                            }
                                         )
-                                        .clickable { onLobbyTrackChange(lt) }
-                                        .padding(vertical = 8.dp, horizontal = 4.dp),
+                                        .border(
+                                            width = if (sel) 1.5.dp else 1.dp,
+                                            color = if (sel) Color(0xFF4ADE80) else Color.White.copy(alpha = 0.14f),
+                                            shape = RoundedCornerShape(12.dp)
+                                        )
+                                        .clickable {
+                                            haptics.tick()
+                                            onLobbyTrackChange(lt)
+                                        }
+                                        .padding(vertical = 9.dp, horizontal = 4.dp),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                         Text(
                                             text = lt.title.uppercase(),
-                                            color = if (sel) Color(0xFF4ADE80L) else Color.White,
-                                            fontSize = 9.sp,
+                                            color = if (sel) Color(0xFF4ADE80) else Color.White,
+                                            fontSize = 9.5.sp,
                                             fontWeight = FontWeight.Black,
                                             maxLines = 1
                                         )
                                         Text(
-                                            text = "AMBIENT",
-                                            color = Color.White.copy(alpha = 0.55f),
+                                            text = "SYNTH BED",
+                                            color = if (sel) Color(0xFF86EFAC) else Color(0xFF94A3B8),
                                             fontSize = 7.5.sp,
-                                            fontWeight = FontWeight.SemiBold
+                                            fontWeight = FontWeight.Bold
                                         )
                                     }
                                 }
@@ -1067,20 +1345,32 @@ fun SettingsUI(
                         Spacer(modifier = Modifier.height(14.dp))
 
                         Text(
-                            text = "GAME DIFFICULTY",
-                            color = Color.White,
-                            fontSize = 11.sp,
+                            text = "STAGE DIFFICULTY",
+                            color = Color(0xFF7DD3FC),
+                            fontSize = 10.5.sp,
                             fontWeight = FontWeight.Black,
-                            letterSpacing = 0.8.sp
+                            letterSpacing = 1.0.sp
                         )
-                        Spacer(modifier = Modifier.height(6.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
                         Row(
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            DifficultyOption(GameDifficulty.EASY, difficulty == GameDifficulty.EASY) { onDifficultyChange(it) }
-                            DifficultyOption(GameDifficulty.REGULAR, difficulty == GameDifficulty.REGULAR) { onDifficultyChange(it) }
-                            DifficultyOption(GameDifficulty.HARD, difficulty == GameDifficulty.HARD) { onDifficultyChange(it) }
+                            DifficultyOption(
+                                difficulty = GameDifficulty.EASY,
+                                isSelected = difficulty == GameDifficulty.EASY,
+                                modifier = Modifier.weight(1f)
+                            ) { onDifficultyChange(it) }
+                            DifficultyOption(
+                                difficulty = GameDifficulty.REGULAR,
+                                isSelected = difficulty == GameDifficulty.REGULAR,
+                                modifier = Modifier.weight(1f)
+                            ) { onDifficultyChange(it) }
+                            DifficultyOption(
+                                difficulty = GameDifficulty.HARD,
+                                isSelected = difficulty == GameDifficulty.HARD,
+                                modifier = Modifier.weight(1f)
+                            ) { onDifficultyChange(it) }
                         }
                     }
                 }
@@ -1099,9 +1389,9 @@ fun SettingsUI(
                             .padding(14.dp)
                     ) {
                         Text(
-                            text = if (vipSuccess || isVipUnlocked) "★ ARTIST VIP PASSCODE ACTIVE (ALL UNLOCKED!)" else "ARTIST VIP PASSCODE (UNLOCK ALL OPTIONS)",
+                            text = if (vipSuccess || isVipUnlocked) "★ ARTIST VIP PASSCODE ACTIVE (ALL UNLOCKED)" else "ARTIST VIP BACKSTAGE PASSCODE",
                             color = if (vipSuccess || isVipUnlocked) Color(0xFF4ADE80L) else Color(0xFFFACC15L),
-                            fontSize = 10.sp,
+                            fontSize = 10.5.sp,
                             fontWeight = FontWeight.Black,
                             letterSpacing = 0.8.sp
                         )
@@ -1115,15 +1405,15 @@ fun SettingsUI(
                                 Box(
                                     modifier = Modifier
                                         .weight(1f)
-                                        .height(38.dp)
-                                        .clip(RoundedCornerShape(8.dp))
+                                        .height(40.dp)
+                                        .clip(RoundedCornerShape(10.dp))
                                         .background(Color(0xFF04070FL))
                                         .border(
                                             1.dp,
-                                            if (vipError) Color(0xFFF43F5EL) else Color(0xFF6366F1L).copy(alpha = 0.6f),
-                                            RoundedCornerShape(8.dp)
+                                            if (vipError) Color(0xFFF43F5EL) else Color(0xFFFACC15L).copy(alpha = 0.45f),
+                                            RoundedCornerShape(10.dp)
                                         )
-                                        .padding(horizontal = 10.dp),
+                                        .padding(horizontal = 12.dp),
                                     contentAlignment = Alignment.CenterStart
                                 ) {
                                     if (vipCodeInput.isEmpty()) {
@@ -1144,40 +1434,39 @@ fun SettingsUI(
                                         textStyle = TextStyle(
                                             color = Color.White,
                                             fontSize = 12.sp,
-                                            fontWeight = FontWeight.Black
+                                            fontWeight = FontWeight.Black,
+                                            letterSpacing = 1.2.sp
                                         ),
                                         modifier = Modifier.fillMaxWidth()
                                     )
                                 }
-                                Box(
-                                    modifier = Modifier
-                                        .height(38.dp)
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .background(
-                                            Brush.horizontalGradient(
-                                                listOf(Color(0xFFFACC15L), Color(0xFFD97706L))
-                                            )
-                                        )
-                                        .clickable {
-                                            val clean = vipCodeInput.trim().uppercase()
-                                            if (clean == "ETHAN" || clean == "CONFIDE" || clean == "ILLUSIONS2026" || clean == "NMI2026") {
-                                                vipSuccess = true
-                                                vipError = false
-                                                onActivateVipPasscode()
-                                            } else {
-                                                vipError = true
-                                            }
+                                StudioPillButton(
+                                    text = "UNLOCK",
+                                    palette = StudioPillPalette.SOLAR_GOLD,
+                                    onClick = {
+                                        val clean = vipCodeInput.trim().uppercase()
+                                        if (clean == "ETHAN" || clean == "CONFIDE" || clean == "ILLUSIONS2026" || clean == "NMI2026") {
+                                            vipSuccess = true
+                                            vipError = false
+                                            onActivateVipPasscode()
+                                        } else {
+                                            vipError = true
                                         }
-                                        .padding(horizontal = 14.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = "UNLOCK",
-                                        color = Color(0xFF050811L),
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Black
-                                    )
-                                }
+                                    },
+                                    modifier = Modifier
+                                        .width(104.dp)
+                                        .height(40.dp),
+                                    fontSize = 11.sp
+                                )
+                            }
+                            if (vipError) {
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Text(
+                                    text = "Invalid backstage passcode. Check spelling and try again.",
+                                    color = Color(0xFFFB7185),
+                                    fontSize = 9.5.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
                             }
                         }
                     }
@@ -1186,22 +1475,26 @@ fun SettingsUI(
                 Spacer(modifier = Modifier.height(14.dp))
 
                 StudioPillButton(
-                    text = "SAVE & RETURN TO MENU",
+                    text = "SAVE & RETURN ▶",
                     palette = StudioPillPalette.SOLAR_GOLD,
                     onClick = onBack,
-                    modifier = Modifier.fillMaxWidth().height(48.dp),
-                    fontSize = 12.sp
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    fontSize = 12.5.sp
                 )
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(10.dp))
             }
+
+            Spacer(modifier = Modifier.height(8.dp))
 
             StudioBottomNavDock(
                 currentDestination = "SETTINGS",
-                onNavigateHome = onBack,
-                onNavigateAlbum = onBack,
-                onNavigateVault = onBack,
-                onNavigateSkins = onBack,
+                onNavigateHome = onNavigateHome,
+                onNavigateAlbum = onNavigateAlbum,
+                onNavigateVault = onNavigateVault,
+                onNavigateSkins = onNavigateSkins,
                 onNavigateSettings = { /* Already in settings */ }
             )
         }

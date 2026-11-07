@@ -4,9 +4,9 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
-import kotlin.math.cos
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
@@ -15,6 +15,8 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -29,6 +31,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -144,9 +147,6 @@ private fun detectIconType(bitmap: ImageBitmap): ArcadeIconType {
     }.getOrDefault(ArcadeIconType.PAUSE)
 }
 
-/**
- * Architectural Dark-Glass Bento Action Button (replaces bubble/AI-style pills with sharp geometric glass).
- */
 @Composable
 fun ArcadePillButton(
     text: String,
@@ -159,15 +159,24 @@ fun ArcadePillButton(
     enabled: Boolean = true,
     palette: ArcadeButtonPalette? = null
 ) {
+    val haptics = rememberStudioHaptics()
     val resolvedPalette = remember(text, pillBitmap, palette) {
         palette ?: detectPalette(text, pillBitmap)
     }
     val colors = remember(resolvedPalette) { paletteColors(resolvedPalette) }
-    val cardShape = RoundedCornerShape(12.dp)
+    val cardShape = RoundedCornerShape(14.dp)
     val contentAlpha = if (enabled) 1f else 0.45f
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed && enabled) 0.95f else 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
+        label = "ArcadePillScale"
+    )
 
     Box(
         modifier = modifier
+            .scale(scale)
             .shadow(
                 elevation = if (enabled) 6.dp else 0.dp,
                 shape = cardShape,
@@ -193,16 +202,22 @@ fun ArcadePillButton(
                 ),
                 shape = cardShape
             )
-            .clickable(enabled = enabled) { onClick() },
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                enabled = enabled
+            ) {
+                haptics.confirm()
+                onClick()
+            },
         contentAlignment = Alignment.Center
     ) {
-        // Subtle left architectural laser bar accent
         Box(
             modifier = Modifier
                 .align(Alignment.CenterStart)
-                .padding(start = 5.dp)
+                .padding(start = 6.dp)
                 .width(3.dp)
-                .fillMaxHeight(0.54f)
+                .fillMaxHeight(0.52f)
                 .clip(RoundedCornerShape(4.dp))
                 .background(colors.accent.copy(alpha = 0.90f * contentAlpha))
         )
@@ -255,9 +270,18 @@ fun ArcadeAdPillButton(
     // Google Play / AdMob Compliant Rewarded Ad Button:
     // Visually distinct from standard menu pills via a warm Amber-Gold Broadcast frame,
     // high-contrast solid yellow [AD] disclosure badge, and explicit "SPONSORED VIDEO" sublabel.
-    val cardShape = RoundedCornerShape(8.dp)
+    val haptics = rememberStudioHaptics()
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed && enabled) 0.96f else 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
+        label = "AdPillScale"
+    )
+    val cardShape = RoundedCornerShape(12.dp)
     Box(
         modifier = modifier
+            .scale(scale)
             .shadow(
                 elevation = 8.dp,
                 shape = cardShape,
@@ -281,7 +305,14 @@ fun ArcadeAdPillButton(
                 ),
                 shape = cardShape
             )
-            .clickable(enabled = enabled) { onClick() }
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                enabled = enabled
+            ) {
+                haptics.confirm()
+                onClick()
+            }
             .padding(horizontal = 12.dp, vertical = 5.dp),
         contentAlignment = Alignment.CenterStart
     ) {
@@ -293,9 +324,9 @@ fun ArcadeAdPillButton(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(5.dp))
+                        .clip(RoundedCornerShape(6.dp))
                         .background(Color(0xFFFACC15))
-                        .border(1.dp, Color(0xFFFEF08A), RoundedCornerShape(5.dp))
+                        .border(1.dp, Color(0xFFFEF08A), RoundedCornerShape(6.dp))
                         .padding(horizontal = 7.dp, vertical = 4.dp),
                     contentAlignment = Alignment.Center
                 ) {
@@ -345,40 +376,55 @@ fun ArcadeIconButton(
     enabled: Boolean = true,
     iconType: ArcadeIconType? = null
 ) {
+    val haptics = rememberStudioHaptics()
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed && enabled) 0.90f else 1f,
+        label = "ArcadeIconScale"
+    )
     val resolvedIcon = remember(iconBitmap, iconType) {
         iconType ?: detectIconType(iconBitmap)
     }
-    val shape = RoundedCornerShape(11.dp)
+    val shape = RoundedCornerShape(12.dp)
     val accentColor = when (resolvedIcon) {
         ArcadeIconType.CLOSE -> Color(0xFFA855F7)
         ArcadeIconType.RESTART -> Color(0xFF22C55E)
         ArcadeIconType.PLAY -> Color(0xFF22C55E)
-        ArcadeIconType.PAUSE -> Color(0xFF6366F1)
+        ArcadeIconType.PAUSE -> Color(0xFF38BDF8)
     }
 
     Box(
         modifier = modifier
+            .scale(scale)
             .shadow(4.dp, shape, ambientColor = accentColor, spotColor = accentColor)
             .clip(shape)
             .background(
                 Brush.verticalGradient(
                     listOf(
-                        Color(0xF20B101D),
-                        Color(0xF2030509)
+                        Color(0xF20D182C),
+                        Color(0xF2040812)
                     )
                 )
             )
             .border(
-                width = 1.2.dp,
+                width = 1.3.dp,
                 brush = Brush.verticalGradient(
                     listOf(
-                        accentColor.copy(alpha = 0.80f),
-                        accentColor.copy(alpha = 0.32f)
+                        accentColor.copy(alpha = 0.85f),
+                        accentColor.copy(alpha = 0.35f)
                     )
                 ),
                 shape = shape
             )
-            .clickable(enabled = enabled) { onClick() },
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                enabled = enabled
+            ) {
+                haptics.tick()
+                onClick()
+            },
         contentAlignment = Alignment.Center
     ) {
         Canvas(modifier = Modifier.fillMaxSize(0.44f)) {
@@ -405,20 +451,17 @@ fun ArcadeIconButton(
                     )
                 }
                 ArcadeIconType.CLOSE -> {
-                    val pad = w * 0.15f
-                    drawLine(
+                    val pad = w * 0.16f
+                    val cross = Path().apply {
+                        moveTo(pad, pad)
+                        lineTo(w - pad, h - pad)
+                        moveTo(w - pad, pad)
+                        lineTo(pad, h - pad)
+                    }
+                    drawPath(
+                        path = cross,
                         color = Color.White,
-                        start = Offset(pad, pad),
-                        end = Offset(w - pad, h - pad),
-                        strokeWidth = strokeWidth,
-                        cap = StrokeCap.Round
-                    )
-                    drawLine(
-                        color = Color.White,
-                        start = Offset(w - pad, pad),
-                        end = Offset(pad, h - pad),
-                        strokeWidth = strokeWidth,
-                        cap = StrokeCap.Round
+                        style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
                     )
                 }
                 ArcadeIconType.RESTART -> {
@@ -448,6 +491,7 @@ fun ArcadeIconButton(
     }
 }
 
+@Suppress("UNUSED_PARAMETER")
 @Composable
 fun TouchControlHintBanner(
     btnPillCyan: ImageBitmap,
@@ -456,23 +500,27 @@ fun TouchControlHintBanner(
     onDismissOnce: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
-    val popScale = remember { Animatable(0.32f) }
+    val popScale = remember { Animatable(0.68f) }
     val popAlpha = remember { Animatable(0f) }
     var isClosing by remember { mutableStateOf(false) }
+
+    val infinite = rememberInfiniteTransition(label = "hintEmblemAnim")
+    val animPhase by infinite.animateFloat(
+        initialValue = 0f,
+        targetValue = 6.283185f,
+        animationSpec = infiniteRepeatable(tween(2600, easing = LinearEasing)),
+        label = "phase"
+    )
 
     LaunchedEffect(Unit) {
         launch {
             popAlpha.animateTo(1f, animationSpec = tween(180))
         }
         popScale.animateTo(
-            targetValue = 1.03f,
-            animationSpec = tween(210, easing = FastOutSlowInEasing)
-        )
-        popScale.animateTo(
             targetValue = 1.0f,
             animationSpec = spring(
                 dampingRatio = Spring.DampingRatioMediumBouncy,
-                stiffness = Spring.StiffnessMedium
+                stiffness = Spring.StiffnessMediumLow
             )
         )
     }
@@ -481,11 +529,10 @@ fun TouchControlHintBanner(
         if (isClosing) return
         isClosing = true
         scope.launch {
-            popScale.animateTo(1.05f, animationSpec = tween(90, easing = FastOutSlowInEasing))
             launch {
                 popAlpha.animateTo(0f, animationSpec = tween(150))
             }
-            popScale.animateTo(0.25f, animationSpec = tween(155, easing = FastOutSlowInEasing))
+            popScale.animateTo(0.75f, animationSpec = tween(155, easing = FastOutSlowInEasing))
             if (permanent) onDismissPermanently() else onDismissOnce()
         }
     }
@@ -493,13 +540,14 @@ fun TouchControlHintBanner(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xE604060C).copy(alpha = popAlpha.value * 0.90f))
+            .background(Color(0xE802050C).copy(alpha = popAlpha.value * 0.90f))
             .padding(horizontal = 18.dp),
         contentAlignment = Alignment.Center
     ) {
+        val shape = RoundedCornerShape(24.dp)
         Column(
             modifier = Modifier
-                .widthIn(max = 328.dp)
+                .widthIn(max = 360.dp)
                 .fillMaxWidth()
                 .graphicsLayer(
                     scaleX = popScale.value,
@@ -507,105 +555,120 @@ fun TouchControlHintBanner(
                     alpha = popAlpha.value
                 )
                 .shadow(
-                    elevation = 24.dp,
-                    shape = RoundedCornerShape(14.dp),
-                    ambientColor = Color(0xFFEAB308),
-                    spotColor = Color(0xFF22C55E)
+                    elevation = 20.dp,
+                    shape = shape,
+                    ambientColor = Color(0xFFFACC15),
+                    spotColor = Color(0xFF38BDF8)
                 )
-                .clip(RoundedCornerShape(14.dp))
+                .clip(shape)
                 .background(
                     Brush.verticalGradient(
                         listOf(
-                            Color(0xFA0C101D),
-                            Color(0xFA05070E)
+                            Color(0xFA0E1C33),
+                            Color(0xFA081122),
+                            Color(0xFA03070E)
                         )
                     )
                 )
                 .border(
                     width = 1.5.dp,
-                    color = Color(0xFFEAB308).copy(alpha = 0.85f),
-                    shape = RoundedCornerShape(16.dp)
+                    brush = Brush.verticalGradient(
+                        listOf(
+                            Color(0xFFFACC15).copy(alpha = 0.85f),
+                            Color(0xFF38BDF8).copy(alpha = 0.42f),
+                            Color(0xFF1E293B).copy(alpha = 0.65f)
+                        )
+                    ),
+                    shape = shape
                 )
-                .padding(horizontal = 16.dp, vertical = 14.dp),
+                .padding(horizontal = 18.dp, vertical = 18.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(
-                text = "★ STAGE BRIEFING ★",
-                color = Color(0xFFEAB308),
-                fontSize = 10.sp,
-                fontWeight = FontWeight.Black,
-                letterSpacing = 1.6.sp
-            )
+            Box(
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .background(Color(0xFFFACC15).copy(alpha = 0.16f))
+                    .border(1.dp, Color(0xFFFACC15).copy(alpha = 0.65f), CircleShape)
+                    .padding(horizontal = 12.dp, vertical = 4.dp)
+            ) {
+                Text(
+                    text = "STAGE BRIEFING",
+                    color = Color(0xFFFACC15),
+                    fontSize = 9.5.sp,
+                    fontWeight = FontWeight.Black,
+                    letterSpacing = 1.4.sp
+                )
+            }
 
-            Spacer(modifier = Modifier.height(3.dp))
+            Spacer(modifier = Modifier.height(6.dp))
 
             Text(
-                text = "HOW TO PLAY",
-                color = Color(0xFFFAF8F5),
+                text = "GLIDE TO THE RHYTHM",
+                color = Color.White,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Black,
-                letterSpacing = 1.0.sp
+                letterSpacing = 1.4.sp
             )
             Text(
-                text = "Glide smoothly to the rhythm of the music",
+                text = "Catch orbs on the beat • Unlock two slow-mo video montages",
                 color = Color(0xFF94A3B8),
                 fontSize = 10.sp,
                 fontWeight = FontWeight.SemiBold,
                 textAlign = TextAlign.Center
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
-            // 3 Simplistic, Punchy Rules
             Column(
-                verticalArrangement = Arrangement.spacedBy(7.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 QuickHintRow(
-                    badge = "🎵",
+                    emblemKind = 0,
+                    animPhase = animPhase,
+                    badgeColor = Color(0xFF4ADE80),
+                    title = "FLUID GLIDE & DUAL TOUCH",
+                    desc = "Slide anywhere (or use 2 fingers) to catch incoming beat orbs & dodge red hazards."
+                )
+                QuickHintRow(
+                    emblemKind = 2,
+                    animPhase = animPhase,
                     badgeColor = Color(0xFFFACC15),
-                    title = "1. GATHER BEAT NOTES",
-                    desc = "Glide into incoming notes on the beat to charge your combo streak."
+                    title = "24K GOLD MILESTONE ORBS",
+                    desc = "Catch upper-center 24K Orbs at 0:15 & 1:18 to trigger golden ripples & overdrive."
                 )
                 QuickHintRow(
-                    badge = "👾",
-                    badgeColor = Color(0xFFF43F5E),
-                    title = "2. AVOID ENEMIES",
-                    desc = "Dodge red enemy hazards to protect your streak and health."
-                )
-                QuickHintRow(
-                    badge = "⚡",
-                    badgeColor = Color(0xFF38BDF8),
-                    title = "3. HIT SPECIAL PEGS",
-                    desc = "Catch 💥 Bomb and ⚡ Electric pegs to wipe enemies & transform the stage."
+                    emblemKind = 3,
+                    animPhase = animPhase,
+                    badgeColor = Color(0xFFE879F9),
+                    title = "5/5 VHS MONTAGE RELICS",
+                    desc = "Collect 5 chromatic VHS Relics per window to launch slow-mo music video clips!"
                 )
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                ArcadePillButton(
+                StudioPillButton(
                     text = "DROP IN ▶",
-                    pillBitmap = btnPillGreen,
+                    palette = StudioPillPalette.EMERALD_STAGE,
                     onClick = { triggerZoomOutAndDismiss(permanent = false) },
                     modifier = Modifier
-                        .weight(1.18f)
-                        .height(42.dp),
-                    fontSize = 11.5.sp,
-                    palette = ArcadeButtonPalette.EMERALD_PULSE
+                        .weight(1.22f)
+                        .height(46.dp),
+                    fontSize = 12.sp
                 )
-                ArcadePillButton(
-                    text = "DON'T SHOW AGAIN",
-                    pillBitmap = btnPillCyan,
+                StudioPillButton(
+                    text = "DON'T SHOW",
+                    palette = StudioPillPalette.SLATE_OBSIDIAN,
                     onClick = { triggerZoomOutAndDismiss(permanent = true) },
                     modifier = Modifier
-                        .weight(1.12f)
-                        .height(42.dp),
-                    fontSize = 9.sp,
-                    palette = ArcadeButtonPalette.ASTRAL_CYAN
+                        .weight(1f)
+                        .height(46.dp),
+                    fontSize = 10.5.sp
                 )
             }
         }
@@ -614,51 +677,56 @@ fun TouchControlHintBanner(
 
 @Composable
 private fun QuickHintRow(
-    badge: String,
+    emblemKind: Int,
+    animPhase: Float,
     badgeColor: Color,
     title: String,
     desc: String
 ) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
-            .background(Color(0xFF060B14))
-            .border(1.dp, badgeColor.copy(alpha = 0.35f), RoundedCornerShape(12.dp))
-            .padding(horizontal = 12.dp, vertical = 8.dp)
+    StudioGlassCard(
+        accentColor = badgeColor,
+        shape = RoundedCornerShape(14.dp),
+        modifier = Modifier.fillMaxWidth()
     ) {
-        Box(
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
-                .size(28.dp)
-                .clip(CircleShape)
-                .background(badgeColor.copy(alpha = 0.16f))
-                .border(1.dp, badgeColor.copy(alpha = 0.7f), CircleShape),
-            contentAlignment = Alignment.Center
+                .fillMaxWidth()
+                .padding(horizontal = 11.dp, vertical = 9.dp)
         ) {
-            Text(
-                text = badge,
-                color = badgeColor,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Black
-            )
-        }
-        Spacer(modifier = Modifier.width(10.dp))
-        Column {
-            Text(
-                text = title,
-                color = Color.White,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Black,
-                letterSpacing = 0.5.sp
-            )
-            Text(
-                text = desc,
-                color = Color(0xFF94A3B8),
-                fontSize = 10.5.sp,
-                fontWeight = FontWeight.Medium
-            )
+            Box(
+                modifier = Modifier
+                    .size(42.dp)
+                    .clip(RoundedCornerShape(11.dp))
+                    .background(Color(0xFF040915))
+                    .border(1.dp, badgeColor.copy(alpha = 0.45f), RoundedCornerShape(11.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                LiveGuideEmblemCanvas(
+                    emblemKind = emblemKind,
+                    animPhase = animPhase,
+                    accentColor = badgeColor,
+                    modifier = Modifier.size(34.dp)
+                )
+            }
+            Spacer(modifier = Modifier.width(10.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    color = badgeColor,
+                    fontSize = 10.5.sp,
+                    fontWeight = FontWeight.Black,
+                    letterSpacing = 0.6.sp
+                )
+                Spacer(modifier = Modifier.height(1.dp))
+                Text(
+                    text = desc,
+                    color = Color(0xFFCBD5E1),
+                    fontSize = 10.sp,
+                    lineHeight = 13.5.sp,
+                    fontWeight = FontWeight.Medium
+                )
+            }
         }
     }
 }
-
