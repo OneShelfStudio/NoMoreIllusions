@@ -14,7 +14,6 @@ class GameOrbCollectionTest {
             BeatOrbCue(sequenceIndex = 1, timestampSec = 1.0f, normX = 0.5f, normY = 0.5f, powerUpType = PowerUpType.NONE),
             BeatOrbCue(sequenceIndex = 2, timestampSec = 1.5f, normX = 0.5f, normY = 0.5f, powerUpType = PowerUpType.NONE)
         )
-        // Existing mid-flight powerUps must be preserved while new spawns are suppressed
         val powerUps = mutableListOf<GameObject>(
             GameObject(x = 0f, y = 0f, radius = 32f, color = Color.Red),
             GameObject(x = 10f, y = 10f, radius = 32f, color = Color.Blue)
@@ -154,5 +153,159 @@ class GameOrbCollectionTest {
         assertTrue("Rapid consecutive horizontal jump should be ergonomically bounded (< 540px), was $jump01", jump01 <= 541f)
         assertFalse("Regular notes without isMusicVideoOrb must not be marked video orbs", spawnedAll[0].isMusicVideoOrb)
         assertTrue("Explicitly charted video relic (index 4) must be marked isMusicVideoOrb", spawnedAll[4].isMusicVideoOrb)
+    }
+
+    @Test
+    fun testConfideAndNumberOne_spawnAllFiveVideoRelicsPerWindowEvenInTrainingMode() {
+        for (trackIdx in listOf(1, 2)) {
+            val track = MusicLibrary.getTrack(trackIdx)
+            val beatDur = 60f / track.bpm
+            for (training in listOf(false, true)) {
+                val expectedTotal = countPlayableChartOrbs(track.orbChart, isTrainingMode = training)
+                val spawnedAll = mutableListOf<GameObject>()
+                val active = mutableListOf<GameObject>()
+                val shockwaves = mutableListOf<Shockwave>()
+                val player = GameObject(x = 540f, y = 1200f, radius = 20f, color = Color.White)
+                var cueIdx = 0
+                var t = -1.2f
+                val endT = track.durationSec + 4f
+                while (t <= endT) {
+                    val beforeIds = active.map { it.sequenceIndex }.toSet()
+                    cueIdx = spawnStationaryBeatOrbsForFrame(
+                        chart = track.orbChart,
+                        startCueIdx = cueIdx,
+                        trackSec = t,
+                        spawnLeadTime = 2.0f,
+                        ttlGraceSec = 0.4f,
+                        screenWidth = 1080f,
+                        screenHeight = 1920f,
+                        isGoldenActive = false,
+                        applyColorBlind = { it },
+                        powerUps = active,
+                        shockwaves = shockwaves,
+                        hasActiveSustainRibbon = false,
+                        isTrainingMode = training,
+                        beatDurationSec = beatDur
+                    )
+                    for (orb in active) {
+                        if (orb.sequenceIndex !in beforeIds) {
+                            spawnedAll.add(orb.copy())
+                        }
+                    }
+                    stepNebulousBeatOrbs(
+                        powerUps = active,
+                        player = player,
+                        gameTime = (t + 2f).coerceAtLeast(0f),
+                        trackSec = t,
+                        screenWidth = 1080f,
+                        screenHeight = 1920f
+                    )
+                    t += (1f / 30f)
+                }
+
+                assertEquals(
+                    "Track $trackIdx (training=$training): spawned count must match countPlayableChartOrbs",
+                    expectedTotal,
+                    spawnedAll.size
+                )
+
+                val cutoffMid = if (trackIdx == 1) 80f else 70f
+                val set1Relics = spawnedAll.count { it.isMusicVideoOrb && it.targetBeatSec < cutoffMid }
+                val set2Relics = spawnedAll.count { it.isMusicVideoOrb && it.targetBeatSec >= cutoffMid }
+                assertEquals("Track $trackIdx (training=$training) must spawn 5 Video Relics before Montage 1", 5, set1Relics)
+                assertEquals("Track $trackIdx (training=$training) must spawn 5 Video Relics before Montage 2", 5, set2Relics)
+            }
+        }
+    }
+
+    @Test
+    fun testConfideFullTimeline_zeroTeleportDiscontinuityAndMultiDirectionalAndSpecialMilestones() {
+        val track = MusicLibrary.getTrack(1)
+        val beatDur = 60f / track.bpm
+        val active = mutableListOf<GameObject>()
+        val shockwaves = mutableListOf<Shockwave>()
+        val player = GameObject(x = 540f, y = 1200f, radius = 20f, color = Color.White)
+        val prevPositions = HashMap<Int, Pair<Float, Float>>()
+        val spawnedSnapshots = mutableListOf<GameObject>()
+
+        var cueIdx = 0
+        var t = -1.0f
+        val dt = 1f / 60f
+        var maxStepJump = 0f
+        var maxJumpInfo = ""
+
+        while (t <= 220.0f) {
+            val existingIds = active.map { it.sequenceIndex }.toSet()
+            cueIdx = spawnStationaryBeatOrbsForFrame(
+                chart = track.orbChart,
+                startCueIdx = cueIdx,
+                trackSec = t,
+                spawnLeadTime = 2.0f,
+                ttlGraceSec = 0.4f,
+                screenWidth = 1080f,
+                screenHeight = 1920f,
+                isGoldenActive = false,
+                applyColorBlind = { it },
+                powerUps = active,
+                shockwaves = shockwaves,
+                hasActiveSustainRibbon = false,
+                isTrainingMode = false,
+                beatDurationSec = beatDur
+            )
+            stepNebulousBeatOrbs(
+                powerUps = active,
+                player = player,
+                gameTime = (t + 1.5f).coerceAtLeast(0f),
+                trackSec = t,
+                screenWidth = 1080f,
+                screenHeight = 1920f
+            )
+
+            for (orb in active) {
+                if (orb.sequenceIndex !in existingIds) {
+                    spawnedSnapshots.add(orb.copy())
+                } else {
+                    val prev = prevPositions[orb.sequenceIndex]
+                    if (prev != null) {
+                        val jump = kotlin.math.hypot(orb.x - prev.first, orb.y - prev.second)
+                        if (jump > maxStepJump) {
+                            maxStepJump = jump
+                            maxJumpInfo = "seq=${orb.sequenceIndex} at t=$t jump=$jump"
+                        }
+                    }
+                }
+                prevPositions[orb.sequenceIndex] = orb.x to orb.y
+            }
+            t += dt
+        }
+
+        // At 60 FPS on a 1080x1920 screen, smooth movement is ~10-20px/frame; any teleport glitch would be >45px/frame!
+        assertTrue("Zero orb teleportation allowed across entire 219s song, max frame step was $maxJumpInfo", maxStepJump <= 34f)
+
+        // Verify multi-directional entry: left flank, right flank, and top entries all present!
+        assertTrue("Must spawn orbs entering from left flank", spawnedSnapshots.any { it.spawnX < 0f })
+        assertTrue("Must spawn orbs entering from right flank", spawnedSnapshots.any { it.spawnX > 1080f })
+        assertTrue("Must spawn orbs entering from top perimeter", spawnedSnapshots.any { it.spawnY < 0f })
+
+        // Verify 0:15 (Tier 1) and 1:18 (Tier 2) Special 24K Orbs arrive near top-center!
+        val milestone15 = spawnedSnapshots.firstOrNull { abs(it.targetBeatSec - 15.0f) <= 0.6f && it.goldenTier == 1 }
+        assertNotNull("0:15 Special 24K Milestone Orb (Tier 1) must exist", milestone15)
+        assertEquals(540f, milestone15!!.anchorX, 2f)
+        assertTrue("0:15 Special 24K Orb must sit near top-middle (anchorY <= 34% height), was ${milestone15.anchorY}", milestone15.anchorY <= 1920f * 0.34f)
+
+        val milestone78 = spawnedSnapshots.firstOrNull { abs(it.targetBeatSec - 77.9f) <= 0.8f && it.goldenTier == 2 }
+        assertNotNull("1:18 Special 24K Milestone Orb (Tier 2) must exist", milestone78)
+        assertEquals(540f, milestone78!!.anchorX, 2f)
+        assertTrue("1:18 Special 24K Orb must sit near top-middle (anchorY <= 34% height)", milestone78.anchorY <= 1920f * 0.34f)
+
+        // Verify flowy/whispy slow-mo swirl orbs around 0:45-0:48 ("losing your battles")
+        val flowyOrbs = spawnedSnapshots.filter { it.targetBeatSec in 44.5f..49.2f }
+        assertTrue("Flowy breakdown at 0:45-0:48 must have swirling slow-mo orbs", flowyOrbs.isNotEmpty() && flowyOrbs.all { it.swirlStrength >= 0.9f && (it.targetBeatSec - it.spawnBeatSec) >= 2.5f })
+
+        // Verify surprise false-ending pegs after 3:32 (212s) in Confide and after 2:38 (158.5s) in Number One!
+        val lateSurpriseConfide = track.orbChart.filter { it.timestampSec >= 212.0f }
+        assertTrue("Confide must include >= 3 surprise late pegs after 212s, found ${lateSurpriseConfide.size}", lateSurpriseConfide.size >= 3)
+        val lateSurpriseNumberOne = MusicLibrary.getTrack(2).orbChart.filter { it.timestampSec >= 158.5f }
+        assertTrue("Number One must include >= 3 surprise late pegs after 158.5s, found ${lateSurpriseNumberOne.size}", lateSurpriseNumberOne.size >= 3)
     }
 }

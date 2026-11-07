@@ -25,12 +25,14 @@ fun DrawScope.drawPowerUps(
     beatPhase: Float = 0f,
     goldenOverdriveIntensity: Float = 0f,
     multiBand: MultiBandAudioState = MultiBandAudioState(),
-    isBandHeroMode: Boolean = false
+    isBandHeroMode: Boolean = false,
+    goldenTier: Int = 0
 ) {
     val w = size.width
     val h = size.height
     if (w <= 0f || h <= 0f) return
-    val beatKick = if (beatPhase >= 0f) exp(-beatPhase * 5.2f).coerceIn(0f, 1f) else 0.25f
+    val isMusicStarted = trackSec >= 0f
+    val beatKick = if (!isMusicStarted) 0f else if (beatPhase >= 0f) exp(-beatPhase * 5.2f).coerceIn(0f, 1f) else 0.25f
     val isGoldStage = goldenOverdriveIntensity > 0.15f
 
     val laneColors = listOf(
@@ -192,8 +194,10 @@ fun DrawScope.drawPowerUps(
         val ttlAlpha = (ttlRemaining / 0.35f).coerceIn(0.22f, 1.0f)
 
         val timeToSwell = p.targetBeatSec - trackSec
-        val isSwellSweetSpot = abs(timeToSwell) <= 0.35f
-        val isOnBeatNow = if (isSpecial) {
+        val isSwellSweetSpot = abs(timeToSwell) <= 0.42f
+        val isOnBeatNow = if (!isMusicStarted) {
+            false
+        } else if (isSpecial) {
             isSwellSweetSpot
         } else if (isBandHeroMode) {
             u in 0.86f..1.14f
@@ -201,11 +205,17 @@ fun DrawScope.drawPowerUps(
             beatPhase in 0f..0.24f || beatPhase >= 0.84f
         }
 
+        val isTier2GoldPulse = isMusicStarted && isGoldStage && goldenTier >= 2
         val specialScaleMult = if (isSpecial) 1.24f else if (isCipherOrb) 1.15f else 1.0f
-        val beatPulseScale = 1.0f + (if (isOnBeatNow) 0.16f else 0.07f) * beatKick +
-            0.05f * sin((beatPhase.coerceIn(0f, 1f)) * 6.283185f)
+        val beatPulseScale = if (!isMusicStarted) {
+            1.0f
+        } else {
+            val tierBoost = if (isTier2GoldPulse) 0.10f * beatKick else 0f
+            1.0f + (if (isOnBeatNow) 0.18f else 0.07f) * beatKick + tierBoost +
+                0.05f * sin((beatPhase.coerceIn(0f, 1f)) * 6.283185f)
+        }
         val coreRad = p.radius * perspScale * specialScaleMult * beatPulseScale
-        val bounceOffsetY = -beatKick * (if (isOnBeatNow) 5.5f else 3f) * perspScale
+        val bounceOffsetY = if (!isMusicStarted) 0f else -beatKick * (if (isOnBeatNow) 5.5f else 3f) * perspScale
         val center3D = Offset(center.x, center.y + bounceOffsetY)
         val lightOrigin = Offset(center3D.x - coreRad * 0.34f, center3D.y - coreRad * 0.36f)
 
@@ -272,14 +282,46 @@ fun DrawScope.drawPowerUps(
                 )
             }
         } else if (!isBandHeroMode) {
-            val beatRingFrac = if (beatPhase >= 0f) (1f - beatPhase.coerceIn(0f, 1f)) else 0.5f
-            val beatRingR = coreRad * (1.06f + beatRingFrac * 0.42f)
-            drawCircle(
-                color = (if (isOnBeatNow) Color.White else effectColor).copy(alpha = (0.22f + 0.32f * beatKick) * ttlAlpha),
-                radius = beatRingR,
-                center = center3D,
-                style = Stroke(width = if (isOnBeatNow) 2.2f else 1.3f)
-            )
+            if (isMusicStarted) {
+                val phaseClamped = beatPhase.coerceIn(0f, 1f)
+                val beatRingFrac = if (beatPhase >= 0f) (1f - phaseClamped) else 0.5f
+                val beatRingR = coreRad * (1.06f + beatRingFrac * 0.42f)
+                drawCircle(
+                    color = (if (isOnBeatNow) Color.White else effectColor).copy(alpha = (0.22f + 0.34f * beatKick) * ttlAlpha),
+                    radius = beatRingR,
+                    center = center3D,
+                    style = Stroke(width = if (isOnBeatNow) 2.3f else 1.3f)
+                )
+                // 1:18+ Tier-2 24K Special Harmonic Pulse: Expanding Twin Gold/Diamond Shockwave Rings + 4 Starflare Glints!
+                if (isTier2GoldPulse) {
+                    val expandWaveR = coreRad * (1.18f + phaseClamped * 0.92f)
+                    val expandFade = (1f - phaseClamped) * ttlAlpha
+                    drawCircle(
+                        color = Color(0xFFFACC15L).copy(alpha = 0.72f * expandFade),
+                        radius = expandWaveR,
+                        center = center3D,
+                        style = Stroke(width = 3.0f * perspScale)
+                    )
+                    drawCircle(
+                        color = Color(0xFF38BDF8L).copy(alpha = 0.58f * expandFade),
+                        radius = coreRad * (1.35f + (1f - phaseClamped) * 0.55f),
+                        center = center3D,
+                        style = Stroke(width = 1.8f * perspScale)
+                    )
+                    for (sp in 0 until 4) {
+                        val spAng = sp * (PI.toFloat() * 0.5f) + time * 2.4f
+                        val rIn = coreRad * 1.05f
+                        val rOut = coreRad * (1.42f + 0.36f * beatKick)
+                        drawLine(
+                            color = Color(0xFFFEF08AL).copy(alpha = (0.50f + 0.45f * beatKick) * ttlAlpha),
+                            start = Offset(center3D.x + cos(spAng) * rIn, center3D.y + sin(spAng) * rIn),
+                            end = Offset(center3D.x + cos(spAng) * rOut, center3D.y + sin(spAng) * rOut),
+                            strokeWidth = 2.4f * perspScale,
+                            cap = StrokeCap.Round
+                        )
+                    }
+                }
+            }
         } else if (isOnBeatNow) {
             drawCircle(
                 color = Color(0xFFFACC15L).copy(alpha = 0.82f * ttlAlpha),

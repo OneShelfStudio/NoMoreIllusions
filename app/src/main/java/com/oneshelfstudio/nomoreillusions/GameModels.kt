@@ -204,7 +204,9 @@ data class GameObject(
     var trajVy: Float = 0f,
     var squish: Float = 0f,
     var squishAngle: Float = 0f,
-    var isMusicVideoOrb: Boolean = false
+    var isMusicVideoOrb: Boolean = false,
+    var swirlStrength: Float = 0f,
+    var goldenTier: Int = 0
 )
 
 /**
@@ -214,7 +216,8 @@ data class PrimedSectionEffect(
     val type: PowerUpType,
     val targetSec: Float,
     val title: String,
-    val keyWordEffect: KeyWordEffect = KeyWordEffect.NONE
+    val keyWordEffect: KeyWordEffect = KeyWordEffect.NONE,
+    val goldenTier: Int = 0
 )
 
 /**

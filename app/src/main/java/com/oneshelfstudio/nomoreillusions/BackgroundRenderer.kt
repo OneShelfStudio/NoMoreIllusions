@@ -85,7 +85,9 @@ fun DrawScope.drawNebulaBackground(
     swellDelta: Float = 0f,
     activePhenomenon: ActivePhenomenon? = null,
     multiBand: MultiBandAudioState = MultiBandAudioState(rms = audioEnergy, swellDelta = swellDelta),
-    brollOverlayAlpha: Float = 0f
+    brollOverlayAlpha: Float = 0f,
+    goldenTier: Int = 0,
+    isFlowySwirlStage: Boolean = false
 ) {
     val basePalette = getThemePalette(bgTheme, isFocus)
     val isEclipseActive = (activePhenomenon?.effect == KeyWordEffect.ECLIPSE_DARK && activePhenomenon.timer > 0f) ||
@@ -551,7 +553,55 @@ fun DrawScope.drawNebulaBackground(
     // 10. Dynamic Special Phase Transformations (Full-Screen Visual Overhauls)
     val isElectric = isConstellationActive
     val isPrism = activePhenomenon?.effect == KeyWordEffect.PRISM_SHATTER
-    val isSlowMo = stageMode == StageMode.ABYSSAL_WAVE
+    val isSlowMo = isFlowySwirlStage
+    val isTier2GoldSpectacle = isElectric && goldenTier >= 2
+
+    if (isTier2GoldSpectacle) {
+        // 1:18+ TIER-2 24K HYPER-SPECTACLE: Counter-Rotating Sacred Solar Mandala Rings + Sweeping Celestial Rays!
+        for (ray in 0 until 8) {
+            val rayAng = ray * (PI.toFloat() * 0.25f) + time * 0.28f
+            val rLen = maxDim * 0.72f
+            val rayCol = if (ray % 2 == 0) Color(0xFFFACC15L) else Color(0xFF38BDF8L)
+            drawLine(
+                brush = Brush.linearGradient(
+                    colors = listOf(
+                        rayCol.copy(alpha = (0.20f + beatPulse * 0.16f).coerceIn(0f, 0.42f)),
+                        Color.Transparent
+                    ),
+                    start = Offset(centerX, centerY),
+                    end = Offset(centerX + cos(rayAng) * rLen, centerY + sin(rayAng) * rLen)
+                ),
+                start = Offset(centerX, centerY),
+                end = Offset(centerX + cos(rayAng) * rLen, centerY + sin(rayAng) * rLen),
+                strokeWidth = 28f + beatPulse * 14f,
+                cap = StrokeCap.Round
+            )
+        }
+        val ringR1 = size.width * (0.34f + 0.04f * beatPulse)
+        val ringR2 = size.width * (0.48f + 0.05f * sin(time * 2.4f))
+        drawCircle(
+            color = Color(0xFFFACC15L).copy(alpha = 0.26f + 0.16f * beatPulse),
+            radius = ringR1,
+            center = Offset(centerX, centerY),
+            style = Stroke(width = 2.6f)
+        )
+        drawCircle(
+            color = Color(0xFF38BDF8L).copy(alpha = 0.20f + 0.12f * beatPulse),
+            radius = ringR2,
+            center = Offset(centerX, centerY),
+            style = Stroke(width = 1.8f)
+        )
+        for (node in 0 until 12) {
+            val nAng = node * (PI.toFloat() / 6f) - time * 0.55f
+            val nx = centerX + cos(nAng) * ringR2
+            val ny = centerY + sin(nAng) * ringR2
+            drawCircle(
+                color = if (node % 2 == 0) Color(0xFFFEF08AL).copy(alpha = 0.55f) else Color(0xFF7DD3FCL).copy(alpha = 0.45f),
+                radius = 4.5f + beatPulse * 3f,
+                center = Offset(nx, ny)
+            )
+        }
+    }
 
     if (isElectric) {
         // ⚡ ELECTRIC HARMONIC: Volumetric Auroral Curtains & Rolling Ionized Plasma Clouds (No rigid lines)
@@ -644,7 +694,12 @@ fun DrawScope.drawNebulaBackground(
                 val sy = centerY + sin(sAngle) * sDist
                 if (s == 0) spiralPath.moveTo(sx, sy) else spiralPath.lineTo(sx, sy)
             }
-            val aCol = if (a % 2 == 0) Color(0xFFC084FC) else Color(0xFF9333EA)
+            val aCol = if (a % 2 == 0) Color(0xFF7DD3FCL) else Color(0xFFD8B4FEL)
+            drawPath(
+                path = spiralPath,
+                color = aCol.copy(alpha = 0.16f),
+                style = Stroke(width = 16.0f, cap = StrokeCap.Round)
+            )
             drawPath(
                 path = spiralPath,
                 color = aCol.copy(alpha = 0.45f),

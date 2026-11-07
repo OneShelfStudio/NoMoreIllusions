@@ -280,6 +280,7 @@ fun StudioPillButton(
 
     Box(
         modifier = modifier
+            .height(height)
             .scale(scale)
             .offset(y = if (isPressed && enabled) 1.5.dp else 0.dp)
             .shadow(

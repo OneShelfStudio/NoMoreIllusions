@@ -445,8 +445,13 @@ fun stepNebulousBeatOrbs(
             orb.x = pt.x
             orb.y = pt.y
         } else {
-            val isPastBottom = orb.y >= (screenHeight + 45f) || u >= 2.05f
-            if (trackSec > expireSec || isPastBottom) {
+            val isOffScreenAfterTarget = trackSec > (orb.targetBeatSec + 0.35f) && (
+                orb.y >= (screenHeight + 72f) ||
+                orb.y <= -75f ||
+                orb.x <= -75f ||
+                orb.x >= (screenWidth + 75f)
+            )
+            if (trackSec > expireSec || isOffScreenAfterTarget) {
                 onBeatMissed(orb)
                 iter.remove()
                 continue
@@ -458,61 +463,72 @@ fun stepNebulousBeatOrbs(
         val dt = (1f / 60f) * currentScale
         powerUps.forEach { orb ->
             val leadDur = (orb.targetBeatSec - orb.spawnBeatSec).coerceAtLeast(0.45f)
-            val strikeY = screenHeight * 0.65f
+            val strikeY = if (orb.anchorY > 1f) orb.anchorY else (screenHeight * 0.65f)
             val oldBaseX = if (orb.baseX != 0f) orb.baseX else orb.spawnX
             val oldBaseY = if (orb.baseY != 0f) orb.baseY else orb.spawnY
-            val hasWaterfall = orb.exitY != 0f
+            val totalSpan = (orb.expireBeatSec - orb.spawnBeatSec).coerceAtLeast(leadDur + 0.45f)
+            val lifeFrac = ((trackSec - orb.spawnBeatSec) / totalSpan).coerceIn(0f, 1.05f)
+            val clampedLife = lifeFrac.coerceIn(0f, 1f)
+            val isSpecial = orb.powerUpType != PowerUpType.NONE || orb.keyWordEffect != KeyWordEffect.NONE
 
-            if (hasWaterfall) {
-                // Exact mathematically continuous arrival: arrives at strike line (strikeY) right on targetBeatSec with smooth swoop curve
+            if (isSpecial) {
+                // Special Milestone Orbs: Ease smoothly into their upper-middle pocket (0.28h) right on targetBeatSec,
+                // hover gently for 1.65s with C1-continuous zero-jump endpoints, then ease smoothly off-screen.
+                val lingerSec = 1.65f
                 if (trackSec <= orb.targetBeatSec) {
-                    val u = ((trackSec - orb.spawnBeatSec) / (orb.targetBeatSec - orb.spawnBeatSec).coerceAtLeast(0.01f)).coerceIn(0f, 1f)
-                    val swoopOffset = orb.swoopCurve * screenWidth * sin(u * PI.toFloat())
-                    orb.baseX = orb.spawnX + u * (orb.anchorX - orb.spawnX) + swoopOffset
-                    orb.baseY = orb.spawnY + u * (strikeY - orb.spawnY)
+                    val u = ((trackSec - orb.spawnBeatSec) / leadDur).coerceIn(0f, 1f)
+                    val uSmooth = 1f - (1f - u) * (1f - u) * 0.35f - (1f - u) * 0.65f
+                    orb.baseX = orb.spawnX + uSmooth * (orb.anchorX - orb.spawnX)
+                    orb.baseY = orb.spawnY + uSmooth * (strikeY - orb.spawnY)
                 } else {
-                    val isSpecial = orb.powerUpType != PowerUpType.NONE || orb.keyWordEffect != KeyWordEffect.NONE
-                    if (isSpecial) {
-                        // Strike-Line Linger Window: Special transition orbs hover in the receptor pocket for 1.35s
-                        // so players can hit the orb right on the transition/drop without it rushing off-screen!
-                        val lingerSec = 1.35f
-                        val dtPast = trackSec - orb.targetBeatSec
-                        if (dtPast <= lingerSec) {
-                            val hoverWave = sin(dtPast * 5.5f) * 8f
-                            orb.baseX = orb.anchorX
-                            orb.baseY = strikeY + hoverWave
-                        } else {
-                            val expireDur = (orb.expireBeatSec - (orb.targetBeatSec + lingerSec)).coerceAtLeast(0.45f)
-                            val uExit = ((dtPast - lingerSec) / expireDur).coerceIn(0f, 1.2f)
-                            orb.baseX = orb.anchorX + uExit * (orb.exitX - orb.anchorX)
-                            orb.baseY = strikeY + uExit * (orb.exitY - strikeY)
-                        }
+                    val dtPast = trackSec - orb.targetBeatSec
+                    if (dtPast <= lingerSec) {
+                        val hoverPhase = (dtPast / lingerSec).coerceIn(0f, 1f)
+                        val hoverWave = sin(hoverPhase * PI.toFloat()) * sin(dtPast * 4.2f) * 7f
+                        orb.baseX = orb.anchorX
+                        orb.baseY = strikeY + hoverWave
                     } else {
-                        val expireDur = (orb.expireBeatSec - orb.targetBeatSec).coerceAtLeast(0.45f)
-                        val uExit = ((trackSec - orb.targetBeatSec) / expireDur).coerceIn(0f, 1.2f)
-                        orb.baseX = orb.anchorX + uExit * (orb.exitX - orb.anchorX)
-                        orb.baseY = strikeY + uExit * (orb.exitY - strikeY)
+                        val expireDur = (orb.expireBeatSec - (orb.targetBeatSec + lingerSec)).coerceAtLeast(0.45f)
+                        val uExit = ((dtPast - lingerSec) / expireDur).coerceIn(0f, 1.15f)
+                        val uEase = uExit * uExit
+                        val endY = if (orb.exitY != 0f) orb.exitY else (screenHeight + 70f)
+                        val endX = if (orb.exitX != 0f) orb.exitX else orb.anchorX
+                        orb.baseX = orb.anchorX + uEase * (endX - orb.anchorX)
+                        orb.baseY = strikeY + uEase * (endY - strikeY)
                     }
                 }
+            } else if (orb.exitY != 0f || orb.exitX != 0f) {
+                // Unified C-infinity multi-directional trajectory from spawn -> anchor -> exit with zero branch kinks!
+                val u = (trackSec - orb.spawnBeatSec) / leadDur
+                val dirX = orb.anchorX - orb.spawnX
+                val dirY = strikeY - orb.spawnY
+                val baseLinX = orb.spawnX + u * dirX
+                val baseLinY = orb.spawnY + u * dirY
+
+                // Perpendicular organic silk curve (zero at spawn, zero at targetBeatSec u=1, zero at exit)
+                val dirLen = kotlin.math.hypot(dirX, dirY).coerceAtLeast(1f)
+                val perpX = -dirY / dirLen
+                val perpY = dirX / dirLen
+                val envBell = sin(clampedLife * PI.toFloat()).let { it * it }
+                val sWave = sin((u.coerceIn(0f, 2f)) * PI.toFloat()) * envBell
+                val curveAmp = orb.swoopCurve * screenWidth
+                orb.baseX = baseLinX + perpX * curveAmp * sWave
+                orb.baseY = baseLinY + perpY * curveAmp * sWave
             } else {
                 val exitX = 2f * orb.anchorX - orb.spawnX
-                val exitY = 2f * orb.anchorY - orb.spawnY
-                val chordX = exitX - orb.spawnX
-                val chordY = exitY - orb.spawnY
+                val exitY = 2f * strikeY - orb.spawnY
                 val s = ((trackSec - orb.spawnBeatSec) / (leadDur * 2f)).coerceIn(0f, 1.25f)
-                orb.baseX = orb.spawnX + s * chordX
-                orb.baseY = orb.spawnY + s * chordY
+                orb.baseX = orb.spawnX + s * (exitX - orb.spawnX)
+                orb.baseY = orb.spawnY + s * (exitY - orb.spawnY)
             }
 
-            // Flowy/Whispy breakdown harmonic celestial swirl ("losing your battles")
-            val isFlowySwirl = (trackSec in 44.5f..49.5f) || (trackSec in 41.5f..47.0f)
-            if (isFlowySwirl && trackSec <= orb.targetBeatSec) {
-                val centerT = if (trackSec <= 49.5f && trackSec >= 44.5f) 47.0f else 44.2f
-                val halfSpan = if (trackSec <= 49.5f && trackSec >= 44.5f) 2.5f else 2.7f
-                val flowFrac = (1f - abs(trackSec - centerT) / halfSpan).coerceIn(0f, 1f)
-                val swirlWave = sin(flowFrac * PI.toFloat())
-                val swirlX = sin(trackSec * 2.4f + orb.phase) * (screenWidth * 0.14f) * swirlWave
-                val swirlY = cos(trackSec * 2.0f + orb.phase) * (screenHeight * 0.04f) * swirlWave
+            // Flowy/Whispy breakdown slow-mo celestial swirl ("losing your battles" & spoken vocal floats):
+            // Pure C1-continuous sin^2(pi * lifeFrac) envelope guarantees 0px teleport discontinuity at all times!
+            if (orb.swirlStrength > 0.01f) {
+                val env = sin(clampedLife * PI.toFloat()).let { it * it }
+                val theta = clampedLife * 2.25f * PI.toFloat() + orb.phase
+                val swirlX = cos(theta) * (screenWidth * 0.19f * orb.swirlStrength) * env
+                val swirlY = sin(theta) * (screenHeight * 0.085f * orb.swirlStrength) * env
                 orb.baseX += swirlX
                 orb.baseY += swirlY
             }
@@ -529,13 +545,15 @@ fun stepNebulousBeatOrbs(
             orb.squish = 0f
 
             if (magnetActive) {
-                val mdx = player.x - orb.baseX
-                val mdy = player.y - orb.baseY
+                val mdx = player.x - orb.anchorX
+                val mdy = player.y - strikeY
                 val mDist = kotlin.math.hypot(mdx, mdy)
-                if (mDist in 4f..320f) {
-                    val pull = ((1f - mDist / 320f) * 0.35f).coerceIn(0f, 0.35f)
-                    orb.baseX += mdx * pull
-                    orb.baseY += mdy * pull
+                if (mDist in 4f..380f) {
+                    val stepPull = (dt * 2.8f).coerceIn(0f, 0.12f)
+                    orb.anchorX += mdx * stepPull
+                    orb.anchorY = strikeY + mdy * stepPull
+                    orb.baseX += (player.x - orb.baseX) * stepPull
+                    orb.baseY += (player.y - orb.baseY) * stepPull
                 }
             }
 

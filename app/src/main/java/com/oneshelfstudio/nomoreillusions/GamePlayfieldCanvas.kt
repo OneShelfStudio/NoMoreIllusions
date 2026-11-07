@@ -46,6 +46,8 @@ fun GamePlayfieldCanvas(
     wormholes: List<SingularityWormhole> = emptyList(),
     isBandHeroMode: Boolean = false,
     brollOverlayAlpha: Float = 0f,
+    goldenTier: Int = 0,
+    isFlowySwirlStage: Boolean = false,
     player: GameObject,
     secondTouchPos: Offset? = null,
     motes: List<GameObject>,
@@ -143,7 +145,9 @@ fun GamePlayfieldCanvas(
                 swellDelta = swellDelta,
                 activePhenomenon = activePhenomenon,
                 multiBand = multiBand,
-                brollOverlayAlpha = brollOverlayAlpha
+                brollOverlayAlpha = brollOverlayAlpha,
+                goldenTier = goldenTier,
+                isFlowySwirlStage = isFlowySwirlStage
             )
             drawMotes(motes, isGoldenOverdrive = isGoldenOverdrive)
             drawPlayerTrail(playerTrail, player.color, isFocusActive, applyColorBlind, isGoldenOverdrive = isGoldenOverdrive)
@@ -173,6 +177,7 @@ fun GamePlayfieldCanvas(
                     beatPhase = beatPhase,
                     goldenOverdriveIntensity = goldenOverdriveIntensity,
                     multiBand = multiBand,
+                    goldenTier = goldenTier,
                     isBandHeroMode = isBandHeroMode
                 )
             }

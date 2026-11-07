@@ -399,7 +399,14 @@ internal fun countPlayableChartOrbs(chart: List<BeatOrbCue>, isTrainingMode: Boo
     if (chart.isEmpty()) return 1
     var total = 0
     for (cue in chart) {
-        if (isTrainingMode && cue.sequenceIndex % 3 == 2 && cue.powerUpType == PowerUpType.NONE && cue.keyWordEffect == KeyWordEffect.NONE && !cue.isGoldenCue) {
+        if (
+            isTrainingMode &&
+            cue.sequenceIndex % 3 == 2 &&
+            cue.powerUpType == PowerUpType.NONE &&
+            cue.keyWordEffect == KeyWordEffect.NONE &&
+            !cue.isGoldenCue &&
+            !cue.isMusicVideoOrb
+        ) {
             continue
         }
         total++
@@ -447,11 +454,11 @@ internal fun spawnStationaryBeatOrbsForFrame(
         multiBand.swellDelta >= 0.08f
     val fluidFormationTag = if (!isBandHeroMode && isFluidMoment) 101f else 0f
 
-    val maxActiveOrbs = if (isBandHeroMode) 12 else 16
+    val maxActiveOrbs = if (isBandHeroMode) 12 else 18
     val regularLeadTime = if (isBandHeroMode) spawnLeadTime else (beatGridStep * 3.8f).coerceIn(1.9f, 2.55f)
     // Special Section-Transition Orbs descend with a crisp 1.45s lead time so they arrive right ON the musical swell!
     val specialLeadTime = if (isBandHeroMode) spawnLeadTime else 1.45f
-    val maxLookahead = maxOf(regularLeadTime, specialLeadTime)
+    val maxLookahead = maxOf(regularLeadTime, specialLeadTime, 3.55f)
     val effectiveHoldWindow = if (isBandHeroMode) ttlGraceSec else (beatGridStep * 4.5f)
 
     while (
@@ -461,17 +468,21 @@ internal fun spawnStationaryBeatOrbsForFrame(
     ) {
         val cue = chart[nextOrbCueIdx]
         val isSpecialCue = cue.powerUpType != PowerUpType.NONE || cue.keyWordEffect != KeyWordEffect.NONE
-        val thisLeadTime = if (isSpecialCue) specialLeadTime else regularLeadTime
+        val thisLeadTime = when {
+            isBandHeroMode -> spawnLeadTime
+            cue.customLeadSec > 0.1f -> cue.customLeadSec
+            isSpecialCue -> specialLeadTime
+            else -> regularLeadTime
+        }
 
         // Wait until this specific orb's lead-time window arrives (prevents Special Orbs from spawning 3s before the swell!)
         if (trackSec < cue.timestampSec - thisLeadTime) {
-            // Only break if no immediately-following regular cue needs to spawn yet; check 1 ahead safely
             break
         }
 
         nextOrbCueIdx++
 
-        if (isTrainingMode && cue.sequenceIndex % 3 == 2 && !isSpecialCue && !cue.isGoldenCue) {
+        if (isTrainingMode && cue.sequenceIndex % 3 == 2 && !isSpecialCue && !cue.isGoldenCue && !cue.isMusicVideoOrb) {
             continue
         }
 
@@ -486,15 +497,14 @@ internal fun spawnStationaryBeatOrbsForFrame(
             val clampedLane = laneIdx.coerceIn(0, 3)
 
             // 100% Human-Catchable Ergonomic Flow Path:
-            // Keep orbs comfortably inside safe thumb margins [0.18..0.82] (avoiding edge gauges) and bound
-            // consecutive horizontal jumps proportional to inter-note time delta so a single finger can catch 100%!
+            // Honor cue.normX and cue.normY (including upper-middle 0.28f pocket for Special 24K Milestone Orbs!)
             val safeMinX = screenWidth * 0.18f
             val safeMaxX = screenWidth * 0.82f
             val desiredReceptorX = (cue.normX.coerceIn(0.18f, 0.82f)) * screenWidth
-            val prevOrb = powerUps.lastOrNull()
+            val prevOrb = powerUps.lastOrNull { it.powerUpType == PowerUpType.NONE && it.keyWordEffect == KeyWordEffect.NONE }
             val dtFromPrev = if (prevOrb != null) abs(targetSecExact - prevOrb.targetBeatSec).coerceAtLeast(0.18f) else 2.0f
             val maxComfortableJump = (dtFromPrev * screenWidth * 0.62f).coerceIn(screenWidth * 0.11f, screenWidth * 0.50f)
-            val receptorX = if (!isBandHeroMode && prevOrb != null) {
+            val receptorX = if (!isBandHeroMode && !isSpecialCue && prevOrb != null) {
                 desiredReceptorX.coerceIn(
                     (prevOrb.anchorX - maxComfortableJump).coerceAtLeast(safeMinX),
                     (prevOrb.anchorX + maxComfortableJump).coerceAtMost(safeMaxX)
@@ -502,7 +512,11 @@ internal fun spawnStationaryBeatOrbsForFrame(
             } else {
                 desiredReceptorX
             }
-            val receptorY = screenHeight * 0.62f
+            val receptorY = if (isSpecialCue) {
+                (cue.normY.coerceIn(0.24f, 0.52f)) * screenHeight
+            } else {
+                (cue.normY.coerceIn(0.32f, 0.68f)) * screenHeight
+            }
 
             val anchorPt = if (isBandHeroMode) {
                 computeHighwayPoint(clampedLane.toFloat(), 0f, screenWidth, screenHeight)
@@ -510,19 +524,83 @@ internal fun spawnStationaryBeatOrbsForFrame(
                 Offset(receptorX, receptorY)
             }
 
-            // Dynamic entry trajectory: orbs glide in from varied angles across the upper screen perimeter and flanks!
-            // Clean pass-through physics in GamePhysics ensures they never deflect or bounce off one another.
-            val angleVar = if (isBandHeroMode || isSpecialCue) 0f
-            else (((cue.sequenceIndex * 73) % 7 - 3) * 0.075f)
-
+            // Multi-Directional Entry & Ray-Matched Exit Trajectories:
+            // Orbs enter from varied perimeter directions (flanks, corners, diagonals, arcs) and glide cleanly
+            // across their beat target all the way past the opposite screen edge with zero bounce or kink.
             val swoopCurve = if (isBandHeroMode || isSpecialCue) 0f
-            else (((cue.sequenceIndex * 41) % 5 - 2) * 0.12f)
+            else (((cue.sequenceIndex * 41) % 5 - 2) * 0.055f)
 
-            val lateralOffset = angleVar * screenWidth
-            val startX = if (isBandHeroMode) anchorPt.x else (receptorX + lateralOffset).coerceIn(screenWidth * 0.10f, screenWidth * 0.90f)
-            val startY = if (isBandHeroMode) anchorPt.y else -48f
-            val exitX = if (isBandHeroMode) anchorPt.x else (receptorX - lateralOffset * 0.4f).coerceIn(safeMinX, safeMaxX)
-            val exitY = if (isBandHeroMode) anchorPt.y else (screenHeight + 65f)
+            val startX: Float
+            val startY: Float
+            val exitX: Float
+            val exitY: Float
+            val expireSec: Float
+
+            if (isBandHeroMode) {
+                startX = anchorPt.x
+                startY = anchorPt.y
+                exitX = anchorPt.x
+                exitY = anchorPt.y
+                expireSec = targetSecExact + 0.45f
+            } else if (isSpecialCue) {
+                startX = receptorX
+                startY = -56f
+                exitX = receptorX
+                exitY = -72f
+                expireSec = targetSecExact + 3.15f
+            } else {
+                val dirMode = ((cue.sequenceIndex * 37) + 3) % 8
+                when (dirMode) {
+                    0 -> {
+                        startX = -54f
+                        startY = screenHeight * 0.10f
+                    }
+                    1 -> {
+                        startX = screenWidth + 54f
+                        startY = screenHeight * 0.12f
+                    }
+                    2 -> {
+                        startX = screenWidth * 0.12f
+                        startY = -54f
+                    }
+                    3 -> {
+                        startX = screenWidth * 0.88f
+                        startY = -54f
+                    }
+                    4 -> {
+                        startX = -54f
+                        startY = screenHeight * 0.28f
+                    }
+                    5 -> {
+                        startX = screenWidth + 54f
+                        startY = screenHeight * 0.28f
+                    }
+                    6 -> {
+                        startX = (receptorX - screenWidth * 0.28f).coerceIn(24f, screenWidth - 24f)
+                        startY = -54f
+                    }
+                    else -> {
+                        startX = (receptorX + screenWidth * 0.28f).coerceIn(24f, screenWidth - 24f)
+                        startY = -54f
+                    }
+                }
+                val dx = receptorX - startX
+                val dy = receptorY - startY
+                val kx = when {
+                    dx > 1f -> (screenWidth + 68f - receptorX) / dx
+                    dx < -1f -> (-68f - receptorX) / dx
+                    else -> 99f
+                }
+                val ky = when {
+                    dy > 1f -> (screenHeight + 68f - receptorY) / dy
+                    dy < -1f -> (-68f - receptorY) / dy
+                    else -> 99f
+                }
+                val kExit = minOf(kx, ky).coerceIn(0.65f, 2.35f)
+                exitX = receptorX + dx * kExit
+                exitY = receptorY + dy * kExit
+                expireSec = targetSecExact + thisLeadTime * kExit
+            }
 
             val mappedPowerUpType = cue.powerUpType
             val mappedKeyWord = cue.keyWordEffect
@@ -540,7 +618,6 @@ internal fun spawnStationaryBeatOrbsForFrame(
             }
 
             val spawnSec = targetSecExact - thisLeadTime
-            val expireSec = targetSecExact + (if (isBandHeroMode) 0.45f else (if (isSpecialCue) 2.65f else (thisLeadTime * 0.85f + 0.40f)))
 
             powerUps.add(
                 GameObject(
@@ -567,7 +644,9 @@ internal fun spawnStationaryBeatOrbsForFrame(
                     exitX = exitX,
                     exitY = exitY,
                     swoopCurve = swoopCurve,
-                    isMusicVideoOrb = isCipher
+                    isMusicVideoOrb = isCipher,
+                    swirlStrength = cue.swirlStrength,
+                    goldenTier = cue.goldenTier
                 )
             )
         }

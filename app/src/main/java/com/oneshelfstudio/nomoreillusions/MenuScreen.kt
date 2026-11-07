@@ -718,8 +718,8 @@ fun MenuUI(
                 palette = if (!isCurrentLaunchUnlocked) StudioPillPalette.SOLAR_GOLD else StudioPillPalette.EMERALD_STAGE,
                 onClick = onStart,
                 height = 46.dp,
-                fontSize = 13.5.sp,
-                modifier = Modifier.width(220.dp)
+                fontSize = 13.sp,
+                modifier = Modifier.width(210.dp)
             )
 
             // Artist Social Links Dock (Official Ethan Correa / No More Illusions)
