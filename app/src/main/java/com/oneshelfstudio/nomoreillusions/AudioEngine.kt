@@ -42,6 +42,7 @@ class AudioEngine(private val context: Context) {
     @Volatile private var syncedPosMs: Float = 0f
     @Volatile private var syncedDurationMs: Float = 219_000f
     @Volatile private var syncNanoTimestamp: Long = System.nanoTime()
+    @Volatile private var startGraceUntilNano: Long = 0L
     @Volatile private var clockRunning: Boolean = false
     @Volatile private var activeBpmCached: Float = 124f
     @Volatile private var currentPlaybackSpeed: Float = 1.0f
@@ -412,12 +413,14 @@ class AudioEngine(private val context: Context) {
         loopCycleCount = 0
         isTrackFinished = false
         val vol = currentMusicVolume(0.90f)
-        trackPlayer = MediaPlayer.create(context, rawId)?.apply {
+        val createdPlayer = MediaPlayer.create(context, rawId)?.apply {
             isLooping = false
             setVolume(vol, vol)
             syncedDurationMs = runCatching { duration.toFloat().coerceAtLeast(1000f) }.getOrDefault(219_000f)
             syncedPosMs = 0f
-            syncNanoTimestamp = System.nanoTime()
+            val startNowNano = System.nanoTime()
+            syncNanoTimestamp = startNowNano
+            startGraceUntilNano = startNowNano + 500_000_000L
             clockRunning = true
             setOnCompletionListener {
                 if (remixMode == TrackRemixMode.ENDLESS) {
@@ -426,7 +429,9 @@ class AudioEngine(private val context: Context) {
                     val nextPitch = (1.0f + loopCycleCount * 0.04f).coerceAtMost(1.32f)
                     currentPlaybackSpeed = nextSpeed
                     syncedPosMs = 0f
-                    syncNanoTimestamp = System.nanoTime()
+                    val loopNowNano = System.nanoTime()
+                    syncNanoTimestamp = loopNowNano
+                    startGraceUntilNano = loopNowNano + 500_000_000L
                     seekTo(0)
                     start()
                     runCatching {
@@ -435,21 +440,34 @@ class AudioEngine(private val context: Context) {
                             .setPitch(nextPitch)
                     }
                 } else {
+                    startGraceUntilNano = 0L
                     clockRunning = false
                     isTrackFinished = true
                 }
             }
             start()
-            runCatching {
-                playbackParams = PlaybackParams()
-                    .setSpeed(remixMode.audioSpeed)
-                    .setPitch(remixMode.audioPitch)
+            if (remixMode != TrackRemixMode.ORIGINAL) {
+                runCatching {
+                    playbackParams = PlaybackParams()
+                        .setSpeed(remixMode.audioSpeed)
+                        .setPitch(remixMode.audioPitch)
+                }
             }
+        }
+        trackPlayer = createdPlayer
+        if (createdPlayer == null) {
+            syncedDurationMs = (MusicLibrary.getTrack(safeIndex).durationSec * 1000f).coerceAtLeast(1000f)
+            syncedPosMs = 0f
+            val fallbackNano = System.nanoTime()
+            syncNanoTimestamp = fallbackNano
+            startGraceUntilNano = fallbackNano + 500_000_000L
+            clockRunning = true
         }
     }
 
     fun pauseTrack() {
         syncClockWithMediaPlayer()
+        startGraceUntilNano = 0L
         clockRunning = false
         trackPlayer?.runCatching { if (isPlaying) pause() }
     }
@@ -461,13 +479,16 @@ class AudioEngine(private val context: Context) {
             if (!isPlaying && !isTrackFinished) {
                 start()
                 syncedPosMs = currentPosition.toFloat()
-                syncNanoTimestamp = System.nanoTime()
+                val resumeNano = System.nanoTime()
+                syncNanoTimestamp = resumeNano
+                startGraceUntilNano = resumeNano + 500_000_000L
                 clockRunning = true
             }
         }
     }
 
     fun stopTrack() {
+        startGraceUntilNano = 0L
         clockRunning = false
         syncedPosMs = 0f
         trackPlayer?.runCatching {
@@ -495,9 +516,13 @@ class AudioEngine(private val context: Context) {
             if (pos < syncedPosMs - 15000f) {
                 loopCycleCount++
             }
-            syncedPosMs = pos
-            syncNanoTimestamp = System.nanoTime()
-            clockRunning = playing
+            val nowNano = System.nanoTime()
+            val inStartupGrace = !isTrackFinished && nowNano < startGraceUntilNano
+            if (playing || !inStartupGrace) {
+                syncedPosMs = pos
+                syncNanoTimestamp = nowNano
+                clockRunning = playing
+            }
         }
         return (syncedPosMs / syncedDurationMs).coerceIn(0f, 1f)
     }
@@ -513,6 +538,9 @@ class AudioEngine(private val context: Context) {
 
     fun trackProgressFraction(): Float {
         if (isTrackFinished) return 1.0f
+        if (trackPlayer == null && clockRunning) {
+            return ((trackPositionSeconds() * 1000f) / syncedDurationMs).coerceIn(0f, 1f)
+        }
         val posSec = syncClockWithMediaPlayer()
         return posSec.coerceIn(0f, 1f)
     }

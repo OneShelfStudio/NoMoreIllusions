@@ -651,13 +651,10 @@ fun GameScreen(
             } else {
                 // 1-second pre-music movement buffer: player has full glide control, motes move,
                 // and initial orbs slowly start drifting in WITHOUT pulsing before music begins!
+                // Driven directly inside the frame loop so switching gameState to PLAYING never cancels the handoff!
+                preMusicElapsed = 0f
                 isPreMusicDrift = true
                 gameState = GameState.PLAYING
-                delay(1000)
-                if (gameState == GameState.PLAYING) {
-                    audioEngine.startTrack(selectedTrackIndex, forceRestart = true, remixMode = selectedRemixMode)
-                    isPreMusicDrift = false
-                }
             }
         }
     }
@@ -768,12 +765,22 @@ fun GameScreen(
                 }
 
                 // 1. Sub-millisecond monotonic song clock & 4Hz (250ms) Multi-Band Spectral State
-                if (isPreMusicDrift && !isAudioRunning) {
-                    preMusicElapsed = (preMusicElapsed + dt).coerceAtMost(1.0f)
+                val clockStep = stepPreMusicAndTrackClock(
+                    isPreMusicDrift = isPreMusicDrift,
+                    preMusicElapsed = preMusicElapsed,
+                    dt = dt,
+                    isAudioRunning = isAudioRunning,
+                    rawTrackSec = audioEngine.trackPositionSeconds()
+                )
+                preMusicElapsed = clockStep.preMusicElapsed
+                isPreMusicDrift = clockStep.isPreMusicDrift
+                var audioRunningNow = isAudioRunning
+                if (clockStep.shouldStartTrackNow) {
+                    audioEngine.startTrack(selectedTrackIndex, forceRestart = true, remixMode = selectedRemixMode)
+                    audioRunningNow = audioEngine.isTrackPlaying()
+                    liveBeatPhase = if (audioRunningNow) audioEngine.getBeatPhase() else -1f
                 }
-                val rawTrackSec = audioEngine.trackPositionSeconds()
-                // During pre-music movement buffer, trackSec advances smoothly from -1.0s to 0.0s with real wall-clock dt
-                val trackSec = if (isAudioRunning) rawTrackSec else (preMusicElapsed - 1.0f).coerceIn(-1.0f, 0.0f)
+                val trackSec = if (audioRunningNow) audioEngine.trackPositionSeconds() else clockStep.trackSec
                 liveTrackSec = trackSec
 
                 // Manage Video Relic Window 1 vs Window 2 reset cleanly (starts ahead of first Video Orb spawn!)
@@ -2525,4 +2532,53 @@ fun BrollVideoOverlay(
             modifier = Modifier.fillMaxSize()
         )
     }
+}
+
+internal data class PreMusicClockStep(
+    val isPreMusicDrift: Boolean,
+    val preMusicElapsed: Float,
+    val shouldStartTrackNow: Boolean,
+    val trackSec: Float
+)
+
+/**
+ * Pure frame-loop step for the 1.0-second pre-music orb drift (-1.0s -> 0.0s) into live audio playback (0.0s -> +trackSec).
+ * Keeping this inside the frame loop prevents Compose LaunchedEffect(gameState) self-cancellation from freezing orbs at 0.0s.
+ */
+internal fun stepPreMusicAndTrackClock(
+    isPreMusicDrift: Boolean,
+    preMusicElapsed: Float,
+    dt: Float,
+    isAudioRunning: Boolean,
+    rawTrackSec: Float
+): PreMusicClockStep {
+    if (isPreMusicDrift && !isAudioRunning) {
+        val nextElapsed = (preMusicElapsed + dt.coerceAtLeast(0f)).coerceAtMost(1.0f)
+        return if (nextElapsed >= 1.0f) {
+            PreMusicClockStep(
+                isPreMusicDrift = false,
+                preMusicElapsed = 1.0f,
+                shouldStartTrackNow = true,
+                trackSec = rawTrackSec.coerceAtLeast(0f)
+            )
+        } else {
+            PreMusicClockStep(
+                isPreMusicDrift = true,
+                preMusicElapsed = nextElapsed,
+                shouldStartTrackNow = false,
+                trackSec = (nextElapsed - 1.0f).coerceIn(-1.0f, 0.0f)
+            )
+        }
+    }
+    val effectiveTrackSec = if (isAudioRunning) {
+        rawTrackSec
+    } else {
+        (preMusicElapsed - 1.0f).coerceIn(-1.0f, 0.0f)
+    }
+    return PreMusicClockStep(
+        isPreMusicDrift = false,
+        preMusicElapsed = preMusicElapsed,
+        shouldStartTrackNow = false,
+        trackSec = effectiveTrackSec
+    )
 }

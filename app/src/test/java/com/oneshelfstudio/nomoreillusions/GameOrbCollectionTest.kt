@@ -326,4 +326,104 @@ class GameOrbCollectionTest {
         val lateSurpriseNumberOne = MusicLibrary.getTrack(2).orbChart.filter { it.timestampSec >= 158.5f }
         assertTrue("Number One must include >= 3 surprise late pegs after 158.5s, found ${lateSurpriseNumberOne.size}", lateSurpriseNumberOne.size >= 3)
     }
+
+    @Test
+    fun testPreMusicDriftToLiveAudioHandoff_startsTrackAtZeroSecAndNeverFreezesFirstOrb() {
+        val track = MusicLibrary.getTrack(1)
+        val beatDur = 60f / track.bpm
+        val active = mutableListOf<GameObject>()
+        val shockwaves = mutableListOf<Shockwave>()
+        val player = GameObject(x = 540f, y = 1248f, radius = 18f, color = Color.Green)
+
+        var isPreMusicDrift = true
+        var preMusicElapsed = 0f
+        var isAudioRunning = false
+        var simulatedAudioSec = 0f
+        var startTrackTriggeredCount = 0
+        var cueIdx = 0
+        val dt = 1f / 60f
+
+        val firstSpawnedSeq = track.orbChart.first().sequenceIndex * 2 + 1
+        var firstOrbPosAtMinusHalfSec: Pair<Float, Float>? = null
+        var firstOrbPosAtZeroSec: Pair<Float, Float>? = null
+        var firstOrbPosAtPlusHalfSec: Pair<Float, Float>? = null
+
+        // Simulate 180 frames (3.0 seconds: -1.0s pre-music drift -> 0.0s handoff -> +2.0s live music)
+        repeat(180) {
+            if (isAudioRunning) {
+                simulatedAudioSec += dt
+            }
+            val step = stepPreMusicAndTrackClock(
+                isPreMusicDrift = isPreMusicDrift,
+                preMusicElapsed = preMusicElapsed,
+                dt = dt,
+                isAudioRunning = isAudioRunning,
+                rawTrackSec = simulatedAudioSec
+            )
+            preMusicElapsed = step.preMusicElapsed
+            isPreMusicDrift = step.isPreMusicDrift
+            if (step.shouldStartTrackNow) {
+                startTrackTriggeredCount++
+                isAudioRunning = true
+            }
+            val trackSec = if (isAudioRunning) simulatedAudioSec else step.trackSec
+
+            cueIdx = spawnStationaryBeatOrbsForFrame(
+                chart = track.orbChart,
+                startCueIdx = cueIdx,
+                trackSec = trackSec,
+                spawnLeadTime = 2.0f,
+                ttlGraceSec = 0.4f,
+                screenWidth = 1080f,
+                screenHeight = 1920f,
+                isGoldenActive = false,
+                applyColorBlind = { it },
+                powerUps = active,
+                shockwaves = shockwaves,
+                hasActiveSustainRibbon = false,
+                isTrainingMode = false,
+                beatDurationSec = beatDur
+            )
+            stepNebulousBeatOrbs(
+                powerUps = active,
+                player = player,
+                gameTime = (trackSec + 1.0f).coerceAtLeast(0f),
+                trackSec = trackSec,
+                screenWidth = 1080f,
+                screenHeight = 1920f
+            )
+
+            val firstOrb = active.firstOrNull { it.sequenceIndex == firstSpawnedSeq }
+            if (firstOrb != null) {
+                if (firstOrbPosAtMinusHalfSec == null && trackSec >= -0.5f) {
+                    firstOrbPosAtMinusHalfSec = firstOrb.x to firstOrb.y
+                }
+                if (firstOrbPosAtZeroSec == null && trackSec >= 0.0f) {
+                    firstOrbPosAtZeroSec = firstOrb.x to firstOrb.y
+                }
+                if (firstOrbPosAtPlusHalfSec == null && trackSec >= 0.5f) {
+                    firstOrbPosAtPlusHalfSec = firstOrb.x to firstOrb.y
+                }
+            }
+        }
+
+        assertEquals("startTrack must trigger exactly once when preMusicElapsed reaches 1.0s", 1, startTrackTriggeredCount)
+        assertFalse("isPreMusicDrift must clear to false after 1.0s handoff", isPreMusicDrift)
+        assertTrue("Simulated audio clock must advance smoothly past 1.8s", simulatedAudioSec >= 1.8f)
+        assertNotNull("First orb must spawn during pre-music drift (-0.5s)", firstOrbPosAtMinusHalfSec)
+        assertNotNull("First orb must reach 0.0s handoff without freezing", firstOrbPosAtZeroSec)
+        assertNotNull("First orb must keep moving past +0.5s after music starts", firstOrbPosAtPlusHalfSec)
+        val distPreToZero = kotlin.math.hypot(
+            firstOrbPosAtZeroSec!!.first - firstOrbPosAtMinusHalfSec!!.first,
+            firstOrbPosAtZeroSec!!.second - firstOrbPosAtMinusHalfSec!!.second
+        )
+        val distZeroToPost = kotlin.math.hypot(
+            firstOrbPosAtPlusHalfSec!!.first - firstOrbPosAtZeroSec!!.first,
+            firstOrbPosAtPlusHalfSec!!.second - firstOrbPosAtZeroSec!!.second
+        )
+        assertTrue(
+            "First orb must continuously advance across 0.0s handoff (distPreToZero=$distPreToZero, distZeroToPost=$distZeroToPost)",
+            distPreToZero > 25f && distZeroToPost > 25f
+        )
+    }
 }
