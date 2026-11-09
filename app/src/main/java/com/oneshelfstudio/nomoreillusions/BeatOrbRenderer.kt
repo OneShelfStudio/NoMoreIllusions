@@ -187,7 +187,7 @@ fun DrawScope.drawPowerUps(
         val isBomb = p.powerUpType == PowerUpType.BLAST || p.keyWordEffect == KeyWordEffect.MAGNETAR_WAR
         val isShield = p.powerUpType == PowerUpType.SHIELD || p.keyWordEffect == KeyWordEffect.TRACTOR_REACH
         val isSpecial = isElectric || isPrism || isVortex || isBomb || isShield
-        val isCipherOrb = p.isMusicVideoOrb && !isSpecial
+        val stageFx = p.stageFxDrop
 
         val expireSec = if (p.expireBeatSec > 0f) p.expireBeatSec else (p.targetBeatSec + 0.45f)
         val ttlRemaining = (expireSec - trackSec).coerceAtLeast(0f)
@@ -197,7 +197,7 @@ fun DrawScope.drawPowerUps(
         val isSwellSweetSpot = abs(timeToSwell) <= 0.42f
         val isOnBeatNow = if (!isMusicStarted) {
             false
-        } else if (isSpecial) {
+        } else if (isSpecial || stageFx != null) {
             isSwellSweetSpot
         } else if (isBandHeroMode) {
             u in 0.86f..1.14f
@@ -206,7 +206,7 @@ fun DrawScope.drawPowerUps(
         }
 
         val isTier2GoldPulse = isMusicStarted && isGoldStage && goldenTier >= 2
-        val specialScaleMult = if (isSpecial) 1.24f else if (isCipherOrb) 1.15f else 1.0f
+        val specialScaleMult = if (isSpecial) 1.24f else if (stageFx != null) 1.22f else 1.0f
         val beatPulseScale = if (!isMusicStarted) {
             1.0f
         } else {
@@ -221,7 +221,7 @@ fun DrawScope.drawPowerUps(
 
         val laneIdx = (p.phraseBeatNum - 1).coerceIn(0, 3)
         val effectColor = when {
-            isCipherOrb -> Color(0xFF05D9E8L)
+            stageFx != null -> Color(stageFx.accentHex)
             isGoldStage || p.isGoldenOrb -> Color(0xFFFACC15L)
             isElectric -> Color(0xFFFACC15L)
             isPrism -> Color(0xFF4ADE80L)
@@ -352,7 +352,7 @@ fun DrawScope.drawPowerUps(
             isVortex -> drawVortexSingularityRelic(center3D, coreRad, perspScale, ttlAlpha, time, beatKick)
             isBomb -> drawSolarNovaRelic(center3D, lightOrigin, coreRad, perspScale, ttlAlpha, time, beatKick)
             isShield -> drawAegisGeodesicRelic(center3D, lightOrigin, coreRad, perspScale, ttlAlpha, time, beatKick)
-            isCipherOrb -> drawEnigmaticCipherRelic(center3D, coreRad, perspScale, ttlAlpha, time, beatKick, p.sequenceIndex)
+            stageFx != null -> drawStageFxDropRelic(center3D, coreRad, perspScale, ttlAlpha, time, beatKick, stageFx)
             else -> drawLivingResonanceSphere(
                 p = p,
                 center3D = center3D,
@@ -834,51 +834,49 @@ private fun DrawScope.drawAegisGeodesicRelic(
 }
 
 /**
- * ENIGMATIC ANALOG CIPHER / VHS RELIC ORB (Replaces Video Camera Emoji — Zero Words, Zero Emojis!):
- * RGB VHS phosphor channel-split aura + obsidian casing + 6-blade breathing mechanical iris + twin spinning micro-spools!
+ * STAGE FX DROP BOARD RELIC ORB:
+ * Summoned on-demand when the player taps an unlocked Stage FX on the Stage FX Board!
+ * Renders twin counter-rotating harmonic halos, obsidian crystal jewel housing, and a 4-point starlight core
+ * in the exact signature palette of the chosen StageFxBackdrop.
  */
-private fun DrawScope.drawEnigmaticCipherRelic(
+private fun DrawScope.drawStageFxDropRelic(
     center3D: Offset,
     coreRad: Float,
     perspScale: Float,
     ttlAlpha: Float,
     time: Float,
     beatKick: Float,
-    seed: Int
+    fx: StageFxBackdrop
 ) {
-    val splitOffset = (2.8f + sin(time * 9f + seed) * 1.4f) * perspScale
+    val primaryCol = Color(fx.accentHex)
+    val secondaryCol = Color(fx.secondaryHex)
+    val breath = 1f + 0.08f * sin(time * 5.2f)
 
-    // 1. RGB VHS Chromatic Split Halo (Magenta Right / Cyan Left)
-    drawCircle(
-        color = Color(0xFFFF2A6DL).copy(alpha = 0.72f * ttlAlpha),
-        radius = coreRad * 1.16f,
-        center = Offset(center3D.x + splitOffset, center3D.y),
-        style = Stroke(width = 2.6f * perspScale)
-    )
-    drawCircle(
-        color = Color(0xFF05D9E8L).copy(alpha = 0.78f * ttlAlpha),
-        radius = coreRad * 1.16f,
-        center = Offset(center3D.x - splitOffset, center3D.y),
-        style = Stroke(width = 2.6f * perspScale)
-    )
-
-    // Volumetric Analog Phosphor Glow
+    // 1. Volumetric Stage FX Bloom Aura
     drawCircle(
         brush = Brush.radialGradient(
             colors = listOf(
-                Color(0xFF05D9E8L).copy(alpha = 0.55f * ttlAlpha),
-                Color(0xFFFF2A6DL).copy(alpha = 0.32f * ttlAlpha),
+                primaryCol.copy(alpha = 0.62f * ttlAlpha),
+                secondaryCol.copy(alpha = 0.34f * ttlAlpha),
                 Color.Transparent
             ),
             center = center3D,
-            radius = coreRad * 2.15f
+            radius = coreRad * 2.25f * breath
         ),
-        radius = coreRad * 2.15f,
+        radius = coreRad * 2.25f * breath,
         center = center3D,
         blendMode = BlendMode.Screen
     )
 
-    // 2. Deep Obsidian Optical Glass Housing
+    // Outer Expanding Caustic Halo
+    drawCircle(
+        color = primaryCol.copy(alpha = 0.78f * ttlAlpha),
+        radius = coreRad * (1.22f + 0.08f * beatKick),
+        center = center3D,
+        style = Stroke(width = 2.6f * perspScale)
+    )
+
+    // 2. Deep Obsidian Crystal Jewel Housing
     drawCircle(
         brush = Brush.radialGradient(
             colors = listOf(
@@ -893,19 +891,16 @@ private fun DrawScope.drawEnigmaticCipherRelic(
         center = center3D
     )
 
-    // 3. Holographic Chromatic Crescent Shutter Rings (smooth curved arcs, zero thin wire spokes or triangles!)
-    for (arc in 0 until 3) {
-        val rotDeg = (time * 125f + seed * 37f + arc * 120f) % 360f
-        val rIris = coreRad * (0.78f + beatKick * 0.06f)
-        val arcCol = when (arc) {
-            0 -> Color(0xFF05D9E8L)
-            1 -> Color(0xFFFF2A6DL)
-            else -> Color(0xFFFACC15L)
-        }
+    // 3. Counter-Rotating Harmonic Crescent Arcs
+    for (arc in 0 until 4) {
+        val dir = if (arc % 2 == 0) 1f else -1f
+        val rotDeg = (time * 135f * dir + arc * 90f) % 360f
+        val rIris = coreRad * (if (arc % 2 == 0) 0.80f else 0.58f)
+        val arcCol = if (arc % 2 == 0) primaryCol else secondaryCol
         drawArc(
-            color = arcCol.copy(alpha = 0.88f * ttlAlpha),
+            color = arcCol.copy(alpha = 0.92f * ttlAlpha),
             startAngle = rotDeg,
-            sweepAngle = 76f,
+            sweepAngle = 72f,
             useCenter = false,
             topLeft = Offset(center3D.x - rIris, center3D.y - rIris),
             size = Size(rIris * 2f, rIris * 2f),
@@ -913,52 +908,27 @@ private fun DrawScope.drawEnigmaticCipherRelic(
         )
     }
 
-    // 4. Twin Luminous Studio Reel Pearls + Smooth Curved Ribbon Bridge
-    val spoolDist = coreRad * 0.40f
-    val spoolR = coreRad * 0.25f
-    val leftSpool = Offset(center3D.x - spoolDist, center3D.y)
-    val rightSpool = Offset(center3D.x + spoolDist, center3D.y)
-
-    val bridgePath = sharedFilamentPath.apply {
+    // 4. Sculpted 4-Point Curved Starlight Emblem Inside the Orb
+    val starR = coreRad * (0.44f + 0.06f * beatKick)
+    val starPath = sharedFilamentPath.apply {
         reset()
-        moveTo(leftSpool.x, leftSpool.y - spoolR * 0.85f)
-        quadraticTo(center3D.x, center3D.y - spoolR * 1.25f, rightSpool.x, rightSpool.y - spoolR * 0.85f)
+        moveTo(center3D.x, center3D.y - starR)
+        quadraticTo(center3D.x, center3D.y, center3D.x + starR, center3D.y)
+        quadraticTo(center3D.x, center3D.y, center3D.x, center3D.y + starR)
+        quadraticTo(center3D.x, center3D.y, center3D.x - starR, center3D.y)
+        quadraticTo(center3D.x, center3D.y, center3D.x, center3D.y - starR)
+        close()
     }
     drawPath(
-        path = bridgePath,
-        color = Color(0xFFFACC15L).copy(alpha = 0.86f * ttlAlpha),
-        style = Stroke(width = 2.2f * perspScale, cap = StrokeCap.Round)
+        path = starPath,
+        color = Color.White.copy(alpha = 0.96f * ttlAlpha)
     )
-
-    for (sIdx in 0..1) {
-        val sc = if (sIdx == 0) leftSpool else rightSpool
-        val spinDir = if (sIdx == 0) 1f else -1f
-        val reelCol = if (sIdx == 0) Color(0xFF05D9E8L) else Color(0xFFFF2A6DL)
-        drawCircle(
-            color = Color(0xFF060914L).copy(alpha = 0.95f * ttlAlpha),
-            radius = spoolR,
-            center = sc
-        )
-        drawCircle(
-            color = Color.White.copy(alpha = 0.92f * ttlAlpha),
-            radius = spoolR,
-            center = sc,
-            style = Stroke(width = 2.0f * perspScale)
-        )
-        val orbAng = time * 4.2f * spinDir
-        drawCircle(
-            color = Color(0xFFFACC15L).copy(alpha = 0.95f * ttlAlpha),
-            radius = spoolR * 0.26f,
-            center = Offset(sc.x + cos(orbAng) * spoolR * 0.56f, sc.y + sin(orbAng) * spoolR * 0.56f)
-        )
-        drawCircle(
-            color = reelCol.copy(alpha = 0.96f * ttlAlpha),
-            radius = spoolR * 0.34f,
-            center = sc
-        )
-    }
-
-    // 5. Incandescent Enigmatic Center Lens Bloom + Precision Rim
+    drawCircle(
+        color = primaryCol.copy(alpha = 0.90f * ttlAlpha),
+        radius = coreRad,
+        center = center3D,
+        style = Stroke(width = 2.2f * perspScale)
+    )
     drawCircle(
         brush = Brush.radialGradient(
             colors = listOf(

@@ -610,7 +610,7 @@ fun TouchControlHintBanner(
                 letterSpacing = 1.4.sp
             )
             Text(
-                text = "Catch orbs on the beat • Unlock two slow-mo video montages",
+                text = "Catch orbs on the beat • Drop Stage FX Orbs to transform the sky",
                 color = Color(0xFF94A3B8),
                 fontSize = 10.sp,
                 fontWeight = FontWeight.SemiBold,
@@ -641,8 +641,8 @@ fun TouchControlHintBanner(
                     emblemKind = 3,
                     animPhase = animPhase,
                     badgeColor = Color(0xFFE879F9),
-                    title = "5/5 VHS MONTAGE RELICS",
-                    desc = "Collect 5 chromatic VHS Relics per window to launch slow-mo music video clips!"
+                    title = "LIVE STAGE FX DROP BOARD",
+                    desc = "Tap the left FX Board to summon Special FX Orbs & transform the background!"
                 )
             }
 

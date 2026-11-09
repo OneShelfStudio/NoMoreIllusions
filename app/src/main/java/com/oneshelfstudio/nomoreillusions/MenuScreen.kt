@@ -945,7 +945,7 @@ fun HowToPlayUI(
         ) {
             StudioScreenHeader(
                 title = "STUDIO GUIDE",
-                subtitle = "RHYTHM, RELICS & VIDEO MONTAGES",
+                subtitle = "RHYTHM, 24K RELICS & STAGE FX BOARD",
                 accentColor = Color(0xFFFACC15),
                 onBack = onBack
             )
@@ -994,9 +994,9 @@ fun HowToPlayUI(
                     appeared = appeared,
                     emblemKind = 3,
                     animPhase = animPhase,
-                    badge = "5/5 VHS REEL",
-                    title = "MUSIC VIDEO MONTAGES",
-                    body = "Collect 5 chromatic VHS Relics in each song window to arm your left VHS Meter—launching two slow-mo music video montages per song!",
+                    badge = "LIVE FX DROP",
+                    title = "STAGE FX DROP BOARD",
+                    body = "Tap the left FX DROP capsule anytime during a song to choose an unlocked effect and drop a Special FX Orb—catching it transforms the background visualizer!",
                     accentColor = Color(0xFFE879F9)
                 )
 
@@ -1178,8 +1178,6 @@ fun SettingsUI(
     isMusic: Boolean,
     isSound: Boolean,
     isHaptic: Boolean,
-    isBrollVideo: Boolean = true,
-    onBrollVideoToggle: (Boolean) -> Unit = {},
     difficulty: GameDifficulty,
     activeLobbyTrack: LobbyTrack = LobbyTrack.VELVET,
     onLobbyTrackChange: (LobbyTrack) -> Unit = {},
@@ -1264,12 +1262,6 @@ fun SettingsUI(
                             checked = isHaptic,
                             onToggle = onHapticToggle,
                             subtitle = "Physical micro-pulse on orbs & buttons"
-                        )
-                        ToggleItem(
-                            label = "MUSIC VIDEO MONTAGES",
-                            checked = isBrollVideo,
-                            onToggle = onBrollVideoToggle,
-                            subtitle = "Slow-mo B-roll clips on 5/5 VHS meter"
                         )
                     }
                 }

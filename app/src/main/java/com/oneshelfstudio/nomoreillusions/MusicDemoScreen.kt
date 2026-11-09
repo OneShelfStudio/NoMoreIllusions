@@ -230,8 +230,8 @@ fun MusicDemoScreen(
                 else -> "STUDIO ALBUM"
             }
             val headerSub = when (activeTab) {
-                0 -> "Liner Notes, 4K Art & Era Archives"
-                2 -> "Customize Your Core & Stage Palette"
+                0 -> "Official Releases, Vinyl Editions & Future Exclusives"
+                2 -> "Stage FX Drop Board, Palettes & Hero Cores"
                 else -> "Ethan Correa • No Morē Illusīons"
             }
 

@@ -296,7 +296,7 @@ fun DrawScope.drawShockwaves(shockwaves: List<Shockwave>, applyCB: (Color) -> Co
                 }
             }
 
-            RippleWaveStyle.VHS_CHROMATIC_RIPPLE -> {
+            RippleWaveStyle.AURORA_CHROMA_RIPPLE -> {
                 // Twin phase-shifted Cyan & Magenta chromatic dispersion rings + luminous white interference halo
                 val shift = 3.5f + (1f - normLife) * 4.5f
                 drawCircle(

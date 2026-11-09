@@ -109,7 +109,7 @@ class GameOrbCollectionTest {
             BeatOrbCue(sequenceIndex = 1, timestampSec = 1.3f, normX = 0.95f, normY = 0.62f, powerUpType = PowerUpType.NONE),
             BeatOrbCue(sequenceIndex = 2, timestampSec = 1.8f, normX = 0.20f, normY = 0.62f, powerUpType = PowerUpType.NONE),
             BeatOrbCue(sequenceIndex = 3, timestampSec = 3.0f, normX = 0.60f, normY = 0.62f, powerUpType = PowerUpType.ELECTRIC_HARMONIC),
-            BeatOrbCue(sequenceIndex = 4, timestampSec = 4.0f, normX = 0.50f, normY = 0.62f, powerUpType = PowerUpType.NONE, isMusicVideoOrb = true)
+            BeatOrbCue(sequenceIndex = 4, timestampSec = 4.0f, normX = 0.50f, normY = 0.62f, powerUpType = PowerUpType.NONE)
         )
         val expectedCount = countPlayableChartOrbs(chart, isTrainingMode = false)
         assertEquals(5, expectedCount)
@@ -151,12 +151,11 @@ class GameOrbCollectionTest {
         assertEquals("Total spawned orbs must match countPlayableChartOrbs for 100% completion accuracy", expectedCount, spawnedAll.size)
         val jump01 = abs(spawnedAll[1].anchorX - spawnedAll[0].anchorX)
         assertTrue("Rapid consecutive horizontal jump should be ergonomically bounded (< 540px), was $jump01", jump01 <= 541f)
-        assertFalse("Regular notes without isMusicVideoOrb must not be marked video orbs", spawnedAll[0].isMusicVideoOrb)
-        assertTrue("Explicitly charted video relic (index 4) must be marked isMusicVideoOrb", spawnedAll[4].isMusicVideoOrb)
+        assertNull("Charted regular notes must not have stageFxDrop set", spawnedAll[0].stageFxDrop)
     }
 
     @Test
-    fun testConfideAndNumberOne_spawnSixVideoRelicsPerWindowWithCleanSeparationAndWideWindow2Stagger() {
+    fun testMultiSongExpansionAndStageFxDropOrbs_supportUpcomingTracksAndSmoothStageFxFlight() {
         for (trackIdx in listOf(1, 2)) {
             val track = MusicLibrary.getTrack(trackIdx)
             val beatDur = 60f / track.bpm
@@ -208,32 +207,48 @@ class GameOrbCollectionTest {
                     expectedTotal,
                     spawnedAll.size
                 )
-
-                val cutoffMid = if (trackIdx == 1) 80f else 70f
-                val montage1Cutoff = if (trackIdx == 1) 58.0f else 53.0f
-                val montage1End = if (trackIdx == 1) 68.5f else 63.0f
-                val montage2Cutoff = if (trackIdx == 1) 155.0f else 117.5f
-
-                val set1Relics = spawnedAll.filter { it.isMusicVideoOrb && it.targetBeatSec < cutoffMid }.sortedBy { it.targetBeatSec }
-                val set2Relics = spawnedAll.filter { it.isMusicVideoOrb && it.targetBeatSec >= cutoffMid }.sortedBy { it.targetBeatSec }
-
-                assertEquals("Track $trackIdx (training=$training) must spawn 6 Video Relics in Window 1 (5 needed + 1 buffer)", 6, set1Relics.size)
-                assertTrue("All Window 1 Video Relics must arrive well before Montage 1 ($montage1Cutoff s)", set1Relics.all { it.targetBeatSec <= montage1Cutoff })
-
-                assertEquals("Track $trackIdx (training=$training) must spawn 6 Video Relics in Window 2 (5 needed + 1 buffer)", 6, set2Relics.size)
-                assertTrue("All Window 2 Video Relics must arrive before Montage 2 ($montage2Cutoff s)", set2Relics.all { it.targetBeatSec <= montage2Cutoff })
-
-                val breatherGap = set2Relics.first().targetBeatSec - montage1End
-                assertTrue("Clean breather separation between Montage 1 end and Window 2 start must be >= 16.0s, was $breatherGap", breatherGap >= 16.0f)
-
-                val avgWindow2Spacing = (set2Relics.last().targetBeatSec - set2Relics.first().targetBeatSec) / (set2Relics.size - 1).toFloat()
-                val minExpectedAvg = if (trackIdx == 1) 11.5f else 6.8f
-                assertTrue("Window 2 Video Relics must be widely staggered (avg >= $minExpectedAvg s), was $avgWindow2Spacing", avgWindow2Spacing >= minExpectedAvg)
             }
         }
 
-        // Verify all 5 RippleWaveStyle shockwave archetypes construct cleanly
+        // Verify plug-and-play multi-song builder generates a complete Track 03 with sections, orbs & unique pressing edition
+        val futureTrack3 = MusicLibrary.createOfficialReleaseTrack(
+            index = 3,
+            title = "Illusions Unbound",
+            bpm = 112f,
+            durationSec = 185,
+            unlockCost = 1800
+        )
+        assertTrue("Generated Track 03 must have >= 4 choreographed sections", futureTrack3.sections.size >= 4)
+        assertTrue("Generated Track 03 must have >= 80 beat orbs", futureTrack3.orbChart.size >= 80)
+        assertTrue("Upcoming release slots must advertise Track 03+", MusicLibrary.upcomingReleaseSlots.isNotEmpty())
+        val uniqueEditions = (1..6).map { MusicLibrary.pressingEditionForTrack(it).editionTitle }.toSet()
+        assertEquals("Tracks 1..6 must each get a distinct Collector's Vinyl Pressing Edition", 6, uniqueEditions.size)
+
+        // Verify StageFxBackdrop has 6 distinct visual effects & player-dropped FX orb glides smoothly into hover pocket
+        assertEquals(6, StageFxBackdrop.entries.size)
         assertEquals(5, RippleWaveStyle.entries.size)
+        val fxOrb = GameObject(
+            x = 540f,
+            y = -56f,
+            radius = 36f,
+            color = Color(StageFxBackdrop.KALEIDOSCOPE_MANDALA.accentHex),
+            anchorX = 540f,
+            anchorY = 768f,
+            spawnBeatSec = 10.0f,
+            targetBeatSec = 11.45f,
+            expireBeatSec = 14.30f,
+            phraseBeatNum = 2,
+            sequenceIndex = 903,
+            spawnX = 540f,
+            spawnY = -56f,
+            exitX = 540f,
+            exitY = 1996f,
+            stageFxDrop = StageFxBackdrop.KALEIDOSCOPE_MANDALA
+        )
+        val fxList = mutableListOf(fxOrb)
+        val dummyPlayer = GameObject(x = 540f, y = 1248f, radius = 18f, color = Color.Green)
+        stepNebulousBeatOrbs(fxList, dummyPlayer, gameTime = 11.45f, trackSec = 11.45f, screenWidth = 1080f, screenHeight = 1920f)
+        assertEquals("Stage FX Drop Orb must ease right into its hover pocket (768f) at targetBeatSec", 768f, fxOrb.y, 12f)
     }
 
     @Test

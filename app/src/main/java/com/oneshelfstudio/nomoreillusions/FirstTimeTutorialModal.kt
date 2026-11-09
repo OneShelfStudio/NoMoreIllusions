@@ -39,11 +39,11 @@ enum class FirstTimeDiscovery(
     val accentColor: Color
 ) {
     FAN_WELCOME(
-        prefKey = "seen_discovery_fan_welcome_v2",
+        prefKey = "seen_discovery_fan_welcome_v3",
         badge = "STUDIO STAGE BRIEFING",
-        title = "RHYTHM & RELICS",
-        subtitle = "FLUID GLIDE • 24K SPECTACLES • VHS MONTAGES",
-        body = "Glide freely across the stage to catch beat-synced orbs, dodge red void hazards, and unlock two slow-motion music video montages per song!",
+        title = "RHYTHM & STAGE FX",
+        subtitle = "FLUID GLIDE • 24K SPECTACLES • LIVE FX DROP BOARD",
+        body = "Glide freely across the stage to catch beat-synced orbs, dodge red void hazards, and tap the left Stage FX Board to drop custom visual FX orbs!",
         tip = "Touch with a second finger anytime to weave a curved Dual-Hero plasma ribbon!",
         buttonText = "DROP THE NEEDLE ▶",
         accentColor = Color(0xFFFACC15L)
@@ -53,7 +53,7 @@ enum class FirstTimeDiscovery(
         badge = "RHYTHM FLOW • BEAT ORBS",
         title = "MULTI-DIRECTIONAL BEAT ORBS",
         subtitle = "CATCH ORBS ON THE DRUM GROOVE • UNVEIL THE ALBUM",
-        body = "Luminous Beat Orbs drift in from every angle and pulse to the live drum beat. Glide smoothly through them to build your combo multiplier and progressively unveil the official album artwork.",
+        body = "Luminous Beat Orbs drift in from every angle and pulse to the live drum beat. Glide smoothly through them to build your combo multiplier and progressively unveil the official Collector's Edition vinyl.",
         tip = "FLOW STATE: Orbs phase smoothly past one another—focus on riding the musical groove!",
         buttonText = "RESUME TRACK ▶",
         accentColor = Color(0xFF38BDF8L)
@@ -69,12 +69,12 @@ enum class FirstTimeDiscovery(
         accentColor = Color(0xFFFACC15L)
     ),
     SLIDE_STREAM(
-        prefKey = "seen_discovery_slide_stream_v2",
-        badge = "DIRECTOR'S REEL • 5/5 VHS RELICS",
-        title = "MUSIC VIDEO MONTAGE RELICS",
-        subtitle = "COLLECT 5 VHS ORBS TO ARM EACH SLOW-MO MONTAGE",
-        body = "Holographic cyan-violet VHS Relics appear across two dedicated song windows. Collect 5 Relics to arm your left VHS Meter—launching a dreamy slow-motion music video montage right on the vocal drop!",
-        tip = "STAY SHARP: Missing too many VHS Relics resets the current window's reel meter!",
+        prefKey = "seen_discovery_stage_fx_board_v3",
+        badge = "LIVE STAGE FX • CUSTOM DROP",
+        title = "STAGE FX DROP BOARD",
+        subtitle = "PICK AN EFFECT • CATCH THE ORB • TRANSFORM THE SKY",
+        body = "Tap the left FX DROP capsule anytime during a song to open your Stage FX Board! Select any unlocked effect to drop a glowing Special FX Orb onto the stage—catching it transforms the background visualizer!",
+        tip = "UNLOCK 6 STAGE FX ORBS in the Skins & Stage FX tab using ♪ Notes or track milestones!",
         buttonText = "RESUME TRACK ▶",
         accentColor = Color(0xFFE879F9L)
     ),
@@ -113,23 +113,23 @@ data class ArtistExclusiveItem(
 val ARTIST_EXCLUSIVES_CATALOG = listOf(
     ArtistExclusiveItem(
         id = "excl_confide_master",
-        category = "STUDIO MASTER ARCHIVE",
+        category = "OFFICIAL RELEASE • TRACK 01",
         title = "ETHAN CORREA • 'CONFIDE'",
-        subtitle = "Lossless Master & Stems",
-        unlockRequirementText = "Unlocked Free for VIP Fan Community",
-        artistNoteQuote = "\"No Morē Illusīons — Official interactive album experience by Ethan Correa. Connect with Ethan on social media @EthanCorrea and share your high scores with #NoMoreIllusions.\"",
-        exclusiveDetail = "Unlocks the official high-resolution album cover and audio master reel for Confide.",
+        subtitle = "Emerald Obsidian Collector's Pressing",
+        unlockRequirementText = "Unlocked Free for Fan Community",
+        artistNoteQuote = "\"Confide\" — Official studio single from No Morē Illusīons by Ethan Correa. Master the rhythm stage to unlock full-track listening and Collector's Edition vinyl styling.",
+        exclusiveDetail = "Unlocks unlimited full-track listening + Starfall Warp Stage FX Orb upon clearing Track 01.",
         accentColor = Color(0xFF38BDF8L),
         isUnlocked = { _, _, _ -> true }
     ),
     ArtistExclusiveItem(
         id = "excl_number_one_master",
-        category = "STUDIO MASTER ARCHIVE",
+        category = "OFFICIAL RELEASE • TRACK 02",
         title = "ETHAN CORREA • 'NUMBER ONE'",
-        subtitle = "Lossless Master & Stems",
-        unlockRequirementText = "Play Track 02 or reach 2,500+ High Score",
-        artistNoteQuote = "\"No Morē Illusīons — Official interactive album experience by Ethan Correa. Connect with Ethan on social media @EthanCorrea and share your high scores with #NoMoreIllusions.\"",
-        exclusiveDetail = "Unlocks the official high-resolution album cover and audio master reel for Number One.",
+        subtitle = "24K Solar Gold Collector's Pressing",
+        unlockRequirementText = "Clear Track 02 or reach 2,500+ High Score",
+        artistNoteQuote = "\"Number One\" — Official studio single from No Morē Illusīons by Ethan Correa. Connect with @EthanCorrea and flex your high scores with #NoMoreIllusions.",
+        exclusiveDetail = "Unlocks unlimited full-track listening + 24K Eclipse Stage FX Orb upon clearing Track 02.",
         accentColor = Color(0xFF4ADE80L),
         isUnlocked = { prefs, highScore, _ ->
             prefs.getBoolean("art_unlocked_2", false) || highScore >= 2500 || prefs.getBoolean("vip_all_unlocked", false)
@@ -137,15 +137,15 @@ val ARTIST_EXCLUSIVES_CATALOG = listOf(
     ),
     ArtistExclusiveItem(
         id = "excl_upcoming_teaser",
-        category = "STUDIO ARCHIVE",
-        title = "MORE ARTIST EXCLUSIVES",
-        subtitle = "Upcoming Releases & Visuals",
-        unlockRequirementText = "Master current tracks to qualify for upcoming release drops",
-        artistNoteQuote = "\"No Morē Illusīons — Official interactive album experience by Ethan Correa. Connect with Ethan on social media @EthanCorrea and share your high scores with #NoMoreIllusions.\"",
-        exclusiveDetail = "Upcoming singles and visualizers will unlock here in future studio updates.",
+        category = "FUTURE ARTIST EXCLUSIVES",
+        title = "UPCOMING RELEASES & EXCLUSIVES",
+        subtitle = "New Ethan Correa Music & Fan Perks Coming Soon",
+        unlockRequirementText = "Build your ♪ Notes bank & high score ahead of future drops",
+        artistNoteQuote = "New Ethan Correa releases and special artist exclusives are on the horizon. Keep stacking ♪ Notes and unlocking Stage FX Orbs so you're ready on day one!",
+        exclusiveDetail = "Early-supporter status & instant readiness as Ethan drops new singles into the Album deck.",
         accentColor = Color(0xFFFACC15L),
         isUnlocked = { prefs, highScore, _ ->
-            prefs.getBoolean("vip_all_unlocked", false) || highScore >= 4500
+            prefs.getBoolean("vip_all_unlocked", false) || highScore >= 4000
         }
     )
 )
@@ -358,8 +358,8 @@ fun FirstTimeDiscoveryModal(
                     emblemKind = 3,
                     animPhase = animPhase,
                     accent = Color(0xFFE879F9L),
-                    title = "VHS VIDEO MONTAGES (5/5)",
-                    desc = "Collect 5 chromatic VHS Relics per window to unlock slow-mo music video clips!"
+                    title = "LIVE STAGE FX DROP BOARD",
+                    desc = "Tap the left FX Board in-game to drop Special FX Orbs that transform the sky!"
                 )
             }
         } else {

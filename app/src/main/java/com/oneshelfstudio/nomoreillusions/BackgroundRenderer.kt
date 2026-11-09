@@ -84,7 +84,9 @@ fun DrawScope.drawNebulaBackground(
     swellDelta: Float = 0f,
     activePhenomenon: ActivePhenomenon? = null,
     multiBand: MultiBandAudioState = MultiBandAudioState(rms = audioEnergy, swellDelta = swellDelta),
-    brollOverlayAlpha: Float = 0f,
+    trackIndex: Int = 1,
+    activeStageFx: StageFxBackdrop? = null,
+    stageFxIntensity: Float = 0f,
     goldenTier: Int = 0,
     isFlowySwirlStage: Boolean = false
 ) {
@@ -126,68 +128,29 @@ fun DrawScope.drawNebulaBackground(
     val swellBoost = (multiBand.swellDelta * 2.4f).coerceIn(0f, 0.70f)
     val beatPulse = if (beatPhase >= 0f) exp(-beatPhase * 4.5f).coerceIn(0f, 1f) else 0.2f
 
-    // 1. Deep Obsidian Space Base (ducks smoothly when VHS B-roll video fades into background!)
-    val baseOpacity = (1f - brollOverlayAlpha.coerceIn(0f, 1f) * 0.80f).coerceIn(0.18f, 1f)
+    // 1. Deep Obsidian Space Base (tints smoothly toward active Stage FX Drop Board spectacle!)
+    val fxAlpha = stageFxIntensity.coerceIn(0f, 1f)
     drawRect(
         brush = Brush.verticalGradient(
             colors = listOf(
-                palette.c1.copy(alpha = baseOpacity),
-                palette.c2.copy(alpha = baseOpacity),
-                palette.c3.copy(alpha = baseOpacity)
+                palette.c1,
+                palette.c2,
+                palette.c3
             )
         )
     )
-
-    // 1b. Silky Anamorphic Film Halation & Atmospheric Vignette when B-roll Video is active (zero harsh CRT horizontal scanlines!)
-    if (brollOverlayAlpha > 0.01f) {
-        val vhsA = brollOverlayAlpha.coerceIn(0f, 1f)
-        // Soft Chromatic Cyan/Rose Anamorphic Edge Halation
-        drawRect(
-            brush = Brush.horizontalGradient(
-                colors = listOf(
-                    Color(0xFF05D9E8L).copy(alpha = 0.14f * vhsA),
-                    Color.Transparent,
-                    Color.Transparent,
-                    Color(0xFFFF2A6DL).copy(alpha = 0.14f * vhsA)
-                )
-            )
-        )
-        // Warm Golden-Amber Top & Bottom Cinema Letterbox Bloom
+    if (activeStageFx != null && fxAlpha > 0.01f) {
+        val fxPrimary = Color(activeStageFx.accentHex)
+        val fxSecondary = Color(activeStageFx.secondaryHex)
         drawRect(
             brush = Brush.verticalGradient(
                 colors = listOf(
-                    Color(0xFF02040AL).copy(alpha = 0.62f * vhsA),
-                    Color(0xFFFACC15L).copy(alpha = 0.06f * vhsA),
+                    fxPrimary.copy(alpha = 0.14f * fxAlpha),
                     Color.Transparent,
-                    Color(0xFF05D9E8L).copy(alpha = 0.05f * vhsA),
-                    Color(0xFF02040AL).copy(alpha = 0.66f * vhsA)
+                    fxSecondary.copy(alpha = 0.12f * fxAlpha)
                 )
-            )
-        )
-        // Gentle Floating Cinema Bokeh Motes (12fps smooth drift)
-        val grainFrame = (time * 8f).toInt()
-        for (g in 0 until 14) {
-            val h1 = ((grainFrame * 73856093) xor (g * 19349663)) and 0x7FFFFFFF
-            val h2 = ((grainFrame * 83492791) xor (g * 297121507)) and 0x7FFFFFFF
-            val gx = (h1 % 1000) / 1000f * size.width
-            val gy = (h2 % 1000) / 1000f * size.height
-            val gCol = if (g % 3 == 0) Color(0xFFFEF08AL) else Color(0xFF7DD3FCL)
-            drawCircle(
-                color = gCol.copy(alpha = 0.10f * vhsA),
-                radius = if (g % 4 == 0) 3.2f else 1.8f,
-                center = Offset(gx, gy)
-            )
-        }
-        // Soft Vintage Edge Vignette so center orbs pop with maximum clarity
-        drawRect(
-            brush = Brush.radialGradient(
-                colors = listOf(
-                    Color.Transparent,
-                    Color(0xFF02040AL).copy(alpha = 0.54f * vhsA)
-                ),
-                center = Offset(size.width * 0.5f, size.height * 0.5f),
-                radius = maxOf(size.width, size.height) * 0.64f
-            )
+            ),
+            blendMode = BlendMode.Screen
         )
     }
 
@@ -423,100 +386,118 @@ fun DrawScope.drawNebulaBackground(
         }
     }
 
-    // 8. Progressive Waterfall Album Artwork Fill in Center
-    if (trackArtwork != null && brollOverlayAlpha < 0.95f) {
-        val artVisibility = (1f - brollOverlayAlpha * 1.25f).coerceIn(0f, 1f)
-        if (artVisibility > 0.01f) {
-            val p = trackProgress.coerceIn(0.02f, 1f)
-            val artBoxSize = minOf(size.width, size.height) * (0.52f + bass * 0.04f)
-            val artRadius = artBoxSize * 0.48f
-            val artLeft = centerX - artRadius
-            val artTop = centerY - artRadius
-            val dstW = (artRadius * 2f).toInt().coerceAtLeast(1)
-            val dstH = (artRadius * 2f).toInt().coerceAtLeast(1)
-            val waterLevelY = artTop + (artRadius * 2f) * p
+    // 8. Progressive Waterfall Collector's Edition Vinyl Artwork Fill in Center
+    if (trackArtwork != null) {
+        val edition = MusicLibrary.pressingEditionForTrack(trackIndex)
+        val editionPrimary = Color(edition.primaryHex)
+        val editionSecondary = Color(edition.secondaryHex)
+        val p = trackProgress.coerceIn(0.02f, 1f)
+        val artBoxSize = minOf(size.width, size.height) * (0.52f + bass * 0.04f)
+        val artRadius = artBoxSize * 0.48f
+        val artLeft = centerX - artRadius
+        val artTop = centerY - artRadius
+        val dstW = (artRadius * 2f).toInt().coerceAtLeast(1)
+        val dstH = (artRadius * 2f).toInt().coerceAtLeast(1)
+        val waterLevelY = artTop + (artRadius * 2f) * p
 
+        drawCircle(
+            color = Color(0xFF070B16).copy(alpha = 0.74f),
+            radius = artRadius,
+            center = Offset(centerX, centerY)
+        )
+        drawCircle(
+            color = editionPrimary.copy(alpha = 0.48f),
+            radius = artRadius,
+            center = Offset(centerX, centerY),
+            style = Stroke(width = 2.4f)
+        )
+        for (g in 1..4) {
+            val grooveCol = if (g % 2 == 0) editionPrimary else editionSecondary
             drawCircle(
-                color = Color(0xFF070B16).copy(alpha = 0.72f * artVisibility),
-                radius = artRadius,
-                center = Offset(centerX, centerY)
-            )
-            drawCircle(
-                color = Color(0xFF64748B).copy(alpha = 0.35f * artVisibility),
-                radius = artRadius,
+                color = grooveCol.copy(alpha = 0.12f),
+                radius = artRadius * (g / 5f),
                 center = Offset(centerX, centerY),
-                style = Stroke(width = 2f)
+                style = Stroke(width = 1.3f)
             )
-            for (g in 1..4) {
-                drawCircle(
-                    color = Color(0xFF94A3B8).copy(alpha = 0.08f * artVisibility),
-                    radius = artRadius * (g / 5f),
-                    center = Offset(centerX, centerY),
-                    style = Stroke(width = 1.2f)
-                )
-            }
+        }
 
-            clipRect(
-                left = artLeft - 10f,
-                top = artTop - 10f,
-                right = artLeft + dstW + 10f,
-                bottom = waterLevelY
-            ) {
-                drawImage(
-                    image = trackArtwork,
-                    srcOffset = IntOffset.Zero,
-                    srcSize = IntSize(trackArtwork.width, trackArtwork.height),
-                    dstOffset = IntOffset(artLeft.toInt(), artTop.toInt()),
-                    dstSize = IntSize(dstW, dstH),
-                    alpha = ((0.78f + p * 0.22f) * artVisibility).coerceIn(0f, 1f)
-                )
-            }
-
-            // 8c. Smooth Bezier liquid-light meniscus ribbon across waterLevelY (zero polygonal steps)
-            if (p in 0.02f..0.995f) {
-                val wavePath = Path()
-                val segs = 20
-                val stepW = dstW.toFloat() / segs
-                var prevX = artLeft
-                var prevY = waterLevelY
-                for (s in 0..segs) {
-                    val wx = artLeft + s * stepW
-                    val waveOffset = sin(wx * 0.055f + time * 7.5f) * 3.5f + cos(wx * 0.028f - time * 5f) * 2f
-                    val wy = waterLevelY + waveOffset
-                    if (s == 0) {
-                        wavePath.moveTo(wx, wy)
-                    } else {
-                        wavePath.quadraticTo(prevX, prevY, (prevX + wx) * 0.5f, (prevY + wy) * 0.5f)
-                        if (s == segs) wavePath.lineTo(wx, wy)
-                    }
-                    prevX = wx
-                    prevY = wy
-                }
-                val waveCol = if (isConstellationActive) Color(0xFFFACC15L) else Color(0xFF38BDF8L)
-                drawPath(
-                    path = wavePath,
-                    color = waveCol.copy(alpha = 0.35f * artVisibility),
-                    style = Stroke(width = 10f, cap = StrokeCap.Round),
-                    blendMode = BlendMode.Screen
-                )
-                drawPath(
-                    path = wavePath,
-                    color = waveCol.copy(alpha = 0.90f * artVisibility),
-                    style = Stroke(width = 3.2f, cap = StrokeCap.Round)
-                )
-                drawPath(
-                    path = wavePath,
-                    color = Color.White.copy(alpha = 0.85f * artVisibility),
-                    style = Stroke(width = 1.4f, cap = StrokeCap.Round)
-                )
-            } else if (p >= 0.995f) {
+        clipRect(
+            left = artLeft - 10f,
+            top = artTop - 10f,
+            right = artLeft + dstW + 10f,
+            bottom = waterLevelY
+        ) {
+            drawImage(
+                image = trackArtwork,
+                srcOffset = IntOffset.Zero,
+                srcSize = IntSize(trackArtwork.width, trackArtwork.height),
+                dstOffset = IntOffset(artLeft.toInt(), artTop.toInt()),
+                dstSize = IntSize(dstW, dstH),
+                alpha = (0.78f + p * 0.22f).coerceIn(0f, 1f)
+            )
+            // Subtle Collector's Pressing Iridescent Glaze for Track 02+ so every single has a signature aura
+            if (trackIndex >= 2) {
                 drawCircle(
-                    color = Color(0xFFFACC15).copy(alpha = (0.75f + 0.25f * sin(time * 6f)) * artVisibility),
+                    brush = Brush.radialGradient(
+                        colors = listOf(
+                            Color.Transparent,
+                            editionPrimary.copy(alpha = 0.20f),
+                            editionSecondary.copy(alpha = 0.26f)
+                        ),
+                        center = Offset(centerX, centerY),
+                        radius = artRadius
+                    ),
                     radius = artRadius,
                     center = Offset(centerX, centerY),
-                    style = Stroke(width = 3.5f)
+                    blendMode = BlendMode.Screen
                 )
             }
+        }
+
+        // 8c. Smooth Bezier liquid-light meniscus ribbon across waterLevelY (zero polygonal steps)
+        if (p in 0.02f..0.995f) {
+            val wavePath = Path()
+            val segs = 20
+            val stepW = dstW.toFloat() / segs
+            var prevX = artLeft
+            var prevY = waterLevelY
+            for (s in 0..segs) {
+                val wx = artLeft + s * stepW
+                val waveOffset = sin(wx * 0.055f + time * 7.5f) * 3.5f + cos(wx * 0.028f - time * 5f) * 2f
+                val wy = waterLevelY + waveOffset
+                if (s == 0) {
+                    wavePath.moveTo(wx, wy)
+                } else {
+                    wavePath.quadraticTo(prevX, prevY, (prevX + wx) * 0.5f, (prevY + wy) * 0.5f)
+                    if (s == segs) wavePath.lineTo(wx, wy)
+                }
+                prevX = wx
+                prevY = wy
+            }
+            val waveCol = if (isConstellationActive) Color(0xFFFACC15L) else editionPrimary
+            drawPath(
+                path = wavePath,
+                color = waveCol.copy(alpha = 0.35f),
+                style = Stroke(width = 10f, cap = StrokeCap.Round),
+                blendMode = BlendMode.Screen
+            )
+            drawPath(
+                path = wavePath,
+                color = waveCol.copy(alpha = 0.90f),
+                style = Stroke(width = 3.2f, cap = StrokeCap.Round)
+            )
+            drawPath(
+                path = wavePath,
+                color = Color.White.copy(alpha = 0.85f),
+                style = Stroke(width = 1.4f, cap = StrokeCap.Round)
+            )
+        } else if (p >= 0.995f) {
+            drawCircle(
+                color = editionPrimary.copy(alpha = 0.75f + 0.25f * sin(time * 6f)),
+                radius = artRadius,
+                center = Offset(centerX, centerY),
+                style = Stroke(width = 3.5f)
+            )
         }
     }
 
@@ -752,6 +733,195 @@ fun DrawScope.drawNebulaBackground(
                 style = Stroke(width = (3.4f * vFade).coerceAtLeast(0.8f)),
                 blendMode = BlendMode.Screen
             )
+        }
+    }
+
+    // 11. LIVE STAGE FX DROP BOARD SPECTACLES (Triggered when player catches a summoned Stage FX Orb!)
+    if (activeStageFx != null && fxAlpha > 0.01f) {
+        val cA = Color(activeStageFx.accentHex)
+        val cB = Color(activeStageFx.secondaryHex)
+        when (activeStageFx) {
+            StageFxBackdrop.AURORA_SILK -> {
+                for (band in 0 until 3) {
+                    val segs = 22
+                    val stepX = size.width / segs
+                    val baseY = size.height * (0.20f + band * 0.24f)
+                    val ribbon = Path()
+                    var px = 0f
+                    var py = baseY
+                    for (s in 0..segs) {
+                        val wx = s * stepX
+                        val wy = baseY +
+                            sin(wx * 0.007f + time * (1.7f + band * 0.3f) + band * 1.9f) * (38f + vocal * 28f) +
+                            cos(wx * 0.013f - time * 1.3f) * 18f
+                        if (s == 0) ribbon.moveTo(wx, wy)
+                        else {
+                            ribbon.quadraticTo(px, py, (px + wx) * 0.5f, (py + wy) * 0.5f)
+                            if (s == segs) ribbon.lineTo(wx, wy)
+                        }
+                        px = wx
+                        py = wy
+                    }
+                    val col = if (band % 2 == 0) cA else cB
+                    drawPath(
+                        path = ribbon,
+                        color = col.copy(alpha = (0.24f + beatPulse * 0.14f) * fxAlpha),
+                        style = Stroke(width = 34f + bass * 18f, cap = StrokeCap.Round),
+                        blendMode = BlendMode.Screen
+                    )
+                    drawPath(
+                        path = ribbon,
+                        color = Color.White.copy(alpha = 0.42f * fxAlpha),
+                        style = Stroke(width = 3.2f, cap = StrokeCap.Round)
+                    )
+                }
+            }
+
+            StageFxBackdrop.KALEIDOSCOPE_MANDALA -> {
+                for (ring in 0 until 2) {
+                    val dir = if (ring == 0) 1f else -1f
+                    val baseR = size.width * (if (ring == 0) 0.40f else 0.28f) * (1f + bass * 0.08f)
+                    val pts = 72
+                    val petals = if (ring == 0) 12 else 8
+                    sharedMandalaPath.reset()
+                    var prevX = 0f
+                    var prevY = 0f
+                    var firstX = 0f
+                    var firstY = 0f
+                    for (i in 0..pts) {
+                        val theta = (i.toFloat() / pts) * 2f * PI.toFloat() + time * 0.48f * dir
+                        val mod = 1f + 0.16f * sin(theta * petals + time * 2.2f * dir)
+                        val mx = centerX + cos(theta) * baseR * mod
+                        val my = centerY + sin(theta) * baseR * mod
+                        if (i == 0) {
+                            firstX = mx; firstY = my
+                            sharedMandalaPath.moveTo(mx, my)
+                        } else {
+                            sharedMandalaPath.quadraticTo(prevX, prevY, (prevX + mx) * 0.5f, (prevY + my) * 0.5f)
+                        }
+                        prevX = mx; prevY = my
+                    }
+                    sharedMandalaPath.quadraticTo(prevX, prevY, firstX, firstY)
+                    sharedMandalaPath.close()
+                    val mCol = if (ring == 0) cA else cB
+                    drawPath(
+                        path = sharedMandalaPath,
+                        color = mCol.copy(alpha = (0.26f + beatPulse * 0.14f) * fxAlpha),
+                        style = Stroke(width = 14f + beatPulse * 6f, cap = StrokeCap.Round),
+                        blendMode = BlendMode.Screen
+                    )
+                    drawPath(
+                        path = sharedMandalaPath,
+                        color = Color.White.copy(alpha = 0.55f * fxAlpha),
+                        style = Stroke(width = 2.6f, cap = StrokeCap.Round)
+                    )
+                }
+            }
+
+            StageFxBackdrop.STARFALL_WARP -> {
+                for (star in 0 until 24) {
+                    val ang = star * (2f * PI.toFloat() / 24f) + sin(star.toFloat()) * 0.18f
+                    val prog = ((time * (0.42f + (star % 4) * 0.09f) + star * 0.13f) % 1f)
+                    val dist = maxDim * (0.08f + prog * prog * 0.62f)
+                    val sx = centerX + cos(ang) * dist
+                    val sy = centerY + sin(ang) * dist
+                    val orbR = (4.5f + prog * 14f) * (1f + beatPulse * 0.25f)
+                    val sCol = if (star % 2 == 0) cA else cB
+                    drawCircle(
+                        brush = Brush.radialGradient(
+                            colors = listOf(Color.White.copy(alpha = 0.85f * prog * fxAlpha), sCol.copy(alpha = 0.45f * prog * fxAlpha), Color.Transparent),
+                            center = Offset(sx, sy),
+                            radius = orbR
+                        ),
+                        radius = orbR,
+                        center = Offset(sx, sy),
+                        blendMode = BlendMode.Screen
+                    )
+                }
+            }
+
+            StageFxBackdrop.PRISM_CAUSTICS -> {
+                val prismColors = listOf(Color(0xFF38BDF8L), Color(0xFF4ADE80L), Color(0xFFFACC15L), Color(0xFFEC4899L))
+                for (wave in 0 until 4) {
+                    val phase = ((time * 0.26f + wave * 0.25f) % 1f)
+                    val rWave = maxDim * (0.12f + phase * 0.56f)
+                    val fade = sin(phase * PI.toFloat()).coerceIn(0f, 1f) * fxAlpha
+                    val wCol = prismColors[wave % prismColors.size]
+                    drawCircle(
+                        color = wCol.copy(alpha = 0.34f * fade),
+                        radius = rWave,
+                        center = Offset(centerX + sin(time + wave) * 18f, centerY + cos(time + wave) * 18f),
+                        style = Stroke(width = 8.5f * fade + 1.5f),
+                        blendMode = BlendMode.Screen
+                    )
+                }
+            }
+
+            StageFxBackdrop.SOLAR_ECLIPSE -> {
+                val eclipseR = minOf(size.width, size.height) * (0.31f + bass * 0.04f)
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(
+                            Color(0xFFFEF08AL).copy(alpha = (0.45f + beatPulse * 0.20f) * fxAlpha),
+                            cA.copy(alpha = 0.32f * fxAlpha),
+                            Color.Transparent
+                        ),
+                        center = Offset(centerX, centerY),
+                        radius = eclipseR * 1.95f
+                    ),
+                    radius = eclipseR * 1.95f,
+                    center = Offset(centerX, centerY),
+                    blendMode = BlendMode.Screen
+                )
+                for (arc in 0 until 6) {
+                    val aDeg = (time * 48f + arc * 60f) % 360f
+                    drawArc(
+                        color = Color(0xFFFEF08AL).copy(alpha = 0.65f * fxAlpha),
+                        startAngle = aDeg,
+                        sweepAngle = 38f,
+                        useCenter = false,
+                        topLeft = Offset(centerX - eclipseR * 1.12f, centerY - eclipseR * 1.12f),
+                        size = Size(eclipseR * 2.24f, eclipseR * 2.24f),
+                        style = Stroke(width = 4.2f, cap = StrokeCap.Round),
+                        blendMode = BlendMode.Screen
+                    )
+                }
+            }
+
+            StageFxBackdrop.NEBULA_VORTEX -> {
+                for (arm in 0 until 3) {
+                    val armOffset = arm * (2f * PI.toFloat() / 3f) - time * 0.52f
+                    val spiral = Path()
+                    var prevX = centerX
+                    var prevY = centerY
+                    val steps = 28
+                    for (s in 0..steps) {
+                        val u = s.toFloat() / steps
+                        val rad = u * maxDim * 0.62f
+                        val theta = armOffset + u * 4.4f
+                        val vx = centerX + cos(theta) * rad
+                        val vy = centerY + sin(theta) * rad
+                        if (s == 0) spiral.moveTo(vx, vy)
+                        else {
+                            spiral.quadraticTo(prevX, prevY, (prevX + vx) * 0.5f, (prevY + vy) * 0.5f)
+                            if (s == steps) spiral.lineTo(vx, vy)
+                        }
+                        prevX = vx; prevY = vy
+                    }
+                    val vCol = if (arm % 2 == 0) cA else cB
+                    drawPath(
+                        path = spiral,
+                        color = vCol.copy(alpha = (0.22f + beatPulse * 0.12f) * fxAlpha),
+                        style = Stroke(width = 24f, cap = StrokeCap.Round),
+                        blendMode = BlendMode.Screen
+                    )
+                    drawPath(
+                        path = spiral,
+                        color = Color.White.copy(alpha = 0.44f * fxAlpha),
+                        style = Stroke(width = 3.2f, cap = StrokeCap.Round)
+                    )
+                }
+            }
         }
     }
 }

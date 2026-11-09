@@ -45,7 +45,9 @@ fun GamePlayfieldCanvas(
     enemyTelegraphs: List<EnemySpawnTelegraph> = emptyList(),
     wormholes: List<SingularityWormhole> = emptyList(),
     isBandHeroMode: Boolean = false,
-    brollOverlayAlpha: Float = 0f,
+    trackIndex: Int = 1,
+    activeStageFx: StageFxBackdrop? = null,
+    stageFxIntensity: Float = 0f,
     goldenTier: Int = 0,
     isFlowySwirlStage: Boolean = false,
     player: GameObject,
@@ -145,7 +147,9 @@ fun GamePlayfieldCanvas(
                 swellDelta = swellDelta,
                 activePhenomenon = activePhenomenon,
                 multiBand = multiBand,
-                brollOverlayAlpha = brollOverlayAlpha,
+                trackIndex = trackIndex,
+                activeStageFx = activeStageFx,
+                stageFxIntensity = stageFxIntensity,
                 goldenTier = goldenTier,
                 isFlowySwirlStage = isFlowySwirlStage
             )

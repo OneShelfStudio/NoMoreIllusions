@@ -1,10 +1,6 @@
 package com.oneshelfstudio.nomoreillusions
 
 import android.app.Activity
-import android.graphics.SurfaceTexture
-import android.media.MediaPlayer
-import android.view.Surface
-import android.view.TextureView
 import androidx.compose.ui.graphics.graphicsLayer
 import android.content.Context
 import android.content.SharedPreferences
@@ -454,24 +450,34 @@ fun GameScreen(
     var liveBeatPhase by remember { mutableFloatStateOf(0f) }
     var isBandHeroMode by remember { mutableStateOf(false) }
     var vocalStreamContrailTimer by remember { mutableFloatStateOf(0f) }
-    var isBrollEnabled by remember { mutableStateOf(prefs.getBoolean("enable_broll_video", true)) }
-    var brollActive by remember { mutableStateOf(false) }
-    var brollTimer by remember { mutableFloatStateOf(0f) }
-    var brollDurationTotal by remember { mutableFloatStateOf(11.0f) }
-    var brollClipIndex by remember { mutableIntStateOf(0) }
-    var brollBaseClip by remember { mutableIntStateOf(0) }
-    var brollClipFadeAlpha by remember { mutableFloatStateOf(0f) }
-    var brollCooldown by remember { mutableFloatStateOf(0f) }
-    var cipherMeterProgress by remember { mutableFloatStateOf(0f) }
-    var isCipherArmed by remember { mutableStateOf(false) }
-    var cipherArmedAtSec by remember { mutableFloatStateOf(0f) }
-    var videoWindowIndex by remember { mutableIntStateOf(0) }
-    var videoWindowFailed by remember { mutableStateOf(false) }
-    var videoOrbsCollectedInWindow by remember { mutableIntStateOf(0) }
-    var videoOrbsMissedInWindow by remember { mutableIntStateOf(0) }
-    var montage1Triggered by remember { mutableStateOf(false) }
-    var montage2Triggered by remember { mutableStateOf(false) }
+    val stageFxMaxDuration = 16.0f
+    val fxDropMaxCooldown = 6.5f
+    var activeStageFx by remember { mutableStateOf<StageFxBackdrop?>(null) }
+    var stageFxTimer by remember { mutableFloatStateOf(0f) }
+    var fxDropCooldown by remember { mutableFloatStateOf(0f) }
     var activeGoldenTier by remember { mutableIntStateOf(0) }
+
+    val unlockedStageFxSet = remember(unlockedShopItemsCsv, isVipUnlocked, highScore, trackCompletionsCsv, trackMasteryStarsCsv) {
+        val shopSet = unlockedShopItemsCsv.split(',').map { it.trim() }.filter { it.isNotEmpty() }.toSet()
+        val completions = parseCompletionsCsv(trackCompletionsCsv)
+        val stars = parseCompletionsCsv(trackMasteryStarsCsv)
+        buildSet {
+            add(StageFxBackdrop.AURORA_SILK)
+            add(StageFxBackdrop.KALEIDOSCOPE_MANDALA)
+            if (isVipUnlocked || "FX_STARFALL" in shopSet || completions.getOrElse(0) { 0 } > 0) {
+                add(StageFxBackdrop.STARFALL_WARP)
+            }
+            if (isVipUnlocked || "FX_PRISM" in shopSet || highScore >= 3000) {
+                add(StageFxBackdrop.PRISM_CAUSTICS)
+            }
+            if (isVipUnlocked || "FX_ECLIPSE" in shopSet || completions.getOrElse(1) { 0 } > 0) {
+                add(StageFxBackdrop.SOLAR_ECLIPSE)
+            }
+            if (isVipUnlocked || "FX_VORTEX" in shopSet || stars.any { it >= 3 }) {
+                add(StageFxBackdrop.NEBULA_VORTEX)
+            }
+        }
+    }
 
     val difficultyScoreMultiplier = getDifficultyScoreMultiplier(gameDifficulty, selectedRemixMode)
     val trackDifficultyBoost = getTrackDifficultyBoost(selectedTrackIndex)
@@ -517,6 +523,67 @@ fun GameScreen(
         }
     }
 
+    fun spawnStageFxDropOrb(fx: StageFxBackdrop) {
+        if (fxDropCooldown > 0.05f || screenWidth <= 10f || screenHeight <= 10f) return
+        val curSec = liveTrackSec
+        val laneIdx = fx.ordinal % 4
+        val dropAnchorX = if (isBandHeroMode) {
+            computeHighwayPoint(laneIdx.toFloat(), 0f, screenWidth, screenHeight).x
+        } else {
+            (player.x * 0.45f + screenWidth * (0.32f + (fx.ordinal % 3) * 0.16f))
+                .coerceIn(screenWidth * 0.24f, screenWidth * 0.76f)
+        }
+        val dropAnchorY = if (isBandHeroMode) screenHeight * 0.65f else screenHeight * 0.40f
+        val startX = dropAnchorX
+        val startY = -56f
+        powerUps.add(
+            GameObject(
+                x = startX,
+                y = startY,
+                radius = 36f,
+                color = applyColorBlind(Color(fx.accentHex)),
+                powerUpType = PowerUpType.NONE,
+                phase = fx.ordinal * 0.9f,
+                anchorX = dropAnchorX,
+                anchorY = dropAnchorY,
+                spawnBeatSec = curSec,
+                targetBeatSec = curSec + 1.45f,
+                expireBeatSec = curSec + 4.30f,
+                phraseBeatNum = laneIdx + 1,
+                sequenceIndex = 901 + fx.ordinal * 2,
+                keyWordEffect = KeyWordEffect.NONE,
+                spawnX = startX,
+                spawnY = startY,
+                exitX = dropAnchorX,
+                exitY = screenHeight + 76f,
+                stageFxDrop = fx
+            )
+        )
+        fxDropCooldown = fxDropMaxCooldown
+        audioEngine.playStageFxSummonChime(fx.ordinal)
+        triggerHaptic(32L)
+        shockwaves.add(
+            Shockwave(
+                dropAnchorX,
+                screenHeight * 0.12f,
+                0f,
+                190f,
+                Color(fx.accentHex),
+                0.70f,
+                RippleWaveStyle.AURORA_CHROMA_RIPPLE
+            )
+        )
+        activePowerUpToast = PowerUpBannerToast(
+            icon = "✦",
+            title = "${fx.shortLabel} FX ORB DROPPED!",
+            subtitle = "CATCH ORB TO TRANSFORM BACKGROUND",
+            accentColor = Color(fx.accentHex),
+            timer = 2.0f,
+            maxTimer = 2.0f
+        )
+        toastTimeLeft = 2.0f
+    }
+
     fun startFreshLevelRun(trackIdx: Int) {
         selectedTrackIndex = trackIdx.coerceIn(1, totalTracks)
         score = 0
@@ -527,18 +594,9 @@ fun GameScreen(
         val isTrainRun = (gameDifficulty == GameDifficulty.EASY || selectedRemixMode == TrackRemixMode.SLOWED)
         totalTrackOrbsThisRun = countPlayableChartOrbs(MusicLibrary.getTrack(selectedTrackIndex).orbChart, isTrainRun)
         lastCompletionBonusNotes = 0
-        cipherMeterProgress = 0f
-        isCipherArmed = false
-        cipherArmedAtSec = 0f
-        videoWindowIndex = 0
-        videoWindowFailed = false
-        videoOrbsCollectedInWindow = 0
-        videoOrbsMissedInWindow = 0
-        montage1Triggered = false
-        montage2Triggered = false
-        brollActive = false
-        brollTimer = 0f
-        brollClipFadeAlpha = 0f
+        activeStageFx = null
+        stageFxTimer = 0f
+        fxDropCooldown = 0f
         activeGoldenTier = 0
         isPreMusicDrift = false
         preMusicElapsed = 0f
@@ -732,13 +790,6 @@ fun GameScreen(
                 if (selectedRemixMode == TrackRemixMode.ENDLESS && audioEngine.loopCycleCount > lastLoopCycleSeen) {
                     lastLoopCycleSeen = audioEngine.loopCycleCount
                     nextOrbCueIdx = 0
-                    videoWindowIndex = 0
-                    videoWindowFailed = false
-                    videoOrbsCollectedInWindow = 0
-                    videoOrbsMissedInWindow = 0
-                    montage1Triggered = false
-                    montage2Triggered = false
-                    isCipherArmed = false
                     val newSpd = (1.0f + lastLoopCycleSeen * 0.08f).coerceAtMost(1.65f)
                     score += 500 * lastLoopCycleSeen
                     pulsePoints += 25
@@ -782,77 +833,6 @@ fun GameScreen(
                 }
                 val trackSec = if (audioRunningNow) audioEngine.trackPositionSeconds() else clockStep.trackSec
                 liveTrackSec = trackSec
-
-                // Manage Video Relic Window 1 vs Window 2 reset cleanly (starts ahead of first Video Orb spawn!)
-                val curWindowIdx = if (selectedTrackIndex == 1) {
-                    when {
-                        trackSec in 28.5f..61.0f -> 1
-                        trackSec in 83.5f..157.0f -> 2
-                        else -> 0
-                    }
-                } else {
-                    when {
-                        trackSec in 28.5f..55.4f -> 1
-                        trackSec in 76.0f..119.4f -> 2
-                        else -> 0
-                    }
-                }
-                if (curWindowIdx != 0 && curWindowIdx != videoWindowIndex) {
-                    videoWindowIndex = curWindowIdx
-                    videoWindowFailed = false
-                    isCipherArmed = false
-                    videoOrbsCollectedInWindow = 0
-                    videoOrbsMissedInWindow = 0
-                    if (!brollActive) {
-                        cipherMeterProgress = 0f
-                    }
-                }
-
-                // Cue-Locked Montage Launch: If the player collected 5/5 Video Relics ahead of the musical cue,
-                // launch Montage 1 right at 1:00 (0:54.5 Track 2) and Montage 2 right at 2:36 (1:58.5 Track 2)!
-                val montageCueDropSec = if (selectedTrackIndex == 1) {
-                    if (videoWindowIndex == 1) 59.5f else 155.5f
-                } else {
-                    if (videoWindowIndex == 1) 54.2f else 118.0f
-                }
-                val montageEndTargetSec = if (selectedTrackIndex == 1) {
-                    if (videoWindowIndex == 1) 68.5f else 170.0f
-                } else {
-                    if (videoWindowIndex == 1) 63.0f else 131.5f
-                }
-                val alreadyFiredThisWindow = (videoWindowIndex == 1 && montage1Triggered) || (videoWindowIndex == 2 && montage2Triggered)
-                if (isCipherArmed && !brollActive && !alreadyFiredThisWindow && trackSec >= montageCueDropSec) {
-                    isCipherArmed = false
-                    if (videoWindowIndex == 1) montage1Triggered = true else if (videoWindowIndex == 2) montage2Triggered = true
-                    brollBaseClip = if (videoWindowIndex == 1) 0 else 2
-                    brollClipIndex = brollBaseClip
-                    val montageDuration = (montageEndTargetSec - trackSec).coerceIn(8.0f, 16.0f)
-                    brollDurationTotal = montageDuration
-                    brollTimer = montageDuration
-                    brollActive = true
-                    audioEngine.playVideoMontageUnlockChime()
-                    triggerHaptic(58L)
-                    shockwaves.add(
-                        Shockwave(
-                            screenWidth * 0.5f,
-                            screenHeight * 0.45f,
-                            0f,
-                            maxOf(screenWidth, screenHeight) * 0.80f,
-                            Color(0xFF05D9E8L),
-                            1.05f,
-                            RippleWaveStyle.VHS_CHROMATIC_RIPPLE
-                        )
-                    )
-                    activePowerUpToast = PowerUpBannerToast(
-                        icon = "✦",
-                        title = if (videoWindowIndex == 1) "MONTAGE I UNLOCKED!" else "MONTAGE II UNLOCKED!",
-                        subtitle = "SLOW-MO STUDIO REEL ACTIVE",
-                        accentColor = Color(0xFF05D9E8L),
-                        timer = 2.6f,
-                        maxTimer = 2.6f
-                    )
-                    toastTimeLeft = 2.6f
-                }
 
                 val activeTrack = MusicLibrary.getTrack(selectedTrackIndex)
                 val mb = MusicLibrary.getMultiBandStateAt(selectedTrackIndex, trackSec.coerceAtLeast(0f))
@@ -1184,35 +1164,8 @@ fun GameScreen(
                     magnetActive = magnetTime > 0f && !isBandHeroMode,
                     isBandHeroMode = isBandHeroMode,
                     onBeatMissed = { missedOrb ->
-                        val windowDone = (videoWindowIndex == 1 && montage1Triggered) || (videoWindowIndex == 2 && montage2Triggered)
-                        if (missedOrb.isMusicVideoOrb && !brollActive && !isCipherArmed && !windowDone && !videoWindowFailed) {
-                            videoOrbsMissedInWindow++
-                            val missY = missedOrb.y.coerceIn(screenHeight * 0.25f, screenHeight * 0.85f)
-                            val missX = missedOrb.x.coerceIn(screenWidth * 0.15f, screenWidth * 0.85f)
-                            // 6 Video Orbs spawn per window and 5 are needed: 1st miss still leaves 5 obtainable orbs!
-                            if (videoOrbsMissedInWindow >= 2) {
-                                cipherMeterProgress = 0f
-                                videoWindowFailed = true
-                                triggerErrorHaptic()
-                                shakeAmount = maxOf(shakeAmount, 8.5f)
-                                chromaticAmount = maxOf(chromaticAmount, 3.2f)
-                                shockwaves.add(Shockwave(missX, missY, 0f, 280f, Color(0xFFFF2A6DL), 0.85f, RippleWaveStyle.VHS_CHROMATIC_RIPPLE))
-                                shockwaves.add(Shockwave(missX, missY, 0f, 180f, Color(0xFF05D9E8L), 0.65f, RippleWaveStyle.VHS_CHROMATIC_RIPPLE))
-                                activePowerUpToast = PowerUpBannerToast(
-                                    icon = "◈",
-                                    title = "VIDEO REEL MISSED!",
-                                    subtitle = "SIGNAL LOST • VHS METER RESET",
-                                    accentColor = Color(0xFFFF2A6DL),
-                                    timer = 2.4f,
-                                    maxTimer = 2.4f
-                                )
-                                toastTimeLeft = 2.4f
-                            } else {
-                                triggerHaptic(28L)
-                                chromaticAmount = maxOf(chromaticAmount, 1.4f)
-                                shockwaves.add(Shockwave(missX, missY, 0f, 150f, Color(0xFFFF2A6DL), 0.60f, RippleWaveStyle.VHS_CHROMATIC_RIPPLE))
-                            }
-                        }
+                        // Player-summoned Stage FX Orbs are pure optional bonus drops — missing one never breaks rhythm combo!
+                        if (missedOrb.stageFxDrop != null) return@stepNebulousBeatOrbs
                         if (isGoldenActive) {
                             // protected during 24K Overdrive rush!
                         } else if (rhythmCombo > 5) {
@@ -1312,8 +1265,53 @@ fun GameScreen(
                     val distSecondary = if (secPos != null) hypot(p.x - secPos.x, p.y - secPos.y) else 9999f
                     val distTetherMid = if (secPos != null) hypot(p.x - (player.x + secPos.x) * 0.5f, p.y - (player.y + secPos.y) * 0.5f) else 9999f
                     val dist = minOf(distPrimary, minOf(distSecondary, distTetherMid))
-                    val catchRadius = p.radius + player.radius + (if (isGoldenActive) 22f else 18f) + (if (p.isMusicVideoOrb) 10f else 0f)
+                    val catchRadius = p.radius + player.radius + (if (isGoldenActive) 22f else 18f) + (if (p.stageFxDrop != null) 12f else 0f)
                     if (dist < catchRadius) {
+                        val caughtStageFx = p.stageFxDrop
+                        if (caughtStageFx != null) {
+                            // Player-summoned Stage FX Drop Orb: Transforms the background visualizer for 16s!
+                            activeStageFx = caughtStageFx
+                            stageFxTimer = stageFxMaxDuration
+                            rhythmCombo++
+                            if (rhythmCombo > maxComboThisRun) maxComboThisRun = rhythmCombo
+                            val fxBonus = (250 * difficultyScoreMultiplier).toInt()
+                            score += fxBonus
+                            pulsePoints += 8
+                            cameraPunch = maxOf(cameraPunch, 0.042f)
+                            beatFlashIntensity = maxOf(beatFlashIntensity, 0.42f)
+                            audioEngine.playStageFxBloomChime()
+                            triggerHaptic(52L)
+                            val fxPrimary = Color(caughtStageFx.accentHex)
+                            val fxSecondary = Color(caughtStageFx.secondaryHex)
+                            shockwaves.add(Shockwave(p.x, p.y, 0f, 520f, fxPrimary, 1.15f, RippleWaveStyle.AURORA_CHROMA_RIPPLE))
+                            shockwaves.add(Shockwave(p.x, p.y, 0f, 340f, fxSecondary, 0.92f, RippleWaveStyle.PRISM_CAUSTIC_BLOOM))
+                            repeat(18) { sp ->
+                                val ang = (sp / 18f) * 6.283185f
+                                particles.add(
+                                    GameObject(
+                                        x = p.x,
+                                        y = p.y,
+                                        radius = 4.5f,
+                                        color = if (sp % 2 == 0) fxPrimary else fxSecondary,
+                                        vx = cos(ang) * 8.4f,
+                                        vy = sin(ang) * 8.4f,
+                                        life = 0.95f
+                                    )
+                                )
+                            }
+                            activePowerUpToast = PowerUpBannerToast(
+                                icon = "✦",
+                                title = "${caughtStageFx.title.uppercase()} ACTIVE!",
+                                subtitle = "${caughtStageFx.subtitle.uppercase()} • +$fxBonus PTS",
+                                accentColor = fxPrimary,
+                                timer = 2.6f,
+                                maxTimer = 2.6f
+                            )
+                            toastTimeLeft = 2.6f
+                            pIter.remove()
+                            continue
+                        }
+
                         orbsCollectedThisRun++
                         rhythmCombo++
                         if (rhythmCombo > maxComboThisRun) maxComboThisRun = rhythmCombo
@@ -1345,87 +1343,6 @@ fun GameScreen(
 
                         if (isCaughtOnBeat) {
                             onBeatHitsThisRun++
-                        }
-
-                        // Enigmatic Cipher / VHS Spool Orb: 5 video orbs fill the bar (+20% each), arming Slow-Mo Montage 1 & Montage 2!
-                        if (p.isMusicVideoOrb && !isSpecialTransitionOrb && isBrollEnabled) {
-                            val windowAlreadyFired = (videoWindowIndex == 1 && montage1Triggered) || (videoWindowIndex == 2 && montage2Triggered)
-                            if (!brollActive && !videoWindowFailed && !windowAlreadyFired) {
-                                videoOrbsCollectedInWindow++
-                                if (!isCipherArmed) {
-                                    cipherMeterProgress = (videoOrbsCollectedInWindow * 0.20f).coerceIn(0f, 1.0f)
-                                    val reelNum = videoOrbsCollectedInWindow.coerceIn(1, 5)
-                                    shockwaves.add(Shockwave(p.x, p.y, 0f, 210f, Color(0xFF05D9E8L), 0.78f, RippleWaveStyle.VHS_CHROMATIC_RIPPLE))
-                                    if (videoOrbsCollectedInWindow >= 5) {
-                                        cipherMeterProgress = 1.0f
-                                        val cueSec = if (selectedTrackIndex == 1) {
-                                            if (videoWindowIndex == 1) 59.5f else 155.5f
-                                        } else {
-                                            if (videoWindowIndex == 1) 54.2f else 118.0f
-                                        }
-                                        val endSec = if (selectedTrackIndex == 1) {
-                                            if (videoWindowIndex == 1) 68.5f else 170.0f
-                                        } else {
-                                            if (videoWindowIndex == 1) 63.0f else 131.5f
-                                        }
-                                        if (trackSec >= cueSec - 1.2f) {
-                                            // Already at the montage drop cue — launch immediately!
-                                            isCipherArmed = false
-                                            if (videoWindowIndex == 1) montage1Triggered = true else if (videoWindowIndex == 2) montage2Triggered = true
-                                            brollBaseClip = if (videoWindowIndex == 1) 0 else 2
-                                            brollClipIndex = brollBaseClip
-                                            val montageDuration = (endSec - trackSec).coerceIn(8.0f, 16.0f)
-                                            brollDurationTotal = montageDuration
-                                            brollTimer = montageDuration
-                                            brollActive = true
-                                            audioEngine.playVideoMontageUnlockChime()
-                                            triggerHaptic(58L)
-                                            shockwaves.add(Shockwave(screenWidth * 0.5f, screenHeight * 0.45f, 0f, maxOf(screenWidth, screenHeight) * 0.80f, Color(0xFF05D9E8L), 1.05f, RippleWaveStyle.VHS_CHROMATIC_RIPPLE))
-                                            activePowerUpToast = PowerUpBannerToast(
-                                                icon = "✦",
-                                                title = if (videoWindowIndex == 1) "MONTAGE I UNLOCKED (5/5)!" else "MONTAGE II UNLOCKED (5/5)!",
-                                                subtitle = "SLOW-MO STUDIO REEL ACTIVE",
-                                                accentColor = Color(0xFF05D9E8L),
-                                                timer = 2.6f,
-                                                maxTimer = 2.6f
-                                            )
-                                            toastTimeLeft = 2.6f
-                                        } else {
-                                            // Armed early — lock 100% VHS gauge and fire right on the musical beat!
-                                            isCipherArmed = true
-                                            cipherArmedAtSec = trackSec
-                                            audioEngine.playVideoMontageUnlockChime()
-                                            triggerHaptic(52L)
-                                            shockwaves.add(Shockwave(p.x, p.y, 0f, 340f, Color(0xFF05D9E8L), 0.95f, RippleWaveStyle.VHS_CHROMATIC_RIPPLE))
-                                            activePowerUpToast = PowerUpBannerToast(
-                                                icon = "✦",
-                                                title = "VHS REEL ARMED (5/5)!",
-                                                subtitle = "MONTAGE LOCKED FOR NEXT CUE",
-                                                accentColor = Color(0xFF05D9E8L),
-                                                timer = 2.3f,
-                                                maxTimer = 2.3f
-                                            )
-                                            toastTimeLeft = 2.3f
-                                        }
-                                    } else {
-                                        audioEngine.playVideoRelicChime(reelNum)
-                                        activePowerUpToast = PowerUpBannerToast(
-                                            icon = "◈",
-                                            title = "VIDEO REEL $reelNum / 5",
-                                            subtitle = "COLLECT 5 TO UNLOCK MONTAGE",
-                                            accentColor = Color(0xFF05D9E8L),
-                                            timer = 1.45f,
-                                            maxTimer = 1.45f
-                                        )
-                                        toastTimeLeft = 1.45f
-                                    }
-                                } else {
-                                    // Bonus 6th Video Orb collected while already armed!
-                                    audioEngine.playVideoRelicChime(5)
-                                    score += (250 * difficultyScoreMultiplier).toInt()
-                                    shockwaves.add(Shockwave(p.x, p.y, 0f, 220f, Color(0xFF05D9E8L), 0.80f, RippleWaveStyle.VHS_CHROMATIC_RIPPLE))
-                                }
-                            }
                         }
 
                         val noteGain = ((when {
@@ -1600,7 +1517,7 @@ fun GameScreen(
                                     triggerHaptic(65L)
                                     audioEngine.playHyper24kChime()
                                     powerUps.forEach { activeOrb ->
-                                        if (!activeOrb.isMusicVideoOrb) {
+                                        if (activeOrb.stageFxDrop == null) {
                                             activeOrb.isGoldenOrb = true
                                             activeOrb.color = Color(0xFFFACC15L)
                                         }
@@ -1838,66 +1755,21 @@ fun GameScreen(
                 }
                 shakeAmount *= 0.88f
                 chromaticAmount *= 0.88f
-                if (brollCooldown > 0f) brollCooldown -= dt
+                if (fxDropCooldown > 0f) {
+                    fxDropCooldown = (fxDropCooldown - dt).coerceAtLeast(0f)
+                }
+                if (stageFxTimer > 0f) {
+                    stageFxTimer = (stageFxTimer - dt).coerceAtLeast(0f)
+                    if (stageFxTimer <= 0f) {
+                        activeStageFx = null
+                    }
+                }
 
                 // Flowy whispy breakdown slow-mo during "losing your battles" (0:45 - 0:49.5) & spoken vocal drift
                 val isFlowyBreakdownTime = (selectedTrackIndex == 1 && (trackSec in 44.4f..49.5f || trackSec in 108.0f..115.2f)) ||
                     (selectedTrackIndex == 2 && (trackSec in 41.5f..47.0f || trackSec in 91.5f..97.0f))
                 if (isFlowyBreakdownTime) {
                     slowMoTime = maxOf(slowMoTime, 0.45f)
-                }
-
-                // If montage timestamp arrived but player did not gather all 5 relics, reset the meter with haptic & glitch
-                val isMontageCutoff = (selectedTrackIndex == 1 && ((trackSec in 60.5f..61.8f && !montage1Triggered) || (trackSec in 156.5f..157.8f && !montage2Triggered))) ||
-                    (selectedTrackIndex == 2 && ((trackSec in 54.8f..56.0f && !montage1Triggered) || (trackSec in 118.8f..120.0f && !montage2Triggered)))
-                if (isMontageCutoff && cipherMeterProgress > 0f && !isCipherArmed && !brollActive && !videoWindowFailed) {
-                    cipherMeterProgress = 0f
-                    videoWindowFailed = true
-                    triggerErrorHaptic()
-                    chromaticAmount = maxOf(chromaticAmount, 3.0f)
-                    shakeAmount = maxOf(shakeAmount, 7.5f)
-                    shockwaves.add(Shockwave(screenWidth * 0.5f, screenHeight * 0.45f, 0f, 260f, Color(0xFFFF2A6DL), 0.80f, RippleWaveStyle.VHS_CHROMATIC_RIPPLE))
-                    activePowerUpToast = PowerUpBannerToast(
-                        icon = "◈",
-                        title = "REEL INCOMPLETE",
-                        subtitle = "WINDOW MISSED • VHS METER RESET",
-                        accentColor = Color(0xFFFF2A6DL),
-                        timer = 2.2f,
-                        maxTimer = 2.2f
-                    )
-                    toastTimeLeft = 2.2f
-                }
-
-                if (brollActive) {
-                    brollTimer = (brollTimer - dt).coerceAtLeast(0f)
-                    // Smooth ambient slow-mo during video montages
-                    slowMoTime = maxOf(slowMoTime, 0.38f)
-
-                    // Smooth multi-clip crossfade envelope (2 clips for Montage 1, 3 clips during "oooohs" in Montage 2)
-                    val totalDur = brollDurationTotal.coerceAtLeast(4.0f)
-                    val numClips = if (totalDur >= 11.5f) 3 else 2
-                    val elapsed = (totalDur - brollTimer).coerceIn(0f, totalDur)
-                    val segLen = (totalDur / numClips.toFloat()).coerceAtLeast(2.5f)
-                    val segIdx = (elapsed / segLen).toInt().coerceIn(0, numClips - 1)
-                    val targetClip = (brollBaseClip + segIdx) % 4
-                    if (brollClipIndex != targetClip) {
-                        brollClipIndex = targetClip
-                    }
-                    val segLocal = (elapsed - segIdx * segLen).coerceIn(0f, segLen)
-                    val fadeSec = minOf(0.82f, segLen * 0.25f)
-                    val rawIn = (segLocal / fadeSec).coerceIn(0f, 1f)
-                    val rawOut = ((segLen - segLocal) / fadeSec).coerceIn(0f, 1f)
-                    val smoothIn = rawIn * rawIn * (3f - 2f * rawIn)
-                    val smoothOut = rawOut * rawOut * (3f - 2f * rawOut)
-                    brollClipFadeAlpha = minOf(smoothIn, smoothOut) * 0.88f
-
-                    if (brollTimer <= 0f) {
-                        brollActive = false
-                        brollClipFadeAlpha = 0f
-                        cipherMeterProgress = 0f
-                    }
-                } else {
-                    brollClipFadeAlpha = 0f
                 }
             }
         }
@@ -1914,26 +1786,15 @@ fun GameScreen(
             targetY = player.y
         }
 
-        // Smooth session envelope hides center album art throughout the entire montage (without flickering on clip switches)
-        val brollAlbumHideAlpha by animateFloatAsState(
-            targetValue = if ((gameState == GameState.PLAYING || gameState == GameState.PAUSED) && isBrollEnabled && brollActive) 0.92f else 0f,
-            animationSpec = tween(durationMillis = 750),
-            label = "brollAlbumHideAlpha"
+        val stageFxSmoothIntensity by animateFloatAsState(
+            targetValue = if (activeStageFx != null && stageFxTimer > 0f) {
+                (stageFxTimer / 2.2f).coerceIn(0f, 1f)
+            } else 0f,
+            animationSpec = tween(durationMillis = 480),
+            label = "stageFxSmoothIntensity"
         )
-        val effectiveBrollClipAlpha = if ((gameState == GameState.PLAYING || gameState == GameState.PAUSED) && isBrollEnabled && brollActive) {
-            brollClipFadeAlpha
-        } else 0f
         val isFlowyStageVisual = (selectedTrackIndex == 1 && (liveTrackSec in 44.4f..49.5f || liveTrackSec in 108.0f..115.2f)) ||
             (selectedTrackIndex == 2 && (liveTrackSec in 41.5f..47.0f || liveTrackSec in 91.5f..97.0f))
-
-        // Translucent Slow-Mo Crossfade Music Video B-Roll Overlay
-        if ((gameState == GameState.PLAYING || gameState == GameState.PAUSED) && isBrollEnabled) {
-            BrollVideoOverlay(
-                isActive = brollActive,
-                clipIndex = brollClipIndex,
-                visualAlpha = effectiveBrollClipAlpha
-            )
-        }
 
         GamePlayfieldCanvas(
             gameState = gameState,
@@ -1965,7 +1826,9 @@ fun GameScreen(
             enemyTelegraphs = enemyTelegraphs,
             wormholes = wormholes,
             isBandHeroMode = isBandHeroMode,
-            brollOverlayAlpha = brollAlbumHideAlpha,
+            trackIndex = selectedTrackIndex,
+            activeStageFx = activeStageFx,
+            stageFxIntensity = stageFxSmoothIntensity,
             goldenTier = activeGoldenTier,
             isFlowySwirlStage = isFlowyStageVisual,
             player = player,
@@ -2023,11 +1886,14 @@ fun GameScreen(
                 endlessLoopCount = if (selectedRemixMode == TrackRemixMode.ENDLESS) lastLoopCycleSeen else 0,
                 overdriveProgress = overdriveProgress,
                 is24KOverdrive = starPowerTime > 0f || activeStageMode == StageMode.GOLDEN_OVERDRIVE,
-                cipherMeterProgress = cipherMeterProgress,
-                isCipherArmed = isCipherArmed,
-                isBrollPlaying = brollActive,
-                brollPlayProgress = if (brollDurationTotal > 0f) (brollTimer / brollDurationTotal).coerceIn(0f, 1f) else 0f,
+                unlockedStageFx = unlockedStageFxSet,
+                activeStageFx = activeStageFx,
+                stageFxRemainingRatio = (stageFxTimer / stageFxMaxDuration).coerceIn(0f, 1f),
+                fxDropCooldownRatio = (fxDropCooldown / fxDropMaxCooldown).coerceIn(0f, 1f),
                 comboBanner = null,
+                onDropStageFxOrb = { fx ->
+                    spawnStageFxDropOrb(fx)
+                },
                 onActivate24K = {
                     activeGoldenTier = 2
                     starPowerTime = 10.0f
@@ -2035,7 +1901,7 @@ fun GameScreen(
                     overdriveProgress = 0f
                     shakeAmount = maxOf(shakeAmount, 18f)
                     powerUps.forEach {
-                        if (!it.isMusicVideoOrb) {
+                        if (it.stageFxDrop == null) {
                             it.isGoldenOrb = true
                             it.color = Color(0xFFFACC15L)
                         }
@@ -2195,11 +2061,6 @@ fun GameScreen(
                 isMusic = isMusicEnabled,
                 isSound = isSoundEnabled,
                 isHaptic = isHapticEnabled,
-                isBrollVideo = isBrollEnabled,
-                onBrollVideoToggle = {
-                    isBrollEnabled = it
-                    prefs.edit().putBoolean("enable_broll_video", it).apply()
-                },
                 difficulty = gameDifficulty,
                 activeLobbyTrack = activeLobbyTrack,
                 onLobbyTrackChange = {
@@ -2405,132 +2266,6 @@ fun GameScreen(
             )
         }
     }
-    }
-}
-
-
-@Composable
-fun BrollVideoOverlay(
-    isActive: Boolean,
-    clipIndex: Int,
-    visualAlpha: Float,
-    modifier: Modifier = Modifier
-) {
-    var mediaPlayerRef by remember { mutableStateOf<MediaPlayer?>(null) }
-    val loadedClipHolder = remember { intArrayOf(-1) }
-    val surfaceHolder = remember { arrayOfNulls<Surface>(1) }
-
-    fun applyAspectFitTransform(tv: TextureView, videoW: Int, videoH: Int) {
-        val viewW = tv.width.toFloat()
-        val viewH = tv.height.toFloat()
-        if (viewW <= 0f || viewH <= 0f || videoW <= 0 || videoH <= 0) return
-        // True Aspect-Fit (fitCenter): Scales video uniformly to fit inside screen bounds with zero stretching
-        val fitScale = minOf(viewW / videoW.toFloat(), viewH / videoH.toFloat())
-        val targetW = videoW * fitScale
-        val targetH = videoH * fitScale
-        val matrix = android.graphics.Matrix()
-        matrix.setScale(targetW / viewW, targetH / viewH, viewW * 0.5f, viewH * 0.5f)
-        tv.setTransform(matrix)
-    }
-
-    fun loadClipIntoPlayer(ctx: android.content.Context, tv: TextureView, targetClipIdx: Int, playNow: Boolean) {
-        val surf = surfaceHolder[0] ?: return
-        val clipNum = ((targetClipIdx % 4) + 4) % 4 + 1
-        try {
-            val existing = mediaPlayerRef
-            val player = if (existing != null) {
-                existing.reset()
-                existing
-            } else {
-                MediaPlayer().also { mediaPlayerRef = it }
-            }
-            val afd = ctx.assets.openFd("broll/broll_$clipNum.mp4")
-            player.setSurface(surf)
-            player.isLooping = true
-            player.setVolume(0f, 0f)
-            player.setDataSource(afd.fileDescriptor, afd.startOffset, afd.length)
-            afd.close()
-            loadedClipHolder[0] = targetClipIdx
-            player.setOnVideoSizeChangedListener { _, vw, vh ->
-                applyAspectFitTransform(tv, vw, vh)
-            }
-            player.setOnPreparedListener { mp ->
-                applyAspectFitTransform(tv, mp.videoWidth, mp.videoHeight)
-                if (playNow) {
-                    runCatching {
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                            mp.playbackParams = android.media.PlaybackParams().setSpeed(0.55f)
-                        }
-                        mp.start()
-                    }.onFailure {
-                        runCatching { mp.start() }
-                    }
-                }
-            }
-            player.prepareAsync()
-        } catch (_: Exception) {}
-    }
-
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .graphicsLayer { alpha = visualAlpha.coerceIn(0f, 1f) }
-    ) {
-        AndroidView(
-            factory = { ctx ->
-                TextureView(ctx).apply {
-                    isOpaque = false
-                    surfaceTextureListener = object : TextureView.SurfaceTextureListener {
-                        override fun onSurfaceTextureAvailable(st: SurfaceTexture, w: Int, h: Int) {
-                            surfaceHolder[0] = Surface(st)
-                            loadClipIntoPlayer(ctx, this@apply, clipIndex, isActive)
-                        }
-
-                        override fun onSurfaceTextureSizeChanged(st: SurfaceTexture, w: Int, h: Int) {
-                            mediaPlayerRef?.let { mp ->
-                                runCatching { applyAspectFitTransform(this@apply, mp.videoWidth, mp.videoHeight) }
-                            }
-                        }
-
-                        override fun onSurfaceTextureDestroyed(st: SurfaceTexture): Boolean {
-                            runCatching {
-                                mediaPlayerRef?.stop()
-                                mediaPlayerRef?.release()
-                            }
-                            mediaPlayerRef = null
-                            surfaceHolder[0]?.release()
-                            surfaceHolder[0] = null
-                            loadedClipHolder[0] = -1
-                            return true
-                        }
-
-                        override fun onSurfaceTextureUpdated(st: SurfaceTexture) {}
-                    }
-                }
-            },
-            update = { tv ->
-                if (surfaceHolder[0] != null && loadedClipHolder[0] != clipIndex) {
-                    loadClipIntoPlayer(tv.context, tv, clipIndex, isActive)
-                } else {
-                    val mp = mediaPlayerRef
-                    if (mp != null) {
-                        if (isActive) {
-                            runCatching {
-                                if (!mp.isPlaying) {
-                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                                        runCatching { mp.playbackParams = android.media.PlaybackParams().setSpeed(0.55f) }
-                                    }
-                                    mp.start()
-                                }
-                            }
-                        } else if (visualAlpha <= 0.02f) {
-                            runCatching { if (mp.isPlaying) mp.pause() }
-                        }
-                    }
-                }
-            },
-            modifier = Modifier.fillMaxSize()
-        )
     }
 }
 

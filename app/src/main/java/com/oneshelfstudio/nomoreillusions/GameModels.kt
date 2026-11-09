@@ -16,8 +16,89 @@ enum class RippleWaveStyle {
     VELVET_WATER_DROP,
     SOLAR_MANDALA_RIPPLE,
     HYPER_CORONA_BLOOM,
-    VHS_CHROMATIC_RIPPLE,
+    AURORA_CHROMA_RIPPLE,
     PRISM_CAUSTIC_BLOOM
+}
+
+/**
+ * Unlockable & live-summonable Stage FX Orbs for the Stage FX Drop Board.
+ * Players tap an unlocked FX on the board to drop a custom Stage FX Orb onto the playfield;
+ * catching it morphs the background visualizer for 16 seconds with harmonic chimes & bonus points.
+ */
+enum class StageFxBackdrop(
+    val id: String,
+    val shopId: String,
+    val title: String,
+    val shortLabel: String,
+    val subtitle: String,
+    val costNotes: Int,
+    val accentHex: Long,
+    val secondaryHex: Long
+) {
+    AURORA_SILK(
+        id = "AURORA_SILK",
+        shopId = "FX_AURORA",
+        title = "Aurora Curtains",
+        shortLabel = "AURORA",
+        subtitle = "Northern-lights silk ribbons",
+        costNotes = 0,
+        accentHex = 0xFF38BDF8L,
+        secondaryHex = 0xFF4ADE80L
+    ),
+    KALEIDOSCOPE_MANDALA(
+        id = "KALEIDOSCOPE_MANDALA",
+        shopId = "FX_MANDALA",
+        title = "Lotus Mandala",
+        shortLabel = "LOTUS",
+        subtitle = "12-petal sacred geometry bloom",
+        costNotes = 0,
+        accentHex = 0xFFFACC15L,
+        secondaryHex = 0xFF38BDF8L
+    ),
+    STARFALL_WARP(
+        id = "STARFALL_WARP",
+        shopId = "FX_STARFALL",
+        title = "Starfall Warp",
+        shortLabel = "WARP",
+        subtitle = "Radial starlight hyper-tunnel",
+        costNotes = 400,
+        accentHex = 0xFF7DD3FCL,
+        secondaryHex = 0xFFC084FCL
+    ),
+    PRISM_CAUSTICS(
+        id = "PRISM_CAUSTICS",
+        shopId = "FX_PRISM",
+        title = "Prism Caustics",
+        shortLabel = "PRISM",
+        subtitle = "Rainbow water-drop dispersion",
+        costNotes = 750,
+        accentHex = 0xFF4ADE80L,
+        secondaryHex = 0xFFEC4899L
+    ),
+    SOLAR_ECLIPSE(
+        id = "SOLAR_ECLIPSE",
+        shopId = "FX_ECLIPSE",
+        title = "24K Eclipse",
+        shortLabel = "ECLIPSE",
+        subtitle = "Obsidian core & liquid-gold corona",
+        costNotes = 1100,
+        accentHex = 0xFFF59E0BL,
+        secondaryHex = 0xFFFEF08AL
+    ),
+    NEBULA_VORTEX(
+        id = "NEBULA_VORTEX",
+        shopId = "FX_VORTEX",
+        title = "Nebula Vortex",
+        shortLabel = "VORTEX",
+        subtitle = "Twin amethyst spiral galaxy arms",
+        costNotes = 1500,
+        accentHex = 0xFFC084FCL,
+        secondaryHex = 0xFFF43F5EL
+    );
+
+    companion object {
+        fun fromId(id: String?): StageFxBackdrop? = entries.firstOrNull { it.id == id }
+    }
 }
 
 /**
@@ -215,7 +296,7 @@ data class GameObject(
     var trajVy: Float = 0f,
     var squish: Float = 0f,
     var squishAngle: Float = 0f,
-    var isMusicVideoOrb: Boolean = false,
+    var stageFxDrop: StageFxBackdrop? = null,
     var swirlStrength: Float = 0f,
     var goldenTier: Int = 0
 )

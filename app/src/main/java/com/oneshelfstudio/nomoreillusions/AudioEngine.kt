@@ -165,26 +165,26 @@ class AudioEngine(private val context: Context) {
     }
 
     /**
-     * Pitch-stepped Vibraphone + Crystal Bell fifth interval as each VHS Video Relic fills 1/5 -> 4/5.
+     * Pitch-stepped Vibraphone + Crystal Bell fifth shimmer when summoning a Stage FX Orb from the FX Board.
      */
-    fun playVideoRelicChime(step: Int) {
+    fun playStageFxSummonChime(fxOrdinal: Int) {
         if (!isSoundEnabled) return
-        val stepPitches = floatArrayOf(0.92f, 1.00f, 1.08f, 1.17f, 1.26f)
-        val rate = stepPitches[(step - 1).coerceIn(0, stepPitches.lastIndex)]
+        val stepPitches = floatArrayOf(0.94f, 1.02f, 1.10f, 1.18f, 1.26f, 1.33f)
+        val rate = stepPitches[fxOrdinal.coerceIn(0, stepPitches.lastIndex)]
         if (videoRelicChimeSound != 0) {
-            soundPool.play(videoRelicChimeSound, 0.44f, 0.44f, 2, 0, rate)
+            soundPool.play(videoRelicChimeSound, 0.38f, 0.38f, 2, 0, rate)
         } else if (focusSound != 0) {
-            soundPool.play(focusSound, 0.32f, 0.32f, 1, 0, rate)
+            soundPool.play(focusSound, 0.28f, 0.28f, 1, 0, rate)
         }
     }
 
     /**
-     * Warm Chorused Rhodes + Harp + Atmosphere resolving bloom when the 5/5 Video Montage unlocks.
+     * Warm Chorused Rhodes + Harp + Atmosphere resolving bloom when catching a Stage FX Orb to morph the stage.
      */
-    fun playVideoMontageUnlockChime() {
+    fun playStageFxBloomChime() {
         if (!isSoundEnabled) return
         if (videoMontageUnlockSound != 0) {
-            soundPool.play(videoMontageUnlockSound, 0.56f, 0.56f, 2, 0, 1.0f)
+            soundPool.play(videoMontageUnlockSound, 0.54f, 0.54f, 2, 0, 1.0f)
         } else {
             playSpecial24kChime(1.08f)
         }

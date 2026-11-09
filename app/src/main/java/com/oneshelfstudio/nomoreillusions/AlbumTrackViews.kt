@@ -167,11 +167,14 @@ fun TrackListList(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
+                    val pressing = MusicLibrary.pressingEditionForTrack(t.index)
                     Text(
-                        text = "${formatTrackTime(t.durationSec)} • ${t.sections.size} STAGES",
-                        color = if (selectedRow) Color(0xFF7DD3FCL) else Color.White.copy(alpha = 0.50f),
+                        text = "${formatTrackTime(t.durationSec)} • ${pressing.editionTitle}",
+                        color = if (selectedRow) Color(0xFF7DD3FCL) else Color(pressing.primaryHex).copy(alpha = 0.78f),
                         fontWeight = FontWeight.SemiBold,
-                        fontSize = 10.sp
+                        fontSize = 10.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
 
@@ -226,6 +229,74 @@ fun TrackListList(
                             )
                         }
                     }
+                }
+            }
+        }
+
+        // Reserved Upcoming Song Slots for Ethan Correa's Next Official Singles
+        items(MusicLibrary.upcomingReleaseSlots.size) { slotIdx ->
+            val slot = MusicLibrary.upcomingReleaseSlots[slotIdx]
+            val slotAccent = Color(slot.accentHex)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(
+                        Brush.horizontalGradient(
+                            listOf(Color(0xFF050A16L), Color(0xFF03060EL))
+                        )
+                    )
+                    .border(1.dp, slotAccent.copy(alpha = 0.28f), RoundedCornerShape(14.dp))
+                    .padding(vertical = 12.dp, horizontal = 14.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(width = 36.dp, height = 28.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(slotAccent.copy(alpha = 0.14f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = slot.index.toString().padStart(2, '0'),
+                        color = slotAccent,
+                        fontWeight = FontWeight.Black,
+                        fontSize = 11.sp
+                    )
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = slot.workingTitle,
+                        color = Color.White.copy(alpha = 0.72f),
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.5.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = "ETHAN CORREA • ${slot.editionName.uppercase()}",
+                        color = slotAccent.copy(alpha = 0.78f),
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 9.5.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                Box(
+                    modifier = Modifier
+                        .clip(CircleShape)
+                        .background(slotAccent.copy(alpha = 0.14f))
+                        .border(1.dp, slotAccent.copy(alpha = 0.50f), CircleShape)
+                        .padding(horizontal = 9.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        text = slot.statusBadge,
+                        color = slotAccent,
+                        fontSize = 8.5.sp,
+                        fontWeight = FontWeight.Black
+                    )
                 }
             }
         }
@@ -343,6 +414,55 @@ fun TrackListGrid(
                 Text(
                     text = badgeText,
                     color = badgeColor,
+                    fontWeight = FontWeight.Black,
+                    fontSize = 9.sp,
+                    modifier = Modifier.align(Alignment.BottomEnd)
+                )
+            }
+        }
+
+        items(MusicLibrary.upcomingReleaseSlots) { slot ->
+            val slotAccent = Color(slot.accentHex)
+            Box(
+                modifier = Modifier
+                    .height(106.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(Color(0xFF050A16L), Color(0xFF03060EL))
+                        )
+                    )
+                    .border(1.dp, slotAccent.copy(alpha = 0.30f), RoundedCornerShape(16.dp))
+                    .padding(12.dp)
+            ) {
+                Column {
+                    Text(
+                        text = "TRACK %02d • %s".format(slot.index, slot.statusBadge),
+                        color = slotAccent,
+                        fontWeight = FontWeight.Black,
+                        fontSize = 9.sp
+                    )
+                    Spacer(modifier = Modifier.height(3.dp))
+                    Text(
+                        text = slot.workingTitle,
+                        color = Color.White.copy(alpha = 0.72f),
+                        fontWeight = FontWeight.Black,
+                        fontSize = 14.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = slot.editionName,
+                        color = slotAccent.copy(alpha = 0.75f),
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 9.5.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                Text(
+                    text = "SOON",
+                    color = slotAccent,
                     fontWeight = FontWeight.Black,
                     fontSize = 9.sp,
                     modifier = Modifier.align(Alignment.BottomEnd)

@@ -47,14 +47,14 @@ internal fun ArtistVaultShowcaseModal(
     var selectedSubTab by remember(vaultId) { mutableIntStateOf(0) }
 
     val title = when (vaultId) {
-        "VAULT_LYRICS" -> "DIRECTOR'S CUT LYRIC BOOKLET"
-        "VAULT_POLAROIDS" -> "NO MORĒ ILLUSĪONS ERA ARCHIVE"
-        else -> "4K HOLOGRAPHIC ART & VINYL VAULT"
+        "VAULT_LYRICS" -> "OFFICIAL TRACK CREDITS"
+        "VAULT_POLAROIDS", "VAULT_ERA" -> "ARTIST EXCLUSIVES & RELEASES"
+        else -> "COLLECTOR'S VINYL PRESSING VAULT"
     }
     val badge = when (vaultId) {
-        "VAULT_LYRICS" -> "SONG ARCHITECTURE & SECTION TIMELINE"
-        "VAULT_POLAROIDS" -> "BEHIND THE SCENES • STUDIO NOTES"
-        else -> "COLLECTOR'S PRESSING • HIGH-RES COVER ART"
+        "VAULT_LYRICS" -> "RELEASE ARCHITECTURE & CREDITS"
+        "VAULT_POLAROIDS", "VAULT_ERA" -> "OFFICIAL SINGLES • FUTURE ARTIST EXCLUSIVES"
+        else -> "COLLECTOR'S EDITION • OFFICIAL ARTWORK"
     }
 
     StudioDialog(
@@ -139,11 +139,11 @@ internal fun ArtistVaultShowcaseModal(
                     }
                 }
 
-                "VAULT_POLAROIDS" -> {
+                "VAULT_POLAROIDS", "VAULT_ERA" -> {
                     val cards = listOf(
-                        Triple("STUDIO ARCHIVE • TRACK 01", "Confide — Official master recording and stems engineered for No Morē Illusīons.", Color(0xFF4ADE80L)),
-                        Triple("STUDIO ARCHIVE • TRACK 02", "Number One — Official master recording and stems engineered for No Morē Illusīons.", Color(0xFF818CF8L)),
-                        Triple("OFFICIAL RELEASES", "No Morē Illusīons — Connect with @EthanCorrea and share your highest scores using #NoMoreIllusions.", Color(0xFFFACC15L))
+                        Triple("OFFICIAL RELEASE • TRACK 01", "Confide — Official audio release by Ethan Correa (Emerald Obsidian Pressing).", Color(0xFF4ADE80L)),
+                        Triple("OFFICIAL RELEASE • TRACK 02", "Number One — Official audio release by Ethan Correa (24K Solar Gold Pressing).", Color(0xFFFACC15L)),
+                        Triple("UPCOMING MUSIC & EXCLUSIVES", "More Ethan Correa singles and future artist exclusives will unlock here as new tracks release!", Color(0xFF38BDF8L))
                     )
                     Column(
                         verticalArrangement = Arrangement.spacedBy(7.dp),
@@ -447,21 +447,21 @@ fun ArtistExclusivesSpecialsHub(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         StudioPillButton(
-                            text = "LYRIC BOOK",
+                            text = "TRACK CREDITS",
                             palette = StudioPillPalette.CYAN_SYNTH,
                             onClick = { activeModalId = "VAULT_LYRICS" },
                             modifier = Modifier.weight(1f).height(42.dp),
                             fontSize = 10.sp
                         )
                         StudioPillButton(
-                            text = "STUDIO NOTES",
+                            text = "EXCLUSIVES",
                             palette = StudioPillPalette.VELVET_AMETHYST,
-                            onClick = { activeModalId = "VAULT_POLAROIDS" },
+                            onClick = { activeModalId = "VAULT_ERA" },
                             modifier = Modifier.weight(1f).height(42.dp),
                             fontSize = 10.sp
                         )
                         StudioPillButton(
-                            text = "4K ARTWORK",
+                            text = "VINYL EDITIONS",
                             palette = StudioPillPalette.EMERALD_STAGE,
                             onClick = { activeModalId = "VAULT_WALLPAPER" },
                             modifier = Modifier.weight(1f).height(42.dp),
@@ -474,7 +474,7 @@ fun ArtistExclusivesSpecialsHub(
             Spacer(modifier = Modifier.height(18.dp))
 
             Text(
-                text = "STUDIO ARCHIVE ENVELOPES",
+                text = "OFFICIAL RELEASES & FUTURE EXCLUSIVES",
                 color = Color(0xFF38BDF8L),
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Black,

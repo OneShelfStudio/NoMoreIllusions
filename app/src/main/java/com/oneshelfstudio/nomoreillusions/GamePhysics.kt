@@ -469,7 +469,7 @@ fun stepNebulousBeatOrbs(
             val totalSpan = (orb.expireBeatSec - orb.spawnBeatSec).coerceAtLeast(leadDur + 0.45f)
             val lifeFrac = ((trackSec - orb.spawnBeatSec) / totalSpan).coerceIn(0f, 1.05f)
             val clampedLife = lifeFrac.coerceIn(0f, 1f)
-            val isSpecial = orb.powerUpType != PowerUpType.NONE || orb.keyWordEffect != KeyWordEffect.NONE
+            val isSpecial = orb.powerUpType != PowerUpType.NONE || orb.keyWordEffect != KeyWordEffect.NONE || orb.stageFxDrop != null
 
             if (isSpecial) {
                 // Special Milestone Orbs: Ease smoothly into their upper-middle pocket (0.28h) right on targetBeatSec,

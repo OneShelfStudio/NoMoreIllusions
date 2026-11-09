@@ -1,5 +1,6 @@
 package com.oneshelfstudio.nomoreillusions
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -7,6 +8,10 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -17,6 +22,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -64,14 +72,17 @@ fun HUD(
     endlessLoopCount: Int = 0,
     overdriveProgress: Float = 0f,
     is24KOverdrive: Boolean = false,
-    cipherMeterProgress: Float = 0f,
-    isCipherArmed: Boolean = false,
-    isBrollPlaying: Boolean = false,
-    brollPlayProgress: Float = 0f,
+    unlockedStageFx: Set<StageFxBackdrop> = setOf(StageFxBackdrop.AURORA_SILK, StageFxBackdrop.KALEIDOSCOPE_MANDALA),
+    activeStageFx: StageFxBackdrop? = null,
+    stageFxRemainingRatio: Float = 0f,
+    fxDropCooldownRatio: Float = 0f,
     comboBanner: ComboZoomBannerData? = null,
+    onDropStageFxOrb: (StageFxBackdrop) -> Unit = {},
     onActivate24K: () -> Unit = {},
     onPause: () -> Unit
 ) {
+    var isFxBoardExpanded by remember { mutableStateOf(false) }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -137,7 +148,7 @@ fun HUD(
             }
         }
 
-        // Compact Frosted Relic / Milestone Toast Pill (shows Video Reel 1..5/5, Armed, Miss Reset, & 24K Spectacles!)
+        // Compact Frosted Milestone / Stage FX Drop Toast Pill
         if (activePowerUpToast != null && toastTimeLeft > 0f && (comboBanner == null || comboBanner.timer <= 0f)) {
             val maxT = activePowerUpToast.maxTimer.coerceAtLeast(0.5f)
             val elapsed = (maxT - toastTimeLeft).coerceAtLeast(0f)
@@ -301,6 +312,24 @@ fun HUD(
                         ) {
                             Text(text = "FLOW", color = Color(0xFFC084FCL), fontSize = 9.sp, fontWeight = FontWeight.Black)
                         }
+                        Spacer(modifier = Modifier.width(6.dp))
+                    }
+                    if (activeStageFx != null && stageFxRemainingRatio > 0.02f) {
+                        val fxAccent = Color(activeStageFx.accentHex)
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(fxAccent.copy(alpha = 0.20f))
+                                .border(1.dp, fxAccent, RoundedCornerShape(6.dp))
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        ) {
+                            Text(
+                                text = "✦ ${activeStageFx.shortLabel}",
+                                color = fxAccent,
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Black
+                            )
+                        }
                     }
                 }
 
@@ -434,150 +463,205 @@ fun HUD(
             }
         }
 
-        // 3b. Left-Edge Analog VHS Cipher Gauge (5-Step Meter -> Armed Glow -> Slow-Mo Montage!)
-        val cipherSpinInf = rememberInfiniteTransition(label = "cipherGauge")
-        val cipherSpinDeg by cipherSpinInf.animateFloat(
+        // 3b. Left-Edge Interactive "STAGE FX DROP BOARD"
+        // Tap the left FX capsule to expand the Stage FX Board, pick any unlocked FX, and drop a Special FX Orb!
+        val fxSpinInf = rememberInfiniteTransition(label = "fxBoardAnim")
+        val fxSpinDeg by fxSpinInf.animateFloat(
             initialValue = 0f,
             targetValue = 360f,
             animationSpec = infiniteRepeatable(
-                animation = tween(durationMillis = if (isCipherArmed || isBrollPlaying) 2200 else 6400, easing = LinearEasing),
+                animation = tween(durationMillis = if (activeStageFx != null) 2800 else 6200, easing = LinearEasing),
                 repeatMode = RepeatMode.Restart
             ),
-            label = "cipherSpin"
+            label = "fxSpin"
         )
-        val cipherPulse by cipherSpinInf.animateFloat(
+        val fxPulse by fxSpinInf.animateFloat(
             initialValue = 1.0f,
-            targetValue = if (isCipherArmed || isBrollPlaying) 1.10f else 1.0f,
+            targetValue = if (fxDropCooldownRatio <= 0.01f && !isFxBoardExpanded) 1.06f else 1.0f,
             animationSpec = infiniteRepeatable(
-                animation = tween(durationMillis = 540, easing = FastOutSlowInEasing),
+                animation = tween(durationMillis = 720, easing = FastOutSlowInEasing),
                 repeatMode = RepeatMode.Reverse
             ),
-            label = "cipherPulse"
+            label = "fxPulse"
         )
-        val cipherDisplayFill = when {
-            isBrollPlaying -> brollPlayProgress.coerceIn(0.05f, 1f)
-            isCipherArmed -> 1.0f
-            else -> cipherMeterProgress.coerceIn(0f, 1f)
-        }
-        if (cipherDisplayFill > 0.01f || isCipherArmed || isBrollPlaying) {
+
+        val leadAccent = Color(activeStageFx?.accentHex ?: 0xFF38BDF8L)
+        val leadSecondary = Color(activeStageFx?.secondaryHex ?: 0xFFA855F7L)
+        val isDropReady = fxDropCooldownRatio <= 0.01f
+
+        Column(
+            horizontalAlignment = Alignment.Start,
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+            modifier = Modifier
+                .align(Alignment.CenterStart)
+                .padding(start = 2.dp)
+        ) {
+            // Compact FX Board Toggle Capsule
             Box(
                 modifier = Modifier
-                    .align(Alignment.CenterStart)
-                    .padding(start = 4.dp),
+                    .graphicsLayer {
+                        scaleX = fxPulse
+                        scaleY = fxPulse
+                    }
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(Color(0xE6050914L))
+                    .border(
+                        width = if (isFxBoardExpanded || activeStageFx != null) 1.8.dp else 1.3.dp,
+                        brush = Brush.verticalGradient(
+                            listOf(
+                                leadAccent.copy(alpha = if (isDropReady) 0.95f else 0.45f),
+                                leadSecondary.copy(alpha = if (isDropReady) 0.85f else 0.35f)
+                            )
+                        ),
+                        shape = RoundedCornerShape(16.dp)
+                    )
+                    .clickable { isFxBoardExpanded = !isFxBoardExpanded }
+                    .padding(horizontal = 8.dp, vertical = 7.dp),
                 contentAlignment = Alignment.Center
             ) {
-                if (isCipherArmed || isBrollPlaying) {
-                    Canvas(modifier = Modifier.size(56.dp, 132.dp)) {
-                        drawCircle(
-                            brush = Brush.radialGradient(
-                                colors = listOf(
-                                    Color(0xFF05D9E8L).copy(alpha = 0.42f),
-                                    Color(0xFFFF2A6DL).copy(alpha = 0.20f),
-                                    Color.Transparent
-                                ),
-                                center = Offset(size.width * 0.5f, size.height * 0.5f),
-                                radius = size.width * 0.85f
-                            ),
-                            radius = size.width * 0.85f,
-                            center = Offset(size.width * 0.5f, size.height * 0.5f)
-                        )
-                    }
-                }
-
-                Box(
-                    modifier = Modifier
-                        .graphicsLayer {
-                            scaleX = cipherPulse
-                            scaleY = cipherPulse
-                        }
-                        .width(34.dp)
-                        .height(115.dp)
-                        .clip(RoundedCornerShape(17.dp))
-                        .background(Color(0xD9050814L))
-                        .border(
-                            width = if (isCipherArmed || isBrollPlaying) 2.dp else 1.2.dp,
-                            brush = if (isCipherArmed || isBrollPlaying) {
-                                Brush.verticalGradient(
-                                    listOf(
-                                        Color(0xFF05D9E8L),
-                                        Color(0xFFFACC15L),
-                                        Color(0xFFFF2A6DL)
-                                    )
-                                )
-                            } else {
-                                Brush.verticalGradient(
-                                    listOf(
-                                        Color(0x8805D9E8L),
-                                        Color(0x66FF2A6DL)
-                                    )
-                                )
-                            },
-                            shape = RoundedCornerShape(17.dp)
-                        ),
-                    contentAlignment = Alignment.BottomCenter
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(3.dp)
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .fillMaxHeight(cipherDisplayFill)
-                            .clip(RoundedCornerShape(bottomStart = 17.dp, bottomEnd = 17.dp))
-                            .background(
-                                Brush.verticalGradient(
-                                    listOf(
-                                        Color(0xFF05D9E8L).copy(alpha = 0.94f),
-                                        Color(0xFF818CF8L).copy(alpha = 0.90f),
-                                        Color(0xFFFF2A6DL).copy(alpha = 0.94f)
-                                    )
-                                )
-                            )
-                    )
-
-                    // Smooth Chromatic Crescent Lens Sigil (zero thin spoke lines!)
-                    Canvas(
-                        modifier = Modifier
-                            .align(Alignment.Center)
-                            .size(22.dp)
-                    ) {
+                    Canvas(modifier = Modifier.size(22.dp)) {
                         val cx = size.width * 0.5f
                         val cy = size.height * 0.5f
                         val r = size.minDimension * 0.44f
+                        drawCircle(
+                            color = leadAccent.copy(alpha = 0.22f),
+                            radius = r
+                        )
+                        // Recharge or Active FX ring
+                        val sweep = when {
+                            activeStageFx != null && stageFxRemainingRatio > 0.01f -> 360f * stageFxRemainingRatio.coerceIn(0f, 1f)
+                            !isDropReady -> 360f * (1f - fxDropCooldownRatio.coerceIn(0f, 1f))
+                            else -> 300f
+                        }
+                        drawArc(
+                            brush = Brush.sweepGradient(listOf(leadAccent, leadSecondary, leadAccent)),
+                            startAngle = if (isDropReady && activeStageFx == null) fxSpinDeg else -90f,
+                            sweepAngle = sweep,
+                            useCenter = false,
+                            topLeft = Offset(cx - r, cy - r),
+                            size = Size(r * 2f, r * 2f),
+                            style = Stroke(width = 2.2f, cap = StrokeCap.Round)
+                        )
+                        // 4-point starlight FX emblem
+                        val rStar = r * 0.54f
+                        val rIn = r * 0.16f
+                        val star = Path().apply {
+                            moveTo(cx, cy - rStar)
+                            quadraticTo(cx + rIn, cy - rIn, cx + rStar, cy)
+                            quadraticTo(cx + rIn, cy + rIn, cx, cy + rStar)
+                            quadraticTo(cx - rIn, cy + rIn, cx - rStar, cy)
+                            quadraticTo(cx - rIn, cy - rIn, cx, cy - rStar)
+                            close()
+                        }
+                        drawPath(
+                            path = star,
+                            color = if (isDropReady) Color.White else Color.White.copy(alpha = 0.45f)
+                        )
+                    }
+                    Text(
+                        text = if (isFxBoardExpanded) "CLOSE" else if (isDropReady) "FX DROP" else "WAIT",
+                        color = if (isDropReady) Color.White else Color.White.copy(alpha = 0.55f),
+                        fontSize = 8.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 0.6.sp
+                    )
+                }
+            }
 
-                        drawCircle(
-                            color = Color(0xFFFF2A6DL).copy(alpha = 0.85f),
-                            radius = r,
-                            center = Offset(cx + 1.1f, cy),
-                            style = Stroke(width = 1.8f)
+            // Expandable Stage FX Selection Board
+            AnimatedVisibility(
+                visible = isFxBoardExpanded,
+                enter = fadeIn(tween(160)) + expandVertically(tween(180)),
+                exit = fadeOut(tween(130)) + shrinkVertically(tween(150))
+            ) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(5.dp),
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(Color(0xF2070D1EL), Color(0xF5030610L))
+                            )
                         )
-                        drawCircle(
-                            color = Color(0xFF05D9E8L).copy(alpha = 0.90f),
-                            radius = r,
-                            center = Offset(cx - 1.1f, cy),
-                            style = Stroke(width = 1.8f)
+                        .border(
+                            1.3.dp,
+                            Brush.verticalGradient(
+                                listOf(Color(0xFF38BDF8L).copy(alpha = 0.72f), Color(0xFFA855F7L).copy(alpha = 0.62f))
+                            ),
+                            RoundedCornerShape(16.dp)
                         )
-                        drawCircle(
-                            color = Color(0xFF050814L).copy(alpha = 0.88f),
-                            radius = r * 0.82f,
-                            center = Offset(cx, cy)
-                        )
-
-                        for (arc in 0 until 3) {
-                            val startDeg = (cipherSpinDeg + arc * 120f) % 360f
-                            val rArc = r * 0.60f
-                            drawArc(
-                                color = if (arc % 2 == 0) Color(0xFF05D9E8L) else Color(0xFFFACC15L),
-                                startAngle = startDeg,
-                                sweepAngle = 72f,
-                                useCenter = false,
-                                topLeft = Offset(cx - rArc, cy - rArc),
-                                size = Size(rArc * 2f, rArc * 2f),
-                                style = Stroke(width = 2.0f, cap = StrokeCap.Round)
+                        .padding(horizontal = 7.dp, vertical = 8.dp)
+                ) {
+                    Text(
+                        text = if (isDropReady) "DROP FX ORB" else "RECHARGING",
+                        color = if (isDropReady) Color(0xFF7DD3FCL) else Color(0xFF94A3B8L),
+                        fontSize = 7.5.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 0.8.sp,
+                        modifier = Modifier.padding(horizontal = 3.dp)
+                    )
+                    StageFxBackdrop.entries.forEach { fx ->
+                        val isUnlocked = fx in unlockedStageFx
+                        val isCurrent = activeStageFx == fx
+                        val fxPrimary = Color(fx.accentHex)
+                        val fxSecondary = Color(fx.secondaryHex)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            modifier = Modifier
+                                .width(92.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(
+                                    when {
+                                        isCurrent -> fxPrimary.copy(alpha = 0.24f)
+                                        isUnlocked && isDropReady -> Color(0xFF0E172AL)
+                                        else -> Color(0x99080D18L)
+                                    }
+                                )
+                                .border(
+                                    width = if (isCurrent) 1.5.dp else 1.dp,
+                                    color = when {
+                                        isCurrent -> fxPrimary
+                                        isUnlocked && isDropReady -> fxPrimary.copy(alpha = 0.65f)
+                                        isUnlocked -> fxPrimary.copy(alpha = 0.28f)
+                                        else -> Color.White.copy(alpha = 0.12f)
+                                    },
+                                    shape = RoundedCornerShape(10.dp)
+                                )
+                                .clickable(enabled = isUnlocked && isDropReady) {
+                                    onDropStageFxOrb(fx)
+                                    isFxBoardExpanded = false
+                                }
+                                .padding(horizontal = 7.dp, vertical = 5.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(12.dp)
+                                    .clip(CircleShape)
+                                    .background(
+                                        if (isUnlocked) {
+                                            Brush.linearGradient(listOf(fxPrimary, fxSecondary))
+                                        } else {
+                                            Brush.linearGradient(listOf(Color(0xFF334155L), Color(0xFF1E293BL)))
+                                        }
+                                    )
+                            )
+                            Text(
+                                text = if (isUnlocked) fx.shortLabel else "LOCKED",
+                                color = when {
+                                    isUnlocked && isDropReady -> Color.White
+                                    isUnlocked -> Color.White.copy(alpha = 0.55f)
+                                    else -> Color(0xFF64748BL)
+                                },
+                                fontSize = 8.5.sp,
+                                fontWeight = FontWeight.Black,
+                                letterSpacing = 0.5.sp
                             )
                         }
-                        drawCircle(
-                            color = if (isCipherArmed || isBrollPlaying) Color.White else Color(0xFFFACC15L),
-                            radius = r * 0.24f,
-                            center = Offset(cx, cy)
-                        )
                     }
                 }
             }
@@ -638,7 +722,6 @@ fun HUD(
                         radius = size.width * (if (isFullMax) 0.95f else 0.70f),
                         center = Offset(cx, cy)
                     )
-                    // Smooth rotating golden crescent halos instead of rigid straight ray lines
                     if (isFullMax) {
                         val haloR = size.width * 0.44f
                         for (arc in 0 until 3) {

@@ -60,17 +60,20 @@ fun StudioCustomizerSuite(
 
     val unlockedSet = remember(unlockedItemsCsv, isVipUnlocked) {
         val base = unlockedItemsCsv.split(',').map { it.trim() }.filter { it.isNotEmpty() }.toMutableSet()
-        // Default starter loadout is always unlocked
+        // Default starter loadout + 2 starter Stage FX Orbs are always unlocked
         base.add("BG_OBSIDIAN")
         base.add("HERO_SOLAR")
         base.add("ENEMY_BALANCED")
+        base.add("FX_AURORA")
+        base.add("FX_MANDALA")
         if (isVipUnlocked) {
             base.addAll(
                 listOf(
                     "BG_CYBER", "BG_SUNSET", "BG_PRISM", "BG_GOLD_VINYL", "BG_BLOOD_MOON",
                     "HERO_CYBER", "HERO_PRISM", "HERO_VINYL", "HERO_ECLIPSE", "HERO_SERAPH",
                     "ENEMY_PULSARS", "ENEMY_SEEKERS", "ENEMY_WANDERERS",
-                    "VAULT_DEMO", "VAULT_LYRICS", "VAULT_WALLPAPER", "VAULT_POLAROIDS"
+                    "FX_STARFALL", "FX_PRISM", "FX_ECLIPSE", "FX_VORTEX",
+                    "VAULT_LYRICS", "VAULT_WALLPAPER", "VAULT_ERA"
                 )
             )
         }
@@ -275,6 +278,7 @@ fun StudioCustomizerSuite(
             Spacer(modifier = Modifier.height(16.dp))
 
             var selectedCategoryIndex by remember { mutableIntStateOf(0) }
+            var previewStageFx by remember { mutableStateOf<StageFxBackdrop?>(StageFxBackdrop.AURORA_SILK) }
 
             // Live Interactive Stage & Core Preview Box
             Box(
@@ -299,7 +303,9 @@ fun StudioCustomizerSuite(
                         time = animTime,
                         isFocus = false,
                         bgTheme = bgTheme,
-                        juiceIntensity = 0.25f
+                        juiceIntensity = 0.25f,
+                        activeStageFx = previewStageFx,
+                        stageFxIntensity = if (previewStageFx != null) 0.95f else 0f
                     )
 
                     simEnemies.forEach { e ->
@@ -337,13 +343,13 @@ fun StudioCustomizerSuite(
                         .align(Alignment.TopCenter)
                         .padding(top = 10.dp)
                         .clip(RoundedCornerShape(50))
-                        .background(Color.Black.copy(alpha = 0.72f))
-                        .border(1.dp, Color(0xFF22C55EL).copy(alpha = 0.55f), RoundedCornerShape(50))
+                        .background(Color.Black.copy(alpha = 0.74f))
+                        .border(1.dp, Color(previewStageFx?.accentHex ?: 0xFF22C55EL).copy(alpha = 0.65f), RoundedCornerShape(50))
                         .padding(horizontal = 14.dp, vertical = 5.dp)
                 ) {
                     Text(
-                        text = "DRAG CORE TO PREVIEW",
-                        color = Color(0xFF4ADE80L),
+                        text = if (previewStageFx != null) "✦ LIVE FX: ${previewStageFx!!.title.uppercase()}" else "DRAG CORE TO PREVIEW",
+                        color = Color(previewStageFx?.accentHex ?: 0xFF4ADE80L),
                         fontSize = 9.sp,
                         fontWeight = FontWeight.Black,
                         letterSpacing = 0.9.sp
@@ -353,7 +359,7 @@ fun StudioCustomizerSuite(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Direct 2-Segment Switcher (Stage Palettes vs Hero Cores — Zero Clunky Dropdown, Zero Redundant Reels!)
+            // 3-Segment Switcher: Stage FX Drop Board | Stage Palettes | Hero Cores
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -363,7 +369,32 @@ fun StudioCustomizerSuite(
                     .border(1.2.dp, Color.White.copy(alpha = 0.16f), RoundedCornerShape(50))
                     .padding(4.dp)
             ) {
-                val palettesSel = selectedCategoryIndex == 0
+                val fxSel = selectedCategoryIndex == 0
+                Box(
+                    modifier = Modifier
+                        .weight(1.08f)
+                        .fillMaxHeight()
+                        .clip(RoundedCornerShape(50))
+                        .background(
+                            if (fxSel) Brush.horizontalGradient(listOf(Color(0xFF7C3AEDL), Color(0xFF0284C7L)))
+                            else Brush.horizontalGradient(listOf(Color.Transparent, Color.Transparent))
+                        )
+                        .clickable {
+                            haptics.tick()
+                            selectedCategoryIndex = 0
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "✦ FX BOARD",
+                        color = if (fxSel) Color.White else Color(0xFF94A3B8L),
+                        fontSize = 10.5.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 0.6.sp
+                    )
+                }
+
+                val palettesSel = selectedCategoryIndex == 1
                 Box(
                     modifier = Modifier
                         .weight(1f)
@@ -375,20 +406,20 @@ fun StudioCustomizerSuite(
                         )
                         .clickable {
                             haptics.tick()
-                            selectedCategoryIndex = 0
+                            selectedCategoryIndex = 1
                         },
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "STAGE PALETTES",
+                        text = "PALETTES",
                         color = if (palettesSel) Color.White else Color(0xFF94A3B8L),
-                        fontSize = 11.sp,
+                        fontSize = 10.5.sp,
                         fontWeight = FontWeight.Black,
-                        letterSpacing = 0.7.sp
+                        letterSpacing = 0.6.sp
                     )
                 }
 
-                val coresSel = selectedCategoryIndex == 1
+                val coresSel = selectedCategoryIndex == 2
                 Box(
                     modifier = Modifier
                         .weight(1f)
@@ -400,95 +431,126 @@ fun StudioCustomizerSuite(
                         )
                         .clickable {
                             haptics.tick()
-                            selectedCategoryIndex = 1
+                            selectedCategoryIndex = 2
                         },
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "HERO CORES",
+                        text = "CORES",
                         color = if (coresSel) Color.White else Color(0xFF94A3B8L),
-                        fontSize = 11.sp,
+                        fontSize = 10.5.sp,
                         fontWeight = FontWeight.Black,
-                        letterSpacing = 0.7.sp
+                        letterSpacing = 0.6.sp
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
             if (selectedCategoryIndex == 0) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    ThemeCard(
-                        title = "ILLUSION",
-                        subtitle = "Indigo & Forest Green",
-                        isSelected = bgTheme == "OBSIDIAN",
-                        isUnlocked = "BG_OBSIDIAN" in unlockedSet,
-                        costNotes = 0,
-                        accentColor = Color(0xFF6366F1L),
-                        modifier = Modifier.weight(1f)
-                    ) { applyOrUnlock("BG_OBSIDIAN", 0, newBg = "OBSIDIAN") }
-
-                    ThemeCard(
-                        title = "24K VINYL",
-                        subtitle = "Gold Collector Stage",
-                        isSelected = bgTheme == "GOLD_VINYL",
-                        isUnlocked = "BG_GOLD_VINYL" in unlockedSet,
-                        costNotes = 450,
-                        accentColor = Color(0xFFFACC15L),
-                        modifier = Modifier.weight(1f)
-                    ) { applyOrUnlock("BG_GOLD_VINYL", 450, newBg = "GOLD_VINYL") }
+                Text(
+                    text = "UNLOCK & PREVIEW SPECIAL FX ORBS — TAP LEFT HUD IN-GAME TO DROP ONTO STAGE!",
+                    color = Color(0xFF7DD3FCL),
+                    fontSize = 9.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 0.5.sp,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp)
+                )
+                StageFxBackdrop.entries.chunked(2).forEachIndexed { rowIdx, pair ->
+                    if (rowIdx > 0) Spacer(modifier = Modifier.height(10.dp))
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        pair.forEach { fx ->
+                            val isFxUnlocked = fx.costNotes == 0 || fx.shopId in unlockedSet || isVipUnlocked
+                            ThemeCard(
+                                title = fx.title.uppercase(),
+                                subtitle = fx.subtitle,
+                                isSelected = previewStageFx == fx,
+                                isUnlocked = isFxUnlocked,
+                                costNotes = fx.costNotes,
+                                accentColor = Color(fx.accentHex),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                if (isFxUnlocked) {
+                                    previewStageFx = fx
+                                    statusBanner = "✦ ${fx.title.uppercase()} READY ON YOUR IN-GAME FX DROP BOARD!"
+                                } else if (pulsePoints >= fx.costNotes) {
+                                    onUnlockShopItem(fx.shopId, fx.costNotes)
+                                    previewStageFx = fx
+                                    statusBanner = "UNLOCKED ${fx.title.uppercase()} FX ORB FOR ${fx.costNotes} ♪!"
+                                } else {
+                                    previewStageFx = fx
+                                    statusBanner = "PREVIEWING ${fx.title.uppercase()} — NEED ${fx.costNotes} ♪ NOTES TO UNLOCK IN-GAME!"
+                                }
+                            }
+                        }
+                    }
                 }
-                Spacer(modifier = Modifier.height(12.dp))
-                ThemeCard(
-                    title = "MORE STUDIO PALETTES COMING SOON",
-                    subtitle = "Master existing tracks to unlock upcoming releases",
-                    isSelected = false,
-                    isUnlocked = true,
-                    costNotes = 0,
-                    accentColor = Color(0xFF38BDF8L),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    statusBanner = "Ethan Correa is recording upcoming singles & stage themes!"
+            } else if (selectedCategoryIndex == 1) {
+                val palettes = listOf(
+                    Triple("BG_OBSIDIAN", "ILLUSION", Triple("Indigo & Forest Green", 0, "OBSIDIAN" to Color(0xFF6366F1L))),
+                    Triple("BG_GOLD_VINYL", "24K VINYL", Triple("Gold Collector Stage", 450, "GOLD_VINYL" to Color(0xFFFACC15L))),
+                    Triple("BG_CYBER", "EMERALD PULSE", Triple("Neon Matrix Canopy", 550, "CYBER" to Color(0xFF22C55EL))),
+                    Triple("BG_PRISM", "CRYSTAL PRISM", Triple("Sapphire & Aurora", 700, "PRISM" to Color(0xFF38BDF8L))),
+                    Triple("BG_SUNSET", "VELVET DUSK", Triple("Amethyst Horizon", 850, "SUNSET" to Color(0xFFA855F7L))),
+                    Triple("BG_BLOOD_MOON", "SUPERNOVA CRIMSON", Triple("Ruby Eclipse Stage", 1000, "BLOOD_MOON" to Color(0xFFF43F5EL)))
+                )
+                palettes.chunked(2).forEachIndexed { rowIdx, pair ->
+                    if (rowIdx > 0) Spacer(modifier = Modifier.height(10.dp))
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        pair.forEach { (shopKey, title, meta) ->
+                            val (sub, cost, codeAndColor) = meta
+                            val (themeCode, col) = codeAndColor
+                            ThemeCard(
+                                title = title,
+                                subtitle = sub,
+                                isSelected = bgTheme == themeCode,
+                                isUnlocked = cost == 0 || shopKey in unlockedSet || isVipUnlocked,
+                                costNotes = cost,
+                                accentColor = col,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                previewStageFx = null
+                                applyOrUnlock(shopKey, cost, newBg = themeCode)
+                            }
+                        }
+                    }
                 }
             } else {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    ThemeCard(
-                        title = "EMERALD",
-                        subtitle = "Starter Core",
-                        isSelected = heroSkin == "SOLAR",
-                        isUnlocked = "HERO_SOLAR" in unlockedSet,
-                        costNotes = 0,
-                        accentColor = Color(0xFF22C55EL),
-                        modifier = Modifier.weight(1f)
-                    ) { applyOrUnlock("HERO_SOLAR", 0, newHero = "SOLAR") }
-
-                    ThemeCard(
-                        title = "24K ECLIPSE",
-                        subtitle = "Solar Corona",
-                        isSelected = heroSkin == "ECLIPSE",
-                        isUnlocked = "HERO_ECLIPSE" in unlockedSet,
-                        costNotes = 450,
-                        accentColor = Color(0xFFFACC15L),
-                        modifier = Modifier.weight(1f)
-                    ) { applyOrUnlock("HERO_ECLIPSE", 450, newHero = "ECLIPSE") }
-                }
-                Spacer(modifier = Modifier.height(12.dp))
-                ThemeCard(
-                    title = "MORE HERO CORES COMING SOON",
-                    subtitle = "Master existing tracks to unlock upcoming releases",
-                    isSelected = false,
-                    isUnlocked = true,
-                    costNotes = 0,
-                    accentColor = Color(0xFF38BDF8L),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    statusBanner = "Ethan Correa is recording upcoming singles & core designs!"
+                val cores = listOf(
+                    Triple("HERO_SOLAR", "EMERALD", Triple("Starter Core", 0, "SOLAR" to Color(0xFF22C55EL))),
+                    Triple("HERO_ECLIPSE", "24K ECLIPSE", Triple("Solar Corona", 450, "ECLIPSE" to Color(0xFFFACC15L))),
+                    Triple("HERO_CYBER", "CYBERLOTUS", Triple("Electric Cyan Halo", 600, "CYBER" to Color(0xFF38BDF8L))),
+                    Triple("HERO_PRISM", "PRISM STAR", Triple("Iridescent Orchid", 750, "PRISM" to Color(0xFFE879F9L))),
+                    Triple("HERO_VINYL", "PLATINUM DISC", Triple("Turntable Crest", 950, "VINYL" to Color(0xFF7DD3FCL))),
+                    Triple("HERO_SERAPH", "NOVA SERAPH", Triple("Celestial Rose Core", 1200, "SERAPH" to Color(0xFFF472B6L)))
+                )
+                cores.chunked(2).forEachIndexed { rowIdx, pair ->
+                    if (rowIdx > 0) Spacer(modifier = Modifier.height(10.dp))
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        pair.forEach { (shopKey, title, meta) ->
+                            val (sub, cost, codeAndColor) = meta
+                            val (skinCode, col) = codeAndColor
+                            ThemeCard(
+                                title = title,
+                                subtitle = sub,
+                                isSelected = heroSkin == skinCode,
+                                isUnlocked = cost == 0 || shopKey in unlockedSet || isVipUnlocked,
+                                costNotes = cost,
+                                accentColor = col,
+                                modifier = Modifier.weight(1f)
+                            ) { applyOrUnlock(shopKey, cost, newHero = skinCode) }
+                        }
+                    }
                 }
             }
 
@@ -605,7 +667,7 @@ fun StudioCustomizerSuite(
         // Interactive Artist Vault Exclusive Showcase Modal
         if (activeVaultModal != null) {
             ArtistVaultShowcaseModal(
-                vaultId = activeVaultModal ?: "VAULT_DEMO",
+                vaultId = activeVaultModal ?: "VAULT_LYRICS",
                 animTime = animTime,
                 onLaunchTrack = {
                     activeVaultModal = null

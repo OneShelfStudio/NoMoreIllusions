@@ -404,8 +404,7 @@ internal fun countPlayableChartOrbs(chart: List<BeatOrbCue>, isTrainingMode: Boo
             cue.sequenceIndex % 3 == 2 &&
             cue.powerUpType == PowerUpType.NONE &&
             cue.keyWordEffect == KeyWordEffect.NONE &&
-            !cue.isGoldenCue &&
-            !cue.isMusicVideoOrb
+            !cue.isGoldenCue
         ) {
             continue
         }
@@ -482,7 +481,7 @@ internal fun spawnStationaryBeatOrbsForFrame(
 
         nextOrbCueIdx++
 
-        if (isTrainingMode && cue.sequenceIndex % 3 == 2 && !isSpecialCue && !cue.isGoldenCue && !cue.isMusicVideoOrb) {
+        if (isTrainingMode && cue.sequenceIndex % 3 == 2 && !isSpecialCue && !cue.isGoldenCue) {
             continue
         }
 
@@ -606,7 +605,6 @@ internal fun spawnStationaryBeatOrbsForFrame(
             val mappedKeyWord = cue.keyWordEffect
             val isSupernova = mappedKeyWord == KeyWordEffect.CONSTELLATION_STAR || mappedPowerUpType == PowerUpType.ELECTRIC_HARMONIC
             val isOrbGolden = isSupernova || isGoldenActive
-            val isCipher = !isSpecialCue && cue.isMusicVideoOrb
 
             val pColor = when (mappedPowerUpType) {
                 PowerUpType.ELECTRIC_HARMONIC -> Color(0xFFFACC15L)
@@ -614,7 +612,7 @@ internal fun spawnStationaryBeatOrbsForFrame(
                 PowerUpType.SLOW_MO -> Color(0xFFC084FCL)
                 PowerUpType.BLAST -> Color(0xFFF97316L)
                 PowerUpType.SHIELD -> Color(0xFF38BDF8L)
-                else -> if (isSupernova) Color(0xFFFACC15L) else if (isCipher) Color(0xFF05D9E8L) else laneColors[clampedLane]
+                else -> if (isSupernova) Color(0xFFFACC15L) else laneColors[clampedLane]
             }
 
             val spawnSec = targetSecExact - thisLeadTime
@@ -623,7 +621,7 @@ internal fun spawnStationaryBeatOrbsForFrame(
                 GameObject(
                     x = startX,
                     y = startY,
-                    radius = if (isSpecialCue) 38f else if (isCipher) 35f else 32f,
+                    radius = if (isSpecialCue) 38f else 32f,
                     color = applyColorBlind(pColor),
                     angle = 0f,
                     speed = 0f,
@@ -644,7 +642,6 @@ internal fun spawnStationaryBeatOrbsForFrame(
                     exitX = exitX,
                     exitY = exitY,
                     swoopCurve = swoopCurve,
-                    isMusicVideoOrb = isCipher,
                     swirlStrength = cue.swirlStrength,
                     goldenTier = cue.goldenTier
                 )
