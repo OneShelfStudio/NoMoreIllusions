@@ -233,13 +233,13 @@ fun StudioCustomizerSuite(
                         .clickable {
                             haptics.confirm()
                             onWatchAdForNotes()
-                            statusBanner = "+150 ♪ MUSIC NOTES EARNED!"
+                            statusBanner = "+50 ♪ MUSIC NOTES EARNED!"
                         }
                         .padding(horizontal = 10.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "▶ WATCH AD (+150 ♪ NOTES)",
+                        text = "▶ WATCH AD (+50 ♪ NOTES)",
                         color = Color.White,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Black,

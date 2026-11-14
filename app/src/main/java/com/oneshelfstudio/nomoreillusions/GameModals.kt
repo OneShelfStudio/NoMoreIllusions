@@ -478,7 +478,7 @@ fun LevelCompleteUI(
                     else -> Color(0xFFA5B4FC)
                 }
                 val tierLabel = when {
-                    orbPct >= 100 -> "100% PERFECT HARMONY • +1,000 BONUS ♪"
+                    orbPct >= 100 -> "100% PERFECT HARMONY • +30 BONUS ♪"
                     orbPct >= 90 -> "GOLD ORB SYNC • +$collectionBonusNotes BONUS ♪"
                     orbPct >= 75 -> "SILVER ORB SYNC • +$collectionBonusNotes BONUS ♪"
                     else -> "HIT 75% / 90% / 100% ORBS FOR BONUS ♪"

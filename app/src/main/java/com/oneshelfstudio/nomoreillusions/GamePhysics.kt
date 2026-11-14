@@ -469,36 +469,9 @@ fun stepNebulousBeatOrbs(
             val totalSpan = (orb.expireBeatSec - orb.spawnBeatSec).coerceAtLeast(leadDur + 0.45f)
             val lifeFrac = ((trackSec - orb.spawnBeatSec) / totalSpan).coerceIn(0f, 1.05f)
             val clampedLife = lifeFrac.coerceIn(0f, 1f)
-            val isSpecial = orb.powerUpType != PowerUpType.NONE || orb.keyWordEffect != KeyWordEffect.NONE || orb.stageFxDrop != null
 
-            if (isSpecial) {
-                // Special Milestone Orbs: Ease smoothly into their upper-middle pocket (0.28h) right on targetBeatSec,
-                // hover gently for 1.65s with C1-continuous zero-jump endpoints, then ease smoothly off-screen.
-                val lingerSec = 1.65f
-                if (trackSec <= orb.targetBeatSec) {
-                    val u = ((trackSec - orb.spawnBeatSec) / leadDur).coerceIn(0f, 1f)
-                    val uSmooth = 1f - (1f - u) * (1f - u) * 0.35f - (1f - u) * 0.65f
-                    orb.baseX = orb.spawnX + uSmooth * (orb.anchorX - orb.spawnX)
-                    orb.baseY = orb.spawnY + uSmooth * (strikeY - orb.spawnY)
-                } else {
-                    val dtPast = trackSec - orb.targetBeatSec
-                    if (dtPast <= lingerSec) {
-                        val hoverPhase = (dtPast / lingerSec).coerceIn(0f, 1f)
-                        val hoverWave = sin(hoverPhase * PI.toFloat()) * sin(dtPast * 4.2f) * 7f
-                        orb.baseX = orb.anchorX
-                        orb.baseY = strikeY + hoverWave
-                    } else {
-                        val expireDur = (orb.expireBeatSec - (orb.targetBeatSec + lingerSec)).coerceAtLeast(0.45f)
-                        val uExit = ((dtPast - lingerSec) / expireDur).coerceIn(0f, 1.15f)
-                        val uEase = uExit * uExit
-                        val endY = if (orb.exitY != 0f) orb.exitY else (screenHeight + 70f)
-                        val endX = if (orb.exitX != 0f) orb.exitX else orb.anchorX
-                        orb.baseX = orb.anchorX + uEase * (endX - orb.anchorX)
-                        orb.baseY = strikeY + uEase * (endY - strikeY)
-                    }
-                }
-            } else if (orb.exitY != 0f || orb.exitX != 0f) {
-                // Unified C-infinity multi-directional trajectory from spawn -> anchor -> exit with zero branch kinks!
+            if (orb.exitY != 0f || orb.exitX != 0f) {
+                // Unified C-infinity multi-directional trajectory from spawn -> anchor -> exit with zero branch kinks or hover pauses!
                 val u = (trackSec - orb.spawnBeatSec) / leadDur
                 val dirX = orb.anchorX - orb.spawnX
                 val dirY = strikeY - orb.spawnY

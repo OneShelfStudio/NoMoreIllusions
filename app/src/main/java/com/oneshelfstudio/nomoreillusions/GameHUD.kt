@@ -363,36 +363,7 @@ fun HUD(
                 )
             )
 
-            val hasRecentHit = (rhythmCombo > 1 || (comboBanner != null && comboBanner.timer > 0f)) && !is24KOverdrive
-            if (hasRecentHit) {
-                Spacer(modifier = Modifier.height(2.dp))
-                val isBroken = comboBanner?.isBroken == true
-                Box(
-                    modifier = Modifier
-                        .graphicsLayer(rotationZ = -3f)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(
-                            if (isBroken) Color(0xEB1E080EL)
-                            else Color(0x33EC4899L)
-                        )
-                        .border(
-                            1.2.dp,
-                            if (isBroken) Color(0xFFF43F5EL) else Color(0xFFEC4899L),
-                            RoundedCornerShape(8.dp)
-                        )
-                        .padding(horizontal = 10.dp, vertical = 2.dp)
-                ) {
-                    Text(
-                        text = if (isBroken) "MISS" else (comboBanner?.text ?: "PERFECT"),
-                        color = if (isBroken) Color(0xFFF43F5EL) else Color(0xFFF472B6L),
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Black,
-                        letterSpacing = 1.2.sp
-                    )
-                }
-            }
-
-            val displayMult = if (multiplier > 1) multiplier else if (rhythmCombo > 1) (rhythmCombo / 4 + 1).coerceIn(1, 8) else 1
+            val displayMult = if (multiplier > 1) multiplier.coerceIn(1, 4) else if (rhythmCombo > 1) (rhythmCombo / 4 + 1).coerceIn(1, 4) else 1
             if (displayMult > 1) {
                 Spacer(modifier = Modifier.height(2.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -442,7 +413,7 @@ fun HUD(
                             .padding(horizontal = 12.dp, vertical = 4.dp)
                     ) {
                         Text(
-                            text = "★ 24K OVERDRIVE ACTIVE ★",
+                            text = "★ 24K ★",
                             color = Color(0xFFFEF08AL),
                             fontSize = 9.5.sp,
                             fontWeight = FontWeight.Black,
@@ -488,7 +459,7 @@ fun HUD(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "★ ENABLE 24K MODE ★",
+                            text = "★ 24K ★",
                             color = Color(0xFF0F172AL),
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Black,

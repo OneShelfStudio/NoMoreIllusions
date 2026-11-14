@@ -248,7 +248,9 @@ class GameOrbCollectionTest {
         val fxList = mutableListOf(fxOrb)
         val dummyPlayer = GameObject(x = 540f, y = 1248f, radius = 18f, color = Color.Green)
         stepNebulousBeatOrbs(fxList, dummyPlayer, gameTime = 11.45f, trackSec = 11.45f, screenWidth = 1080f, screenHeight = 1920f)
-        assertEquals("Stage FX Drop Orb must ease right into its hover pocket (768f) at targetBeatSec", 768f, fxOrb.y, 12f)
+        assertEquals("Stage FX Drop Orb must cross target pocket (768f) right at targetBeatSec", 768f, fxOrb.y, 12f)
+        stepNebulousBeatOrbs(fxList, dummyPlayer, gameTime = 12.05f, trackSec = 12.05f, screenWidth = 1080f, screenHeight = 1920f)
+        assertTrue("Special/Stage FX orbs must continue moving downward past anchorY after targetBeatSec (y=${fxOrb.y})", fxOrb.y > 900f)
     }
 
     @Test

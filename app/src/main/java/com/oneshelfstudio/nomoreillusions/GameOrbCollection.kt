@@ -44,7 +44,7 @@ internal fun handleRegularOrbPowerUp(
     var nextPunch = cameraPunch
     var nextFlash = beatFlashIntensity
     var bonusScore = 0
-    var toast: PowerUpBannerToast? = null
+    val toast: PowerUpBannerToast? = null
 
     when (p.powerUpType) {
         PowerUpType.ELECTRIC_HARMONIC -> {
@@ -54,52 +54,26 @@ internal fun handleRegularOrbPowerUp(
             nextFlash = 1.0f
             shockwaves.add(Shockwave(p.x, p.y, 0f, 650f, Color(0xFFFACC15L), 1.3f))
             shockwaves.add(Shockwave(p.x, p.y, 0f, 450f, Color(0xFF38BDF8L), 1.1f))
-            toast = PowerUpBannerToast(
-                icon = "⚡",
-                title = "ELECTRIC SURGE ACTIVE!",
-                subtitle = "SYNTH AURORA & 4X OVERDRIVE",
-                accentColor = Color(0xFFFACC15L),
-                timer = 2.6f,
-                maxTimer = 2.6f
-            )
         }
         PowerUpType.PRISM_HARMONY -> {
             nextFlash = 0.35f
             nextPunch = 0.045f
             shockwaves.add(Shockwave(p.x, p.y, 0f, 500f, Color(0xFF4ADE80L), 1.2f))
             shockwaves.add(Shockwave(p.x, p.y, 0f, 320f, Color(0xFFEC4899L), 1.0f))
-            toast = PowerUpBannerToast(
-                icon = "✨",
-                title = "PRISM VOCAL BLOOM!",
-                subtitle = "CRYSTAL HARMONY & ART REVEAL",
-                accentColor = Color(0xFF4ADE80L),
-                timer = 2.6f,
-                maxTimer = 2.6f
-            )
         }
         PowerUpType.SLOW_MO -> {
             nextSlowMo = maxOf(nextSlowMo, 6.0f)
             shockwaves.add(Shockwave(p.x, p.y, 0f, 420f, Color(0xFFC084FCL), 1.1f))
-            toast = PowerUpBannerToast(
-                icon = "🌀",
-                title = "VORTEX TIME-WARP!",
-                subtitle = "50% SLOW-MO BREAKDOWN FLOW",
-                accentColor = Color(0xFFC084FCL),
-                timer = 2.6f,
-                maxTimer = 2.6f
-            )
         }
         PowerUpType.BLAST -> {
             nextShake = 16f
             nextPunch = 0.055f
             nextFlash = 0.95f
             shockwaves.add(Shockwave(p.x, p.y, 0f, 750f, Color(0xFFF97316L), 1.4f))
-            var vaporizedCount = 0
             val clearIter = enemies.iterator()
             while (clearIter.hasNext()) {
                 val en = clearIter.next()
-                vaporizedCount++
-                bonusScore += (150 * mult * difficultyScoreMultiplier).toInt()
+                bonusScore += (20 * mult * difficultyScoreMultiplier).toInt()
                 shockwaves.add(Shockwave(en.x, en.y, 0f, 160f, Color(0xFFFACC15L), 0.90f))
                 repeat(12) { idx ->
                     val a = (idx / 12f) * 6.283185f
@@ -118,26 +92,10 @@ internal fun handleRegularOrbPowerUp(
                 clearIter.remove()
             }
             enemyTelegraphs.clear()
-            toast = PowerUpBannerToast(
-                icon = "💥",
-                title = "NOVA DETONATED!",
-                subtitle = if (vaporizedCount > 0) "$vaporizedCount HAZARDS VAPORIZED! (+${vaporizedCount * 150 * mult} PTS)" else "ARENA CLEARED OF HAZARDS!",
-                accentColor = Color(0xFFF97316L),
-                timer = 2.2f,
-                maxTimer = 2.2f
-            )
         }
         PowerUpType.SHIELD -> {
             nextShield = maxOf(nextShield, 6.0f)
             shockwaves.add(Shockwave(p.x, p.y, 0f, 260f, Color(0xFF38BDF8L), 0.90f))
-            toast = PowerUpBannerToast(
-                icon = "🛡️",
-                title = "AEGIS SHIELD ACTIVE!",
-                subtitle = "ABSORBS NEXT HAZARD COLLISION",
-                accentColor = Color(0xFF38BDF8L),
-                timer = 2.2f,
-                maxTimer = 2.2f
-            )
         }
         else -> {}
     }
@@ -234,7 +192,7 @@ internal fun handleSupernovaOrbPickup(
     )
 
     val mult = if (isGoldenActive || p.keyWordEffect == KeyWordEffect.CONSTELLATION_STAR) 4 else maxOf(scoreMultiplier, 2)
-    val keywordBonus = (140 * mult * difficultyScoreMultiplier).toInt()
+    val keywordBonus = (30 * mult * difficultyScoreMultiplier).toInt()
 
     var nextMagnet = magnetTime
     var nextShake = shakeAmount
@@ -544,9 +502,11 @@ internal fun spawnStationaryBeatOrbsForFrame(
             } else if (isSpecialCue) {
                 startX = receptorX
                 startY = -56f
+                val dy = (receptorY - startY).coerceAtLeast(120f)
+                val kExit = ((screenHeight + 76f - receptorY) / dy).coerceIn(1.0f, 3.0f)
                 exitX = receptorX
-                exitY = -72f
-                expireSec = targetSecExact + 3.15f
+                exitY = screenHeight + 76f
+                expireSec = targetSecExact + thisLeadTime * (kExit + 0.15f)
             } else {
                 if (cue.sequenceIndex <= 3 || cue.timestampSec < 4.5f) {
                     val topOffset = ((cue.sequenceIndex % 3) - 1) * (screenWidth * 0.08f)
