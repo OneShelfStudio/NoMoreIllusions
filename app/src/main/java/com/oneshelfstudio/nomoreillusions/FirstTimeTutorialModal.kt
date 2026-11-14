@@ -64,17 +64,17 @@ enum class FirstTimeDiscovery(
         title = "24K GOLD SPECTACLE ORBS",
         subtitle = "TOP-CENTER MILESTONES & 24K SUPERNOVA METER",
         body = "At signature musical transitions (0:15, 1:18, and key riffs), a radiant 24K Gold Milestone Orb floats into the upper-center stage. Catching it unleashes golden solar ripples, vaporizes nearby hazards, and ignites 24K Overdrive!",
-        tip = "TAP THE RIGHT HUD CAPSULE whenever your 24K bar hits 100% for an instant Supernova burst!",
+        tip = "TAP THE TOP-CENTER ★ ENABLE 24K MODE ★ BUTTON when charged for a 24K Overdrive burst!",
         buttonText = "RESUME TRACK ▶",
         accentColor = Color(0xFFFACC15L)
     ),
     SLIDE_STREAM(
         prefKey = "seen_discovery_stage_fx_board_v3",
-        badge = "LIVE STAGE FX • CUSTOM DROP",
-        title = "STAGE FX DROP BOARD",
-        subtitle = "PICK AN EFFECT • CATCH THE ORB • TRANSFORM THE SKY",
-        body = "Tap the left FX DROP capsule anytime during a song to open your Stage FX Board! Select any unlocked effect to drop a glowing Special FX Orb onto the stage—catching it transforms the background visualizer!",
-        tip = "UNLOCK 6 STAGE FX ORBS in the Skins & Stage FX tab using ♪ Notes or track milestones!",
+        badge = "LIVE STAGE FX • FLUID DROP",
+        title = "FLUID STAGE FX ORBS",
+        subtitle = "ORGANIC DROPS • CATCH THE ORB • TRANSFORM THE SKY",
+        body = "Luminous fluid Stage FX Orbs drift organically onto the stage from your unlocked collection! Catch one with your cursor to ripple waves across the arena and transform the background visualizer.",
+        tip = "UNLOCK 6 STAGE FX ORBS in the Studio Shop using ♪ Notes or track milestones!",
         buttonText = "RESUME TRACK ▶",
         accentColor = Color(0xFFE879F9L)
     ),

@@ -81,7 +81,7 @@ fun HUD(
     onActivate24K: () -> Unit = {},
     onPause: () -> Unit
 ) {
-    var isFxBoardExpanded by remember { mutableStateOf(false) }
+    val haptics = rememberStudioHaptics()
 
     Box(
         modifier = Modifier
@@ -412,33 +412,116 @@ fun HUD(
                 }
             }
 
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(6.dp))
+            val is24KReady = overdriveProgress >= 0.75f && !is24KOverdrive
             val filledStars = (overdriveProgress * 5).toInt().coerceIn(0, 5)
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier
-                    .clip(CircleShape)
-                    .background(Color(0xD90A0816L))
-                    .border(1.dp, Color(0xFFFACC15L).copy(alpha = 0.55f), CircleShape)
-                    .padding(horizontal = 10.dp, vertical = 3.dp)
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(3.dp)
-                ) {
-                    for (st in 1..5) {
-                        val isCharged = st <= filledStars || is24KOverdrive
+            val buttonInf = rememberInfiniteTransition(label = "hud24kPulse")
+            val readyScale by buttonInf.animateFloat(
+                initialValue = 1.0f,
+                targetValue = if (is24KReady) 1.08f else 1.0f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(durationMillis = 520, easing = FastOutSlowInEasing),
+                    repeatMode = RepeatMode.Reverse
+                ),
+                label = "readyScale24k"
+            )
+
+            when {
+                is24KOverdrive -> {
+                    val remainRatio = (starPowerTime / 10.0f).coerceIn(0f, 1f)
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(
+                                Brush.horizontalGradient(
+                                    listOf(Color(0xE678350FL), Color(0xE6B45309L), Color(0xE678350FL))
+                                )
+                            )
+                            .border(1.4.dp, Color(0xFFFACC15L), RoundedCornerShape(14.dp))
+                            .padding(horizontal = 12.dp, vertical = 4.dp)
+                    ) {
                         Text(
-                            text = "★",
-                            color = if (isCharged) Color(0xFFFACC15L) else Color.White.copy(alpha = 0.25f),
-                            fontSize = 11.sp,
+                            text = "★ 24K OVERDRIVE ACTIVE ★",
+                            color = Color(0xFFFEF08AL),
+                            fontSize = 9.5.sp,
                             fontWeight = FontWeight.Black,
-                            modifier = Modifier.graphicsLayer {
-                                if (isCharged) {
-                                    scaleX = 1.2f
-                                    scaleY = 1.2f
-                                }
+                            letterSpacing = 0.8.sp
+                        )
+                        Spacer(modifier = Modifier.height(3.dp))
+                        Box(
+                            modifier = Modifier
+                                .width(110.dp)
+                                .height(3.5.dp)
+                                .clip(CircleShape)
+                                .background(Color.Black.copy(alpha = 0.45f))
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxHeight()
+                                    .fillMaxWidth(remainRatio)
+                                    .clip(CircleShape)
+                                    .background(Color(0xFFFACC15L))
+                            )
+                        }
+                    }
+                }
+                is24KReady -> {
+                    Box(
+                        modifier = Modifier
+                            .graphicsLayer {
+                                scaleX = readyScale
+                                scaleY = readyScale
                             }
+                            .clip(CircleShape)
+                            .background(
+                                Brush.horizontalGradient(
+                                    listOf(Color(0xFFD97706L), Color(0xFFFACC15L), Color(0xFFD97706L))
+                                )
+                            )
+                            .border(1.6.dp, Color.White, CircleShape)
+                            .clickable {
+                                haptics.confirm()
+                                onActivate24K()
+                            }
+                            .padding(horizontal = 14.dp, vertical = 5.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "★ ENABLE 24K MODE ★",
+                            color = Color(0xFF0F172AL),
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Black,
+                            letterSpacing = 0.7.sp
+                        )
+                    }
+                }
+                else -> {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(3.dp),
+                        modifier = Modifier
+                            .clip(CircleShape)
+                            .background(Color(0xD90A0816L))
+                            .border(1.dp, Color(0xFFFACC15L).copy(alpha = 0.45f), CircleShape)
+                            .padding(horizontal = 10.dp, vertical = 3.dp)
+                    ) {
+                        for (st in 1..5) {
+                            val isCharged = st <= filledStars
+                            Text(
+                                text = "★",
+                                color = if (isCharged) Color(0xFFFACC15L) else Color.White.copy(alpha = 0.25f),
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Black
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(3.dp))
+                        Text(
+                            text = "24K",
+                            color = Color.White.copy(alpha = 0.55f),
+                            fontSize = 8.5.sp,
+                            fontWeight = FontWeight.Black,
+                            letterSpacing = 0.5.sp
                         )
                     }
                 }
@@ -458,361 +541,6 @@ fun HUD(
                         color = Color(0xFFFACC15L),
                         fontSize = 9.sp,
                         fontWeight = FontWeight.Black
-                    )
-                }
-            }
-        }
-
-        // 3b. Left-Edge Interactive "STAGE FX DROP BOARD"
-        // Tap the left FX capsule to expand the Stage FX Board, pick any unlocked FX, and drop a Special FX Orb!
-        val fxSpinInf = rememberInfiniteTransition(label = "fxBoardAnim")
-        val fxSpinDeg by fxSpinInf.animateFloat(
-            initialValue = 0f,
-            targetValue = 360f,
-            animationSpec = infiniteRepeatable(
-                animation = tween(durationMillis = if (activeStageFx != null) 2800 else 6200, easing = LinearEasing),
-                repeatMode = RepeatMode.Restart
-            ),
-            label = "fxSpin"
-        )
-        val fxPulse by fxSpinInf.animateFloat(
-            initialValue = 1.0f,
-            targetValue = if (fxDropCooldownRatio <= 0.01f && !isFxBoardExpanded) 1.06f else 1.0f,
-            animationSpec = infiniteRepeatable(
-                animation = tween(durationMillis = 720, easing = FastOutSlowInEasing),
-                repeatMode = RepeatMode.Reverse
-            ),
-            label = "fxPulse"
-        )
-
-        val leadAccent = Color(activeStageFx?.accentHex ?: 0xFF38BDF8L)
-        val leadSecondary = Color(activeStageFx?.secondaryHex ?: 0xFFA855F7L)
-        val isDropReady = fxDropCooldownRatio <= 0.01f
-
-        Column(
-            horizontalAlignment = Alignment.Start,
-            verticalArrangement = Arrangement.spacedBy(6.dp),
-            modifier = Modifier
-                .align(Alignment.CenterStart)
-                .padding(start = 2.dp)
-        ) {
-            // Compact FX Board Toggle Capsule
-            Box(
-                modifier = Modifier
-                    .graphicsLayer {
-                        scaleX = fxPulse
-                        scaleY = fxPulse
-                    }
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(Color(0xE6050914L))
-                    .border(
-                        width = if (isFxBoardExpanded || activeStageFx != null) 1.8.dp else 1.3.dp,
-                        brush = Brush.verticalGradient(
-                            listOf(
-                                leadAccent.copy(alpha = if (isDropReady) 0.95f else 0.45f),
-                                leadSecondary.copy(alpha = if (isDropReady) 0.85f else 0.35f)
-                            )
-                        ),
-                        shape = RoundedCornerShape(16.dp)
-                    )
-                    .clickable { isFxBoardExpanded = !isFxBoardExpanded }
-                    .padding(horizontal = 8.dp, vertical = 7.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(3.dp)
-                ) {
-                    Canvas(modifier = Modifier.size(22.dp)) {
-                        val cx = size.width * 0.5f
-                        val cy = size.height * 0.5f
-                        val r = size.minDimension * 0.44f
-                        drawCircle(
-                            color = leadAccent.copy(alpha = 0.22f),
-                            radius = r
-                        )
-                        // Recharge or Active FX ring
-                        val sweep = when {
-                            activeStageFx != null && stageFxRemainingRatio > 0.01f -> 360f * stageFxRemainingRatio.coerceIn(0f, 1f)
-                            !isDropReady -> 360f * (1f - fxDropCooldownRatio.coerceIn(0f, 1f))
-                            else -> 300f
-                        }
-                        drawArc(
-                            brush = Brush.sweepGradient(listOf(leadAccent, leadSecondary, leadAccent)),
-                            startAngle = if (isDropReady && activeStageFx == null) fxSpinDeg else -90f,
-                            sweepAngle = sweep,
-                            useCenter = false,
-                            topLeft = Offset(cx - r, cy - r),
-                            size = Size(r * 2f, r * 2f),
-                            style = Stroke(width = 2.2f, cap = StrokeCap.Round)
-                        )
-                        // 4-point starlight FX emblem
-                        val rStar = r * 0.54f
-                        val rIn = r * 0.16f
-                        val star = Path().apply {
-                            moveTo(cx, cy - rStar)
-                            quadraticTo(cx + rIn, cy - rIn, cx + rStar, cy)
-                            quadraticTo(cx + rIn, cy + rIn, cx, cy + rStar)
-                            quadraticTo(cx - rIn, cy + rIn, cx - rStar, cy)
-                            quadraticTo(cx - rIn, cy - rIn, cx, cy - rStar)
-                            close()
-                        }
-                        drawPath(
-                            path = star,
-                            color = if (isDropReady) Color.White else Color.White.copy(alpha = 0.45f)
-                        )
-                    }
-                    Text(
-                        text = if (isFxBoardExpanded) "CLOSE" else if (isDropReady) "FX DROP" else "WAIT",
-                        color = if (isDropReady) Color.White else Color.White.copy(alpha = 0.55f),
-                        fontSize = 8.sp,
-                        fontWeight = FontWeight.Black,
-                        letterSpacing = 0.6.sp
-                    )
-                }
-            }
-
-            // Expandable Stage FX Selection Board
-            AnimatedVisibility(
-                visible = isFxBoardExpanded,
-                enter = fadeIn(tween(160)) + expandVertically(tween(180)),
-                exit = fadeOut(tween(130)) + shrinkVertically(tween(150))
-            ) {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(5.dp),
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(
-                            Brush.verticalGradient(
-                                listOf(Color(0xF2070D1EL), Color(0xF5030610L))
-                            )
-                        )
-                        .border(
-                            1.3.dp,
-                            Brush.verticalGradient(
-                                listOf(Color(0xFF38BDF8L).copy(alpha = 0.72f), Color(0xFFA855F7L).copy(alpha = 0.62f))
-                            ),
-                            RoundedCornerShape(16.dp)
-                        )
-                        .padding(horizontal = 7.dp, vertical = 8.dp)
-                ) {
-                    Text(
-                        text = if (isDropReady) "DROP FX ORB" else "RECHARGING",
-                        color = if (isDropReady) Color(0xFF7DD3FCL) else Color(0xFF94A3B8L),
-                        fontSize = 7.5.sp,
-                        fontWeight = FontWeight.Black,
-                        letterSpacing = 0.8.sp,
-                        modifier = Modifier.padding(horizontal = 3.dp)
-                    )
-                    StageFxBackdrop.entries.forEach { fx ->
-                        val isUnlocked = fx in unlockedStageFx
-                        val isCurrent = activeStageFx == fx
-                        val fxPrimary = Color(fx.accentHex)
-                        val fxSecondary = Color(fx.secondaryHex)
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            modifier = Modifier
-                                .width(92.dp)
-                                .clip(RoundedCornerShape(10.dp))
-                                .background(
-                                    when {
-                                        isCurrent -> fxPrimary.copy(alpha = 0.24f)
-                                        isUnlocked && isDropReady -> Color(0xFF0E172AL)
-                                        else -> Color(0x99080D18L)
-                                    }
-                                )
-                                .border(
-                                    width = if (isCurrent) 1.5.dp else 1.dp,
-                                    color = when {
-                                        isCurrent -> fxPrimary
-                                        isUnlocked && isDropReady -> fxPrimary.copy(alpha = 0.65f)
-                                        isUnlocked -> fxPrimary.copy(alpha = 0.28f)
-                                        else -> Color.White.copy(alpha = 0.12f)
-                                    },
-                                    shape = RoundedCornerShape(10.dp)
-                                )
-                                .clickable(enabled = isUnlocked && isDropReady) {
-                                    onDropStageFxOrb(fx)
-                                    isFxBoardExpanded = false
-                                }
-                                .padding(horizontal = 7.dp, vertical = 5.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(12.dp)
-                                    .clip(CircleShape)
-                                    .background(
-                                        if (isUnlocked) {
-                                            Brush.linearGradient(listOf(fxPrimary, fxSecondary))
-                                        } else {
-                                            Brush.linearGradient(listOf(Color(0xFF334155L), Color(0xFF1E293BL)))
-                                        }
-                                    )
-                            )
-                            Text(
-                                text = if (isUnlocked) fx.shortLabel else "LOCKED",
-                                color = when {
-                                    isUnlocked && isDropReady -> Color.White
-                                    isUnlocked -> Color.White.copy(alpha = 0.55f)
-                                    else -> Color(0xFF64748BL)
-                                },
-                                fontSize = 8.5.sp,
-                                fontWeight = FontWeight.Black,
-                                letterSpacing = 0.5.sp
-                            )
-                        }
-                    }
-                }
-            }
-        }
-
-        // 4. Floating Right-Edge 24K Liquid Energy Capsule
-        val isReady = overdriveProgress >= 0.75f || is24KOverdrive
-        val isFullMax = overdriveProgress >= 0.99f || is24KOverdrive
-        val infiniteTransition = rememberInfiniteTransition(label = "capsulePulse")
-        val pulseScale by infiniteTransition.animateFloat(
-            initialValue = 1.0f,
-            targetValue = if (isFullMax) 1.14f else if (isReady) 1.07f else 1.0f,
-            animationSpec = infiniteRepeatable(
-                animation = tween(durationMillis = if (isFullMax) 420 else 650, easing = FastOutSlowInEasing),
-                repeatMode = RepeatMode.Reverse
-            ),
-            label = "pulse"
-        )
-        val pulseGlow by infiniteTransition.animateFloat(
-            initialValue = 0.4f,
-            targetValue = if (isFullMax) 1.0f else if (isReady) 0.85f else 0.4f,
-            animationSpec = infiniteRepeatable(
-                animation = tween(durationMillis = if (isFullMax) 420 else 650, easing = FastOutSlowInEasing),
-                repeatMode = RepeatMode.Reverse
-            ),
-            label = "glow"
-        )
-        val beaconRayAngle by infiniteTransition.animateFloat(
-            initialValue = 0f,
-            targetValue = 360f,
-            animationSpec = infiniteRepeatable(
-                animation = tween(durationMillis = 3600, easing = LinearEasing),
-                repeatMode = RepeatMode.Restart
-            ),
-            label = "beaconRays"
-        )
-
-        Box(
-            modifier = Modifier
-                .align(Alignment.CenterEnd)
-                .padding(end = 4.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            if (isReady) {
-                Canvas(modifier = Modifier.size(62.dp, 135.dp)) {
-                    val cx = size.width / 2f
-                    val cy = size.height / 2f
-                    drawCircle(
-                        brush = Brush.radialGradient(
-                            listOf(
-                                Color(0xFFFACC15L).copy(alpha = if (isFullMax) 0.52f * pulseGlow else 0.28f * pulseGlow),
-                                Color(0xFFFF8C00L).copy(alpha = if (isFullMax) 0.28f * pulseGlow else 0.14f * pulseGlow),
-                                Color.Transparent
-                            ),
-                            center = Offset(cx, cy),
-                            radius = size.width * (if (isFullMax) 0.95f else 0.70f)
-                        ),
-                        radius = size.width * (if (isFullMax) 0.95f else 0.70f),
-                        center = Offset(cx, cy)
-                    )
-                    if (isFullMax) {
-                        val haloR = size.width * 0.44f
-                        for (arc in 0 until 3) {
-                            drawArc(
-                                color = Color(0xFFFEF08AL).copy(alpha = 0.72f * pulseGlow),
-                                startAngle = (beaconRayAngle + arc * 120f) % 360f,
-                                sweepAngle = 68f,
-                                useCenter = false,
-                                topLeft = Offset(cx - haloR, cy - haloR),
-                                size = Size(haloR * 2f, haloR * 2f),
-                                style = Stroke(width = 2.4f, cap = StrokeCap.Round)
-                            )
-                        }
-                    }
-                }
-            }
-
-            Box(
-                modifier = Modifier
-                    .graphicsLayer {
-                        scaleX = pulseScale
-                        scaleY = pulseScale
-                    }
-                    .width(36.dp)
-                    .height(115.dp)
-                    .clip(RoundedCornerShape(18.dp))
-                    .background(Color(0xD9060A16L))
-                    .border(
-                        width = if (isFullMax) 2.5.dp else if (isReady) 1.8.dp else 1.2.dp,
-                        brush = if (isReady) {
-                            Brush.verticalGradient(
-                                listOf(
-                                    Color.White.copy(alpha = pulseGlow),
-                                    Color(0xFFFACC15L),
-                                    Color(0xFFFB923CL)
-                                )
-                            )
-                        } else {
-                            Brush.verticalGradient(
-                                listOf(
-                                    Color.White.copy(alpha = 0.25f),
-                                    Color(0x33FACC15L)
-                                )
-                            )
-                        },
-                        shape = RoundedCornerShape(18.dp)
-                    )
-                    .clickable {
-                        if (isReady) onActivate24K()
-                    },
-                contentAlignment = Alignment.BottomCenter
-            ) {
-                val fillHeightFraction = if (is24KOverdrive) (starPowerTime / 15.5f).coerceIn(0f, 1f) else overdriveProgress.coerceIn(0f, 1f)
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .fillMaxHeight(fillHeightFraction)
-                        .clip(RoundedCornerShape(bottomStart = 18.dp, bottomEnd = 18.dp))
-                        .background(
-                            Brush.verticalGradient(
-                                listOf(
-                                    Color(0xFFFFFFFFL),
-                                    Color(0xFFFEF08AL),
-                                    Color(0xFFFACC15L),
-                                    Color(0xFFD97706L)
-                                )
-                            )
-                        )
-                )
-
-                // Sculpted 4-Point Golden Starlight Emblem
-                Canvas(
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .size(20.dp)
-                ) {
-                    val cx = size.width * 0.5f
-                    val cy = size.height * 0.5f
-                    val rOut = size.minDimension * 0.48f
-                    val rCtrl = size.minDimension * 0.14f
-                    val star = Path().apply {
-                        moveTo(cx, cy - rOut)
-                        quadraticTo(cx + rCtrl, cy - rCtrl, cx + rOut, cy)
-                        quadraticTo(cx + rCtrl, cy + rCtrl, cx, cy + rOut)
-                        quadraticTo(cx - rCtrl, cy + rCtrl, cx - rOut, cy)
-                        quadraticTo(cx - rCtrl, cy - rCtrl, cx, cy - rOut)
-                        close()
-                    }
-                    drawPath(
-                        path = star,
-                        color = if (isReady) Color(0xFF0F172AL) else Color(0xFFFACC15L).copy(alpha = 0.75f)
                     )
                 }
             }

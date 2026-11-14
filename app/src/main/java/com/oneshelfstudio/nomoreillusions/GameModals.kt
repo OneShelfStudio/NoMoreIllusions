@@ -365,14 +365,9 @@ fun LevelCompleteUI(
         animationSpec = infiniteRepeatable(tween(4600, easing = LinearEasing)),
         label = "spin"
     )
-    val starPulse by infinite.animateFloat(
-        initialValue = 0.94f,
-        targetValue = 1.10f,
-        animationSpec = infiniteRepeatable(tween(780, easing = FastOutSlowInEasing), RepeatMode.Reverse),
-        label = "starPulse"
-    )
 
     var showExclusivePopup by remember { mutableStateOf(false) }
+    val haptics = rememberStudioHaptics()
 
     val featuredNote = when (trackIndex) {
         1 -> ARTIST_EXCLUSIVES_CATALOG[1]
@@ -408,17 +403,17 @@ fun LevelCompleteUI(
                         color = Color(0xFF4ADE80),
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Black,
-                        letterSpacing = 0.8.sp,
+                        letterSpacing = 0.7.sp,
                         textAlign = TextAlign.Center
                     )
                 }
 
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
-                // Celebratory Zoom on Full Unveiled Album Artwork
+                // Compact Celebratory Zoom on Full Unveiled Album Artwork
                 Box(
                     modifier = Modifier
-                        .size(198.dp)
+                        .size(132.dp)
                         .graphicsLayer {
                             scaleX = victoryZoom.value
                             scaleY = victoryZoom.value
@@ -452,15 +447,15 @@ fun LevelCompleteUI(
                                 useCenter = false,
                                 topLeft = Offset(cx - r, cy - r),
                                 size = Size(r * 2f, r * 2f),
-                                style = Stroke(width = 3.4f - ring * 0.6f, cap = StrokeCap.Round)
+                                style = Stroke(width = 3.0f - ring * 0.5f, cap = StrokeCap.Round)
                             )
                         }
                     }
                     Box(
                         modifier = Modifier
-                            .size(156.dp)
-                            .clip(RoundedCornerShape(20.dp))
-                            .border(2.2.dp, Color(0xFFFACC15), RoundedCornerShape(20.dp)),
+                            .size(106.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .border(2.0.dp, Color(0xFFFACC15), RoundedCornerShape(16.dp)),
                         contentAlignment = Alignment.Center
                     ) {
                         TrackRevealOverlay(
@@ -491,14 +486,14 @@ fun LevelCompleteUI(
 
                 StudioGlassCard(
                     accentColor = tierColor,
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(14.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 14.dp, vertical = 10.dp)
+                            .padding(horizontal = 12.dp, vertical = 8.dp)
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -508,7 +503,7 @@ fun LevelCompleteUI(
                             Text(
                                 text = "ORB HARMONY • $orbPct%",
                                 color = tierColor,
-                                fontSize = 11.5.sp,
+                                fontSize = 11.sp,
                                 fontWeight = FontWeight.Black
                             )
                             Text(
@@ -518,11 +513,11 @@ fun LevelCompleteUI(
                                 fontWeight = FontWeight.Bold
                             )
                         }
-                        Spacer(modifier = Modifier.height(6.dp))
+                        Spacer(modifier = Modifier.height(5.dp))
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(7.dp)
+                                .height(6.dp)
                                 .clip(CircleShape)
                                 .background(Color.White.copy(alpha = 0.12f))
                         ) {
@@ -538,14 +533,14 @@ fun LevelCompleteUI(
                                     )
                             )
                         }
-                        Spacer(modifier = Modifier.height(6.dp))
+                        Spacer(modifier = Modifier.height(5.dp))
                         Text(
                             text = tierLabel,
                             color = tierColor,
-                            fontSize = 9.5.sp,
+                            fontSize = 9.sp,
                             fontWeight = FontWeight.Black
                         )
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(7.dp))
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(6.dp),
                             modifier = Modifier.fillMaxWidth()
@@ -557,7 +552,7 @@ fun LevelCompleteUI(
                                 modifier = Modifier.weight(1f)
                             )
                             VictoryStatChip(
-                                label = "PEAK STREAK",
+                                label = "STREAK",
                                 value = "x$maxCombo",
                                 accent = Color(0xFF38BDF8),
                                 modifier = Modifier.weight(1f)
@@ -572,114 +567,79 @@ fun LevelCompleteUI(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(10.dp))
-
-                // Vault Secret Unlocked Card with Sculpted Starlight Jewel
-                StudioGlassCard(
-                    accentColor = Color(0xFFFACC15),
-                    shape = RoundedCornerShape(16.dp),
-                    onClick = { showExclusivePopup = true },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 12.dp, vertical = 10.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(42.dp)
-                                .graphicsLayer(scaleX = starPulse, scaleY = starPulse)
-                                .clip(CircleShape)
-                                .background(
-                                    Brush.radialGradient(
-                                        listOf(Color(0xFFFACC15), Color(0xFFD97706), Color(0xFF1E1B4B))
-                                    )
-                                )
-                                .border(1.4.dp, Color.White, CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Canvas(
-                                modifier = Modifier
-                                    .size(22.dp)
-                                    .graphicsLayer(rotationZ = (spinDeg * 0.35f) % 360f)
-                            ) {
-                                val cx = size.width * 0.5f
-                                val cy = size.height * 0.5f
-                                val s = size.minDimension * 0.45f
-                                val star = Path().apply {
-                                    moveTo(cx, cy - s)
-                                    quadraticTo(cx, cy, cx + s, cy)
-                                    quadraticTo(cx, cy, cx, cy + s)
-                                    quadraticTo(cx, cy, cx - s, cy)
-                                    quadraticTo(cx, cy, cx, cy - s)
-                                    close()
-                                }
-                                drawPath(star, color = Color.White)
-                            }
-                        }
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "ARTIST VAULT RELIC UNLOCKED",
-                                color = Color(0xFFFACC15),
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Black,
-                                letterSpacing = 0.6.sp
-                            )
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(
-                                text = "Tap to inspect your unlocked studio archive ($unlockedVaultCount/${ARTIST_EXCLUSIVES_CATALOG.size})",
-                                color = Color(0xFFE2E8F0),
-                                fontSize = 9.5.sp,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
-                    }
-                }
-
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Social Share CTA
-                StudioGlassCard(
-                    accentColor = Color(0xFFE879F9),
-                    shape = RoundedCornerShape(14.dp),
-                    onClick = {
-                        val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                            type = "text/plain"
-                            putExtra(
-                                Intent.EXTRA_TEXT,
-                                "Just mastered Track 0%d in No More Illusions with %,d pts! Tagging @EthanCorrea #NoMoreIllusions Stream the gamified album: https://oneshelfstudio.github.io/NoMoreIllusions/".format(trackIndex, score)
-                            )
-                        }
-                        context.startActivity(Intent.createChooser(shareIntent, "Share Run"))
-                    },
+                // Streamlined 2-Pill Bonus Actions Row (Relic + Share)
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 12.dp, vertical = 8.dp)
+                    StudioGlassCard(
+                        accentColor = Color(0xFFFACC15),
+                        shape = RoundedCornerShape(12.dp),
+                        onClick = {
+                            haptics.tick()
+                            showExclusivePopup = true
+                        },
+                        modifier = Modifier.weight(1f)
                     ) {
-                        Text(
-                            text = "SHARE YOUR WIN • TAG @ETHANCORREA",
-                            color = Color(0xFFE879F9),
-                            fontSize = 9.5.sp,
-                            fontWeight = FontWeight.Black,
-                            letterSpacing = 0.7.sp
-                        )
-                        Text(
-                            text = "Post with #NoMoreIllusions on TikTok / IG for artist credit",
-                            color = Color(0xFFCBD5E1),
-                            fontSize = 8.5.sp,
-                            textAlign = TextAlign.Center
-                        )
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 8.dp, vertical = 8.dp)
+                        ) {
+                            Text(
+                                text = "✦ VAULT RELIC",
+                                color = Color(0xFFFACC15),
+                                fontSize = 9.5.sp,
+                                fontWeight = FontWeight.Black
+                            )
+                            Text(
+                                text = "Inspect ($unlockedVaultCount/${ARTIST_EXCLUSIVES_CATALOG.size})",
+                                color = Color(0xFFE2E8F0),
+                                fontSize = 8.5.sp
+                            )
+                        }
+                    }
+                    StudioGlassCard(
+                        accentColor = Color(0xFFE879F9),
+                        shape = RoundedCornerShape(12.dp),
+                        onClick = {
+                            haptics.tick()
+                            val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                type = "text/plain"
+                                putExtra(
+                                    Intent.EXTRA_TEXT,
+                                    "Just mastered Track 0%d in No More Illusions with %,d pts! Tagging @EthanCorrea #NoMoreIllusions Stream the gamified album: https://oneshelfstudio.github.io/NoMoreIllusions/".format(trackIndex, score)
+                                )
+                            }
+                            context.startActivity(Intent.createChooser(shareIntent, "Share Run"))
+                        },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 8.dp, vertical = 8.dp)
+                        ) {
+                            Text(
+                                text = "↗ SHARE WIN",
+                                color = Color(0xFFE879F9),
+                                fontSize = 9.5.sp,
+                                fontWeight = FontWeight.Black
+                            )
+                            Text(
+                                text = "Tag @EthanCorrea",
+                                color = Color(0xFFE2E8F0),
+                                fontSize = 8.5.sp
+                            )
+                        }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
                 StudioPillButton(
                     text = if (nextTrack != null) "PLAY TRACK 0${trackIndex + 1} ▶" else "REPLAY TRACK ▶",
@@ -687,8 +647,8 @@ fun LevelCompleteUI(
                     onClick = onNextTrack,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(48.dp),
-                    fontSize = 13.5.sp
+                        .height(46.dp),
+                    fontSize = 13.sp
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(
@@ -700,9 +660,9 @@ fun LevelCompleteUI(
                         palette = StudioPillPalette.SOLAR_GOLD,
                         onClick = onOpenArtistVault,
                         modifier = Modifier
-                            .weight(1.15f)
+                            .weight(1.1f)
                             .height(44.dp),
-                        fontSize = 11.sp
+                        fontSize = 10.5.sp
                     )
                     StudioPillButton(
                         text = "MAIN MENU",
@@ -711,9 +671,11 @@ fun LevelCompleteUI(
                         modifier = Modifier
                             .weight(1f)
                             .height(44.dp),
-                        fontSize = 11.sp
+                        fontSize = 10.5.sp
                     )
                 }
+
+                Spacer(modifier = Modifier.height(28.dp))
             }
         }
 

@@ -850,39 +850,60 @@ private fun DrawScope.drawStageFxDropRelic(
 ) {
     val primaryCol = Color(fx.accentHex)
     val secondaryCol = Color(fx.secondaryHex)
-    val breath = 1f + 0.08f * sin(time * 5.2f)
+    val breath = 1f + 0.10f * sin(time * 4.8f)
 
-    // 1. Volumetric Stage FX Bloom Aura
+    // 1. Volumetric Fluid Stage FX Bloom Aura
     drawCircle(
         brush = Brush.radialGradient(
             colors = listOf(
-                primaryCol.copy(alpha = 0.62f * ttlAlpha),
-                secondaryCol.copy(alpha = 0.34f * ttlAlpha),
+                primaryCol.copy(alpha = 0.66f * ttlAlpha),
+                secondaryCol.copy(alpha = 0.38f * ttlAlpha),
                 Color.Transparent
             ),
             center = center3D,
-            radius = coreRad * 2.25f * breath
+            radius = coreRad * 2.45f * breath
         ),
-        radius = coreRad * 2.25f * breath,
+        radius = coreRad * 2.45f * breath,
         center = center3D,
         blendMode = BlendMode.Screen
     )
 
-    // Outer Expanding Caustic Halo
-    drawCircle(
-        color = primaryCol.copy(alpha = 0.78f * ttlAlpha),
-        radius = coreRad * (1.22f + 0.08f * beatKick),
-        center = center3D,
-        style = Stroke(width = 2.6f * perspScale)
+    // 2. Morphing Organic Liquid Petals Ring
+    val petalPath = sharedFilamentPath.apply {
+        reset()
+        val steps = 28
+        for (i in 0..steps) {
+            val ang = (i.toFloat() / steps) * 6.283185f
+            val wave = 1.0f + 0.16f * sin(ang * 3f + time * 4.4f) + 0.10f * cos(ang * 5f - time * 3.3f)
+            val rW = coreRad * 1.28f * wave
+            val px = center3D.x + cos(ang) * rW
+            val py = center3D.y + sin(ang) * rW
+            if (i == 0) moveTo(px, py) else lineTo(px, py)
+        }
+        close()
+    }
+    drawPath(
+        path = petalPath,
+        brush = Brush.sweepGradient(
+            colors = listOf(
+                primaryCol.copy(alpha = 0.72f * ttlAlpha),
+                secondaryCol.copy(alpha = 0.52f * ttlAlpha),
+                Color.White.copy(alpha = 0.65f * ttlAlpha),
+                primaryCol.copy(alpha = 0.72f * ttlAlpha)
+            ),
+            center = center3D
+        ),
+        style = Stroke(width = 2.6f * perspScale),
+        blendMode = BlendMode.Screen
     )
 
-    // 2. Deep Obsidian Crystal Jewel Housing
+    // 3. Deep Translucent Crystal Jewel Core
     drawCircle(
         brush = Brush.radialGradient(
             colors = listOf(
-                Color(0xFF191032L).copy(alpha = 0.98f * ttlAlpha),
-                Color(0xFF090D1EL).copy(alpha = 0.99f * ttlAlpha),
-                Color(0xFF03050BL).copy(alpha = 0.99f * ttlAlpha)
+                primaryCol.copy(alpha = 0.45f * ttlAlpha),
+                Color(0xFF0A1428L).copy(alpha = 0.96f * ttlAlpha),
+                Color(0xFF03050BL).copy(alpha = 0.98f * ttlAlpha)
             ),
             center = center3D,
             radius = coreRad
@@ -891,24 +912,46 @@ private fun DrawScope.drawStageFxDropRelic(
         center = center3D
     )
 
-    // 3. Counter-Rotating Harmonic Crescent Arcs
+    // 4. Counter-Rotating Fluid Harmonic Crescent Ribbons
     for (arc in 0 until 4) {
         val dir = if (arc % 2 == 0) 1f else -1f
-        val rotDeg = (time * 135f * dir + arc * 90f) % 360f
-        val rIris = coreRad * (if (arc % 2 == 0) 0.80f else 0.58f)
+        val rotDeg = (time * 140f * dir + arc * 90f) % 360f
+        val rIris = coreRad * (if (arc % 2 == 0) 0.78f else 0.56f)
         val arcCol = if (arc % 2 == 0) primaryCol else secondaryCol
         drawArc(
             color = arcCol.copy(alpha = 0.92f * ttlAlpha),
             startAngle = rotDeg,
-            sweepAngle = 72f,
+            sweepAngle = 76f,
             useCenter = false,
             topLeft = Offset(center3D.x - rIris, center3D.y - rIris),
             size = Size(rIris * 2f, rIris * 2f),
-            style = Stroke(width = 2.8f * perspScale, cap = StrokeCap.Round)
+            style = Stroke(width = 2.6f * perspScale, cap = StrokeCap.Round)
         )
     }
 
-    // 4. Sculpted 4-Point Curved Starlight Emblem Inside the Orb
+    // 5. 3 Orbiting Luminous Fluid Droplets
+    for (d in 0 until 3) {
+        val orbAngle = time * 3.1f + d * 2.094395f + 0.45f * sin(time * 2.2f + d)
+        val orbDist = coreRad * (1.36f + 0.14f * sin(time * 3.8f + d * 1.4f))
+        val dropCenter = Offset(
+            center3D.x + cos(orbAngle) * orbDist,
+            center3D.y + sin(orbAngle) * orbDist
+        )
+        val dropRad = coreRad * (0.18f + 0.04f * cos(time * 5.0f + d))
+        val dropCol = if (d % 2 == 0) primaryCol else secondaryCol
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(Color.White.copy(alpha = 0.95f * ttlAlpha), dropCol.copy(alpha = 0.85f * ttlAlpha), Color.Transparent),
+                center = dropCenter,
+                radius = dropRad * 1.8f
+            ),
+            radius = dropRad * 1.8f,
+            center = dropCenter,
+            blendMode = BlendMode.Screen
+        )
+    }
+
+    // 6. Sculpted 4-Point Curved Starlight Emblem & Iridescent Fluid Rim
     val starR = coreRad * (0.44f + 0.06f * beatKick)
     val starPath = sharedFilamentPath.apply {
         reset()
@@ -924,32 +967,12 @@ private fun DrawScope.drawStageFxDropRelic(
         color = Color.White.copy(alpha = 0.96f * ttlAlpha)
     )
     drawCircle(
-        color = primaryCol.copy(alpha = 0.90f * ttlAlpha),
-        radius = coreRad,
-        center = center3D,
-        style = Stroke(width = 2.2f * perspScale)
-    )
-    drawCircle(
-        brush = Brush.radialGradient(
-            colors = listOf(
-                Color.White.copy(alpha = (0.90f + 0.10f * beatKick) * ttlAlpha),
-                Color(0xFF05D9E8L).copy(alpha = 0.45f * ttlAlpha),
-                Color.Transparent
-            ),
-            center = center3D,
-            radius = coreRad * 0.42f
-        ),
-        radius = coreRad * 0.42f,
-        center = center3D,
-        blendMode = BlendMode.Screen
-    )
-    drawCircle(
         brush = Brush.sweepGradient(
             colors = listOf(
-                Color(0xFF05D9E8L).copy(alpha = 0.96f * ttlAlpha),
-                Color(0xFFFACC15L).copy(alpha = 0.96f * ttlAlpha),
-                Color(0xFFFF2A6DL).copy(alpha = 0.96f * ttlAlpha),
-                Color(0xFF05D9E8L).copy(alpha = 0.96f * ttlAlpha)
+                primaryCol.copy(alpha = 0.98f * ttlAlpha),
+                Color.White.copy(alpha = 0.92f * ttlAlpha),
+                secondaryCol.copy(alpha = 0.98f * ttlAlpha),
+                primaryCol.copy(alpha = 0.98f * ttlAlpha)
             ),
             center = center3D
         ),

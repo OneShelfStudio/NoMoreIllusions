@@ -226,12 +226,12 @@ fun MusicDemoScreen(
             // Clean, Uncrowded Starbloom Header Bar (Section Title + Golden Filament + Notes Balance)
             val headerTitle = when (activeTab) {
                 0 -> "ARTIST VAULT"
-                2 -> "SKINS & STAGE FX"
+                2 -> "STUDIO SHOP"
                 else -> "STUDIO ALBUM"
             }
             val headerSub = when (activeTab) {
                 0 -> "Official Releases, Vinyl Editions & Future Exclusives"
-                2 -> "Stage FX Drop Board, Palettes & Hero Cores"
+                2 -> "Stage FX Orbs, Palettes & Hero Cores"
                 else -> "Ethan Correa • No Morē Illusīons"
             }
 
@@ -635,7 +635,7 @@ fun MusicDemoScreen(
             StudioBottomNavDock(
                 currentDestination = when (activeTab) {
                     0 -> "VAULT"
-                    2 -> "SKINS"
+                    2 -> "SHOP"
                     else -> "ALBUM"
                 },
                 onNavigateHome = onBack,

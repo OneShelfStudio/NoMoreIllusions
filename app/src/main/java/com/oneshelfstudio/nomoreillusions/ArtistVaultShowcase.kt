@@ -26,7 +26,10 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -244,55 +247,86 @@ fun ThemeCard(
     title: String,
     subtitle: String,
     isSelected: Boolean,
+    isPreviewed: Boolean = false,
     isUnlocked: Boolean = true,
     costNotes: Int = 0,
     accentColor: Color,
+    secondaryAccent: Color = accentColor,
     modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
     val haptics = rememberStudioHaptics()
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
+    val isHighlighted = isSelected || isPreviewed
     val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.95f else if (isSelected && isUnlocked) 1.01f else 1f,
+        targetValue = if (isPressed) 0.95f else if (isHighlighted) 1.02f else 1f,
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
         label = "ThemeCardScale"
     )
     val cardBrush = when {
         isSelected && isUnlocked -> Brush.verticalGradient(
             listOf(
-                accentColor.copy(alpha = 0.30f),
-                Color(0xFF0A1628L),
-                Color(0xFF03060CL)
+                accentColor.copy(alpha = 0.28f),
+                secondaryAccent.copy(alpha = 0.10f),
+                Color(0xFF060B18L)
+            )
+        )
+        isPreviewed -> Brush.verticalGradient(
+            listOf(
+                accentColor.copy(alpha = 0.22f),
+                Color(0xFF0A1428L),
+                Color(0xFF050814L)
             )
         )
         !isUnlocked -> Brush.verticalGradient(
             listOf(
-                Color(0xFF05070DL),
-                Color(0xFF020307L)
+                Color(0xFF091020L),
+                Color(0xFF040710L)
             )
         )
         else -> Brush.verticalGradient(
             listOf(
-                Color(0xFF091224L),
-                Color(0xFF03060CL)
+                Color(0xFF0D172DL),
+                Color(0xFF050914L)
             )
         )
+    }
+
+    val statusText = when {
+        isSelected && isUnlocked -> "EQUIPPED"
+        isPreviewed && !isUnlocked -> "PREVIEW • $costNotes ♪"
+        isPreviewed -> "PREVIEWING"
+        isUnlocked -> "OWNED"
+        else -> "UNLOCK $costNotes ♪"
+    }
+    val statusColor = when {
+        isSelected && isUnlocked -> Color(0xFF4ADE80L)
+        isPreviewed && !isUnlocked -> Color(0xFFFACC15L)
+        isPreviewed -> Color(0xFF38BDF8L)
+        isUnlocked -> Color(0xFF94A3B8L)
+        else -> Color(0xFFFDE047L)
     }
 
     Box(
         modifier = modifier
             .scale(scale)
-            .clip(RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(18.dp))
             .background(cardBrush)
             .border(
-                width = if (isSelected && isUnlocked) 1.8.dp else 1.dp,
-                color = when {
-                    isSelected && isUnlocked -> accentColor
-                    !isUnlocked -> Color(0xFFFACC15L).copy(alpha = 0.38f)
-                    else -> Color.White.copy(alpha = 0.14f)
-                },
-                shape = RoundedCornerShape(16.dp)
+                width = if (isHighlighted) 1.8.dp else 1.0.dp,
+                brush = Brush.verticalGradient(
+                    listOf(
+                        when {
+                            isSelected && isUnlocked -> accentColor
+                            isPreviewed -> Color(0xFF38BDF8L)
+                            !isUnlocked -> Color(0xFFFACC15L).copy(alpha = 0.45f)
+                            else -> Color.White.copy(alpha = 0.22f)
+                        },
+                        secondaryAccent.copy(alpha = if (isHighlighted) 0.70f else 0.16f)
+                    )
+                ),
+                shape = RoundedCornerShape(18.dp)
             )
             .clickable(
                 interactionSource = interactionSource,
@@ -301,46 +335,86 @@ fun ThemeCard(
                 haptics.tick()
                 onClick()
             }
-            .padding(vertical = 14.dp, horizontal = 12.dp),
-        contentAlignment = Alignment.Center
+            .padding(vertical = 11.dp, horizontal = 10.dp)
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier
-                        .size(7.dp)
-                        .clip(CircleShape)
-                        .background(
-                            when {
-                                !isUnlocked -> Color(0xFFFACC15L)
-                                isSelected -> accentColor
-                                else -> accentColor.copy(alpha = 0.45f)
-                            }
-                        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(9.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            // Live Miniature Glass Emblem Swatch
+            Canvas(modifier = Modifier.size(30.dp)) {
+                val cx = size.width * 0.5f
+                val cy = size.height * 0.5f
+                val r = size.minDimension * 0.44f
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        listOf(accentColor.copy(alpha = 0.55f), secondaryAccent.copy(alpha = 0.18f), Color.Transparent),
+                        center = Offset(cx, cy),
+                        radius = r * 1.15f
+                    ),
+                    radius = r * 1.15f,
+                    center = Offset(cx, cy)
                 )
-                Spacer(modifier = Modifier.width(6.dp))
+                drawCircle(
+                    brush = Brush.linearGradient(listOf(accentColor, secondaryAccent)),
+                    radius = r * 0.62f,
+                    center = Offset(cx, cy)
+                )
+                drawCircle(
+                    color = if (isHighlighted) Color.White else accentColor.copy(alpha = 0.75f),
+                    radius = r * 0.90f,
+                    center = Offset(cx, cy),
+                    style = Stroke(width = if (isHighlighted) 2.2f else 1.4f, cap = StrokeCap.Round)
+                )
+                val sr = r * 0.36f
+                val spath = Path().apply {
+                    moveTo(cx, cy - sr)
+                    quadraticTo(cx, cy, cx + sr, cy)
+                    quadraticTo(cx, cy, cx, cy + sr)
+                    quadraticTo(cx, cy, cx - sr, cy)
+                    quadraticTo(cx, cy, cx, cy - sr)
+                    close()
+                }
+                drawPath(spath, color = Color.White.copy(alpha = 0.95f))
+            }
+
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = if (isUnlocked) title else "LOCKED • $title",
-                    color = if (isUnlocked) Color.White else Color.White.copy(alpha = 0.72f),
-                    fontSize = 11.sp,
+                    text = title,
+                    color = if (isUnlocked || isPreviewed) Color.White else Color.White.copy(alpha = 0.85f),
+                    fontSize = 10.5.sp,
                     fontWeight = FontWeight.Black,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = subtitle,
+                    color = Color.White.copy(alpha = 0.58f),
+                    fontSize = 8.5.sp,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.height(5.dp))
+                Box(
+                    modifier = Modifier
+                        .clip(CircleShape)
+                        .background(statusColor.copy(alpha = 0.15f))
+                        .border(0.8.dp, statusColor.copy(alpha = 0.65f), CircleShape)
+                        .padding(horizontal = 7.dp, vertical = 2.dp)
+                ) {
+                    Text(
+                        text = statusText,
+                        color = statusColor,
+                        fontSize = 7.8.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 0.3.sp,
+                        maxLines = 1
+                    )
+                }
             }
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = if (isUnlocked) subtitle else "UNLOCK • $costNotes ♪ NOTES",
-                color = when {
-                    !isUnlocked -> Color(0xFFFDE047L)
-                    isSelected -> accentColor
-                    else -> Color.White.copy(alpha = 0.55f)
-                },
-                fontSize = 9.sp,
-                fontWeight = FontWeight.Bold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
         }
     }
 }
@@ -443,29 +517,29 @@ fun ArtistExclusivesSpecialsHub(
                     Spacer(modifier = Modifier.height(14.dp))
 
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         StudioPillButton(
-                            text = "TRACK CREDITS",
+                            text = "CREDITS",
                             palette = StudioPillPalette.CYAN_SYNTH,
                             onClick = { activeModalId = "VAULT_LYRICS" },
-                            modifier = Modifier.weight(1f).height(42.dp),
-                            fontSize = 10.sp
+                            modifier = Modifier.weight(1f).height(44.dp),
+                            fontSize = 10.5.sp
                         )
                         StudioPillButton(
                             text = "EXCLUSIVES",
                             palette = StudioPillPalette.VELVET_AMETHYST,
                             onClick = { activeModalId = "VAULT_ERA" },
-                            modifier = Modifier.weight(1f).height(42.dp),
-                            fontSize = 10.sp
+                            modifier = Modifier.weight(1f).height(44.dp),
+                            fontSize = 10.5.sp
                         )
                         StudioPillButton(
-                            text = "VINYL EDITIONS",
+                            text = "VINYLS",
                             palette = StudioPillPalette.EMERALD_STAGE,
                             onClick = { activeModalId = "VAULT_WALLPAPER" },
-                            modifier = Modifier.weight(1f).height(42.dp),
-                            fontSize = 10.sp
+                            modifier = Modifier.weight(1f).height(44.dp),
+                            fontSize = 10.5.sp
                         )
                     }
                 }

@@ -455,6 +455,7 @@ fun GameScreen(
     var activeStageFx by remember { mutableStateOf<StageFxBackdrop?>(null) }
     var stageFxTimer by remember { mutableFloatStateOf(0f) }
     var fxDropCooldown by remember { mutableFloatStateOf(0f) }
+    var randomFxDropTimer by remember { mutableFloatStateOf(16f) }
     var activeGoldenTier by remember { mutableIntStateOf(0) }
 
     val unlockedStageFxSet = remember(unlockedShopItemsCsv, isVipUnlocked, highScore, trackCompletionsCsv, trackMasteryStarsCsv) {
@@ -597,6 +598,7 @@ fun GameScreen(
         activeStageFx = null
         stageFxTimer = 0f
         fxDropCooldown = 0f
+        randomFxDropTimer = 16f
         activeGoldenTier = 0
         isPreMusicDrift = false
         preMusicElapsed = 0f
@@ -861,12 +863,12 @@ fun GameScreen(
                 if (primed != null && trackSec >= primed.targetSec) {
                     if (primed.goldenTier > 0) {
                         activeGoldenTier = maxOf(activeGoldenTier, primed.goldenTier)
-                        starPowerTime = maxOf(starPowerTime, 15.5f)
+                        starPowerTime = maxOf(starPowerTime, 8.0f)
                         goldenOverdriveIntensity = 1.0f
                     }
                     when (primed.type) {
                         PowerUpType.ELECTRIC_HARMONIC -> {
-                            starPowerTime = maxOf(starPowerTime, 15.5f)
+                            starPowerTime = maxOf(starPowerTime, 8.0f)
                             shakeAmount = 14f
                             cameraPunch = 0.06f
                             beatFlashIntensity = 1.0f
@@ -1369,7 +1371,7 @@ fun GameScreen(
                                 beatFlashIntensity = maxOf(beatFlashIntensity, 0.48f)
                                 if (p.goldenTier > 0 || p.keyWordEffect == KeyWordEffect.CONSTELLATION_STAR) {
                                     activeGoldenTier = maxOf(activeGoldenTier, if (p.goldenTier > 0) p.goldenTier else 1)
-                                    starPowerTime = maxOf(starPowerTime, 15.5f)
+                                    starPowerTime = maxOf(starPowerTime, 8.0f)
                                     goldenOverdriveIntensity = 1.0f
                                 } else {
                                     goldenOverdriveIntensity = maxOf(goldenOverdriveIntensity, 0.45f)
@@ -1500,54 +1502,7 @@ fun GameScreen(
                                 shockwaves.add(Shockwave(p.x, p.y, 0f, 45f, Color(0x6694A3B8L), 0.25f))
                             }
                             if (!isGoldenActive) {
-                                overdriveProgress = (overdriveProgress + (if (isCaughtOnBeat) 0.055f else 0.04f)).coerceAtMost(1f)
-                                // SPECIAL 24K METER 100% PAYOFF: Filling the 24K bar unleashes a Golden Supernova Cascade!
-                                if (overdriveProgress >= 0.999f) {
-                                    overdriveProgress = 0f
-                                    activeGoldenTier = 2
-                                    starPowerTime = maxOf(starPowerTime, 10.0f)
-                                    magnetTime = maxOf(magnetTime, 5.0f)
-                                    goldenOverdriveIntensity = 1.0f
-                                    scoreMultiplier = 4
-                                    multiplierTime = maxOf(multiplierTime, 10.0f)
-                                    score += (1000 * difficultyScoreMultiplier).toInt()
-                                    shakeAmount = maxOf(shakeAmount, 16f)
-                                    cameraPunch = maxOf(cameraPunch, 0.055f)
-                                    beatFlashIntensity = 0.95f
-                                    triggerHaptic(65L)
-                                    audioEngine.playHyper24kChime()
-                                    powerUps.forEach { activeOrb ->
-                                        if (activeOrb.stageFxDrop == null) {
-                                            activeOrb.isGoldenOrb = true
-                                            activeOrb.color = Color(0xFFFACC15L)
-                                        }
-                                    }
-                                    shockwaves.add(Shockwave(player.x, player.y, 0f, 680f, Color(0xFFFACC15L), 1.25f, RippleWaveStyle.HYPER_CORONA_BLOOM))
-                                    shockwaves.add(Shockwave(player.x, player.y, 0f, 460f, Color(0xFF38BDF8L), 1.05f, RippleWaveStyle.SOLAR_MANDALA_RIPPLE))
-                                    repeat(22) { sp ->
-                                        val ang = (sp / 22f) * 6.283185f
-                                        particles.add(
-                                            GameObject(
-                                                x = player.x,
-                                                y = player.y,
-                                                radius = 4.2f,
-                                                color = if (sp % 2 == 0) Color(0xFFFDE047L) else Color(0xFF38BDF8L),
-                                                vx = cos(ang) * 9.5f,
-                                                vy = sin(ang) * 9.5f,
-                                                life = 1.05f
-                                            )
-                                        )
-                                    }
-                                    activePowerUpToast = PowerUpBannerToast(
-                                        icon = "👑",
-                                        title = "24K BAR FULL • SUPERNOVA!",
-                                        subtitle = "MAGNET + GOLD ORB CONVERSION + 4X RUSH",
-                                        accentColor = Color(0xFFFACC15L),
-                                        timer = 3.0f,
-                                        maxTimer = 3.0f
-                                    )
-                                    toastTimeLeft = 3.0f
-                                }
+                                overdriveProgress = (overdriveProgress + (if (isCaughtOnBeat) 0.032f else 0.022f)).coerceAtMost(1f)
                             }
                             val mult = if (isGoldenActive) maxOf(scoreMultiplier, 4) else scoreMultiplier
                             val gainedPts = ((if (isCaughtOnBeat) 100 else 45) * mult * (1f + (rhythmCombo.coerceAtMost(12) * 0.10f)) * difficultyScoreMultiplier).toInt()
@@ -1717,10 +1672,9 @@ fun GameScreen(
                 beatFlashIntensity = surfRes.beatFlashIntensity
                 if (surfRes.toast != null) activePowerUpToast = surfRes.toast
                 if (surfRes.toast != null || wormholes.any { it.slideCooldownSec >= 0.5f }) {
-                    starPowerTime = maxOf(starPowerTime, 6.5f)
-                    goldenOverdriveIntensity = maxOf(goldenOverdriveIntensity, 1.0f)
+                    overdriveProgress = (overdriveProgress + 0.18f).coerceAtMost(1f)
                     vocalStreamContrailTimer = maxOf(vocalStreamContrailTimer, 6.5f)
-                    scoreMultiplier = 4
+                    scoreMultiplier = maxOf(scoreMultiplier, 4)
                     multiplierTime = maxOf(multiplierTime, 6.5f)
                 }
 
@@ -1764,6 +1718,17 @@ fun GameScreen(
                         activeStageFx = null
                     }
                 }
+                if (gameState == GameState.PLAYING && trackSec > 8f && unlockedStageFxSet.isNotEmpty() && powerUps.none { it.stageFxDrop != null }) {
+                    randomFxDropTimer -= dt
+                    if (randomFxDropTimer <= 0f) {
+                        randomFxDropTimer = 26f + Random.nextFloat() * 14f
+                        val pool = unlockedStageFxSet.toList()
+                        val filtered = if (pool.size > 1 && activeStageFx != null) pool.filter { it != activeStageFx } else pool
+                        val chosenFx = filtered[Random.nextInt(filtered.size)]
+                        fxDropCooldown = 0f
+                        spawnStageFxDropOrb(chosenFx)
+                    }
+                }
 
                 // Flowy whispy breakdown slow-mo during "losing your battles" (44.9s - 49.85s), spoken vocal drift, and interlude showcases
                 val isFlowyBreakdownTime = (selectedTrackIndex == 1 && (trackSec in 44.9f..49.85f || trackSec in 107.85f..115.65f)) ||
@@ -1777,7 +1742,10 @@ fun GameScreen(
         }
     }
 
-    CompositionLocalProvider(LocalStudioHapticsEnabled provides isHapticEnabled) {
+    CompositionLocalProvider(
+        LocalStudioHapticsEnabled provides isHapticEnabled,
+        LocalStudioAudioEngine provides audioEngine
+    ) {
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         screenWidth = constraints.maxWidth.toFloat()
         screenHeight = constraints.maxHeight.toFloat()
@@ -1914,13 +1882,29 @@ fun GameScreen(
                     starPowerTime = 10.0f
                     magnetTime = maxOf(magnetTime, 5.0f)
                     overdriveProgress = 0f
+                    goldenOverdriveIntensity = 1.0f
                     shakeAmount = maxOf(shakeAmount, 18f)
+                    cameraPunch = maxOf(cameraPunch, 0.055f)
+                    beatFlashIntensity = 0.95f
+                    scoreMultiplier = maxOf(scoreMultiplier, 4)
+                    multiplierTime = maxOf(multiplierTime, 10.0f)
                     powerUps.forEach {
                         if (it.stageFxDrop == null) {
                             it.isGoldenOrb = true
                             it.color = Color(0xFFFACC15L)
                         }
                     }
+                    shockwaves.add(Shockwave(player.x, player.y, 0f, 640f, Color(0xFFFACC15L), 1.25f, RippleWaveStyle.HYPER_CORONA_BLOOM))
+                    shockwaves.add(Shockwave(player.x, player.y, 0f, 440f, Color(0xFF38BDF8L), 1.05f, RippleWaveStyle.SOLAR_MANDALA_RIPPLE))
+                    activePowerUpToast = PowerUpBannerToast(
+                        icon = "★",
+                        title = "24K OVERDRIVE ENGAGED!",
+                        subtitle = "MAGNET + GOLD CONVERSION + 4X RUSH",
+                        accentColor = Color(0xFFFACC15L),
+                        timer = 2.6f,
+                        maxTimer = 2.6f
+                    )
+                    toastTimeLeft = 2.6f
                     audioEngine.playHyper24kChime()
                     triggerHaptic(60L)
                 },

@@ -290,16 +290,28 @@ class AudioEngine(private val context: Context) {
         playWhooshChime("VICTORY")
     }
 
-    fun playMenuNote() {
-        if (!isSoundEnabled || focusSound == 0) return
-        if (nearMissSound != 0) soundPool.play(nearMissSound, 0.18f, 0.18f, 0, 0, 1.05f)
-        val pitch = pentatonicScale[menuNoteIndex % pentatonicScale.size]
+    /**
+     * Crisp swoosh -> musical pentatonic shimmer for button interactions and menu navigation.
+     */
+    fun playButtonSwoosh(isPrimary: Boolean = true) {
+        if (!isSoundEnabled) return
+        val whooshPitch = if (isPrimary) 1.04f else 1.18f
+        val whooshVol = if (isPrimary) 0.32f else 0.24f
+        if (nearMissSound != 0) {
+            soundPool.play(nearMissSound, whooshVol, whooshVol, 1, 0, whooshPitch)
+        }
+        val notePitch = pentatonicScale[menuNoteIndex % pentatonicScale.size]
+        menuNoteIndex = (menuNoteIndex + 1) % pentatonicScale.size
         mainHandler.postDelayed({
             if (isSoundEnabled && focusSound != 0) {
-                soundPool.play(focusSound, 0.40f, 0.40f, 0, 0, pitch)
+                val chimeVol = if (isPrimary) 0.24f else 0.16f
+                soundPool.play(focusSound, chimeVol, chimeVol, 1, 0, (notePitch * (if (isPrimary) 1.12f else 1.25f)).coerceIn(0.5f, 2.0f))
             }
-        }, 50L)
-        menuNoteIndex++
+        }, 38L)
+    }
+
+    fun playMenuNote() {
+        playButtonSwoosh(isPrimary = true)
     }
 
     fun getLobbyTrack(): LobbyTrack = currentLobbyTrack

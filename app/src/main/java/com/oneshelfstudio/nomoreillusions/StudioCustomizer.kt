@@ -57,6 +57,13 @@ fun StudioCustomizerSuite(
     var bgTheme by remember(customBgTheme) { mutableStateOf(customBgTheme) }
     var heroSkin by remember(customHeroSkin) { mutableStateOf(customHeroSkin) }
     var enemyStyle by remember(customEnemyStyle) { mutableStateOf(customEnemyStyle) }
+    var previewBgTheme by remember(customBgTheme) { mutableStateOf(customBgTheme) }
+    var previewHeroSkin by remember(customHeroSkin) { mutableStateOf(customHeroSkin) }
+    var previewStageFx by remember { mutableStateOf<StageFxBackdrop?>(StageFxBackdrop.AURORA_SILK) }
+    var lockedPreviewId by remember { mutableStateOf<String?>(null) }
+    var lockedPreviewLabel by remember { mutableStateOf<String?>(null) }
+    var lockedPreviewCost by remember { mutableIntStateOf(0) }
+    var lockedPreviewApply by remember { mutableStateOf<(() -> Unit)?>(null) }
 
     val unlockedSet = remember(unlockedItemsCsv, isVipUnlocked) {
         val base = unlockedItemsCsv.split(',').map { it.trim() }.filter { it.isNotEmpty() }.toMutableSet()
@@ -86,36 +93,59 @@ fun StudioCustomizerSuite(
     var passcodeError by remember { mutableStateOf(false) }
     var statusBanner by remember { mutableStateOf<String?>(null) }
 
-    fun applyOrUnlock(
+    fun previewOrApply(
         itemId: String,
+        label: String,
         cost: Int,
         newBg: String = bgTheme,
         newHero: String = heroSkin,
         newEnemy: String = enemyStyle
     ) {
-        if (itemId in unlockedSet || isVipUnlocked) {
+        previewBgTheme = newBg
+        previewHeroSkin = newHero
+        if (cost == 0 || itemId in unlockedSet || isVipUnlocked) {
             bgTheme = newBg
             heroSkin = newHero
             enemyStyle = newEnemy
             onUpdateCustomization(newBg, newHero, newEnemy)
-            statusBanner = null
-        } else if (pulsePoints >= cost) {
-            onUnlockShopItem(itemId, cost)
-            bgTheme = newBg
-            heroSkin = newHero
-            enemyStyle = newEnemy
-            onUpdateCustomization(newBg, newHero, newEnemy)
-            statusBanner = "UNLOCKED FOR $cost ♪ NOTES!"
+            lockedPreviewId = null
+            lockedPreviewApply = null
+            statusBanner = "✦ EQUIPPED: $label"
         } else {
-            statusBanner = "NEED $cost ♪ NOTES — PLAY OR WATCH AN AD (+150 ♪) TO UNLOCK!"
+            lockedPreviewId = itemId
+            lockedPreviewLabel = label
+            lockedPreviewCost = cost
+            lockedPreviewApply = {
+                if (pulsePoints >= cost) {
+                    onUnlockShopItem(itemId, cost)
+                    bgTheme = newBg
+                    heroSkin = newHero
+                    enemyStyle = newEnemy
+                    onUpdateCustomization(newBg, newHero, newEnemy)
+                    lockedPreviewId = null
+                    lockedPreviewApply = null
+                    statusBanner = "UNLOCKED & EQUIPPED $label FOR $cost ♪ NOTES!"
+                } else {
+                    statusBanner = "NEED $cost ♪ NOTES — PLAY OR WATCH AN AD (+150 ♪) TO UNLOCK!"
+                }
+            }
+            statusBanner = if (pulsePoints >= cost) {
+                "PREVIEWING $label — TAP UNLOCK BELOW FOR $cost ♪ NOTES!"
+            } else {
+                "PREVIEWING $label — EARN OR WATCH AD FOR $cost ♪ NOTES TO UNLOCK!"
+            }
         }
     }
 
-    var simHeroX by remember { mutableFloatStateOf(160f) }
-    var simHeroY by remember { mutableFloatStateOf(95f) }
+    var canvasWidthPx by remember { mutableFloatStateOf(0f) }
+    var canvasHeightPx by remember { mutableFloatStateOf(0f) }
+    var simHeroX by remember { mutableFloatStateOf(0f) }
+    var simHeroY by remember { mutableFloatStateOf(0f) }
     val simEnemies = remember { mutableStateListOf<GameObject>() }
 
-    LaunchedEffect(enemyStyle) {
+    LaunchedEffect(enemyStyle, canvasWidthPx, canvasHeightPx) {
+        val w = if (canvasWidthPx > 60f) canvasWidthPx else 720f
+        val h = if (canvasHeightPx > 60f) canvasHeightPx else 320f
         simEnemies.clear()
         val eType = when (enemyStyle) {
             "PULSARS" -> EnemyType.PULSE
@@ -127,8 +157,8 @@ fun StudioCustomizerSuite(
             val ang = (i * 1.55f)
             simEnemies.add(
                 GameObject(
-                    x = 65f + i * 60f,
-                    y = 40f + (i % 2) * 35f,
+                    x = w * (0.16f + i * 0.22f),
+                    y = h * (if (i % 2 == 0) 0.28f else 0.72f),
                     radius = 15f,
                     color = when (i % 3) {
                         0 -> Color(0xFFF43F5EL)
@@ -152,6 +182,8 @@ fun StudioCustomizerSuite(
         while (true) {
             withFrameNanos { _ ->
                 animTime += 0.016f
+                val maxW = if (canvasWidthPx > 100f) canvasWidthPx - 20f else 700f
+                val maxH = if (canvasHeightPx > 80f) canvasHeightPx - 20f else 300f
                 simEnemies.forEach { e ->
                     when (e.type) {
                         EnemyType.SEEKER -> {
@@ -169,8 +201,8 @@ fun StudioCustomizerSuite(
                     }
                     e.x += cos(e.angle) * 1.5f
                     e.y += sin(e.angle) * 1.5f
-                    if (e.x < 15f) { e.x = 305f } else if (e.x > 305f) { e.x = 15f }
-                    if (e.y < 15f) { e.y = 175f } else if (e.y > 175f) { e.y = 15f }
+                    if (e.x < 20f) { e.x = maxW } else if (e.x > maxW) { e.x = 20f }
+                    if (e.y < 20f) { e.y = maxH } else if (e.y > maxH) { e.y = 20f }
                 }
             }
         }
@@ -259,10 +291,10 @@ fun StudioCustomizerSuite(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(8.dp))
+                        .clip(RoundedCornerShape(10.dp))
                         .background(Color(0xFF1E1B4BL).copy(alpha = 0.85f))
-                        .border(1.dp, Color(0xFFFACC15L).copy(alpha = 0.65f), RoundedCornerShape(8.dp))
-                        .padding(vertical = 5.dp, horizontal = 10.dp),
+                        .border(1.dp, Color(0xFFFACC15L).copy(alpha = 0.65f), RoundedCornerShape(10.dp))
+                        .padding(vertical = 6.dp, horizontal = 10.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
@@ -275,34 +307,54 @@ fun StudioCustomizerSuite(
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            if (lockedPreviewId != null && lockedPreviewApply != null) {
+                Spacer(modifier = Modifier.height(8.dp))
+                val canAfford = pulsePoints >= lockedPreviewCost
+                StudioPillButton(
+                    text = if (canAfford) "UNLOCK ${lockedPreviewLabel ?: "ITEM"} • $lockedPreviewCost ♪" else "NEED $lockedPreviewCost ♪ TO UNLOCK",
+                    palette = if (canAfford) StudioPillPalette.SOLAR_GOLD else StudioPillPalette.SLATE_OBSIDIAN,
+                    onClick = { lockedPreviewApply?.invoke() },
+                    modifier = Modifier.fillMaxWidth().height(42.dp),
+                    fontSize = 11.sp
+                )
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
 
             var selectedCategoryIndex by remember { mutableIntStateOf(0) }
-            var previewStageFx by remember { mutableStateOf<StageFxBackdrop?>(StageFxBackdrop.AURORA_SILK) }
 
-            // Live Interactive Stage & Core Preview Box
+            // Live Interactive Stage & Core Preview Box (Centered Dynamically)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(155.dp)
+                    .height(168.dp)
                     .clip(RoundedCornerShape(18.dp))
                     .border(1.5.dp, Color(0xFF6366F1L).copy(alpha = 0.65f), RoundedCornerShape(18.dp))
                     .pointerInput(Unit) {
                         detectDragGestures { change, dragAmount ->
                             change.consume()
-                            simHeroX = (simHeroX + dragAmount.x).coerceIn(24f, size.width.toFloat() - 24f)
-                            simHeroY = (simHeroY + dragAmount.y).coerceIn(24f, size.height.toFloat() - 24f)
+                            simHeroX = (simHeroX + dragAmount.x).coerceIn(28f, size.width.toFloat() - 28f)
+                            simHeroY = (simHeroY + dragAmount.y).coerceIn(28f, size.height.toFloat() - 28f)
                         }
                     }
             ) {
                 Canvas(modifier = Modifier.fillMaxSize()) {
+                    if (canvasWidthPx == 0f || abs(canvasWidthPx - size.width) > 20f || abs(canvasHeightPx - size.height) > 20f) {
+                        canvasWidthPx = size.width
+                        canvasHeightPx = size.height
+                        simHeroX = size.width * 0.5f
+                        simHeroY = size.height * 0.56f
+                    }
+                    val heroX = if (simHeroX <= 1f) size.width * 0.5f else simHeroX
+                    val heroY = if (simHeroY <= 1f) size.height * 0.56f else simHeroY
+
                     drawNebulaBackground(
                         nebula = nebulaBitmap,
                         starsBack = nebulaBitmap,
                         starsFront = nebulaBitmap,
                         time = animTime,
                         isFocus = false,
-                        bgTheme = bgTheme,
+                        bgTheme = previewBgTheme,
                         juiceIntensity = 0.25f,
                         activeStageFx = previewStageFx,
                         stageFxIntensity = if (previewStageFx != null) 0.95f else 0f
@@ -321,7 +373,7 @@ fun StudioCustomizerSuite(
                         )
                     }
 
-                    val previewHero = GameObject(simHeroX, simHeroY, 18f, Color(0xFF22C55EL))
+                    val previewHero = GameObject(heroX, heroY, 18f, Color(0xFF22C55EL))
                     drawPlayerSprite(
                         p = previewHero,
                         isFocus = false,
@@ -332,7 +384,7 @@ fun StudioCustomizerSuite(
                         heroSolarMandala = heroSolarMandala,
                         heroCyberMandala = heroCyberMandala,
                         heroPrismMandala = heroPrismMandala,
-                        skin = heroSkin,
+                        skin = previewHeroSkin,
                         invulnTime = 0f,
                         beatPhase = (animTime * 2f) % 1f
                     )
@@ -347,26 +399,31 @@ fun StudioCustomizerSuite(
                         .border(1.dp, Color(previewStageFx?.accentHex ?: 0xFF22C55EL).copy(alpha = 0.65f), RoundedCornerShape(50))
                         .padding(horizontal = 14.dp, vertical = 5.dp)
                 ) {
+                    val badgeText = when {
+                        previewStageFx != null -> "✦ LIVE FX: ${previewStageFx!!.title.uppercase()}"
+                        lockedPreviewLabel != null -> "✦ PREVIEWING: $lockedPreviewLabel"
+                        else -> "DRAG CORE TO TEST PREVIEW"
+                    }
                     Text(
-                        text = if (previewStageFx != null) "✦ LIVE FX: ${previewStageFx!!.title.uppercase()}" else "DRAG CORE TO PREVIEW",
+                        text = badgeText,
                         color = Color(previewStageFx?.accentHex ?: 0xFF4ADE80L),
                         fontSize = 9.sp,
                         fontWeight = FontWeight.Black,
-                        letterSpacing = 0.9.sp
+                        letterSpacing = 0.6.sp
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
-            // 3-Segment Switcher: Stage FX Drop Board | Stage Palettes | Hero Cores
+            // 3-Segment Switcher: Stage FX Orbs | Stage Palettes | Hero Cores
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(44.dp)
-                    .clip(RoundedCornerShape(50))
+                    .clip(RoundedCornerShape(16.dp))
                     .background(Color(0xFF070D1CL))
-                    .border(1.2.dp, Color.White.copy(alpha = 0.16f), RoundedCornerShape(50))
+                    .border(1.2.dp, Color.White.copy(alpha = 0.16f), RoundedCornerShape(16.dp))
                     .padding(4.dp)
             ) {
                 val fxSel = selectedCategoryIndex == 0
@@ -374,7 +431,7 @@ fun StudioCustomizerSuite(
                     modifier = Modifier
                         .weight(1.08f)
                         .fillMaxHeight()
-                        .clip(RoundedCornerShape(50))
+                        .clip(RoundedCornerShape(12.dp))
                         .background(
                             if (fxSel) Brush.horizontalGradient(listOf(Color(0xFF7C3AEDL), Color(0xFF0284C7L)))
                             else Brush.horizontalGradient(listOf(Color.Transparent, Color.Transparent))
@@ -386,11 +443,11 @@ fun StudioCustomizerSuite(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "✦ FX BOARD",
+                        text = "✦ STAGE FX",
                         color = if (fxSel) Color.White else Color(0xFF94A3B8L),
-                        fontSize = 10.5.sp,
+                        fontSize = 10.sp,
                         fontWeight = FontWeight.Black,
-                        letterSpacing = 0.6.sp
+                        letterSpacing = 0.4.sp
                     )
                 }
 
@@ -399,7 +456,7 @@ fun StudioCustomizerSuite(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
-                        .clip(RoundedCornerShape(50))
+                        .clip(RoundedCornerShape(12.dp))
                         .background(
                             if (palettesSel) Brush.horizontalGradient(listOf(Color(0xFF0284C7L), Color(0xFF4338CAL)))
                             else Brush.horizontalGradient(listOf(Color.Transparent, Color.Transparent))
@@ -413,9 +470,9 @@ fun StudioCustomizerSuite(
                     Text(
                         text = "PALETTES",
                         color = if (palettesSel) Color.White else Color(0xFF94A3B8L),
-                        fontSize = 10.5.sp,
+                        fontSize = 10.sp,
                         fontWeight = FontWeight.Black,
-                        letterSpacing = 0.6.sp
+                        letterSpacing = 0.4.sp
                     )
                 }
 
@@ -424,7 +481,7 @@ fun StudioCustomizerSuite(
                     modifier = Modifier
                         .weight(1f)
                         .fillMaxHeight()
-                        .clip(RoundedCornerShape(50))
+                        .clip(RoundedCornerShape(12.dp))
                         .background(
                             if (coresSel) Brush.horizontalGradient(listOf(Color(0xFF16A34AL), Color(0xFF0D9488L)))
                             else Brush.horizontalGradient(listOf(Color.Transparent, Color.Transparent))
@@ -438,9 +495,9 @@ fun StudioCustomizerSuite(
                     Text(
                         text = "CORES",
                         color = if (coresSel) Color.White else Color(0xFF94A3B8L),
-                        fontSize = 10.5.sp,
+                        fontSize = 10.sp,
                         fontWeight = FontWeight.Black,
-                        letterSpacing = 0.6.sp
+                        letterSpacing = 0.4.sp
                     )
                 }
             }
@@ -449,18 +506,18 @@ fun StudioCustomizerSuite(
 
             if (selectedCategoryIndex == 0) {
                 Text(
-                    text = "UNLOCK & PREVIEW SPECIAL FX ORBS — TAP LEFT HUD IN-GAME TO DROP ONTO STAGE!",
+                    text = "UNLOCK SPECIAL FX ORBS — RANDOM FLUID FX ORBS DROP IN-GAME!",
                     color = Color(0xFF7DD3FCL),
                     fontSize = 9.sp,
                     fontWeight = FontWeight.Bold,
-                    letterSpacing = 0.5.sp,
+                    letterSpacing = 0.4.sp,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp)
                 )
                 StageFxBackdrop.entries.chunked(2).forEachIndexed { rowIdx, pair ->
                     if (rowIdx > 0) Spacer(modifier = Modifier.height(10.dp))
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         pair.forEach { fx ->
@@ -468,22 +525,34 @@ fun StudioCustomizerSuite(
                             ThemeCard(
                                 title = fx.title.uppercase(),
                                 subtitle = fx.subtitle,
-                                isSelected = previewStageFx == fx,
+                                isSelected = isFxUnlocked && previewStageFx == fx,
+                                isPreviewed = previewStageFx == fx,
                                 isUnlocked = isFxUnlocked,
                                 costNotes = fx.costNotes,
                                 accentColor = Color(fx.accentHex),
+                                secondaryAccent = Color(fx.secondaryHex),
                                 modifier = Modifier.weight(1f)
                             ) {
+                                previewStageFx = fx
                                 if (isFxUnlocked) {
-                                    previewStageFx = fx
-                                    statusBanner = "✦ ${fx.title.uppercase()} READY ON YOUR IN-GAME FX DROP BOARD!"
-                                } else if (pulsePoints >= fx.costNotes) {
-                                    onUnlockShopItem(fx.shopId, fx.costNotes)
-                                    previewStageFx = fx
-                                    statusBanner = "UNLOCKED ${fx.title.uppercase()} FX ORB FOR ${fx.costNotes} ♪!"
+                                    lockedPreviewId = null
+                                    lockedPreviewApply = null
+                                    statusBanner = "✦ ${fx.title.uppercase()} IS IN YOUR RANDOM FX DROP POOL!"
                                 } else {
-                                    previewStageFx = fx
-                                    statusBanner = "PREVIEWING ${fx.title.uppercase()} — NEED ${fx.costNotes} ♪ NOTES TO UNLOCK IN-GAME!"
+                                    lockedPreviewId = fx.shopId
+                                    lockedPreviewLabel = fx.title.uppercase()
+                                    lockedPreviewCost = fx.costNotes
+                                    lockedPreviewApply = {
+                                        if (pulsePoints >= fx.costNotes) {
+                                            onUnlockShopItem(fx.shopId, fx.costNotes)
+                                            lockedPreviewId = null
+                                            lockedPreviewApply = null
+                                            statusBanner = "UNLOCKED ${fx.title.uppercase()} FX ORB FOR ${fx.costNotes} ♪!"
+                                        } else {
+                                            statusBanner = "NEED ${fx.costNotes} ♪ NOTES — PLAY OR WATCH AD (+150 ♪) TO UNLOCK!"
+                                        }
+                                    }
+                                    statusBanner = "PREVIEWING ${fx.title.uppercase()} — TAP UNLOCK ABOVE (${fx.costNotes} ♪)"
                                 }
                             }
                         }
@@ -496,12 +565,12 @@ fun StudioCustomizerSuite(
                     Triple("BG_CYBER", "EMERALD PULSE", Triple("Neon Matrix Canopy", 550, "CYBER" to Color(0xFF22C55EL))),
                     Triple("BG_PRISM", "CRYSTAL PRISM", Triple("Sapphire & Aurora", 700, "PRISM" to Color(0xFF38BDF8L))),
                     Triple("BG_SUNSET", "VELVET DUSK", Triple("Amethyst Horizon", 850, "SUNSET" to Color(0xFFA855F7L))),
-                    Triple("BG_BLOOD_MOON", "SUPERNOVA CRIMSON", Triple("Ruby Eclipse Stage", 1000, "BLOOD_MOON" to Color(0xFFF43F5EL)))
+                    Triple("BG_BLOOD_MOON", "SUPERNOVA", Triple("Ruby Eclipse Stage", 1000, "BLOOD_MOON" to Color(0xFFF43F5EL)))
                 )
                 palettes.chunked(2).forEachIndexed { rowIdx, pair ->
                     if (rowIdx > 0) Spacer(modifier = Modifier.height(10.dp))
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         pair.forEach { (shopKey, title, meta) ->
@@ -511,13 +580,14 @@ fun StudioCustomizerSuite(
                                 title = title,
                                 subtitle = sub,
                                 isSelected = bgTheme == themeCode,
+                                isPreviewed = previewBgTheme == themeCode,
                                 isUnlocked = cost == 0 || shopKey in unlockedSet || isVipUnlocked,
                                 costNotes = cost,
                                 accentColor = col,
                                 modifier = Modifier.weight(1f)
                             ) {
                                 previewStageFx = null
-                                applyOrUnlock(shopKey, cost, newBg = themeCode)
+                                previewOrApply(shopKey, title, cost, newBg = themeCode)
                             }
                         }
                     }
@@ -528,13 +598,13 @@ fun StudioCustomizerSuite(
                     Triple("HERO_ECLIPSE", "24K ECLIPSE", Triple("Solar Corona", 450, "ECLIPSE" to Color(0xFFFACC15L))),
                     Triple("HERO_CYBER", "CYBERLOTUS", Triple("Electric Cyan Halo", 600, "CYBER" to Color(0xFF38BDF8L))),
                     Triple("HERO_PRISM", "PRISM STAR", Triple("Iridescent Orchid", 750, "PRISM" to Color(0xFFE879F9L))),
-                    Triple("HERO_VINYL", "PLATINUM DISC", Triple("Turntable Crest", 950, "VINYL" to Color(0xFF7DD3FCL))),
+                    Triple("HERO_VINYL", "PLATINUM", Triple("Turntable Crest", 950, "VINYL" to Color(0xFF7DD3FCL))),
                     Triple("HERO_SERAPH", "NOVA SERAPH", Triple("Celestial Rose Core", 1200, "SERAPH" to Color(0xFFF472B6L)))
                 )
                 cores.chunked(2).forEachIndexed { rowIdx, pair ->
                     if (rowIdx > 0) Spacer(modifier = Modifier.height(10.dp))
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         pair.forEach { (shopKey, title, meta) ->
@@ -544,11 +614,15 @@ fun StudioCustomizerSuite(
                                 title = title,
                                 subtitle = sub,
                                 isSelected = heroSkin == skinCode,
+                                isPreviewed = previewHeroSkin == skinCode,
                                 isUnlocked = cost == 0 || shopKey in unlockedSet || isVipUnlocked,
                                 costNotes = cost,
                                 accentColor = col,
                                 modifier = Modifier.weight(1f)
-                            ) { applyOrUnlock(shopKey, cost, newHero = skinCode) }
+                            ) {
+                                previewStageFx = null
+                                previewOrApply(shopKey, title, cost, newHero = skinCode)
+                            }
                         }
                     }
                 }

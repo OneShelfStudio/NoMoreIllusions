@@ -56,12 +56,15 @@ import kotlin.math.sin
 import kotlin.random.Random
 
 val LocalStudioHapticsEnabled = compositionLocalOf { true }
+val LocalStudioAudioEngine = compositionLocalOf<AudioEngine?> { null }
 
 class StudioHaptics(
     private val vibrator: Vibrator?,
-    private val enabled: Boolean
+    private val enabled: Boolean,
+    private val audioEngine: AudioEngine? = null
 ) {
     fun tick() {
+        audioEngine?.playButtonSwoosh(isPrimary = false)
         val vib = vibrator ?: return
         if (!enabled) return
         runCatching {
@@ -78,6 +81,7 @@ class StudioHaptics(
     }
 
     fun confirm() {
+        audioEngine?.playButtonSwoosh(isPrimary = true)
         val vib = vibrator ?: return
         if (!enabled) return
         runCatching {
@@ -98,6 +102,7 @@ class StudioHaptics(
 fun rememberStudioHaptics(): StudioHaptics {
     val context = LocalContext.current
     val enabled = LocalStudioHapticsEnabled.current
+    val audioEngine = LocalStudioAudioEngine.current
     val vibrator = remember(context) {
         runCatching {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -109,7 +114,7 @@ fun rememberStudioHaptics(): StudioHaptics {
             }
         }.getOrNull()
     }
-    return remember(vibrator, enabled) { StudioHaptics(vibrator, enabled) }
+    return remember(vibrator, enabled, audioEngine) { StudioHaptics(vibrator, enabled, audioEngine) }
 }
 
 // ---------------------------------------------------------------------------
@@ -426,12 +431,14 @@ fun StudioPillButton(
         }
 
         // Button Content Row with Dual-Layered Faux Emboss Text
+        val dynamicLetterSpacing = if (fontSize.value <= 11f) 0.4.sp else 0.9.sp
+        val horizontalPad = if (fontSize.value <= 11f) 8.dp else 14.dp
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 14.dp, vertical = 2.dp)
+                .padding(horizontal = horizontalPad, vertical = 2.dp)
         ) {
             if (leadingIcon != null) {
                 Box(
@@ -463,7 +470,7 @@ fun StudioPillButton(
                         color = Color.Black.copy(alpha = 0.60f * contentAlpha),
                         fontSize = fontSize,
                         fontWeight = FontWeight.Black,
-                        letterSpacing = 1.2.sp,
+                        letterSpacing = dynamicLetterSpacing,
                         maxLines = 1,
                         softWrap = false,
                         modifier = Modifier.offset(x = 0.8.dp, y = 1.4.dp)
@@ -474,7 +481,7 @@ fun StudioPillButton(
                         color = textColor.copy(alpha = contentAlpha),
                         fontSize = fontSize,
                         fontWeight = FontWeight.Black,
-                        letterSpacing = 1.2.sp,
+                        letterSpacing = dynamicLetterSpacing,
                         maxLines = 1,
                         softWrap = false
                     )
@@ -844,7 +851,7 @@ fun BottomNavGlyph(type: String, isSelected: Boolean) {
                 }
                 drawPath(path, color = tint, style = Stroke(width = 1.8.dp.toPx()))
             }
-            "SKINS" -> {
+            "SKINS", "SHOP" -> {
                 val path = Path().apply {
                     moveTo(w * 0.5f, h * 0.10f)
                     lineTo(w * 0.60f, h * 0.40f)
@@ -904,7 +911,7 @@ fun StudioNavDock(
         Triple("HOME", "HOME", onNavigateHome),
         Triple("ALBUM", "ALBUM", onNavigateAlbum),
         Triple("VAULT", "VAULT", onNavigateVault),
-        Triple("SKINS", "SKINS", onNavigateSkins),
+        Triple("SHOP", "SHOP", onNavigateSkins),
         Triple("SETTINGS", "SETTINGS", onNavigateSettings)
     )
 
@@ -943,12 +950,12 @@ fun StudioNavDock(
             verticalAlignment = Alignment.CenterVertically
         ) {
             navItems.forEach { (key, label, action) ->
-                val isSel = currentDestination == key
+                val isSel = currentDestination == key || ((currentDestination == "SKINS" || currentDestination == "SHOP") && key == "SHOP")
                 val accent = when (key) {
                     "HOME" -> Color(0xFF4ADE80)
                     "ALBUM" -> Color(0xFF38BDF8)
                     "VAULT" -> Color(0xFFFACC15)
-                    "SKINS" -> Color(0xFFA855F7)
+                    "SKINS", "SHOP" -> Color(0xFFA855F7)
                     else -> Color(0xFFFDE68A)
                 }
 
@@ -1040,9 +1047,13 @@ fun StudioDialog(
     accentColor: Color = Color(0xFFFACC15),
     content: @Composable ColumnScope.() -> Unit
 ) {
+    val audioEngine = LocalStudioAudioEngine.current
     val dialogShape = RoundedCornerShape(24.dp)
     var appeared by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { appeared = true }
+    LaunchedEffect(Unit) {
+        appeared = true
+        audioEngine?.playWhooshChime("MODAL")
+    }
 
     val popScale by animateFloatAsState(
         targetValue = if (appeared) 1f else 0.78f,
@@ -1054,14 +1065,16 @@ fun StudioDialog(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black.copy(alpha = 0.82f))
+            .systemBarsPadding()
             .clickable(onClick = onDismiss),
         contentAlignment = Alignment.Center
     ) {
         Box(
             modifier = modifier
+                .heightIn(max = 650.dp)
                 .scale(popScale)
                 .clickable(enabled = false) {}
-                .padding(12.dp)
+                .padding(10.dp)
                 .shadow(16.dp, dialogShape, ambientColor = accentColor, spotColor = accentColor)
                 .clip(dialogShape)
                 .background(
@@ -1101,7 +1114,7 @@ fun StudioDialog(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 18.dp, bottom = 20.dp, start = 18.dp, end = 18.dp)
+                    .padding(top = 14.dp, bottom = 14.dp, start = 16.dp, end = 16.dp)
             ) {
                 Text(
                     text = title.uppercase(),
