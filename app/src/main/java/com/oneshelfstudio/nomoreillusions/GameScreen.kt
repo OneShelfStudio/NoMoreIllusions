@@ -643,7 +643,7 @@ fun GameScreen(
         audioEngine.pauseThemeMusic()
         audioEngine.stopTrack()
         trackRevealMusicProgress = 0f
-        liveTrackSec = -1.0f
+        liveTrackSec = -PRE_MUSIC_DRIFT_DURATION_SEC
         player = GameObject(screenWidth / 2f, screenHeight * 0.65f, 18f, applyColorBlind(Color(0xFF22C55EL)))
         targetX = player.x
         targetY = player.y
@@ -1093,8 +1093,8 @@ fun GameScreen(
                     }
                 }
 
-                // 808 Sub-Bass Heartbeat Pulse during Confide's 3:21–3:27.5 Breakdown
-                if (selectedTrackIndex == 1 && trackSec in 201.0f..207.5f && liveBeatPhase in 0f..0.14f && shockwaves.size < 6) {
+                // 808 Sub-Bass Heartbeat Pulse during Confide's 3:18.4–3:28.5 Slowdown Breakdown
+                if (selectedTrackIndex == 1 && trackSec in 198.4f..208.5f && liveBeatPhase in 0f..0.14f && shockwaves.size < 6) {
                     cameraPunch = maxOf(cameraPunch, 0.030f)
                     shockwaves.add(
                         Shockwave(
@@ -1765,11 +1765,13 @@ fun GameScreen(
                     }
                 }
 
-                // Flowy whispy breakdown slow-mo during "losing your battles" (0:45 - 0:49.5) & spoken vocal drift
-                val isFlowyBreakdownTime = (selectedTrackIndex == 1 && (trackSec in 44.4f..49.5f || trackSec in 108.0f..115.2f)) ||
-                    (selectedTrackIndex == 2 && (trackSec in 41.5f..47.0f || trackSec in 91.5f..97.0f))
-                if (isFlowyBreakdownTime) {
-                    slowMoTime = maxOf(slowMoTime, 0.45f)
+                // Flowy whispy breakdown slow-mo during "losing your battles" (44.9s - 49.85s), spoken vocal drift, and interlude showcases
+                val isFlowyBreakdownTime = (selectedTrackIndex == 1 && (trackSec in 44.9f..49.85f || trackSec in 107.85f..115.65f)) ||
+                    (selectedTrackIndex == 2 && (trackSec in 42.9f..48.45f || trackSec in 92.0f..98.85f)) ||
+                    (selectedTrackIndex >= 3 && (trackSec in (activeTrack.durationSec * 0.205f)..(activeTrack.durationSec * 0.235f) || trackSec in (activeTrack.durationSec * 0.49f)..(activeTrack.durationSec * 0.53f)))
+                val autoInterludeNow = resolveChoreographedInterludeStageFx(selectedTrackIndex, trackSec, activeTrack.durationSec)
+                if (isFlowyBreakdownTime || autoInterludeNow != null) {
+                    slowMoTime = maxOf(slowMoTime, 0.35f)
                 }
             }
         }
@@ -1786,15 +1788,28 @@ fun GameScreen(
             targetY = player.y
         }
 
+        val choreographedInterludeFx = resolveChoreographedInterludeStageFx(
+            trackIndex = selectedTrackIndex,
+            trackSec = liveTrackSec,
+            durationSec = MusicLibrary.getTrack(selectedTrackIndex).durationSec
+        )
+        val effectiveStageFx = if (activeStageFx != null && stageFxTimer > 0f) {
+            activeStageFx
+        } else {
+            choreographedInterludeFx?.backdrop
+        }
+        val targetStageFxAlpha = if (activeStageFx != null && stageFxTimer > 0f) {
+            (stageFxTimer / 2.2f).coerceIn(0f, 1f)
+        } else {
+            choreographedInterludeFx?.alpha ?: 0f
+        }
         val stageFxSmoothIntensity by animateFloatAsState(
-            targetValue = if (activeStageFx != null && stageFxTimer > 0f) {
-                (stageFxTimer / 2.2f).coerceIn(0f, 1f)
-            } else 0f,
+            targetValue = targetStageFxAlpha,
             animationSpec = tween(durationMillis = 480),
             label = "stageFxSmoothIntensity"
         )
-        val isFlowyStageVisual = (selectedTrackIndex == 1 && (liveTrackSec in 44.4f..49.5f || liveTrackSec in 108.0f..115.2f)) ||
-            (selectedTrackIndex == 2 && (liveTrackSec in 41.5f..47.0f || liveTrackSec in 91.5f..97.0f))
+        val isFlowyStageVisual = (selectedTrackIndex == 1 && (liveTrackSec in 44.9f..49.85f || liveTrackSec in 107.85f..115.65f)) ||
+            (selectedTrackIndex == 2 && (liveTrackSec in 42.9f..48.45f || liveTrackSec in 92.0f..98.85f))
 
         GamePlayfieldCanvas(
             gameState = gameState,
@@ -1827,7 +1842,7 @@ fun GameScreen(
             wormholes = wormholes,
             isBandHeroMode = isBandHeroMode,
             trackIndex = selectedTrackIndex,
-            activeStageFx = activeStageFx,
+            activeStageFx = effectiveStageFx,
             stageFxIntensity = stageFxSmoothIntensity,
             goldenTier = activeGoldenTier,
             isFlowySwirlStage = isFlowyStageVisual,
@@ -2269,6 +2284,8 @@ fun GameScreen(
     }
 }
 
+internal const val PRE_MUSIC_DRIFT_DURATION_SEC = 1.8f
+
 internal data class PreMusicClockStep(
     val isPreMusicDrift: Boolean,
     val preMusicElapsed: Float,
@@ -2276,8 +2293,58 @@ internal data class PreMusicClockStep(
     val trackSec: Float
 )
 
+internal data class ChoreographedInterludeFx(
+    val backdrop: StageFxBackdrop,
+    val alpha: Float
+)
+
 /**
- * Pure frame-loop step for the 1.0-second pre-music orb drift (-1.0s -> 0.0s) into live audio playback (0.0s -> +trackSec).
+ * Automatically crossfades between lush Stage FX visualizers in slow-mo during the two musical interlude windows:
+ * - Track 1 (Confide):
+ *   - Interlude 1 (59.80s..69.68s): AURORA_SILK -> KALEIDOSCOPE_MANDALA, snapping back at 69.68s (1:09.68) when the drums hit!
+ *   - Interlude 2 (155.81s..170.32s): PRISM_CAUSTICS -> SOLAR_ECLIPSE -> NEBULA_VORTEX during the vocal "oooohs", snapping back at 170.32s (2:50.32) right when Ethan sings "I"!
+ * - Track 2 (Number One):
+ *   - Interlude 1 (53.85s..63.41s) & Interlude 2 (117.95s..130.23s)
+ * - Track 3+: proportional interlude windows.
+ */
+internal fun resolveChoreographedInterludeStageFx(
+    trackIndex: Int,
+    trackSec: Float,
+    durationSec: Int = 219
+): ChoreographedInterludeFx? {
+    val dur = durationSec.coerceAtLeast(60).toFloat()
+    val (w1Start, w1End, w2Start, w2End) = when (trackIndex) {
+        1 -> floatArrayOf(59.80f, 69.68f, 155.81f, 170.32f)
+        2 -> floatArrayOf(53.85f, 63.41f, 117.95f, 130.23f)
+        else -> floatArrayOf(dur * 0.275f, dur * 0.320f, dur * 0.710f, dur * 0.778f)
+    }
+    if (trackSec in w1Start..w1End) {
+        val span = (w1End - w1Start).coerceAtLeast(1f)
+        val u = ((trackSec - w1Start) / span).coerceIn(0f, 1f)
+        val seg = if (u < 0.5f) 0 else 1
+        val segU = if (seg == 0) (u / 0.5f) else ((u - 0.5f) / 0.5f)
+        val alpha = sin(segU.coerceIn(0f, 1f) * PI.toFloat()).coerceIn(0.18f, 0.92f)
+        val fx = if (seg == 0) StageFxBackdrop.AURORA_SILK else StageFxBackdrop.KALEIDOSCOPE_MANDALA
+        return ChoreographedInterludeFx(fx, alpha)
+    }
+    if (trackSec in w2Start..w2End) {
+        val span = (w2End - w2Start).coerceAtLeast(1f)
+        val u = ((trackSec - w2Start) / span).coerceIn(0f, 1f)
+        val seg = (u * 3f).toInt().coerceIn(0, 2)
+        val segU = ((u * 3f) - seg).coerceIn(0f, 1f)
+        val alpha = sin(segU * PI.toFloat()).coerceIn(0.18f, 0.94f)
+        val fx = when (seg) {
+            0 -> StageFxBackdrop.PRISM_CAUSTICS
+            1 -> StageFxBackdrop.SOLAR_ECLIPSE
+            else -> StageFxBackdrop.NEBULA_VORTEX
+        }
+        return ChoreographedInterludeFx(fx, alpha)
+    }
+    return null
+}
+
+/**
+ * Pure frame-loop step for the 1.8-second pre-music orb drift (-1.8s -> 0.0s) into live audio playback (0.0s -> +trackSec).
  * Keeping this inside the frame loop prevents Compose LaunchedEffect(gameState) self-cancellation from freezing orbs at 0.0s.
  */
 internal fun stepPreMusicAndTrackClock(
@@ -2288,11 +2355,11 @@ internal fun stepPreMusicAndTrackClock(
     rawTrackSec: Float
 ): PreMusicClockStep {
     if (isPreMusicDrift && !isAudioRunning) {
-        val nextElapsed = (preMusicElapsed + dt.coerceAtLeast(0f)).coerceAtMost(1.0f)
-        return if (nextElapsed >= 1.0f) {
+        val nextElapsed = (preMusicElapsed + dt.coerceAtLeast(0f)).coerceAtMost(PRE_MUSIC_DRIFT_DURATION_SEC)
+        return if (nextElapsed >= PRE_MUSIC_DRIFT_DURATION_SEC) {
             PreMusicClockStep(
                 isPreMusicDrift = false,
-                preMusicElapsed = 1.0f,
+                preMusicElapsed = PRE_MUSIC_DRIFT_DURATION_SEC,
                 shouldStartTrackNow = true,
                 trackSec = rawTrackSec.coerceAtLeast(0f)
             )
@@ -2301,14 +2368,14 @@ internal fun stepPreMusicAndTrackClock(
                 isPreMusicDrift = true,
                 preMusicElapsed = nextElapsed,
                 shouldStartTrackNow = false,
-                trackSec = (nextElapsed - 1.0f).coerceIn(-1.0f, 0.0f)
+                trackSec = (nextElapsed - PRE_MUSIC_DRIFT_DURATION_SEC).coerceIn(-PRE_MUSIC_DRIFT_DURATION_SEC, 0.0f)
             )
         }
     }
     val effectiveTrackSec = if (isAudioRunning) {
         rawTrackSec
     } else {
-        (preMusicElapsed - 1.0f).coerceIn(-1.0f, 0.0f)
+        (preMusicElapsed - PRE_MUSIC_DRIFT_DURATION_SEC).coerceIn(-PRE_MUSIC_DRIFT_DURATION_SEC, 0.0f)
     }
     return PreMusicClockStep(
         isPreMusicDrift = false,

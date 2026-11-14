@@ -548,39 +548,45 @@ internal fun spawnStationaryBeatOrbsForFrame(
                 exitY = -72f
                 expireSec = targetSecExact + 3.15f
             } else {
-                val dirMode = ((cue.sequenceIndex * 37) + 3) % 8
-                when (dirMode) {
-                    0 -> {
-                        startX = -54f
-                        startY = screenHeight * 0.10f
-                    }
-                    1 -> {
-                        startX = screenWidth + 54f
-                        startY = screenHeight * 0.12f
-                    }
-                    2 -> {
-                        startX = screenWidth * 0.12f
-                        startY = -54f
-                    }
-                    3 -> {
-                        startX = screenWidth * 0.88f
-                        startY = -54f
-                    }
-                    4 -> {
-                        startX = -54f
-                        startY = screenHeight * 0.28f
-                    }
-                    5 -> {
-                        startX = screenWidth + 54f
-                        startY = screenHeight * 0.28f
-                    }
-                    6 -> {
-                        startX = (receptorX - screenWidth * 0.28f).coerceIn(24f, screenWidth - 24f)
-                        startY = -54f
-                    }
-                    else -> {
-                        startX = (receptorX + screenWidth * 0.28f).coerceIn(24f, screenWidth - 24f)
-                        startY = -54f
+                if (cue.sequenceIndex <= 3 || cue.timestampSec < 4.5f) {
+                    val topOffset = ((cue.sequenceIndex % 3) - 1) * (screenWidth * 0.08f)
+                    startX = (receptorX + topOffset).coerceIn(screenWidth * 0.20f, screenWidth * 0.80f)
+                    startY = -44f
+                } else {
+                    val dirMode = ((cue.sequenceIndex * 37) + 3) % 8
+                    when (dirMode) {
+                        0 -> {
+                            startX = -54f
+                            startY = screenHeight * 0.10f
+                        }
+                        1 -> {
+                            startX = screenWidth + 54f
+                            startY = screenHeight * 0.12f
+                        }
+                        2 -> {
+                            startX = screenWidth * 0.12f
+                            startY = -54f
+                        }
+                        3 -> {
+                            startX = screenWidth * 0.88f
+                            startY = -54f
+                        }
+                        4 -> {
+                            startX = -54f
+                            startY = screenHeight * 0.28f
+                        }
+                        5 -> {
+                            startX = screenWidth + 54f
+                            startY = screenHeight * 0.28f
+                        }
+                        6 -> {
+                            startX = (receptorX - screenWidth * 0.28f).coerceIn(24f, screenWidth - 24f)
+                            startY = -54f
+                        }
+                        else -> {
+                            startX = (receptorX + screenWidth * 0.28f).coerceIn(24f, screenWidth - 24f)
+                            startY = -54f
+                        }
                     }
                 }
                 val dx = receptorX - startX
