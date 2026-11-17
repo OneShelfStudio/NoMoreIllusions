@@ -4,6 +4,7 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -14,6 +15,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.CutCornerShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -32,6 +34,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.imageResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -47,7 +51,8 @@ fun ArcadeDialog(
     closeIcon: ImageBitmap? = null,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    val dialogShape = RoundedCornerShape(24.dp)
+    val dialogShape = CutCornerShape(18.dp)
+    val frameBitmap = ImageBitmap.imageResource(id = R.drawable.ui_card_frame_ornate)
 
     Box(
         modifier = modifier
@@ -59,15 +64,6 @@ fun ArcadeDialog(
                 spotColor = Color(0xFFFACC15)
             )
             .clip(dialogShape)
-            .background(
-                Brush.verticalGradient(
-                    listOf(
-                        Color(0xFA0E1C33),
-                        Color(0xFA081122),
-                        Color(0xFA03070E)
-                    )
-                )
-            )
             .border(
                 width = 1.5.dp,
                 brush = Brush.verticalGradient(
@@ -81,6 +77,12 @@ fun ArcadeDialog(
             ),
         contentAlignment = Alignment.TopCenter
     ) {
+        Image(
+            bitmap = frameBitmap,
+            contentDescription = null,
+            modifier = Modifier.matchParentSize(),
+            contentScale = ContentScale.FillBounds
+        )
         Canvas(modifier = Modifier.matchParentSize()) {
             drawCircle(
                 brush = Brush.radialGradient(
@@ -142,18 +144,20 @@ fun ArcadeStatCapsule(
     modifier: Modifier = Modifier.size(width = 170.dp, height = 48.dp),
     valueColor: Color = Color.White
 ) {
-    val shape = RoundedCornerShape(percent = 50)
+    val shape = CutCornerShape(8.dp)
+    val badgeBitmap = ImageBitmap.imageResource(id = R.drawable.ui_header_badge)
     Box(
         contentAlignment = Alignment.CenterStart,
         modifier = modifier
             .clip(shape)
-            .background(
-                Brush.verticalGradient(
-                    listOf(Color(0xE60B182C), Color(0xE6040812))
-                )
-            )
-            .border(1.dp, Color(0xFF38BDF8).copy(alpha = 0.55f), shape)
+            .border(1.dp, Color(0xFF38BDF8).copy(alpha = 0.65f), shape)
     ) {
+        Image(
+            bitmap = badgeBitmap,
+            contentDescription = null,
+            modifier = Modifier.matchParentSize(),
+            contentScale = ContentScale.FillBounds
+        )
         Column(
             modifier = Modifier.padding(horizontal = 18.dp, vertical = 4.dp)
         ) {
@@ -306,6 +310,8 @@ fun DifficultyOption(
     onClick: (GameDifficulty) -> Unit
 ) {
     val haptics = rememberStudioHaptics()
+    val tileFrame = ImageBitmap.imageResource(id = R.drawable.ui_shop_tile_frame)
+    val tileSelected = ImageBitmap.imageResource(id = R.drawable.ui_shop_tile_selected)
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
@@ -319,7 +325,7 @@ fun DifficultyOption(
         GameDifficulty.REGULAR -> Triple("REGULAR", "1.0x PTS", Color(0xFF4ADE80))
         GameDifficulty.HARD -> Triple("INTENSE", "1.5x PTS", Color(0xFFFACC15))
     }
-    val shape = RoundedCornerShape(14.dp)
+    val shape = CutCornerShape(topStart = 10.dp, bottomEnd = 10.dp, topEnd = 4.dp, bottomStart = 4.dp)
 
     Box(
         modifier = modifier
@@ -331,22 +337,9 @@ fun DifficultyOption(
                 spotColor = accent.copy(alpha = 0.45f)
             )
             .clip(shape)
-            .background(
-                if (isSelected) {
-                    Brush.verticalGradient(
-                        listOf(
-                            accent.copy(alpha = 0.28f),
-                            Color(0xFF0A192F),
-                            Color(0xFF040914)
-                        )
-                    )
-                } else {
-                    Brush.verticalGradient(listOf(Color(0xFF0B1426), Color(0xFF050912)))
-                }
-            )
             .border(
                 width = if (isSelected) 1.6.dp else 1.dp,
-                color = if (isSelected) accent else Color.White.copy(alpha = 0.14f),
+                color = if (isSelected) accent else Color.White.copy(alpha = 0.18f),
                 shape = shape
             )
             .clickable(
@@ -355,11 +348,19 @@ fun DifficultyOption(
             ) {
                 haptics.tick()
                 onClick(difficulty)
-            }
-            .padding(horizontal = 8.dp, vertical = 10.dp),
+            },
         contentAlignment = Alignment.Center
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Image(
+            bitmap = if (isSelected) tileSelected else tileFrame,
+            contentDescription = null,
+            modifier = Modifier.matchParentSize(),
+            contentScale = ContentScale.FillBounds
+        )
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 10.dp)
+        ) {
             Text(
                 text = label,
                 color = if (isSelected) Color.White else Color.White.copy(alpha = 0.72f),

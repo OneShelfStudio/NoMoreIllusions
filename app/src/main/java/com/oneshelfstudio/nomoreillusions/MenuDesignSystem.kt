@@ -17,14 +17,14 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CutCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -34,20 +34,22 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.imageResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
@@ -314,8 +316,21 @@ fun FloatingMotesBackground(
 }
 
 // ---------------------------------------------------------------------------
-// 3. Tactile 3D Action Pill Button (Starbloom Pegs Specular Standard)
+// 3. Bespoke WebP Hardware Action Plaque Button (Zero Pill Shapes)
 // ---------------------------------------------------------------------------
+
+@Composable
+fun rememberStudioPlaqueBitmap(palette: StudioPillPalette): ImageBitmap {
+    val resId = when (palette) {
+        StudioPillPalette.EMERALD_STAGE -> R.drawable.ui_plaque_emerald
+        StudioPillPalette.SOLAR_GOLD -> R.drawable.ui_plaque_gold
+        StudioPillPalette.CYAN_SYNTH -> R.drawable.ui_plaque_cyan
+        StudioPillPalette.VELVET_AMETHYST -> R.drawable.ui_plaque_amethyst
+        StudioPillPalette.COSMIC_ROSE -> R.drawable.ui_plaque_rose
+        StudioPillPalette.SLATE_OBSIDIAN -> R.drawable.ui_plaque_obsidian
+    }
+    return ImageBitmap.imageResource(id = resId)
+}
 
 @Composable
 fun StudioPillButton(
@@ -332,8 +347,10 @@ fun StudioPillButton(
     enabled: Boolean = true
 ) {
     val colors = remember(palette) { resolveStudioColors(palette) }
+    val plaqueBitmap = rememberStudioPlaqueBitmap(palette)
     val haptics = rememberStudioHaptics()
-    val pillShape = RoundedCornerShape(percent = 50)
+    val plaqueShape = CutCornerShape(topStart = 12.dp, bottomEnd = 12.dp, topEnd = 6.dp, bottomStart = 6.dp)
+    val badgeShape = CutCornerShape(6.dp)
     val contentAlpha = if (enabled) 1f else 0.45f
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
@@ -344,7 +361,7 @@ fun StudioPillButton(
             dampingRatio = Spring.DampingRatioMediumBouncy,
             stiffness = Spring.StiffnessLow
         ),
-        label = "StudioPillScale"
+        label = "StudioPlaqueScale"
     )
 
     Box(
@@ -354,31 +371,11 @@ fun StudioPillButton(
             .offset(y = if (isPressed && enabled) 1.5.dp else 0.dp)
             .shadow(
                 elevation = if (isPressed) 3.dp else 8.dp,
-                shape = pillShape,
-                ambientColor = colors.glow.copy(alpha = 0.5f),
-                spotColor = colors.glow.copy(alpha = 0.5f)
+                shape = plaqueShape,
+                ambientColor = colors.glow.copy(alpha = 0.55f),
+                spotColor = colors.glow.copy(alpha = 0.55f)
             )
-            .clip(pillShape)
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        colors.top.copy(alpha = contentAlpha),
-                        colors.mid.copy(alpha = contentAlpha),
-                        colors.bottom.copy(alpha = contentAlpha)
-                    )
-                )
-            )
-            .border(
-                width = 1.6.dp,
-                brush = Brush.verticalGradient(
-                    listOf(
-                        Color.White.copy(alpha = 0.75f * contentAlpha),
-                        colors.rimLight.copy(alpha = 0.90f * contentAlpha),
-                        colors.rimDark.copy(alpha = 0.45f * contentAlpha)
-                    )
-                ),
-                shape = pillShape
-            )
+            .clip(plaqueShape)
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
@@ -389,50 +386,67 @@ fun StudioPillButton(
             },
         contentAlignment = Alignment.Center
     ) {
-        // Specular Gleam & Sheen Canvas
-        Canvas(modifier = Modifier.fillMaxSize()) {
+        Image(
+            bitmap = plaqueBitmap,
+            contentDescription = null,
+            modifier = Modifier.matchParentSize(),
+            contentScale = ContentScale.FillBounds,
+            alpha = contentAlpha
+        )
+
+        if (isPressed && enabled) {
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .background(Color.Black.copy(alpha = 0.18f))
+            )
+        }
+
+        // Crisp Chamfered Corner Bracket & Dynamic Diagonal Specular Gleam
+        Canvas(modifier = Modifier.matchParentSize()) {
             val w = size.width
             val h = size.height
-            val sheenHeight = h * 0.48f
+            val cMaj = 12.dp.toPx().coerceAtMost(h * 0.42f)
+            val bLen = 14.dp.toPx().coerceAtMost(w * 0.14f)
 
-            // Top Specular Highlight Arc
-            drawRoundRect(
-                brush = Brush.verticalGradient(
-                    colors = listOf(
-                        Color.White.copy(alpha = 0.32f * contentAlpha),
-                        Color.White.copy(alpha = 0.08f * contentAlpha),
-                        Color.Transparent
-                    ),
-                    startY = 0f,
-                    endY = sheenHeight
-                ),
-                topLeft = Offset(h * 0.10f, 2f),
-                size = Size((w - h * 0.20f).coerceAtLeast(0f), sheenHeight),
-                cornerRadius = CornerRadius(sheenHeight, sheenHeight)
-            )
-
-            // Dynamic Diagonal Gleam Streak
             val gleamPath = Path().apply {
-                moveTo(w * 0.20f, 0f)
-                lineTo(w * 0.28f, 0f)
-                lineTo(w * 0.18f, h)
-                lineTo(w * 0.10f, h)
+                moveTo(w * 0.22f, 0f)
+                lineTo(w * 0.29f, 0f)
+                lineTo(w * 0.20f, h)
+                lineTo(w * 0.13f, h)
                 close()
             }
             drawPath(
                 path = gleamPath,
                 brush = Brush.verticalGradient(
                     listOf(
-                        Color.White.copy(alpha = 0.15f * contentAlpha),
+                        Color.White.copy(alpha = 0.14f * contentAlpha),
                         Color.White.copy(alpha = 0.02f * contentAlpha)
                     )
                 )
             )
+
+            val cornerCol = colors.rimLight.copy(alpha = 0.85f * contentAlpha)
+            val strokePx = 1.6.dp.toPx()
+            val topLeftBracket = Path().apply {
+                moveTo(1.5f, cMaj + bLen * 0.65f)
+                lineTo(1.5f, cMaj)
+                lineTo(cMaj, 1.5f)
+                lineTo(cMaj + bLen, 1.5f)
+            }
+            val botRightBracket = Path().apply {
+                moveTo(w - 1.5f, h - cMaj - bLen * 0.65f)
+                lineTo(w - 1.5f, h - cMaj)
+                lineTo(w - cMaj, h - 1.5f)
+                lineTo(w - cMaj - bLen, h - 1.5f)
+            }
+            drawPath(topLeftBracket, color = cornerCol, style = Stroke(width = strokePx, cap = StrokeCap.Square))
+            drawPath(botRightBracket, color = cornerCol, style = Stroke(width = strokePx, cap = StrokeCap.Square))
         }
 
         // Button Content Row with Dual-Layered Faux Emboss Text
         val dynamicLetterSpacing = if (fontSize.value <= 11f) 0.4.sp else 0.9.sp
-        val horizontalPad = if (fontSize.value <= 11f) 8.dp else 14.dp
+        val horizontalPad = if (fontSize.value <= 11f) 10.dp else 16.dp
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center,
@@ -444,9 +458,9 @@ fun StudioPillButton(
                 Box(
                     modifier = Modifier
                         .size(26.dp)
-                        .clip(CircleShape)
-                        .background(Color.Black.copy(alpha = 0.25f))
-                        .border(1.dp, colors.rimLight.copy(alpha = 0.55f * contentAlpha), CircleShape),
+                        .clip(badgeShape)
+                        .background(Color.Black.copy(alpha = 0.35f))
+                        .border(1.dp, colors.rimLight.copy(alpha = 0.65f * contentAlpha), badgeShape),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -464,18 +478,17 @@ fun StudioPillButton(
                 verticalArrangement = Arrangement.Center
             ) {
                 Box(contentAlignment = Alignment.Center) {
-                    // Shadow layer
                     Text(
                         text = text.uppercase(),
-                        color = Color.Black.copy(alpha = 0.60f * contentAlpha),
+                        color = Color.Black.copy(alpha = 0.68f * contentAlpha),
                         fontSize = fontSize,
                         fontWeight = FontWeight.Black,
                         letterSpacing = dynamicLetterSpacing,
                         maxLines = 1,
                         softWrap = false,
+                        overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.offset(x = 0.8.dp, y = 1.4.dp)
                     )
-                    // Crisp text layer
                     Text(
                         text = text.uppercase(),
                         color = textColor.copy(alpha = contentAlpha),
@@ -483,18 +496,21 @@ fun StudioPillButton(
                         fontWeight = FontWeight.Black,
                         letterSpacing = dynamicLetterSpacing,
                         maxLines = 1,
-                        softWrap = false
+                        softWrap = false,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
 
                 if (subText != null) {
                     Text(
                         text = subText.uppercase(),
-                        color = Color.White.copy(alpha = 0.85f * contentAlpha),
+                        color = Color.White.copy(alpha = 0.88f * contentAlpha),
                         fontSize = (fontSize.value * 0.62f).sp,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 0.8.sp,
-                        maxLines = 1
+                        maxLines = 1,
+                        softWrap = false,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
             }
@@ -503,9 +519,9 @@ fun StudioPillButton(
                 Spacer(modifier = Modifier.width(8.dp))
                 Box(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(percent = 50))
-                        .background(Color.Black.copy(alpha = 0.35f))
-                        .border(1.dp, colors.rimLight.copy(alpha = 0.75f), RoundedCornerShape(percent = 50))
+                        .clip(badgeShape)
+                        .background(Color.Black.copy(alpha = 0.42f))
+                        .border(1.dp, colors.rimLight.copy(alpha = 0.80f), badgeShape)
                         .padding(horizontal = 7.dp, vertical = 2.dp),
                     contentAlignment = Alignment.Center
                 ) {
@@ -514,7 +530,9 @@ fun StudioPillButton(
                         color = colors.rimLight,
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Black,
-                        letterSpacing = 0.6.sp
+                        letterSpacing = 0.6.sp,
+                        maxLines = 1,
+                        softWrap = false
                     )
                 }
             }
@@ -523,7 +541,7 @@ fun StudioPillButton(
 }
 
 // ---------------------------------------------------------------------------
-// 4. Tactile Rounded-Square Icon Button
+// 4. Tactile Chamfered WebP Keycap Icon Button & Reusable Badges / Switchers
 // ---------------------------------------------------------------------------
 
 @Composable
@@ -536,7 +554,6 @@ fun StudioIconButton(
     contentDescription: String? = null,
     enabled: Boolean = true,
     content: @Composable BoxScope.() -> Unit = {
-        // Default: Crisp Back Chevron
         Canvas(modifier = Modifier.size(18.dp)) {
             val w = this.size.width
             val h = this.size.height
@@ -557,7 +574,8 @@ fun StudioIconButton(
         }
     }
 ) {
-    val shape = RoundedCornerShape(14.dp)
+    val shape = CutCornerShape(10.dp)
+    val iconFrame = ImageBitmap.imageResource(id = R.drawable.ui_icon_frame)
     val haptics = rememberStudioHaptics()
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
@@ -573,26 +591,7 @@ fun StudioIconButton(
             .offset(y = if (isPressed && enabled) 1.dp else 0.dp)
             .shadow(6.dp, shape, ambientColor = accentColor, spotColor = accentColor)
             .clip(shape)
-            .background(
-                Brush.verticalGradient(
-                    listOf(
-                        Color(0xF5162C46),
-                        Color(0xF50B1829),
-                        Color(0xF5050C16)
-                    )
-                )
-            )
-            .border(
-                width = 1.5.dp,
-                brush = Brush.verticalGradient(
-                    listOf(
-                        Color.White.copy(alpha = 0.65f),
-                        accentColor.copy(alpha = 0.90f),
-                        accentColor.copy(alpha = 0.35f)
-                    )
-                ),
-                shape = shape
-            )
+            .border(1.2.dp, accentColor.copy(alpha = 0.78f), shape)
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
@@ -603,17 +602,142 @@ fun StudioIconButton(
             },
         contentAlignment = Alignment.Center
     ) {
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            drawRoundRect(
-                brush = Brush.verticalGradient(
-                    listOf(Color.White.copy(alpha = 0.22f), Color.Transparent)
-                ),
-                topLeft = Offset(3f, 2f),
-                size = Size(this.size.width - 6f, this.size.height * 0.45f),
-                cornerRadius = CornerRadius(10f, 10f)
-            )
-        }
+        Image(
+            bitmap = iconFrame,
+            contentDescription = contentDescription,
+            modifier = Modifier.matchParentSize(),
+            contentScale = ContentScale.FillBounds,
+            alpha = if (enabled) 1f else 0.45f
+        )
         content()
+    }
+}
+
+@Composable
+fun StudioHeaderBadge(
+    accentColor: Color = Color(0xFFFACC15),
+    onClick: (() -> Unit)? = null,
+    modifier: Modifier = Modifier,
+    contentPadding: PaddingValues = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+    content: @Composable RowScope.() -> Unit
+) {
+    val haptics = rememberStudioHaptics()
+    val badgeShape = CutCornerShape(8.dp)
+    val badgeBitmap = ImageBitmap.imageResource(id = R.drawable.ui_header_badge)
+    val interactionSource = remember(onClick) { if (onClick != null) MutableInteractionSource() else null }
+    val isPressed = interactionSource?.collectIsPressedAsState()?.value ?: false
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.95f else 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
+        label = "HeaderBadgeScale"
+    )
+
+    Box(
+        modifier = modifier
+            .scale(scale)
+            .clip(badgeShape)
+            .border(1.dp, accentColor.copy(alpha = 0.75f), badgeShape)
+            .then(
+                if (onClick != null && interactionSource != null) {
+                    Modifier.clickable(
+                        interactionSource = interactionSource,
+                        indication = null
+                    ) {
+                        haptics.tick()
+                        onClick()
+                    }
+                } else Modifier
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        Image(
+            bitmap = badgeBitmap,
+            contentDescription = null,
+            modifier = Modifier.matchParentSize(),
+            contentScale = ContentScale.FillBounds
+        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center,
+            modifier = Modifier.padding(contentPadding),
+            content = content
+        )
+    }
+}
+
+@Composable
+fun StudioSegmentedSwitcher(
+    options: List<Triple<String, StudioPillPalette, Color>>,
+    selectedIndex: Int,
+    onSelect: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+    height: Dp = 42.dp,
+    fontSize: TextUnit = 10.sp
+) {
+    val haptics = rememberStudioHaptics()
+    val deckShape = CutCornerShape(12.dp)
+    val tabShape = CutCornerShape(8.dp)
+    val deckBitmap = ImageBitmap.imageResource(id = R.drawable.ui_switcher_deck)
+
+    Box(
+        modifier = modifier
+            .height(height)
+            .clip(deckShape)
+            .border(1.dp, Color(0xFF38BDF8).copy(alpha = 0.38f), deckShape)
+    ) {
+        Image(
+            bitmap = deckBitmap,
+            contentDescription = null,
+            modifier = Modifier.matchParentSize(),
+            contentScale = ContentScale.FillBounds
+        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(4.dp)
+        ) {
+            options.forEachIndexed { idx, (label, palette, activeColor) ->
+                val isSel = selectedIndex == idx
+                val activePlaque = rememberStudioPlaqueBitmap(palette)
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .clip(tabShape)
+                        .then(
+                            if (isSel) Modifier.border(1.1.dp, activeColor.copy(alpha = 0.85f), tabShape)
+                            else Modifier
+                        )
+                        .clickable {
+                            haptics.tick()
+                            onSelect(idx)
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (isSel) {
+                        Image(
+                            bitmap = activePlaque,
+                            contentDescription = null,
+                            modifier = Modifier.matchParentSize(),
+                            contentScale = ContentScale.FillBounds
+                        )
+                    }
+                    Text(
+                        text = label.uppercase(),
+                        color = if (isSel) Color.White else Color(0xFF94A3B8),
+                        fontSize = fontSize,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 0.5.sp,
+                        maxLines = 1,
+                        softWrap = false,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(horizontal = 6.dp)
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -729,18 +853,19 @@ fun StudioScreenHeader(
 }
 
 // ---------------------------------------------------------------------------
-// 6. Deep Obsidian-Glass Card (Starbloom Standard)
+// 6. Bespoke WebP Obsidian-Gold Deck Card
 // ---------------------------------------------------------------------------
 
 @Composable
 fun StudioGlassCard(
     modifier: Modifier = Modifier,
-    shape: androidx.compose.ui.graphics.Shape = RoundedCornerShape(20.dp),
+    shape: androidx.compose.ui.graphics.Shape = CutCornerShape(16.dp),
     accentColor: Color = Color(0xFFFACC15),
     onClick: (() -> Unit)? = null,
     content: @Composable BoxScope.() -> Unit
 ) {
     val haptics = rememberStudioHaptics()
+    val cardFrameBitmap = ImageBitmap.imageResource(id = R.drawable.ui_card_frame_ornate)
     val interactionSource = remember(onClick) { if (onClick != null) MutableInteractionSource() else null }
     val isPressed = interactionSource?.collectIsPressedAsState()?.value ?: false
     val scale by animateFloatAsState(
@@ -771,36 +896,30 @@ fun StudioGlassCard(
         shape = shape,
         color = Color.Transparent,
         border = BorderStroke(
-            1.4.dp,
+            1.2.dp,
             Brush.verticalGradient(
                 listOf(
-                    Color.White.copy(alpha = 0.35f),
-                    accentColor.copy(alpha = 0.75f),
-                    Color(0xFF38BDF8).copy(alpha = 0.30f),
+                    accentColor.copy(alpha = 0.85f),
+                    Color(0xFF38BDF8).copy(alpha = 0.35f),
                     Color(0xFF0F172A).copy(alpha = 0.70f)
                 )
             )
         ),
         shadowElevation = 10.dp
     ) {
-        Box(
-            modifier = Modifier
-                .background(
-                    Brush.verticalGradient(
-                        listOf(
-                            Color(0xF2102038),
-                            Color(0xF2081224),
-                            Color(0xF5040813)
-                        )
-                    )
-                )
-        ) {
+        Box {
+            Image(
+                bitmap = cardFrameBitmap,
+                contentDescription = null,
+                modifier = Modifier.matchParentSize(),
+                contentScale = ContentScale.FillBounds,
+                alpha = 0.94f
+            )
             Canvas(modifier = Modifier.matchParentSize()) {
-                // Top-Center Radial Ambient Glow
                 drawCircle(
                     brush = Brush.radialGradient(
                         colors = listOf(
-                            accentColor.copy(alpha = 0.12f),
+                            accentColor.copy(alpha = 0.14f),
                             Color.Transparent
                         ),
                         center = Offset(size.width * 0.5f, 0f),
@@ -808,22 +927,6 @@ fun StudioGlassCard(
                     ),
                     radius = size.width * 0.65f,
                     center = Offset(size.width * 0.5f, 0f)
-                )
-                // Top Horizon Specular Sheen Capsule
-                val sheenW = size.width * 0.80f
-                drawRoundRect(
-                    brush = Brush.horizontalGradient(
-                        listOf(
-                            Color.Transparent,
-                            Color.White.copy(alpha = 0.35f),
-                            accentColor.copy(alpha = 0.55f),
-                            Color.White.copy(alpha = 0.35f),
-                            Color.Transparent
-                        )
-                    ),
-                    topLeft = Offset(size.width * 0.10f, 1.0f),
-                    size = Size(sheenW, 2.2f),
-                    cornerRadius = CornerRadius(2f, 2f)
                 )
             }
             content()
@@ -893,7 +996,7 @@ fun BottomNavGlyph(type: String, isSelected: Boolean) {
 }
 
 // ---------------------------------------------------------------------------
-// 7. Celestial Orb Bottom Navigation Dock (Starbloom Pegs 3D Spheres)
+// 7. Bespoke WebP Obsidian-Gold Navigation Console Dock
 // ---------------------------------------------------------------------------
 
 @Composable
@@ -907,6 +1010,8 @@ fun StudioNavDock(
     modifier: Modifier = Modifier
 ) {
     val haptics = rememberStudioHaptics()
+    val dockPlate = ImageBitmap.imageResource(id = R.drawable.ui_nav_dock_plate)
+    val iconFrame = ImageBitmap.imageResource(id = R.drawable.ui_icon_frame)
     val navItems = listOf(
         Triple("HOME", "HOME", onNavigateHome),
         Triple("ALBUM", "ALBUM", onNavigateAlbum),
@@ -915,37 +1020,36 @@ fun StudioNavDock(
         Triple("SETTINGS", "SETTINGS", onNavigateSettings)
     )
 
-    val dockShape = RoundedCornerShape(22.dp)
+    val dockShape = CutCornerShape(topStart = 18.dp, topEnd = 18.dp, bottomStart = 8.dp, bottomEnd = 8.dp)
+    val keycapShape = CutCornerShape(9.dp)
 
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .shadow(12.dp, dockShape, ambientColor = Color(0xFFFACC15).copy(alpha = 0.25f))
+            .shadow(12.dp, dockShape, ambientColor = Color(0xFFFACC15).copy(alpha = 0.28f))
             .clip(dockShape)
-            .background(
-                Brush.verticalGradient(
-                    listOf(
-                        Color(0xF80B172E),
-                        Color(0xFA060D1A),
-                        Color(0xFC03060D)
-                    )
-                )
-            )
             .border(
                 width = 1.2.dp,
                 brush = Brush.verticalGradient(
                     listOf(
-                        Color.White.copy(alpha = 0.35f),
                         Color(0xFFFACC15).copy(alpha = 0.65f),
+                        Color(0xFF38BDF8).copy(alpha = 0.28f),
                         Color(0xFF0F172A).copy(alpha = 0.85f)
                     )
                 ),
                 shape = dockShape
             )
-            .padding(horizontal = 8.dp, vertical = 6.dp)
     ) {
+        Image(
+            bitmap = dockPlate,
+            contentDescription = null,
+            modifier = Modifier.matchParentSize(),
+            contentScale = ContentScale.FillBounds
+        )
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 6.dp),
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -980,42 +1084,23 @@ fun StudioNavDock(
                         .padding(horizontal = 6.dp, vertical = 4.dp)
                 ) {
                     Box(
-                        modifier = Modifier.size(34.dp),
+                        modifier = Modifier
+                            .size(34.dp)
+                            .clip(keycapShape)
+                            .then(
+                                if (isSel) Modifier.border(1.3.dp, accent.copy(alpha = 0.85f), keycapShape)
+                                else Modifier
+                            ),
                         contentAlignment = Alignment.Center
                     ) {
-                        Canvas(modifier = Modifier.fillMaxSize()) {
-                            val r = size.minDimension * 0.44f
-                            if (isSel) {
-                                // Orbital halo ring
-                                drawCircle(
-                                    color = accent.copy(alpha = 0.45f),
-                                    radius = r * 1.15f,
-                                    style = Stroke(width = 1.5f)
-                                )
-                                // 3D Celestial Core Sphere
-                                drawCircle(
-                                    brush = Brush.radialGradient(
-                                        colors = listOf(
-                                            accent.copy(alpha = 0.50f),
-                                            Color(0xFF0A192F),
-                                            Color(0xFF040914)
-                                        ),
-                                        center = Offset(center.x - r * 0.2f, center.y - r * 0.2f),
-                                        radius = r * 1.1f
-                                    ),
-                                    radius = r
-                                )
-                                drawCircle(
-                                    brush = Brush.verticalGradient(
-                                        listOf(Color.White.copy(alpha = 0.90f), accent)
-                                    ),
-                                    radius = r,
-                                    style = Stroke(width = 1.6.dp.toPx())
-                                )
-                            }
+                        if (isSel) {
+                            Image(
+                                bitmap = iconFrame,
+                                contentDescription = null,
+                                modifier = Modifier.matchParentSize(),
+                                contentScale = ContentScale.FillBounds
+                            )
                         }
-
-                        // Node Glyph
                         BottomNavGlyph(type = key, isSelected = isSel)
                     }
 
@@ -1036,7 +1121,7 @@ fun StudioNavDock(
 }
 
 // ---------------------------------------------------------------------------
-// 8. Spring Pop Dialog (Starbloom Standard)
+// 8. Spring Pop Dialog with Ornate WebP Hardware Frame
 // ---------------------------------------------------------------------------
 
 @Composable
@@ -1048,7 +1133,8 @@ fun StudioDialog(
     content: @Composable ColumnScope.() -> Unit
 ) {
     val audioEngine = LocalStudioAudioEngine.current
-    val dialogShape = RoundedCornerShape(24.dp)
+    val dialogFrameBitmap = ImageBitmap.imageResource(id = R.drawable.ui_card_frame_ornate)
+    val dialogShape = CutCornerShape(18.dp)
     var appeared by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         appeared = true
@@ -1077,20 +1163,11 @@ fun StudioDialog(
                 .padding(10.dp)
                 .shadow(16.dp, dialogShape, ambientColor = accentColor, spotColor = accentColor)
                 .clip(dialogShape)
-                .background(
-                    Brush.verticalGradient(
-                        listOf(
-                            Color(0xFA0E1C33),
-                            Color(0xFA081122),
-                            Color(0xFA03070E)
-                        )
-                    )
-                )
                 .border(
                     width = 1.5.dp,
                     brush = Brush.verticalGradient(
                         listOf(
-                            accentColor.copy(alpha = 0.85f),
+                            accentColor.copy(alpha = 0.88f),
                             Color(0xFF38BDF8).copy(alpha = 0.35f),
                             Color(0xFF1E293B).copy(alpha = 0.65f)
                         )
@@ -1098,6 +1175,13 @@ fun StudioDialog(
                     shape = dialogShape
                 )
         ) {
+            Image(
+                bitmap = dialogFrameBitmap,
+                contentDescription = null,
+                modifier = Modifier.matchParentSize(),
+                contentScale = ContentScale.FillBounds,
+                alpha = 0.96f
+            )
             Canvas(modifier = Modifier.matchParentSize()) {
                 drawCircle(
                     brush = Brush.radialGradient(

@@ -305,13 +305,10 @@ fun FirstTimeDiscoveryModal(
         onDismiss = onDismiss,
         accentColor = discovery.accentColor
     ) {
-        // Top Pill Badge
-        Box(
-            modifier = Modifier
-                .clip(CircleShape)
-                .background(discovery.accentColor.copy(alpha = 0.16f))
-                .border(1.dp, discovery.accentColor.copy(alpha = 0.70f), CircleShape)
-                .padding(horizontal = 12.dp, vertical = 4.dp)
+        // Bespoke Hex-Chamfer Header Badge
+        StudioHeaderBadge(
+            accentColor = discovery.accentColor,
+            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
         ) {
             Text(
                 text = discovery.badge,

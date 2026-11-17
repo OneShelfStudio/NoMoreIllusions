@@ -294,72 +294,50 @@ fun MenuUI(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            // Top Frameless Stage Bar: ♪ Music Notes Balance + Lobby Synth Switcher
+            // Top Bespoke WebP Stage Bar: ♪ Music Notes Balance + Lobby Synth Switcher
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                // Notes Balance Pill
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(50))
-                        .background(
-                            Brush.verticalGradient(
-                                listOf(Color(0xF510233D), Color(0xF5060E1A))
-                            )
-                        )
-                        .border(1.2.dp, Color(0xFFFACC15L).copy(alpha = 0.75f), RoundedCornerShape(50))
-                        .clickable { onMusicDemo(1) }
-                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                StudioHeaderBadge(
+                    accentColor = Color(0xFFFACC15L),
+                    onClick = { onMusicDemo(1) }
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = "%,d ♪".format(pulsePoints),
-                            color = Color(0xFFFACC15L),
-                            fontSize = 11.5.sp,
-                            fontWeight = FontWeight.Black,
-                            letterSpacing = 0.8.sp
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = if (isVipUnlocked) "• VIP ACTIVE" else "• VIP PASS",
-                            color = if (isVipUnlocked) Color(0xFF4ADE80L) else Color(0xFFC084FCL),
-                            fontSize = 9.sp,
-                            fontWeight = FontWeight.Black
-                        )
-                    }
+                    Text(
+                        text = "%,d ♪".format(pulsePoints),
+                        color = Color(0xFFFACC15L),
+                        fontSize = 11.5.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 0.8.sp
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = if (isVipUnlocked) "• VIP ACTIVE" else "• VIP PASS",
+                        color = if (isVipUnlocked) Color(0xFF4ADE80L) else Color(0xFFC084FCL),
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Black
+                    )
                 }
 
-                // Stage Synth Switcher Pill
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(50))
-                        .background(
-                            Brush.verticalGradient(
-                                listOf(Color(0xF50B1B2F), Color(0xF5040913))
-                            )
-                        )
-                        .border(1.2.dp, modeAccent.copy(alpha = 0.65f), RoundedCornerShape(50))
-                        .clickable { onCycleLobbyTrack() }
-                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                StudioHeaderBadge(
+                    accentColor = modeAccent,
+                    onClick = { onCycleLobbyTrack() }
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            modifier = Modifier
-                                .size(7.dp)
-                                .clip(CircleShape)
-                                .background(modeAccent)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "STAGE: ${activeLobbyTrack.title.uppercase()} ↻",
-                            color = Color(0xFFC7D2FEL),
-                            fontSize = 9.5.sp,
-                            fontWeight = FontWeight.Black,
-                            letterSpacing = 0.8.sp
-                        )
-                    }
+                    Box(
+                        modifier = Modifier
+                            .size(7.dp)
+                            .clip(CutCornerShape(2.dp))
+                            .background(modeAccent)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        text = "STAGE: ${activeLobbyTrack.title.uppercase()} ↻",
+                        color = Color(0xFFC7D2FEL),
+                        fontSize = 9.5.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 0.8.sp
+                    )
                 }
             }
 
@@ -553,15 +531,10 @@ fun MenuUI(
 
             if (selectedTrackIndex == 2) {
                 Spacer(modifier = Modifier.height(3.dp))
-                Box(
-                    modifier = Modifier
-                        .clip(CircleShape)
-                        .background(if (isTrack02AltCover) Color(0x33FACC15L) else Color(0x1AFFFFFFL))
-                        .border(1.dp, if (isTrack02AltCover) Color(0xFFFACC15L) else Color.White.copy(alpha = 0.25f), CircleShape)
-                        .clickable {
-                            prefs.edit().putBoolean("track02_alt_cover", !isTrack02AltCover).apply()
-                        }
-                        .padding(horizontal = 10.dp, vertical = 2.5.dp)
+                StudioHeaderBadge(
+                    accentColor = if (isTrack02AltCover) Color(0xFFFACC15L) else Color.White.copy(alpha = 0.30f),
+                    onClick = { prefs.edit().putBoolean("track02_alt_cover", !isTrack02AltCover).apply() },
+                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 3.dp)
                 ) {
                     Text(
                         text = if (isTrack02AltCover) "✓ ALT LOTUS COVER ACTIVE" else "ALT COVER",
@@ -600,7 +573,12 @@ fun MenuUI(
                 letterSpacing = 1.4.sp
             )
 
-            // 2. Breathable 4-Gem Tempo Selector + Clean Playstyle Toggle
+            // 2. Breathable 4-Gem WebP Tempo Selector + Clean Console Playstyle Switcher
+            val tempoTileFrame = ImageBitmap.imageResource(id = R.drawable.ui_shop_tile_frame)
+            val tempoTileSelected = ImageBitmap.imageResource(id = R.drawable.ui_shop_tile_selected)
+            val tempoTileShape = CutCornerShape(topStart = 10.dp, bottomEnd = 10.dp, topEnd = 4.dp, bottomStart = 4.dp)
+            val iconFrameBitmap = ImageBitmap.imageResource(id = R.drawable.ui_icon_frame)
+
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -624,92 +602,63 @@ fun MenuUI(
                             TrackRemixMode.OVERCLOCK -> Color(0xFFF43F5EL)
                             TrackRemixMode.ENDLESS -> Color(0xFFFACC15L)
                         }
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
+                        Box(
                             modifier = Modifier
                                 .weight(1f)
-                                .clip(RoundedCornerShape(14.dp))
-                                .background(
-                                    if (isActive) Brush.verticalGradient(
-                                        listOf(gemCol.copy(alpha = 0.28f), Color(0xFF081224))
-                                    ) else Brush.verticalGradient(
-                                        listOf(Color(0xFF08101E), Color(0xFF040810))
-                                    )
-                                )
+                                .clip(tempoTileShape)
                                 .border(
-                                    width = if (isActive) 1.6.dp else 1.dp,
-                                    color = if (isActive) gemCol else Color.White.copy(alpha = 0.12f),
-                                    shape = RoundedCornerShape(14.dp)
+                                    width = if (isActive) 1.5.dp else 1.dp,
+                                    color = if (isActive) gemCol else Color.White.copy(alpha = 0.16f),
+                                    shape = tempoTileShape
                                 )
-                                .clickable { onSelectRemixMode(mode) }
-                                .padding(vertical = 8.dp, horizontal = 4.dp)
+                                .clickable { onSelectRemixMode(mode) },
+                            contentAlignment = Alignment.Center
                         ) {
-                            Text(
-                                text = label,
-                                color = if (isActive) gemCol else Color.White,
-                                fontSize = 10.5.sp,
-                                fontWeight = FontWeight.Black,
-                                maxLines = 1
+                            Image(
+                                bitmap = if (isActive) tempoTileSelected else tempoTileFrame,
+                                contentDescription = null,
+                                modifier = Modifier.matchParentSize(),
+                                contentScale = ContentScale.FillBounds
                             )
-                            Spacer(modifier = Modifier.height(1.dp))
-                            Text(
-                                text = sub,
-                                color = Color(0xFFCBD5E1L),
-                                fontSize = 8.5.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                maxLines = 1
-                            )
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier.padding(vertical = 8.dp, horizontal = 4.dp)
+                            ) {
+                                Text(
+                                    text = label,
+                                    color = if (isActive) gemCol else Color.White,
+                                    fontSize = 10.5.sp,
+                                    fontWeight = FontWeight.Black,
+                                    maxLines = 1
+                                )
+                                Spacer(modifier = Modifier.height(1.dp))
+                                Text(
+                                    text = sub,
+                                    color = Color(0xFFCBD5E1L),
+                                    fontSize = 8.5.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    maxLines = 1
+                                )
+                            }
                         }
                     }
                 }
 
-                // Playstyle Mode Segmented Pill (Free-Glide Stage vs Classic 4-Lane Highway)
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(36.dp)
-                        .clip(RoundedCornerShape(50))
-                        .background(Color(0xFF070C18L))
-                        .border(1.dp, Color.White.copy(alpha = 0.14f), RoundedCornerShape(50))
-                        .padding(3.dp)
-                ) {
-                    val freeSelected = !isBandHeroMode
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight()
-                            .clip(RoundedCornerShape(50))
-                            .background(if (freeSelected) Color(0xFF22C55EL).copy(alpha = 0.24f) else Color.Transparent)
-                            .clickable { onToggleBandHeroMode(false) },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "FREE-GLIDE FLOW",
-                            color = if (freeSelected) Color(0xFF4ADE80L) else Color(0xFF94A3B8L),
-                            fontSize = 9.5.sp,
-                            fontWeight = FontWeight.Black
-                        )
-                    }
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight()
-                            .clip(RoundedCornerShape(50))
-                            .background(if (isBandHeroMode) Color(0xFFFACC15L).copy(alpha = 0.24f) else Color.Transparent)
-                            .clickable { onToggleBandHeroMode(true) },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "4-LANE HIGHWAY",
-                            color = if (isBandHeroMode) Color(0xFFFACC15L) else Color(0xFF94A3B8L),
-                            fontSize = 9.5.sp,
-                            fontWeight = FontWeight.Black
-                        )
-                    }
-                }
+                // Playstyle Console Switcher (Free-Glide Flow vs 4-Lane Highway)
+                StudioSegmentedSwitcher(
+                    options = listOf(
+                        Triple("FREE-GLIDE FLOW", StudioPillPalette.EMERALD_STAGE, Color(0xFF4ADE80L)),
+                        Triple("4-LANE HIGHWAY", StudioPillPalette.SOLAR_GOLD, Color(0xFFFACC15L))
+                    ),
+                    selectedIndex = if (isBandHeroMode) 1 else 0,
+                    onSelect = { idx -> onToggleBandHeroMode(idx == 1) },
+                    modifier = Modifier.fillMaxWidth(),
+                    height = 38.dp,
+                    fontSize = 9.5.sp
+                )
             }
 
-            // 3. Tactile 3D Studio Pill Launch Button (Starbloom Standard - Sleek Proportion)
+            // 3. Bespoke WebP Hardware Action Plaque Launch Button
             val isCurrentLaunchUnlocked = selectedTrackIndex == 1 || unlockedTrackCount >= selectedTrackIndex || isVipUnlocked || prefs.getBoolean("art_unlocked_$selectedTrackIndex", false) || prefs.getBoolean("track_unlocked_$selectedTrackIndex", false)
             StudioPillButton(
                 text = if (!isCurrentLaunchUnlocked) "UNLOCK TRACK 0$selectedTrackIndex"
@@ -719,20 +668,15 @@ fun MenuUI(
                           else "${selectedRemixMode.displayName} • MASTER",
                 palette = if (!isCurrentLaunchUnlocked) StudioPillPalette.SOLAR_GOLD else StudioPillPalette.EMERALD_STAGE,
                 onClick = onStart,
-                height = 46.dp,
+                height = 48.dp,
                 fontSize = 13.sp,
-                modifier = Modifier.width(210.dp)
+                modifier = Modifier.width(220.dp)
             )
 
-            // Artist Social Links Dock (Official Ethan Correa / No More Illusions)
-            Row(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(50))
-                    .background(Color(0xB30F172A))
-                    .border(1.dp, Color.White.copy(alpha = 0.14f), RoundedCornerShape(50))
-                    .padding(horizontal = 14.dp, vertical = 6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            // Artist Social Links Console Plate (Official Ethan Correa / No More Illusions)
+            StudioHeaderBadge(
+                accentColor = Color.White.copy(alpha = 0.24f),
+                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
             ) {
                 Text(
                     text = "FOLLOW",
@@ -741,26 +685,38 @@ fun MenuUI(
                     fontWeight = FontWeight.Black,
                     letterSpacing = 0.9.sp
                 )
-                MusicLibrary.officialSocialLinks.forEach { link ->
-                    val accent = Color(link.accentHex)
-                    Box(
-                        modifier = Modifier
-                            .size(26.dp)
-                            .clip(CircleShape)
-                            .background(Color.White.copy(alpha = 0.08f))
-                            .border(1.dp, accent.copy(alpha = 0.65f), CircleShape)
-                            .clickable {
-                                try {
-                                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(link.url)))
-                                } catch (_: Exception) {}
-                            },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        BrandVectorGlyph(
-                            brand = link.label,
-                            tint = accent,
-                            size = 13.dp
-                        )
+                Spacer(modifier = Modifier.width(10.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    MusicLibrary.officialSocialLinks.forEach { link ->
+                        val accent = Color(link.accentHex)
+                        val iconShape = CutCornerShape(6.dp)
+                        Box(
+                            modifier = Modifier
+                                .size(27.dp)
+                                .clip(iconShape)
+                                .border(1.dp, accent.copy(alpha = 0.72f), iconShape)
+                                .clickable {
+                                    try {
+                                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(link.url)))
+                                    } catch (_: Exception) {}
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Image(
+                                bitmap = iconFrameBitmap,
+                                contentDescription = link.label,
+                                modifier = Modifier.matchParentSize(),
+                                contentScale = ContentScale.FillBounds
+                            )
+                            BrandVectorGlyph(
+                                brand = link.label,
+                                tint = accent,
+                                size = 13.dp
+                            )
+                        }
                     }
                 }
             }
@@ -874,12 +830,9 @@ fun CountdownUI(value: Int, visible: Boolean = true) {
                 )
             }
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Box(
-                    modifier = Modifier
-                        .clip(CircleShape)
-                        .background(Color(0xCC060D1E))
-                        .border(1.dp, color.copy(alpha = 0.65f), CircleShape)
-                        .padding(horizontal = 14.dp, vertical = 4.dp)
+                StudioHeaderBadge(
+                    accentColor = color,
+                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 4.dp)
                 ) {
                     Text(
                         text = if (value > 0) "STAGE STANDBY" else "NEEDLE DROPPING",
@@ -1003,7 +956,7 @@ fun HowToPlayUI(
                 // Classic Highway Mode Bonus Strip
                 StudioGlassCard(
                     accentColor = Color(0xFF7DD3FC),
-                    shape = RoundedCornerShape(16.dp),
+                    shape = CutCornerShape(14.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(
@@ -1012,12 +965,9 @@ fun HowToPlayUI(
                             .fillMaxWidth()
                             .padding(horizontal = 14.dp, vertical = 11.dp)
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .clip(CircleShape)
-                                .background(Color(0xFF38BDF8).copy(alpha = 0.16f))
-                                .border(1.dp, Color(0xFF38BDF8).copy(alpha = 0.65f), CircleShape)
-                                .padding(horizontal = 9.dp, vertical = 4.dp)
+                        StudioHeaderBadge(
+                            accentColor = Color(0xFF38BDF8),
+                            contentPadding = PaddingValues(horizontal = 9.dp, vertical = 4.dp)
                         ) {
                             Text(
                                 text = "BONUS MODE",
@@ -1029,7 +979,7 @@ fun HowToPlayUI(
                         }
                         Spacer(modifier = Modifier.width(10.dp))
                         Text(
-                            text = "Toggle CLASSIC HIGHWAY on the Home deck anytime for vertical 4-lane rhythm play.",
+                            text = "Toggle 4-LANE HIGHWAY on the Home deck anytime for vertical 4-lane rhythm play.",
                             color = Color(0xFFCBD5E1),
                             fontSize = 10.sp,
                             lineHeight = 14.sp,
@@ -1143,12 +1093,9 @@ private fun ExplainerShowcaseCard(
                         modifier = Modifier.weight(1f, fill = false)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
-                    Box(
-                        modifier = Modifier
-                            .clip(CircleShape)
-                            .background(accentColor.copy(alpha = 0.16f))
-                            .border(1.dp, accentColor.copy(alpha = 0.65f), CircleShape)
-                            .padding(horizontal = 7.dp, vertical = 2.dp)
+                    StudioHeaderBadge(
+                        accentColor = accentColor,
+                        contentPadding = PaddingValues(horizontal = 7.dp, vertical = 2.dp)
                     ) {
                         Text(
                             text = badge,
@@ -1286,6 +1233,9 @@ fun SettingsUI(
                             letterSpacing = 1.0.sp
                         )
                         Spacer(modifier = Modifier.height(8.dp))
+                        val synthTileFrame = ImageBitmap.imageResource(id = R.drawable.ui_shop_tile_frame)
+                        val synthTileSelected = ImageBitmap.imageResource(id = R.drawable.ui_shop_tile_selected)
+                        val synthShape = CutCornerShape(topStart = 10.dp, bottomEnd = 10.dp, topEnd = 4.dp, bottomStart = 4.dp)
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             modifier = Modifier.fillMaxWidth()
@@ -1295,27 +1245,28 @@ fun SettingsUI(
                                 Box(
                                     modifier = Modifier
                                         .weight(1f)
-                                        .clip(RoundedCornerShape(12.dp))
-                                        .background(
-                                            if (sel) {
-                                                Brush.verticalGradient(listOf(Color(0xFF0E291A), Color(0xFF06131F)))
-                                            } else {
-                                                Brush.verticalGradient(listOf(Color(0xFF0B1426), Color(0xFF050912)))
-                                            }
-                                        )
+                                        .clip(synthShape)
                                         .border(
                                             width = if (sel) 1.5.dp else 1.dp,
-                                            color = if (sel) Color(0xFF4ADE80) else Color.White.copy(alpha = 0.14f),
-                                            shape = RoundedCornerShape(12.dp)
+                                            color = if (sel) Color(0xFF4ADE80) else Color.White.copy(alpha = 0.16f),
+                                            shape = synthShape
                                         )
                                         .clickable {
                                             haptics.tick()
                                             onLobbyTrackChange(lt)
-                                        }
-                                        .padding(vertical = 9.dp, horizontal = 4.dp),
+                                        },
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Image(
+                                        bitmap = if (sel) synthTileSelected else synthTileFrame,
+                                        contentDescription = null,
+                                        modifier = Modifier.matchParentSize(),
+                                        contentScale = ContentScale.FillBounds
+                                    )
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        modifier = Modifier.padding(vertical = 9.dp, horizontal = 4.dp)
+                                    ) {
                                         Text(
                                             text = lt.title.uppercase(),
                                             color = if (sel) Color(0xFF4ADE80) else Color.White,

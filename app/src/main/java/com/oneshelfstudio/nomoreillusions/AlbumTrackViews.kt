@@ -11,6 +11,7 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -22,7 +23,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.CutCornerShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -37,6 +38,9 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.imageResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -73,19 +77,31 @@ fun TrackListList(
     onSelect: (Int) -> Unit
 ) {
     val haptics = rememberStudioHaptics()
-    LazyColumn(
+    val cardFrameBitmap = ImageBitmap.imageResource(id = R.drawable.ui_card_frame_ornate)
+    val tileFrameBitmap = ImageBitmap.imageResource(id = R.drawable.ui_shop_tile_frame)
+    val tileSelectedBitmap = ImageBitmap.imageResource(id = R.drawable.ui_shop_tile_selected)
+    val deckShape = CutCornerShape(14.dp)
+    val rowShape = CutCornerShape(topStart = 12.dp, bottomEnd = 12.dp, topEnd = 5.dp, bottomStart = 5.dp)
+    val tagShape = CutCornerShape(5.dp)
+
+    Box(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
-            .background(
-                Brush.verticalGradient(
-                    listOf(Color(0xE6081326L), Color(0xF203060EL))
-                )
-            )
-            .border(1.2.dp, Color(0xFF38BDF8L).copy(alpha = 0.35f), RoundedCornerShape(18.dp))
-            .padding(12.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+            .clip(deckShape)
+            .border(1.2.dp, Color(0xFF38BDF8L).copy(alpha = 0.38f), deckShape)
     ) {
+        Image(
+            bitmap = cardFrameBitmap,
+            contentDescription = null,
+            modifier = Modifier.matchParentSize(),
+            contentScale = ContentScale.FillBounds
+        )
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
         itemsIndexed(tracks) { idx, t ->
             val selectedRow = (idx + 1) == selectedTrackIndex
             val playable = isPlayable(t)
@@ -98,36 +114,19 @@ fun TrackListList(
                 label = "TrackRowScale_${t.index}"
             )
 
-            val rowBrush = when {
-                selectedRow -> Brush.horizontalGradient(
-                    listOf(Color(0xFF0E2240L), Color(0xFF071B18L))
-                )
-                artUnlocked -> Brush.horizontalGradient(
-                    listOf(Color(0xFF091D16L), Color(0xFF081226L))
-                )
-                playable -> Brush.horizontalGradient(
-                    listOf(Color(0xFF081326L), Color(0xFF040914L))
-                )
-                else -> Brush.horizontalGradient(
-                    listOf(Color(0xFF040810L), Color(0xFF020408L))
-                )
-            }
-
             val borderColor = when {
                 selectedRow -> Color(0xFF4ADE80L)
-                artUnlocked -> Color(0xFF4ADE80L).copy(alpha = 0.52f)
-                playable -> Color(0xFF38BDF8L).copy(alpha = 0.36f)
-                else -> Color.White.copy(alpha = 0.10f)
+                artUnlocked -> Color(0xFF4ADE80L).copy(alpha = 0.55f)
+                playable -> Color(0xFF38BDF8L).copy(alpha = 0.42f)
+                else -> Color.White.copy(alpha = 0.14f)
             }
 
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .scale(scale)
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(rowBrush)
-                    .border(if (selectedRow) 1.6.dp else 1.dp, borderColor, RoundedCornerShape(14.dp))
+                    .clip(rowShape)
+                    .border(if (selectedRow) 1.6.dp else 1.dp, borderColor, rowShape)
                     .clickable(
                         interactionSource = interactionSource,
                         indication = null
@@ -135,12 +134,24 @@ fun TrackListList(
                         haptics.tick()
                         onSelect(idx + 1)
                     }
-                    .padding(vertical = 14.dp, horizontal = 14.dp)
             ) {
+                Image(
+                    bitmap = if (selectedRow) tileSelectedBitmap else tileFrameBitmap,
+                    contentDescription = null,
+                    modifier = Modifier.matchParentSize(),
+                    contentScale = ContentScale.FillBounds,
+                    alpha = if (playable) 1f else 0.72f
+                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 14.dp, horizontal = 14.dp)
+                ) {
                 Box(
                     modifier = Modifier
                         .size(width = 36.dp, height = 28.dp)
-                        .clip(RoundedCornerShape(8.dp))
+                        .clip(CutCornerShape(6.dp))
                         .background(
                             if (selectedRow) Color(0xFF22C55EL).copy(alpha = 0.25f)
                             else if (playable) Color(0xFF38BDF8L).copy(alpha = 0.18f)
@@ -184,9 +195,9 @@ fun TrackListList(
                     artUnlocked -> {
                         Box(
                             modifier = Modifier
-                                .clip(CircleShape)
-                                .background(Color(0xFF16A34AL).copy(alpha = 0.22f))
-                                .border(1.dp, Color(0xFF4ADE80L).copy(alpha = 0.7f), CircleShape)
+                                .clip(tagShape)
+                                .background(Color(0xFF16A34AL).copy(alpha = 0.25f))
+                                .border(1.dp, Color(0xFF4ADE80L).copy(alpha = 0.78f), tagShape)
                                 .padding(horizontal = 9.dp, vertical = 4.dp)
                         ) {
                             Text(
@@ -200,9 +211,9 @@ fun TrackListList(
                     playable -> {
                         Box(
                             modifier = Modifier
-                                .clip(CircleShape)
-                                .background(Color(0xFF0284C7L).copy(alpha = 0.22f))
-                                .border(1.dp, Color(0xFF38BDF8L).copy(alpha = 0.70f), CircleShape)
+                                .clip(tagShape)
+                                .background(Color(0xFF0284C7L).copy(alpha = 0.25f))
+                                .border(1.dp, Color(0xFF38BDF8L).copy(alpha = 0.78f), tagShape)
                                 .padding(horizontal = 9.dp, vertical = 4.dp)
                         ) {
                             Text(
@@ -216,9 +227,9 @@ fun TrackListList(
                     else -> {
                         Box(
                             modifier = Modifier
-                                .clip(CircleShape)
-                                .background(Color(0xFFFACC15L).copy(alpha = 0.12f))
-                                .border(1.dp, Color(0xFFFACC15L).copy(alpha = 0.42f), CircleShape)
+                                .clip(tagShape)
+                                .background(Color(0xFFFACC15L).copy(alpha = 0.14f))
+                                .border(1.dp, Color(0xFFFACC15L).copy(alpha = 0.50f), tagShape)
                                 .padding(horizontal = 9.dp, vertical = 4.dp)
                         ) {
                             Text(
@@ -230,6 +241,7 @@ fun TrackListList(
                         }
                     }
                 }
+                }
             }
         }
 
@@ -237,24 +249,30 @@ fun TrackListList(
         items(MusicLibrary.upcomingReleaseSlots.size) { slotIdx ->
             val slot = MusicLibrary.upcomingReleaseSlots[slotIdx]
             val slotAccent = Color(slot.accentHex)
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(
-                        Brush.horizontalGradient(
-                            listOf(Color(0xFF050A16L), Color(0xFF03060EL))
-                        )
-                    )
-                    .border(1.dp, slotAccent.copy(alpha = 0.28f), RoundedCornerShape(14.dp))
-                    .padding(vertical = 12.dp, horizontal = 14.dp)
+                    .clip(rowShape)
+                    .border(1.dp, slotAccent.copy(alpha = 0.34f), rowShape)
             ) {
+                Image(
+                    bitmap = tileFrameBitmap,
+                    contentDescription = null,
+                    modifier = Modifier.matchParentSize(),
+                    contentScale = ContentScale.FillBounds,
+                    alpha = 0.75f
+                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 12.dp, horizontal = 14.dp)
+                ) {
                 Box(
                     modifier = Modifier
                         .size(width = 36.dp, height = 28.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(slotAccent.copy(alpha = 0.14f)),
+                        .clip(CutCornerShape(6.dp))
+                        .background(slotAccent.copy(alpha = 0.16f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
@@ -286,9 +304,9 @@ fun TrackListList(
                 Spacer(modifier = Modifier.width(8.dp))
                 Box(
                     modifier = Modifier
-                        .clip(CircleShape)
-                        .background(slotAccent.copy(alpha = 0.14f))
-                        .border(1.dp, slotAccent.copy(alpha = 0.50f), CircleShape)
+                        .clip(tagShape)
+                        .background(slotAccent.copy(alpha = 0.16f))
+                        .border(1.dp, slotAccent.copy(alpha = 0.55f), tagShape)
                         .padding(horizontal = 9.dp, vertical = 4.dp)
                 ) {
                     Text(
@@ -298,7 +316,9 @@ fun TrackListList(
                         fontWeight = FontWeight.Black
                     )
                 }
+                }
             }
+        }
         }
     }
 }
@@ -313,21 +333,32 @@ fun TrackListGrid(
     onSelect: (Int) -> Unit
 ) {
     val haptics = rememberStudioHaptics()
-    LazyVerticalGrid(
-        columns = GridCells.Fixed(2),
+    val cardFrameBitmap = ImageBitmap.imageResource(id = R.drawable.ui_card_frame_ornate)
+    val tileFrameBitmap = ImageBitmap.imageResource(id = R.drawable.ui_shop_tile_frame)
+    val tileSelectedBitmap = ImageBitmap.imageResource(id = R.drawable.ui_shop_tile_selected)
+    val deckShape = CutCornerShape(14.dp)
+    val tileShape = CutCornerShape(topStart = 12.dp, bottomEnd = 12.dp, topEnd = 5.dp, bottomStart = 5.dp)
+
+    Box(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
-            .background(
-                Brush.verticalGradient(
-                    listOf(Color(0xE6081326L), Color(0xF203060EL))
-                )
-            )
-            .border(1.2.dp, Color(0xFF38BDF8L).copy(alpha = 0.35f), RoundedCornerShape(18.dp))
-            .padding(12.dp),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+            .clip(deckShape)
+            .border(1.2.dp, Color(0xFF38BDF8L).copy(alpha = 0.38f), deckShape)
     ) {
+        Image(
+            bitmap = cardFrameBitmap,
+            contentDescription = null,
+            modifier = Modifier.matchParentSize(),
+            contentScale = ContentScale.FillBounds
+        )
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(2),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
         items(tracks) { t ->
             val selected = t.index == selectedTrackIndex
             val playable = isPlayable(t)
@@ -340,34 +371,19 @@ fun TrackListGrid(
                 label = "TrackTileScale_${t.index}"
             )
 
-            val tileBrush = when {
-                selected -> Brush.verticalGradient(
-                    listOf(Color(0xFF0E2240L), Color(0xFF071B18L))
-                )
-                artUnlocked -> Brush.verticalGradient(
-                    listOf(Color(0xFF091D16L), Color(0xFF071022L))
-                )
-                playable -> Brush.verticalGradient(
-                    listOf(Color(0xFF081326L), Color(0xFF040914L))
-                )
-                else -> Brush.verticalGradient(
-                    listOf(Color(0xFF040810L), Color(0xFF020408L))
-                )
-            }
             val borderCol = when {
                 selected -> Color(0xFF4ADE80L)
                 artUnlocked -> Color(0xFF4ADE80L).copy(alpha = 0.65f)
-                playable -> Color(0xFF38BDF8L).copy(alpha = 0.38f)
-                else -> Color.White.copy(alpha = 0.10f)
+                playable -> Color(0xFF38BDF8L).copy(alpha = 0.42f)
+                else -> Color.White.copy(alpha = 0.14f)
             }
 
             Box(
                 modifier = Modifier
                     .height(106.dp)
                     .scale(scale)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(tileBrush)
-                    .border(if (selected) 1.8.dp else 1.dp, borderCol, RoundedCornerShape(16.dp))
+                    .clip(tileShape)
+                    .border(if (selected) 1.8.dp else 1.dp, borderCol, tileShape)
                     .clickable(
                         interactionSource = interactionSource,
                         indication = null
@@ -375,9 +391,15 @@ fun TrackListGrid(
                         haptics.tick()
                         onSelect(t.index)
                     }
-                    .padding(12.dp)
             ) {
-                Column {
+                Image(
+                    bitmap = if (selected) tileSelectedBitmap else tileFrameBitmap,
+                    contentDescription = null,
+                    modifier = Modifier.matchParentSize(),
+                    contentScale = ContentScale.FillBounds,
+                    alpha = if (playable) 1f else 0.72f
+                )
+                Column(modifier = Modifier.padding(12.dp)) {
                     Text(
                         text = "TRACK %02d • STUDIO MASTER".format(t.index),
                         color = if (selected) Color(0xFF4ADE80L) else Color(0xFF7DD3FCL),
@@ -416,7 +438,9 @@ fun TrackListGrid(
                     color = badgeColor,
                     fontWeight = FontWeight.Black,
                     fontSize = 9.sp,
-                    modifier = Modifier.align(Alignment.BottomEnd)
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(10.dp)
                 )
             }
         }
@@ -426,16 +450,17 @@ fun TrackListGrid(
             Box(
                 modifier = Modifier
                     .height(106.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(
-                        Brush.verticalGradient(
-                            listOf(Color(0xFF050A16L), Color(0xFF03060EL))
-                        )
-                    )
-                    .border(1.dp, slotAccent.copy(alpha = 0.30f), RoundedCornerShape(16.dp))
-                    .padding(12.dp)
+                    .clip(tileShape)
+                    .border(1.dp, slotAccent.copy(alpha = 0.34f), tileShape)
             ) {
-                Column {
+                Image(
+                    bitmap = tileFrameBitmap,
+                    contentDescription = null,
+                    modifier = Modifier.matchParentSize(),
+                    contentScale = ContentScale.FillBounds,
+                    alpha = 0.75f
+                )
+                Column(modifier = Modifier.padding(12.dp)) {
                     Text(
                         text = "TRACK %02d • %s".format(slot.index, slot.statusBadge),
                         color = slotAccent,
@@ -465,9 +490,12 @@ fun TrackListGrid(
                     color = slotAccent,
                     fontWeight = FontWeight.Black,
                     fontSize = 9.sp,
-                    modifier = Modifier.align(Alignment.BottomEnd)
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(10.dp)
                 )
             }
+        }
         }
     }
 }

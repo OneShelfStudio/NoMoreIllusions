@@ -1,12 +1,11 @@
 package com.oneshelfstudio.nomoreillusions
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CutCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -15,19 +14,21 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.imageResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 /**
- * Renders crisp, authentic vector brand logos for Spotify, Apple Music, YouTube, Instagram, and TikTok
- * inside sleek dark-glass circular badges or compact pills (no generic AI bitmap pills).
+ * Renders crisp vector brand logos for Spotify, Apple Music, YouTube, Instagram, and TikTok
+ * inside bespoke WebP telemetry plaques and keycap mounts.
  */
 @Composable
 fun SocialBrandIconRow(
@@ -36,6 +37,7 @@ fun SocialBrandIconRow(
     modifier: Modifier = Modifier,
     showLabels: Boolean = false
 ) {
+    val iconFrameBitmap = ImageBitmap.imageResource(id = R.drawable.ui_icon_frame)
     Row(
         horizontalArrangement = Arrangement.spacedBy(10.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -44,18 +46,10 @@ fun SocialBrandIconRow(
         links.forEach { link ->
             val accent = Color(link.accentHex)
             if (showLabels) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(50))
-                        .background(
-                            Brush.verticalGradient(
-                                listOf(Color(0xFF0A121EL), Color(0xFF04080FL))
-                            )
-                        )
-                        .border(1.2.dp, accent.copy(alpha = 0.65f), RoundedCornerShape(50))
-                        .clickable { onOpenUrl(link.url) }
-                        .padding(horizontal = 11.dp, vertical = 6.dp)
+                StudioHeaderBadge(
+                    accentColor = accent,
+                    onClick = { onOpenUrl(link.url) },
+                    contentPadding = PaddingValues(horizontal = 11.dp, vertical = 6.dp)
                 ) {
                     BrandVectorGlyph(
                         brand = link.label,
@@ -72,23 +66,21 @@ fun SocialBrandIconRow(
                     )
                 }
             } else {
+                val keycapShape = CutCornerShape(8.dp)
                 Box(
                     modifier = Modifier
                         .size(40.dp)
-                        .clip(CircleShape)
-                        .background(
-                            Brush.radialGradient(
-                                listOf(
-                                    accent.copy(alpha = 0.18f),
-                                    Color(0xFF060B14L),
-                                    Color(0xFF030509L)
-                                )
-                            )
-                        )
-                        .border(1.3.dp, accent.copy(alpha = 0.72f), CircleShape)
+                        .clip(keycapShape)
+                        .border(1.3.dp, accent.copy(alpha = 0.78f), keycapShape)
                         .clickable { onOpenUrl(link.url) },
                     contentAlignment = Alignment.Center
                 ) {
+                    Image(
+                        bitmap = iconFrameBitmap,
+                        contentDescription = link.label,
+                        modifier = Modifier.matchParentSize(),
+                        contentScale = ContentScale.FillBounds
+                    )
                     BrandVectorGlyph(
                         brand = link.label,
                         tint = accent,

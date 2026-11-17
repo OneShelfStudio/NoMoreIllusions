@@ -4,6 +4,7 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -12,7 +13,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.CutCornerShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
@@ -31,6 +32,8 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.imageResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -78,28 +81,17 @@ internal fun ArtistVaultShowcaseModal(
 
             when (vaultId) {
                 "VAULT_LYRICS" -> {
-                    Row(modifier = Modifier.fillMaxWidth()) {
-                        listOf("01. CONFIDE", "02. NUMBER ONE").forEachIndexed { idx, tabLabel ->
-                            val sel = selectedSubTab == idx
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .padding(horizontal = 4.dp)
-                                    .height(32.dp)
-                                    .clip(RoundedCornerShape(50))
-                                    .background(if (sel) Color(0xFF38BDF8L) else Color(0xFF0F172AL))
-                                    .clickable { selectedSubTab = idx },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = tabLabel,
-                                    color = if (sel) Color(0xFF030712L) else Color.White.copy(alpha = 0.75f),
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Black
-                                )
-                            }
-                        }
-                    }
+                    StudioSegmentedSwitcher(
+                        options = listOf(
+                            Triple("01. CONFIDE", StudioPillPalette.CYAN_SYNTH, Color(0xFF38BDF8L)),
+                            Triple("02. NUMBER ONE", StudioPillPalette.SOLAR_GOLD, Color(0xFFFACC15L))
+                        ),
+                        selectedIndex = selectedSubTab,
+                        onSelect = { selectedSubTab = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        height = 36.dp,
+                        fontSize = 10.sp
+                    )
                     Spacer(modifier = Modifier.height(10.dp))
                     val notes = if (selectedSubTab == 0) {
                         listOf(
@@ -195,28 +187,17 @@ internal fun ArtistVaultShowcaseModal(
                         )
                     }
                     Spacer(modifier = Modifier.height(10.dp))
-                    Row(modifier = Modifier.fillMaxWidth()) {
-                        listOf("CONFIDE 4K ART", "NUMBER ONE 4K ART").forEachIndexed { idx, label ->
-                            val sel = selectedSubTab == idx
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .padding(horizontal = 4.dp)
-                                    .height(32.dp)
-                                    .clip(RoundedCornerShape(50))
-                                    .background(if (sel) Color(0xFF4ADE80L) else Color(0xFF0F172AL))
-                                    .clickable { selectedSubTab = idx },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = label,
-                                    color = if (sel) Color(0xFF030712L) else Color.White,
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Black
-                                )
-                            }
-                        }
-                    }
+                    StudioSegmentedSwitcher(
+                        options = listOf(
+                            Triple("CONFIDE 4K ART", StudioPillPalette.EMERALD_STAGE, Color(0xFF4ADE80L)),
+                            Triple("NUMBER ONE 4K ART", StudioPillPalette.SOLAR_GOLD, Color(0xFFFACC15L))
+                        ),
+                        selectedIndex = selectedSubTab,
+                        onSelect = { selectedSubTab = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        height = 36.dp,
+                        fontSize = 10.sp
+                    )
                 }
             }
 
@@ -256,6 +237,10 @@ fun ThemeCard(
     onClick: () -> Unit
 ) {
     val haptics = rememberStudioHaptics()
+    val tileFrameBitmap = ImageBitmap.imageResource(id = R.drawable.ui_shop_tile_frame)
+    val tileSelectedBitmap = ImageBitmap.imageResource(id = R.drawable.ui_shop_tile_selected)
+    val tileShape = CutCornerShape(topStart = 14.dp, bottomEnd = 14.dp, topEnd = 6.dp, bottomStart = 6.dp)
+    val tagShape = CutCornerShape(5.dp)
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val isHighlighted = isSelected || isPreviewed
@@ -264,34 +249,6 @@ fun ThemeCard(
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
         label = "ThemeCardScale"
     )
-    val cardBrush = when {
-        isSelected && isUnlocked -> Brush.verticalGradient(
-            listOf(
-                accentColor.copy(alpha = 0.28f),
-                secondaryAccent.copy(alpha = 0.10f),
-                Color(0xFF060B18L)
-            )
-        )
-        isPreviewed -> Brush.verticalGradient(
-            listOf(
-                accentColor.copy(alpha = 0.22f),
-                Color(0xFF0A1428L),
-                Color(0xFF050814L)
-            )
-        )
-        !isUnlocked -> Brush.verticalGradient(
-            listOf(
-                Color(0xFF091020L),
-                Color(0xFF040710L)
-            )
-        )
-        else -> Brush.verticalGradient(
-            listOf(
-                Color(0xFF0D172DL),
-                Color(0xFF050914L)
-            )
-        )
-    }
 
     val statusText = when {
         isSelected && isUnlocked -> "EQUIPPED"
@@ -311,22 +268,21 @@ fun ThemeCard(
     Box(
         modifier = modifier
             .scale(scale)
-            .clip(RoundedCornerShape(18.dp))
-            .background(cardBrush)
+            .clip(tileShape)
             .border(
-                width = if (isHighlighted) 1.8.dp else 1.0.dp,
+                width = if (isHighlighted) 1.7.dp else 1.0.dp,
                 brush = Brush.verticalGradient(
                     listOf(
                         when {
                             isSelected && isUnlocked -> accentColor
                             isPreviewed -> Color(0xFF38BDF8L)
-                            !isUnlocked -> Color(0xFFFACC15L).copy(alpha = 0.45f)
-                            else -> Color.White.copy(alpha = 0.22f)
+                            !isUnlocked -> Color(0xFFFACC15L).copy(alpha = 0.55f)
+                            else -> Color.White.copy(alpha = 0.25f)
                         },
-                        secondaryAccent.copy(alpha = if (isHighlighted) 0.70f else 0.16f)
+                        secondaryAccent.copy(alpha = if (isHighlighted) 0.72f else 0.18f)
                     )
                 ),
-                shape = RoundedCornerShape(18.dp)
+                shape = tileShape
             )
             .clickable(
                 interactionSource = interactionSource,
@@ -335,12 +291,20 @@ fun ThemeCard(
                 haptics.tick()
                 onClick()
             }
-            .padding(vertical = 11.dp, horizontal = 10.dp)
     ) {
+        Image(
+            bitmap = if (isHighlighted) tileSelectedBitmap else tileFrameBitmap,
+            contentDescription = null,
+            modifier = Modifier.matchParentSize(),
+            contentScale = ContentScale.FillBounds,
+            alpha = if (isUnlocked || isPreviewed) 1f else 0.78f
+        )
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(9.dp),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 11.dp, horizontal = 10.dp)
         ) {
             // Live Miniature Glass Emblem Swatch
             Canvas(modifier = Modifier.size(30.dp)) {
@@ -400,9 +364,9 @@ fun ThemeCard(
                 Spacer(modifier = Modifier.height(5.dp))
                 Box(
                     modifier = Modifier
-                        .clip(CircleShape)
-                        .background(statusColor.copy(alpha = 0.15f))
-                        .border(0.8.dp, statusColor.copy(alpha = 0.65f), CircleShape)
+                        .clip(tagShape)
+                        .background(statusColor.copy(alpha = 0.18f))
+                        .border(0.9.dp, statusColor.copy(alpha = 0.72f), tagShape)
                         .padding(horizontal = 7.dp, vertical = 2.dp)
                 ) {
                     Text(
@@ -474,12 +438,9 @@ fun ArtistExclusivesSpecialsHub(
                             fontWeight = FontWeight.Black,
                             letterSpacing = 0.8.sp
                         )
-                        Box(
-                            modifier = Modifier
-                                .clip(CircleShape)
-                                .background(Color(0xFF4ADE80L).copy(alpha = 0.18f))
-                                .border(1.dp, Color(0xFF4ADE80L), CircleShape)
-                                .padding(horizontal = 10.dp, vertical = 4.dp)
+                        StudioHeaderBadge(
+                            accentColor = Color(0xFF4ADE80L),
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
                         ) {
                             Text(
                                 text = "$unlockedCount / ${ARTIST_EXCLUSIVES_CATALOG.size} UNLOCKED",
@@ -493,19 +454,20 @@ fun ArtistExclusivesSpecialsHub(
                     Spacer(modifier = Modifier.height(10.dp))
 
                     val pct = (unlockedCount.toFloat() / ARTIST_EXCLUSIVES_CATALOG.size.toFloat()).coerceIn(0.08f, 1f)
+                    val meterShape = CutCornerShape(4.dp)
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(8.dp)
-                            .clip(CircleShape)
+                            .clip(meterShape)
                             .background(Color(0xFF040812L))
-                            .border(1.dp, Color.White.copy(alpha = 0.15f), CircleShape)
+                            .border(1.dp, Color.White.copy(alpha = 0.15f), meterShape)
                     ) {
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth(pct)
                                 .fillMaxHeight()
-                                .clip(CircleShape)
+                                .clip(meterShape)
                                 .background(
                                     Brush.horizontalGradient(
                                         listOf(Color(0xFFFACC15L), Color(0xFF4ADE80L), Color(0xFF38BDF8L))
@@ -556,30 +518,42 @@ fun ArtistExclusivesSpecialsHub(
             )
             Spacer(modifier = Modifier.height(10.dp))
 
+            val vaultTileFrame = ImageBitmap.imageResource(id = R.drawable.ui_shop_tile_frame)
+            val vaultTileSelected = ImageBitmap.imageResource(id = R.drawable.ui_shop_tile_selected)
+            val vaultCardShape = CutCornerShape(topStart = 12.dp, bottomEnd = 12.dp, topEnd = 5.dp, bottomStart = 5.dp)
+            val vaultTagShape = CutCornerShape(5.dp)
+
             ARTIST_EXCLUSIVES_CATALOG.forEachIndexed { idx, item ->
                 val unlocked = isVipUnlocked || item.isUnlocked(prefs, highScore, pulsePoints)
                 val isExpanded = expandedItemId == item.id
-                Column(
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(bottom = 12.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(
-                            if (unlocked) Brush.verticalGradient(listOf(Color(0xFF0A1428L), Color(0xFF050914L)))
-                            else Brush.verticalGradient(listOf(Color(0xFF060A15L), Color(0xFF03050BL)))
-                        )
+                        .clip(vaultCardShape)
                         .border(
                             width = if (isExpanded) 1.5.dp else 1.dp,
                             color = if (unlocked) item.accentColor.copy(alpha = if (isExpanded) 0.9f else 0.55f)
                             else Color.White.copy(alpha = if (isExpanded) 0.35f else 0.15f),
-                            shape = RoundedCornerShape(14.dp)
+                            shape = vaultCardShape
                         )
                         .clickable {
                             haptics.tick()
                             expandedItemId = if (isExpanded) null else item.id
                         }
-                        .padding(horizontal = 16.dp, vertical = 14.dp)
                 ) {
+                    Image(
+                        bitmap = if (isExpanded) vaultTileSelected else vaultTileFrame,
+                        contentDescription = null,
+                        modifier = Modifier.matchParentSize(),
+                        contentScale = ContentScale.FillBounds,
+                        alpha = if (unlocked) 1f else 0.72f
+                    )
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 14.dp)
+                    ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -606,15 +580,15 @@ fun ArtistExclusivesSpecialsHub(
                         Spacer(modifier = Modifier.width(8.dp))
                         Box(
                             modifier = Modifier
-                                .clip(CircleShape)
+                                .clip(vaultTagShape)
                                 .background(
-                                    if (unlocked) Color(0xFF16A34AL).copy(alpha = 0.22f)
-                                    else Color(0xFFFACC15L).copy(alpha = 0.14f)
+                                    if (unlocked) Color(0xFF16A34AL).copy(alpha = 0.25f)
+                                    else Color(0xFFFACC15L).copy(alpha = 0.16f)
                                 )
                                 .border(
                                     1.dp,
-                                    if (unlocked) Color(0xFF4ADE80L) else Color(0xFFFACC15L).copy(alpha = 0.55f),
-                                    CircleShape
+                                    if (unlocked) Color(0xFF4ADE80L) else Color(0xFFFACC15L).copy(alpha = 0.62f),
+                                    vaultTagShape
                                 )
                                 .padding(horizontal = 8.dp, vertical = 3.dp)
                         ) {
@@ -642,9 +616,9 @@ fun ArtistExclusivesSpecialsHub(
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clip(RoundedCornerShape(10.dp))
+                                    .clip(CutCornerShape(8.dp))
                                     .background(Color(0xFF040812L))
-                                    .border(1.dp, item.accentColor.copy(alpha = 0.42f), RoundedCornerShape(10.dp))
+                                    .border(1.dp, item.accentColor.copy(alpha = 0.42f), CutCornerShape(8.dp))
                                     .padding(10.dp)
                             ) {
                                 Column {
@@ -668,56 +642,37 @@ fun ArtistExclusivesSpecialsHub(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                Box(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height(34.dp)
-                                        .clip(RoundedCornerShape(50))
-                                        .background(item.accentColor.copy(alpha = 0.20f))
-                                        .border(1.dp, item.accentColor, RoundedCornerShape(50))
-                                        .clickable {
-                                            when (idx) {
-                                                0, 1 -> activeModalId = "VAULT_LYRICS"
-                                                2 -> activeModalId = "VAULT_WALLPAPER"
-                                                3, 4 -> activeModalId = "VAULT_POLAROIDS"
-                                                else -> activeModalId = "VAULT_POLAROIDS"
-                                            }
-                                        },
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = "OPEN VIEW",
-                                        color = Color.White,
-                                        fontSize = 9.5.sp,
-                                        fontWeight = FontWeight.Black
-                                    )
-                                }
-                                Box(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height(34.dp)
-                                        .clip(RoundedCornerShape(50))
-                                        .background(
-                                            Brush.horizontalGradient(listOf(Color(0xFF22C55EL), Color(0xFF0D9488L)))
-                                        )
-                                        .clickable { onPlayTrack(if (idx == 1) 2 else 1) },
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = if (idx == 2 || idx == 4) "PLAY TRACK 2 ▶" else "PLAY TRACK 1 ▶",
-                                        color = Color.White,
-                                        fontSize = 9.5.sp,
-                                        fontWeight = FontWeight.Black
-                                    )
-                                }
+                                StudioPillButton(
+                                    text = "OPEN VIEW",
+                                    palette = StudioPillPalette.CYAN_SYNTH,
+                                    onClick = {
+                                        when (idx) {
+                                            0, 1 -> activeModalId = "VAULT_LYRICS"
+                                            2 -> activeModalId = "VAULT_WALLPAPER"
+                                            3, 4 -> activeModalId = "VAULT_POLAROIDS"
+                                            else -> activeModalId = "VAULT_POLAROIDS"
+                                        }
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                    height = 38.dp,
+                                    fontSize = 9.5.sp
+                                )
+                                StudioPillButton(
+                                    text = if (idx == 2 || idx == 4) "PLAY TRACK 2 ▶" else "PLAY TRACK 1 ▶",
+                                    palette = StudioPillPalette.EMERALD_STAGE,
+                                    onClick = { onPlayTrack(if (idx == 1) 2 else 1) },
+                                    modifier = Modifier.weight(1f),
+                                    height = 38.dp,
+                                    fontSize = 9.5.sp
+                                )
                             }
                         } else {
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clip(RoundedCornerShape(10.dp))
+                                    .clip(CutCornerShape(8.dp))
                                     .background(Color(0xFF080D1AL))
-                                    .border(1.dp, Color(0xFFFACC15L).copy(alpha = 0.35f), RoundedCornerShape(10.dp))
+                                    .border(1.dp, Color(0xFFFACC15L).copy(alpha = 0.35f), CutCornerShape(8.dp))
                                     .padding(10.dp)
                             ) {
                                 Row(
@@ -741,24 +696,19 @@ fun ArtistExclusivesSpecialsHub(
                                         )
                                     }
                                     Spacer(modifier = Modifier.width(8.dp))
-                                    Box(
-                                        modifier = Modifier
-                                            .clip(RoundedCornerShape(50))
-                                            .background(Color(0xFF22C55EL))
-                                            .clickable { onPlayTrack(if (idx == 1) 2 else 1) }
-                                            .padding(horizontal = 12.dp, vertical = 7.dp)
-                                    ) {
-                                        Text(
-                                            text = "PLAY ▶",
-                                            color = Color(0xFF020617L),
-                                            fontSize = 9.5.sp,
-                                            fontWeight = FontWeight.Black
-                                        )
-                                    }
+                                    StudioPillButton(
+                                        text = "PLAY ▶",
+                                        palette = StudioPillPalette.EMERALD_STAGE,
+                                        onClick = { onPlayTrack(if (idx == 1) 2 else 1) },
+                                        modifier = Modifier.width(92.dp),
+                                        height = 34.dp,
+                                        fontSize = 9.5.sp
+                                    )
                                 }
                             }
                         }
                     }
+                }
                 }
             }
 

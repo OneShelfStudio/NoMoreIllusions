@@ -12,13 +12,14 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.CutCornerShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -44,6 +45,8 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toPixelMap
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.imageResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.TextUnit
@@ -164,7 +167,14 @@ fun ArcadePillButton(
         palette ?: detectPalette(text, pillBitmap)
     }
     val colors = remember(resolvedPalette) { paletteColors(resolvedPalette) }
-    val cardShape = RoundedCornerShape(14.dp)
+    val plaqueResId = when (resolvedPalette) {
+        ArcadeButtonPalette.EMERALD_PULSE -> R.drawable.ui_plaque_emerald
+        ArcadeButtonPalette.SOLAR_GOLD -> R.drawable.ui_plaque_gold
+        ArcadeButtonPalette.ASTRAL_CYAN -> R.drawable.ui_plaque_cyan
+        ArcadeButtonPalette.VELVET_AMETHYST -> R.drawable.ui_plaque_amethyst
+    }
+    val plaqueBitmap = ImageBitmap.imageResource(id = plaqueResId)
+    val cardShape = CutCornerShape(topStart = 11.dp, bottomEnd = 11.dp, topEnd = 5.dp, bottomStart = 5.dp)
     val contentAlpha = if (enabled) 1f else 0.45f
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
@@ -184,20 +194,12 @@ fun ArcadePillButton(
                 spotColor = colors.accent.copy(alpha = 0.45f)
             )
             .clip(cardShape)
-            .background(
-                brush = Brush.horizontalGradient(
-                    colors = listOf(
-                        colors.surfaceLeft.copy(alpha = contentAlpha),
-                        colors.surfaceRight.copy(alpha = contentAlpha)
-                    )
-                )
-            )
             .border(
                 width = 1.2.dp,
                 brush = Brush.horizontalGradient(
                     listOf(
-                        colors.borderLight.copy(alpha = 0.82f * contentAlpha),
-                        colors.borderDark.copy(alpha = 0.48f * contentAlpha)
+                        colors.borderLight.copy(alpha = 0.85f * contentAlpha),
+                        colors.borderDark.copy(alpha = 0.50f * contentAlpha)
                     )
                 ),
                 shape = cardShape
@@ -212,14 +214,12 @@ fun ArcadePillButton(
             },
         contentAlignment = Alignment.Center
     ) {
-        Box(
-            modifier = Modifier
-                .align(Alignment.CenterStart)
-                .padding(start = 6.dp)
-                .width(3.dp)
-                .fillMaxHeight(0.52f)
-                .clip(RoundedCornerShape(4.dp))
-                .background(colors.accent.copy(alpha = 0.90f * contentAlpha))
+        Image(
+            bitmap = plaqueBitmap,
+            contentDescription = null,
+            modifier = Modifier.matchParentSize(),
+            contentScale = ContentScale.FillBounds,
+            alpha = contentAlpha
         )
 
         Row(
@@ -386,7 +386,8 @@ fun ArcadeIconButton(
     val resolvedIcon = remember(iconBitmap, iconType) {
         iconType ?: detectIconType(iconBitmap)
     }
-    val shape = RoundedCornerShape(12.dp)
+    val shape = CutCornerShape(10.dp)
+    val iconFrameBitmap = ImageBitmap.imageResource(id = R.drawable.ui_icon_frame)
     val accentColor = when (resolvedIcon) {
         ArcadeIconType.CLOSE -> Color(0xFFA855F7)
         ArcadeIconType.RESTART -> Color(0xFF22C55E)
@@ -399,14 +400,6 @@ fun ArcadeIconButton(
             .scale(scale)
             .shadow(4.dp, shape, ambientColor = accentColor, spotColor = accentColor)
             .clip(shape)
-            .background(
-                Brush.verticalGradient(
-                    listOf(
-                        Color(0xF20D182C),
-                        Color(0xF2040812)
-                    )
-                )
-            )
             .border(
                 width = 1.3.dp,
                 brush = Brush.verticalGradient(
@@ -427,6 +420,12 @@ fun ArcadeIconButton(
             },
         contentAlignment = Alignment.Center
     ) {
+        Image(
+            bitmap = iconFrameBitmap,
+            contentDescription = null,
+            modifier = Modifier.matchParentSize(),
+            contentScale = ContentScale.FillBounds
+        )
         Canvas(modifier = Modifier.fillMaxSize(0.44f)) {
             val w = size.width
             val h = size.height
@@ -544,8 +543,9 @@ fun TouchControlHintBanner(
             .padding(horizontal = 18.dp),
         contentAlignment = Alignment.Center
     ) {
-        val shape = RoundedCornerShape(24.dp)
-        Column(
+        val shape = CutCornerShape(18.dp)
+        val dialogFrameBitmap = ImageBitmap.imageResource(id = R.drawable.ui_card_frame_ornate)
+        Box(
             modifier = Modifier
                 .widthIn(max = 360.dp)
                 .fillMaxWidth()
@@ -561,15 +561,6 @@ fun TouchControlHintBanner(
                     spotColor = Color(0xFF38BDF8)
                 )
                 .clip(shape)
-                .background(
-                    Brush.verticalGradient(
-                        listOf(
-                            Color(0xFA0E1C33),
-                            Color(0xFA081122),
-                            Color(0xFA03070E)
-                        )
-                    )
-                )
                 .border(
                     width = 1.5.dp,
                     brush = Brush.verticalGradient(
@@ -581,24 +572,31 @@ fun TouchControlHintBanner(
                     ),
                     shape = shape
                 )
-                .padding(horizontal = 18.dp, vertical = 18.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Box(
+            Image(
+                bitmap = dialogFrameBitmap,
+                contentDescription = null,
+                modifier = Modifier.matchParentSize(),
+                contentScale = ContentScale.FillBounds
+            )
+            Column(
                 modifier = Modifier
-                    .clip(CircleShape)
-                    .background(Color(0xFFFACC15).copy(alpha = 0.16f))
-                    .border(1.dp, Color(0xFFFACC15).copy(alpha = 0.65f), CircleShape)
-                    .padding(horizontal = 12.dp, vertical = 4.dp)
+                    .fillMaxWidth()
+                    .padding(horizontal = 18.dp, vertical = 18.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(
-                    text = "STAGE BRIEFING",
-                    color = Color(0xFFFACC15),
-                    fontSize = 9.5.sp,
-                    fontWeight = FontWeight.Black,
-                    letterSpacing = 1.4.sp
-                )
-            }
+                StudioHeaderBadge(
+                    accentColor = Color(0xFFFACC15),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        text = "STAGE BRIEFING",
+                        color = Color(0xFFFACC15),
+                        fontSize = 9.5.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 1.4.sp
+                    )
+                }
 
             Spacer(modifier = Modifier.height(6.dp))
 
@@ -671,6 +669,7 @@ fun TouchControlHintBanner(
                     fontSize = 10.5.sp
                 )
             }
+            }
         }
     }
 }
@@ -685,7 +684,7 @@ private fun QuickHintRow(
 ) {
     StudioGlassCard(
         accentColor = badgeColor,
-        shape = RoundedCornerShape(14.dp),
+        shape = CutCornerShape(12.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(

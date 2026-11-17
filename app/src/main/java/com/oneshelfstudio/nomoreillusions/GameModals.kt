@@ -9,6 +9,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.CutCornerShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
@@ -152,12 +153,9 @@ fun GameOverUI(
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
         ) {
-            Box(
-                modifier = Modifier
-                    .clip(CircleShape)
-                    .background(Color(0xFF4ADE80).copy(alpha = 0.14f))
-                    .border(1.dp, Color(0xFF4ADE80).copy(alpha = 0.65f), CircleShape)
-                    .padding(horizontal = 12.dp, vertical = 4.dp)
+            StudioHeaderBadge(
+                accentColor = Color(0xFF4ADE80),
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
             ) {
                 Text(
                     text = trackLabel.uppercase(),
@@ -391,12 +389,9 @@ fun LevelCompleteUI(
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState())
             ) {
-                Box(
-                    modifier = Modifier
-                        .clip(CircleShape)
-                        .background(Color(0xFF4ADE80).copy(alpha = 0.16f))
-                        .border(1.dp, Color(0xFF4ADE80).copy(alpha = 0.70f), CircleShape)
-                        .padding(horizontal = 12.dp, vertical = 4.dp)
+                StudioHeaderBadge(
+                    accentColor = Color(0xFF4ADE80),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
                 ) {
                     Text(
                         text = "TRACK 0$trackIndex UNVEILED • \"${currentTrack.title.uppercase()}\"",
@@ -757,9 +752,9 @@ private fun VictoryStatChip(
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = modifier
-            .clip(RoundedCornerShape(10.dp))
+            .clip(CutCornerShape(8.dp))
             .background(Color(0xFF060C1A))
-            .border(1.dp, accent.copy(alpha = 0.42f), RoundedCornerShape(10.dp))
+            .border(1.dp, accent.copy(alpha = 0.48f), CutCornerShape(8.dp))
             .padding(vertical = 7.dp, horizontal = 4.dp)
     ) {
         Text(

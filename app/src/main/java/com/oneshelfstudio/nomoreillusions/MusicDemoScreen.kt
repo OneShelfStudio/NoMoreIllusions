@@ -241,16 +241,9 @@ fun MusicDemoScreen(
                 onBack = onBack,
                 accentColor = Color(0xFFFACC15),
                 trailingContent = {
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(50))
-                            .background(
-                                Brush.verticalGradient(
-                                    listOf(Color(0xF510233D), Color(0xF5060E1A))
-                                )
-                            )
-                            .border(1.2.dp, Color(0xFFFACC15L).copy(alpha = 0.75f), RoundedCornerShape(50))
-                            .padding(horizontal = 12.dp, vertical = 6.dp)
+                    StudioHeaderBadge(
+                        accentColor = Color(0xFFFACC15L),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
                     ) {
                         Text(
                             text = "%,d ♪".format(localPoints),
@@ -539,60 +532,20 @@ fun MusicDemoScreen(
                         modifier = Modifier.weight(1f)
                     )
                     Spacer(modifier = Modifier.width(10.dp))
-                    Row(
-                        modifier = Modifier
-                            .width(126.dp)
-                            .height(32.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFF060C18L))
-                            .border(1.dp, Color.White.copy(alpha = 0.18f), CircleShape)
-                            .padding(2.dp)
-                    ) {
-                        val isList = localMode == TrackListMode.LIST
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .fillMaxHeight()
-                                .clip(CircleShape)
-                                .background(
-                                    if (isList) Brush.verticalGradient(listOf(Color(0xFF22C55EL), Color(0xFF15803DL)))
-                                    else Brush.verticalGradient(listOf(Color.Transparent, Color.Transparent))
-                                )
-                                .clickable { localMode = TrackListMode.LIST; pushMeta() },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "LIST",
-                                color = Color.White,
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Black,
-                                maxLines = 1,
-                                softWrap = false
-                            )
-                        }
-                        val isGrid = localMode == TrackListMode.GRID
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .fillMaxHeight()
-                                .clip(CircleShape)
-                                .background(
-                                    if (isGrid) Brush.verticalGradient(listOf(Color(0xFF22C55EL), Color(0xFF15803DL)))
-                                    else Brush.verticalGradient(listOf(Color.Transparent, Color.Transparent))
-                                )
-                                .clickable { localMode = TrackListMode.GRID; pushMeta() },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "GRID",
-                                color = Color.White,
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Black,
-                                maxLines = 1,
-                                softWrap = false
-                            )
-                        }
-                    }
+                    StudioSegmentedSwitcher(
+                        options = listOf(
+                            Triple("LIST", StudioPillPalette.EMERALD_STAGE, Color(0xFF4ADE80L)),
+                            Triple("GRID", StudioPillPalette.CYAN_SYNTH, Color(0xFF38BDF8L))
+                        ),
+                        selectedIndex = if (localMode == TrackListMode.GRID) 1 else 0,
+                        onSelect = { idx ->
+                            localMode = if (idx == 1) TrackListMode.GRID else TrackListMode.LIST
+                            pushMeta()
+                        },
+                        modifier = Modifier.width(134.dp),
+                        height = 34.dp,
+                        fontSize = 10.sp
+                    )
                 }
 
                 Spacer(modifier = Modifier.height(10.dp))

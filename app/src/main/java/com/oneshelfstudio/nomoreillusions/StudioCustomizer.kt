@@ -7,7 +7,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.CutCornerShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
@@ -53,7 +53,6 @@ fun StudioCustomizerSuite(
     btnPillGreen: ImageBitmap,
     modifier: Modifier = Modifier
 ) {
-    val haptics = rememberStudioHaptics()
     var bgTheme by remember(customBgTheme) { mutableStateOf(customBgTheme) }
     var heroSkin by remember(customHeroSkin) { mutableStateOf(customHeroSkin) }
     var enemyStyle by remember(customEnemyStyle) { mutableStateOf(customEnemyStyle) }
@@ -126,7 +125,7 @@ fun StudioCustomizerSuite(
                     lockedPreviewApply = null
                     statusBanner = "UNLOCKED & EQUIPPED $label FOR $cost ♪ NOTES!"
                 } else {
-                    statusBanner = "NEED $cost ♪ NOTES — PLAY OR WATCH AN AD (+150 ♪) TO UNLOCK!"
+                    statusBanner = "NEED $cost ♪ NOTES — PLAY OR WATCH AN AD (+50 ♪) TO UNLOCK!"
                 }
             }
             statusBanner = if (pulsePoints >= cost) {
@@ -214,76 +213,31 @@ fun StudioCustomizerSuite(
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
         ) {
-            // Top Fan Shop Bar: Watch Ad (+150 ♪ Notes) + Artist VIP Testing Passcode Button
+            // Top Fan Shop Bar: Watch Ad (+50 ♪ Notes) + Artist VIP Testing Passcode Plaque
             Row(
                 verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Box(
-                    modifier = Modifier
-                        .weight(1.25f)
-                        .height(38.dp)
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(
-                            Brush.horizontalGradient(
-                                listOf(Color(0xFF15803DL), Color(0xFF059669L))
-                            )
-                        )
-                        .border(1.2.dp, Color(0xFF4ADE80L), RoundedCornerShape(10.dp))
-                        .clickable {
-                            haptics.confirm()
-                            onWatchAdForNotes()
-                            statusBanner = "+50 ♪ MUSIC NOTES EARNED!"
-                        }
-                        .padding(horizontal = 10.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "▶ WATCH AD (+50 ♪ NOTES)",
-                        color = Color.White,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Black,
-                        maxLines = 1,
-                        softWrap = false,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-
-                Spacer(modifier = Modifier.width(12.dp))
-
-                Box(
-                    modifier = Modifier
-                        .weight(0.95f)
-                        .height(38.dp)
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(
-                            if (isVipUnlocked) {
-                                Brush.horizontalGradient(listOf(Color(0xFFB45309L), Color(0xFFD97706L)))
-                            } else {
-                                Brush.horizontalGradient(listOf(Color(0xFF1E1B4BL), Color(0xFF312E81L)))
-                            }
-                        )
-                        .border(
-                            1.2.dp,
-                            if (isVipUnlocked) Color(0xFFFACC15L) else Color(0xFF818CF8L),
-                            RoundedCornerShape(10.dp)
-                        )
-                        .clickable {
-                            haptics.tick()
-                            showPasscodeModal = true
-                        }
-                        .padding(horizontal = 10.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = if (isVipUnlocked) "★ VIP ACTIVE" else "★ VIP PASSCODE",
-                        color = if (isVipUnlocked) Color(0xFFFEF08AL) else Color(0xFFC7D2FEL),
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Black,
-                        maxLines = 1,
-                        softWrap = false
-                    )
-                }
+                StudioPillButton(
+                    text = "▶ WATCH AD (+50 ♪)",
+                    palette = StudioPillPalette.EMERALD_STAGE,
+                    onClick = {
+                        onWatchAdForNotes()
+                        statusBanner = "+50 ♪ MUSIC NOTES EARNED!"
+                    },
+                    modifier = Modifier.weight(1.22f),
+                    height = 40.dp,
+                    fontSize = 10.5.sp
+                )
+                StudioPillButton(
+                    text = if (isVipUnlocked) "★ VIP ACTIVE" else "★ VIP PASSCODE",
+                    palette = if (isVipUnlocked) StudioPillPalette.SOLAR_GOLD else StudioPillPalette.VELVET_AMETHYST,
+                    onClick = { showPasscodeModal = true },
+                    modifier = Modifier.weight(0.98f),
+                    height = 40.dp,
+                    fontSize = 10.5.sp
+                )
             }
 
             if (statusBanner != null) {
@@ -394,113 +348,42 @@ fun StudioCustomizerSuite(
                     modifier = Modifier
                         .align(Alignment.TopCenter)
                         .padding(top = 10.dp)
-                        .clip(RoundedCornerShape(50))
-                        .background(Color.Black.copy(alpha = 0.74f))
-                        .border(1.dp, Color(previewStageFx?.accentHex ?: 0xFF22C55EL).copy(alpha = 0.65f), RoundedCornerShape(50))
-                        .padding(horizontal = 14.dp, vertical = 5.dp)
                 ) {
                     val badgeText = when {
                         previewStageFx != null -> "✦ LIVE FX: ${previewStageFx!!.title.uppercase()}"
                         lockedPreviewLabel != null -> "✦ PREVIEWING: $lockedPreviewLabel"
                         else -> "DRAG CORE TO TEST PREVIEW"
                     }
-                    Text(
-                        text = badgeText,
-                        color = Color(previewStageFx?.accentHex ?: 0xFF4ADE80L),
-                        fontSize = 9.sp,
-                        fontWeight = FontWeight.Black,
-                        letterSpacing = 0.6.sp
-                    )
+                    StudioHeaderBadge(
+                        accentColor = Color(previewStageFx?.accentHex ?: 0xFF22C55EL),
+                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 5.dp)
+                    ) {
+                        Text(
+                            text = badgeText,
+                            color = Color(previewStageFx?.accentHex ?: 0xFF4ADE80L),
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Black,
+                            letterSpacing = 0.6.sp
+                        )
+                    }
                 }
             }
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // 3-Segment Switcher: Stage FX Orbs | Stage Palettes | Hero Cores
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(44.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(Color(0xFF070D1CL))
-                    .border(1.2.dp, Color.White.copy(alpha = 0.16f), RoundedCornerShape(16.dp))
-                    .padding(4.dp)
-            ) {
-                val fxSel = selectedCategoryIndex == 0
-                Box(
-                    modifier = Modifier
-                        .weight(1.08f)
-                        .fillMaxHeight()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(
-                            if (fxSel) Brush.horizontalGradient(listOf(Color(0xFF7C3AEDL), Color(0xFF0284C7L)))
-                            else Brush.horizontalGradient(listOf(Color.Transparent, Color.Transparent))
-                        )
-                        .clickable {
-                            haptics.tick()
-                            selectedCategoryIndex = 0
-                        },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "✦ STAGE FX",
-                        color = if (fxSel) Color.White else Color(0xFF94A3B8L),
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Black,
-                        letterSpacing = 0.4.sp
-                    )
-                }
-
-                val palettesSel = selectedCategoryIndex == 1
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(
-                            if (palettesSel) Brush.horizontalGradient(listOf(Color(0xFF0284C7L), Color(0xFF4338CAL)))
-                            else Brush.horizontalGradient(listOf(Color.Transparent, Color.Transparent))
-                        )
-                        .clickable {
-                            haptics.tick()
-                            selectedCategoryIndex = 1
-                        },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "PALETTES",
-                        color = if (palettesSel) Color.White else Color(0xFF94A3B8L),
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Black,
-                        letterSpacing = 0.4.sp
-                    )
-                }
-
-                val coresSel = selectedCategoryIndex == 2
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(
-                            if (coresSel) Brush.horizontalGradient(listOf(Color(0xFF16A34AL), Color(0xFF0D9488L)))
-                            else Brush.horizontalGradient(listOf(Color.Transparent, Color.Transparent))
-                        )
-                        .clickable {
-                            haptics.tick()
-                            selectedCategoryIndex = 2
-                        },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "CORES",
-                        color = if (coresSel) Color.White else Color(0xFF94A3B8L),
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Black,
-                        letterSpacing = 0.4.sp
-                    )
-                }
-            }
+            // 3-Segment Bespoke Switcher: Stage FX | Palettes | Cores
+            StudioSegmentedSwitcher(
+                options = listOf(
+                    Triple("✦ STAGE FX", StudioPillPalette.VELVET_AMETHYST, Color(0xFFC084FCL)),
+                    Triple("PALETTES", StudioPillPalette.CYAN_SYNTH, Color(0xFF38BDF8L)),
+                    Triple("CORES", StudioPillPalette.EMERALD_STAGE, Color(0xFF4ADE80L))
+                ),
+                selectedIndex = selectedCategoryIndex,
+                onSelect = { selectedCategoryIndex = it },
+                modifier = Modifier.fillMaxWidth(),
+                height = 44.dp,
+                fontSize = 10.sp
+            )
 
             Spacer(modifier = Modifier.height(14.dp))
 
@@ -549,7 +432,7 @@ fun StudioCustomizerSuite(
                                             lockedPreviewApply = null
                                             statusBanner = "UNLOCKED ${fx.title.uppercase()} FX ORB FOR ${fx.costNotes} ♪!"
                                         } else {
-                                            statusBanner = "NEED ${fx.costNotes} ♪ NOTES — PLAY OR WATCH AD (+150 ♪) TO UNLOCK!"
+                                            statusBanner = "NEED ${fx.costNotes} ♪ NOTES — PLAY OR WATCH AD (+50 ♪) TO UNLOCK!"
                                         }
                                     }
                                     statusBanner = "PREVIEWING ${fx.title.uppercase()} — TAP UNLOCK ABOVE (${fx.costNotes} ♪)"
